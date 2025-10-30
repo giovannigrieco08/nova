@@ -1400,6 +1400,51 @@ LiquidGlassSettings(
 ```
 **Usage:** Event cards in feed, comment cards, standard elevated elements
 
+#### ⚠️ Light Mode Visibility Warning
+
+**Potenziale Issue:** Glass con `Color(0x18FFFFFF)` (9% white opacity) su sfondo bianco potrebbe essere **quasi invisibile**.
+
+**Test Obbligatorio Prima di Produzione:**
+
+1. Implementa primo example (Event Card)
+2. Testa su sfondo bianco puro (`Color(0xFFFFFFFF)`)
+3. Chiedi feedback a 3+ utenti teenager: "Vedi effetto vetro?"
+
+**Se effetto non visibile, aumenta opacity:**
+```dart
+// Fallback se 9% troppo sottile
+glassColor: Color(0x20FFFFFF),  // 12% opacity (più visibile)
+// oppure
+glassColor: Color(0x28FFFFFF),  // 15% opacity (ancora più visibile)
+```
+
+**Alternative per migliorare visibilità light mode:**
+```dart
+// Opzione A: Aumenta outline intensity
+outlineIntensity: 0.6,  // Era 0.4, bordo più visibile
+
+// Opzione B: Aggiungi shadow
+// In NovaGlassCard wrapper, avvolgi in Container:
+Container(
+  decoration: BoxDecoration(
+    boxShadow: NovaShadows.small,  // Shadow aiuta separazione
+  ),
+  child: LiquidGlass(...),
+)
+
+// Opzione C: Usa tint colorato invece di bianco
+glassColor: NovaColors.primary.withOpacity(0.08),  // Viola 8%
+```
+
+**Best Practice:**
+- Dark mode: Glass più evidente (users si aspettano effetto)
+- Light mode: Glass più sottile (ma deve essere comunque percepibile)
+- Regola d'oro: Se devi "cercare" l'effetto, opacity troppo bassa
+
+**Validazione finale:** Screenshot side-by-side light/dark e chiedi: "Quale è più bello?" a studenti target.
+
+---
+
 **Medium (Profile Header, Modals):**
 ```dart
 LiquidGlassSettings(
