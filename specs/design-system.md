@@ -1100,17 +1100,119 @@ Container(
 
 ### 7.2 Installation
 
+> ⚠️ **CRITICAL: Dependency Risk Management**
+>
+> `liquid_glass_renderer` è attualmente in **versione DEV** (0.1.1-dev.10).
+>
+> **Rischi:**
+> - API può cambiare senza preavviso
+> - Package potrebbe essere abbandonato
+> - No garanzie semantic versioning per dev releases
+>
+> **Mitigazioni obbligatorie:**
+
+#### Step 1: Blocca versione esatta (NO caret ^)
+
+Aggiungi a `pubspec.yaml`:
+
 ```yaml
-# pubspec.yaml
 dependencies:
-  liquid_glass_renderer: ^0.1.1-dev.10
+  liquid_glass_renderer: 0.1.1-dev.10  # Versione bloccata, NO ^
 ```
 
-```bash
-flutter pub get
+✅ **Corretto:** `0.1.1-dev.10` (versione esatta)
+❌ **Sbagliato:** `^0.1.1-dev.10` (range instabile)
+
+#### Step 2: USA SEMPRE abstraction layer
+
+**Non usare mai `LiquidGlass` direttamente** - usa SOLO `NovaGlassCard` wrapper:
+
+```dart
+// ✅ CORRETTO - Usa wrapper (isola dependency)
+NovaGlassCard(
+  level: GlassLevel.subtle,
+  child: EventCard(),
+)
+
+// ❌ VIETATO - Non usare direttamente
+LiquidGlass(
+  settings: LiquidGlassSettings(...),  // Accoppiamento stretto = rischio
+  child: EventCard(),
+)
 ```
 
-**No additional setup required** - works out of the box with Impeller (enabled by default in Flutter 3.10+).
+#### Step 3: Monitora package health
+
+Prima di ogni implementazione major, verifica:
+- GitHub last commit date (se >6 mesi → rischio abbandono)
+- Open issues count
+- Maintainer responsiveness
+- Alternative packages disponibili
+
+#### Step 4: Implementa fallback
+
+In `lib/core/widgets/nova_glass.dart`, aggiungi fallback:
+
+```dart
+import 'dart:ui' show ImageFilter;
+
+class NovaGlassCard extends StatelessWidget {
+  final Widget child;
+  final GlassLevel level;
+  final double borderRadius;
+
+  const NovaGlassCard({
+    required this.child,
+    this.level = GlassLevel.subtle,
+    this.borderRadius = NovaRadius.m,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    try {
+      // Prova liquid glass
+      return LiquidGlass(
+        settings: NovaGlass.getSettings(context, level),
+        shape: LiquidRoundedSuperellipse(
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+        child: child,
+      );
+    } catch (e) {
+      // Fallback sicuro se package si rompe
+      debugPrint('LiquidGlass failed, using BackdropFilter fallback: $e');
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: child,
+          ),
+        ),
+      );
+    }
+  }
+}
+```
+
+#### Fallback Plan (se package abbandonato)
+
+Se `liquid_glass_renderer` diventa non mantenuto:
+
+**Opzione A:** Usa `BackdropFilter` nativo Flutter (garantito stabile)
+**Opzione B:** Migra a `glassmorphism` package (se diventa più maturo)
+**Opzione C:** Implementa custom shader (richiede expertise GLSL)
+
+**Decisione:** `NovaGlassCard` abstraction permette cambio interno senza toccare UI code.
 
 ### 7.3 Core Concepts
 
