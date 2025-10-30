@@ -1,0 +1,31 @@
+{
+  "name": "nova_def",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sb": "supabase",
+    "supabase:init": "supabase init",
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link",
+    "supabase:status": "supabase status",
+    "supabase:functions:new": "supabase functions new",
+    "supabase:functions:serve": "supabase functions serve",
+    "supabase:functions:deploy": "supabase functions deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/giovannigrieco08/nova.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/giovannigrieco08/nova/issues"
+  },
+  "homepage": "https://github.com/giovannigrieco08/nova#readme",
+  "devDependencies": {
+    "supabase": "^2.54.11"
+  }
+}

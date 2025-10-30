@@ -4,6 +4,13 @@
 .env.development
 .env.production
 
+# Supabase CLI
+.supabase/
+
+# Node.js
+node_modules/
+package-lock.json
+
 # Flutter/Dart
 nova/.dart_tool/
 nova/.packages

@@ -2,9 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  // Ensure Flutter binding is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase BEFORE runApp
+  await SupabaseConfig.initialize();
+
   runApp(
     // ProviderScope wraps entire app for Riverpod
     const ProviderScope(
@@ -41,6 +48,18 @@ class NovaApp extends StatelessWidget {
                 style: Theme.of(context).textTheme.displayLarge,
               ),
               const SizedBox(height: 16),
+              Text(
+                '✅ Supabase Connected',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'URL: ${SupabaseConfig.supabaseUrl.substring(0, 30)}...',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 24),
               Text(
                 'Design system classes implemented',
                 style: Theme.of(context).textTheme.bodyLarge,
