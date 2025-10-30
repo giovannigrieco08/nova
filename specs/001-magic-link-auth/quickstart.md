@@ -86,7 +86,55 @@ Once your project is ready:
 4. **Copy**:
    - **Connection String (URI)**: Used for Supabase CLI
 
-### 1.3 Configure Authentication Settings
+### 1.3 Setup Local Credentials
+
+**SECURITY NOTICE**: Never commit credentials to Git. Follow these steps carefully.
+
+1. **Copy the environment template**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Get Supabase credentials**:
+   - Navigate to Settings → API in your Supabase Dashboard
+   - Copy:
+     - Project URL: `https://your-project-ref.supabase.co`
+     - Project Reference ID: `your-project-ref`
+     - Anon (public) key: `eyJhbGci...`
+     - Service Role (secret) key: `eyJhbGci...`
+
+3. **Generate Personal Access Token**:
+   - Navigate to: https://supabase.com/dashboard/account/tokens
+   - Click "Generate new token"
+   - Name: `Nova Development`
+   - Scopes: Select all (or minimum: project read/write)
+   - **Copy the token immediately** (shown only once)
+
+4. **Fill `.env` file** with your actual values:
+   ```env
+   SUPABASE_PROJECT_REF=your-project-reference-id
+   SUPABASE_URL=https://your-project-ref.supabase.co
+   SUPABASE_ANON_KEY=your_anon_public_key_here
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_secret_key_here
+   SUPABASE_ACCESS_TOKEN=your_personal_access_token_here
+   MAILER_OTP_EXP=900
+   REFRESH_TOKEN_EXPIRY=2592000
+   ```
+
+5. **Verify `.env` is git-ignored**:
+   ```bash
+   git check-ignore .env
+   # Should output: .env
+   ```
+
+6. **Read credential management documentation**:
+   - See [CREDENTIALS.md](../../../CREDENTIALS.md) for:
+     - Credential types and security levels
+     - Rotation procedures
+     - Team onboarding instructions
+     - Security best practices
+
+### 1.4 Configure Authentication Settings
 
 1. **Navigate to** Authentication → Providers
 2. **Enable Email Provider**:
@@ -113,44 +161,54 @@ Once your project is ready:
 
 ### 2.1 Set Magic Link Expiration (15 Minutes)
 
-**Option A: Via Management API** (Recommended)
+**Via Management API** (uses Personal Access Token from Step 1.3):
 
-1. **Get Management API Token**:
-   - Navigate to Settings → API
-   - Find "Service Role Key" (keep this secret!)
+1. **Ensure you have `SUPABASE_ACCESS_TOKEN` in `.env`** (from Step 1.3, item 3)
 
-2. **Run curl command** (replace placeholders):
+2. **Run curl command**:
    ```bash
-   curl -X PATCH "https://api.supabase.com/v1/projects/YOUR_PROJECT_REF/config/auth" \
-     -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
+   curl -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
      -H "Content-Type: application/json" \
-     -d '{
-       "MAILER_OTP_EXP": 900
-     }'
+     -d '{"mailer_otp_exp": 900}'
    ```
 
-   **Expected response**: `{"MAILER_OTP_EXP": 900}`
+   **Important**: Use lowercase `mailer_otp_exp` (not uppercase)
 
-**Option B: Via Supabase CLI** (Alternative)
+3. **Verify configuration**:
+   ```bash
+   curl -X GET "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+     | grep mailer_otp_exp
+   ```
+
+   **Expected output**: `"mailer_otp_exp":900`
+
+### 2.2 Configure Refresh Token Expiration (30 Days)
+
+**Manual Dashboard Configuration** (Management API does not expose this setting):
+
+1. **Navigate to**: Authentication → Settings → Session Settings
+   - URL: `https://supabase.com/dashboard/project/YOUR_PROJECT_REF/auth/settings`
+
+2. **Set "Refresh token time to live"**: `2592000` seconds (30 days)
+
+3. **Save changes**
+
+### 2.3 Verify Configuration
+
+Run the verification script to confirm all settings:
 
 ```bash
-supabase projects api-settings --project-ref YOUR_PROJECT_REF update \
-  --mailer-otp-exp 900
+bash scripts/verify_supabase_config.sh
 ```
 
-### 2.2 Set Refresh Token Expiration (30 Days)
+**Expected output**: All checks should pass with green ✓ marks
 
-**Via Management API**:
-```bash
-curl -X PATCH "https://api.supabase.com/v1/projects/YOUR_PROJECT_REF/config/auth" \
-  -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "REFRESH_TOKEN_EXPIRY": "2592000s"
-  }'
-```
-
-**Verification**: Refresh token expiration is now 30 days (2,592,000 seconds)
+**If any checks fail**:
+- Check `.env` file has all required variables
+- Verify `SUPABASE_ACCESS_TOKEN` is a Personal Access Token (not Service Role Key)
+- Ensure email provider is enabled in Authentication → Providers
 
 ### 2.3 Configure Rate Limiting (Optional)
 
