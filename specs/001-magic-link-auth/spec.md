@@ -5,6 +5,13 @@
 **Status**: Draft
 **Input**: User description: "Passwordless magic link authentication for Nova students with @galileimoro.edu.it email domain validation, 30-day sessions, Supabase Auth backend, including first login, returning user, session expired, and manual logout flows"
 
+## Clarifications
+
+### Session 2025-10-30
+
+- Q: When a student clicks the magic link but doesn't have the Nova app installed yet, what should happen? → A: Show web landing page with "Download Nova" button (links to app store), after install user must request new magic link (Option B)
+- Q: What authentication events should be logged for security monitoring and troubleshooting? → A: Log all authentication events: successful logins, failures, logout actions, session expirations with timestamps, user email (hashed), and device metadata (Option B)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - First-Time Student Login (Priority: P1)
@@ -96,6 +103,8 @@ A student who is currently authenticated navigates to the app's Settings screen,
 
 - **What happens when the Supabase Auth service is temporarily down during magic link send?** The system shows an error message "Unable to send magic link. Please try again in a few moments" after a 10-second timeout.
 
+- **What happens when a student clicks a magic link but doesn't have the Nova app installed?** The magic link opens a web landing page showing Nova branding, an explanation that the app is required, and a "Download Nova" button linking to the appropriate app store (Google Play for Android, App Store for iOS). After installing the app, the student must request a new magic link.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -118,6 +127,8 @@ A student who is currently authenticated navigates to the app's Settings screen,
 
 - **FR-009**: System MUST bypass the login screen for users with active sessions (authenticated within the last 30 days) and navigate directly to the main feed screen on app launch
 
+- **FR-010**: System MUST provide a web landing page for magic links clicked without the app installed, displaying Nova branding, an explanation that the app is required, and platform-specific "Download Nova" buttons linking to Google Play Store (Android) and Apple App Store (iOS), with magic links expiring normally (user must request new link after app installation)
+
 ### Non-Functional Requirements
 
 - **NFR-001**: Login flow MUST be optimized for 14-19 year old students with a modern, Instagram-inspired UI aesthetic using the Nova design system (NovaColors, NovaSpacing, NovaTypography, NovaGlassCard)
@@ -129,6 +140,8 @@ A student who is currently authenticated navigates to the app's Settings screen,
 - **NFR-004**: Authentication flow MUST work offline-first for already-authenticated users (cached session validation) with graceful degradation showing "No internet connection" messages for unauthenticated users
 
 - **NFR-005**: Magic link email template MUST be mobile-responsive, branded with Nova identity, and render correctly across email clients (Gmail, Outlook, Apple Mail) with a clear, prominent "Open Nova" button
+
+- **NFR-006**: Authentication system MUST provide observable metrics for monitoring and troubleshooting, including authentication success/failure rates, average authentication latency, rate limiting trigger frequency, and session duration distributions, enabling operational teams to detect and diagnose authentication issues proactively
 
 ### Security Requirements
 
@@ -143,6 +156,8 @@ A student who is currently authenticated navigates to the app's Settings screen,
 - **SEC-005**: System MUST implement Supabase Row-Level Security (RLS) policies ensuring each authenticated user can only access their own data (user profile, event RSVPs, comments)
 
 - **SEC-006**: System MUST rate-limit magic link requests to maximum 3 requests per email address per 15-minute sliding window, displaying "Too many requests" error and countdown timer for blocked users
+
+- **SEC-007**: System MUST log all authentication events for security monitoring and audit purposes, including: successful authentications (with timestamp, hashed email, device metadata), failed authentication attempts (invalid email, expired link, used link, rate limiting), manual logout actions, and automatic session expirations, while excluding sensitive data like magic link tokens or session tokens from logs
 
 ### Privacy Requirements
 
@@ -207,6 +222,10 @@ The following assumptions have been made in the absence of explicit clarificatio
 8. **Rate Limiting Parameters**: Per clarification Q2, we assume the rate limit is set to 3 magic link requests per email per 15-minute sliding window (recommended option A). This balances user convenience with protection against abuse.
 
 9. **Auto-Registration Policy**: Per clarification Q3, we assume any email matching @galileimoro.edu.it domain is automatically approved for account creation upon first magic link authentication (recommended option A). No pre-registration whitelist or manual approval is required.
+
+10. **Authentication Event Logging**: Per clarification (Session 2025-10-30), we assume authentication logs include all events (successful logins, failures, logout actions, session expirations) with timestamps, hashed email addresses, and device metadata. We further assume logs are retained for 90 days for security auditing and GDPR compliance, after which they are automatically purged.
+
+11. **App-Not-Installed Fallback**: Per clarification (Session 2025-10-30), we assume magic links clicked without the app installed will open a web landing page with "Download Nova" buttons for both Google Play Store and Apple App Store. The magic link expires normally (15 minutes), requiring users to request a new link after app installation.
 
 ## Constitution Check
 
