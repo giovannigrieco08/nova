@@ -1864,6 +1864,26 @@ Positioned(
 
 ### 7.9 Performance Guidelines
 
+> ⚠️ **Performance Targets Disclaimer**
+>
+> I target di performance dichiarati in questo documento (60fps sustained, <1s feed load, <50MB APK size) sono **obiettivi da validare** durante l'implementazione su dispositivi reali.
+>
+> **Baseline device:** Samsung Galaxy A52 (2021, mid-range Android)
+>
+> **Validazione richiesta:**
+> - [ ] Test frame rendering con Flutter DevTools (target: <16ms per frame)
+> - [ ] Test feed load time con 10-15 glass cards (target: <1s cached)
+> - [ ] Test APK size finale con `flutter build apk --release`
+> - [ ] Test su 3+ dispositivi fisici (low/mid/high-end)
+>
+> I risultati effettivi potrebbero variare in base a:
+> - Hardware dispositivo (GPU, RAM)
+> - Versione Flutter/Impeller
+> - Numero di glass widgets visibili simultaneamente
+> - Complessità background dietro glass
+>
+> **Se performance < target:** Riduci blur intensity, usa meno glass widgets, o implementa fallback BackdropFilter.
+
 **Package Limits:**
 - **Max 64 shapes per `LiquidGlassLayer`**
 - Recommended: 10-15 visible glass widgets simultaneously
