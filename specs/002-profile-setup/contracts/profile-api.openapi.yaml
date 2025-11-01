@@ -1,0 +1,733 @@
+openapi: 3.0.3
+info:
+  title: Nova Profile API
+  description: |
+    REST API for student profile management in Nova school events platform.
+
+    **Authentication**: All endpoints require JWT token from Supabase Auth.
+    **Authorization**: Users can only access/modify their own profiles (enforced by RLS).
+    **Rate Limiting**: Max 10 profile updates/min, max 5 avatar uploads/hour per user.
+  version: 1.0.0
+  contact:
+    name: Nova Development Team
+    email: dev@galileimoro.edu.it
+
+servers:
+  - url: https://[project-ref].supabase.co/rest/v1
+    description: Supabase REST API (production)
+  - url: http://localhost:54321/rest/v1
+    description: Supabase local development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: profiles
+    description: Student profile operations
+  - name: storage
+    description: Avatar upload operations
+
+paths:
+  /profiles:
+    get:
+      summary: Get current user's profile
+      description: Retrieves the authenticated user's profile data
+      tags:
+        - profiles
+      parameters:
+        - name: select
+          in: query
+          description: Fields to select (default: *)
+          schema:
+            type: string
+            default: "*"
+            example: "user_id,full_name,class,avatar_url"
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+              example:
+                - user_id: "11111111-1111-1111-1111-111111111111"
+                  full_name: "Giovanni Rossi"
+                  class: "3A Scientifico"
+                  pronouns: "Lui"
+                  avatar_url: "https://...supabase.co/storage/v1/object/sign/avatars/..."
+                  bio: "Appassionato di fisica e matematica"
+                  created_at: "2025-01-15T10:30:00Z"
+                  updated_at: "2025-01-20T14:45:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Profile not found (user hasn't completed setup)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create new profile (first-time setup)
+      description: |
+        Creates a new profile for the authenticated user during initial onboarding.
+        Called after magic link authentication when no profile exists.
+      tags:
+        - profiles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileCreate'
+            example:
+              user_id: "11111111-1111-1111-1111-111111111111"
+              full_name: "Giovanni Rossi"
+              class: "3A Scientifico"
+              pronouns: "Lui"
+              bio: "Appassionato di fisica e matematica"
+      responses:
+        '201':
+          description: Profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Profile already exists for this user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    patch:
+      summary: Update current user's profile
+      description: |
+        Updates one or more fields of the authenticated user's profile.
+        Supports partial updates (send only changed fields).
+        Auto-save uses this endpoint with 500ms debounce for bio, instant for selections.
+      tags:
+        - profiles
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          description: User ID (must match auth.uid())
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+            examples:
+              update_bio:
+                summary: Update bio only
+                value:
+                  bio: "New bio text here"
+              update_class:
+                summary: Update class only
+                value:
+                  class: "4A Scientifico"
+              update_multiple:
+                summary: Update multiple fields
+                value:
+                  class: "3A Classico"
+                  pronouns: "They"
+                  bio: "Updated bio"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden (trying to update another user's profile)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /profiles/{user_id}:
+    get:
+      summary: Get another student's profile
+      description: |
+        Retrieves a public profile of another verified student (@galileimoro.edu.it).
+        Used for viewing event creator profiles, comment authors, etc.
+      tags:
+        - profiles
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Target user ID
+          schema:
+            type: string
+            format: uuid
+        - name: select
+          in: query
+          description: Fields to select
+          schema:
+            type: string
+            default: "user_id,full_name,class,avatar_url,pronouns,bio"
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfilePublic'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden (user not verified @galileimoro.edu.it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rpc/is_profile_complete:
+    post:
+      summary: Check if profile is complete
+      description: |
+        PostgreSQL function call to check if user has completed profile setup (name AND class exist).
+        Used by app to enforce protected actions (create event, comment, chat).
+      tags:
+        - profiles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                p_user_id:
+                  type: string
+                  format: uuid
+                  description: User ID to check
+              required:
+                - p_user_id
+            example:
+              p_user_id: "11111111-1111-1111-1111-111111111111"
+      responses:
+        '200':
+          description: Profile completion status
+          content:
+            application/json:
+              schema:
+                type: boolean
+                example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /rpc/parse_name_from_email:
+    post:
+      summary: Parse name from email
+      description: |
+        PostgreSQL function call to auto-populate name field from email during setup.
+        Example: giovanni.rossi@galileimoro.edu.it → "Giovanni Rossi"
+      tags:
+        - profiles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email address to parse
+              required:
+                - email
+            example:
+              email: "giovanni.rossi@galileimoro.edu.it"
+      responses:
+        '200':
+          description: Parsed name (or null if unparsable)
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+                example: "Giovanni Rossi"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /storage/v1/object/avatars/{user_id}/{filename}:
+    post:
+      summary: Upload avatar image
+      description: |
+        Uploads a new avatar image to Supabase Storage.
+
+        **Flow**:
+        1. Client crops image to square (1:1 ratio) using `image` package
+        2. Client uploads to `/avatars/{user_id}/{timestamp}.jpg`
+        3. Server scans for viruses (ClamAV automatic)
+        4. Client generates signed URL (1-hour expiry)
+        5. Client updates profile.avatar_url via PATCH /profiles
+      tags:
+        - storage
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User ID (must match auth.uid())
+          schema:
+            type: string
+            format: uuid
+        - name: filename
+          in: path
+          required: true
+          description: Filename format: {user_id}_{timestamp}.jpg
+          schema:
+            type: string
+            pattern: '^[a-f0-9-]+_[0-9]+\.jpg$'
+            example: "11111111-1111-1111-1111-111111111111_1705318000000.jpg"
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+              description: Cropped square image (JPEG, max 5MB)
+          image/png:
+            schema:
+              type: string
+              format: binary
+              description: Cropped square image (PNG, max 5MB)
+          image/webp:
+            schema:
+              type: string
+              format: binary
+              description: Cropped square image (WebP, max 5MB)
+      responses:
+        '200':
+          description: Avatar uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Key:
+                    type: string
+                    description: Storage path
+                    example: "avatars/11111111-1111-1111-1111-111111111111/11111111-1111-1111-1111-111111111111_1705318000000.jpg"
+        '400':
+          description: Bad request (file too large, invalid MIME type)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden (trying to upload to another user's folder)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Payload too large (max 5MB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /storage/v1/object/sign/avatars/{user_id}/{filename}:
+    post:
+      summary: Generate signed URL for avatar
+      description: |
+        Generates a signed URL for accessing an uploaded avatar (1-hour expiry).
+        Used after upload to get a temporary public URL.
+      tags:
+        - storage
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expiresIn:
+                  type: integer
+                  description: Expiry time in seconds (max 3600 = 1 hour)
+                  default: 3600
+              required:
+                - expiresIn
+            example:
+              expiresIn: 3600
+      responses:
+        '200':
+          description: Signed URL generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signedURL:
+                    type: string
+                    format: uri
+                    description: Temporary signed URL (1-hour expiry)
+                    example: "https://...supabase.co/storage/v1/object/sign/avatars/...?token=..."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token from Supabase Auth (magic link authentication).
+        Include in Authorization header: `Bearer <token>`
+
+  schemas:
+    Profile:
+      type: object
+      description: Complete profile object (internal use)
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Unique user identifier (FK to auth.users)
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-Z\u00C0-\u017F\s''-]{2,50}$'
+          description: Student's full name
+          example: "Giovanni Rossi"
+        class:
+          type: string
+          maxLength: 20
+          enum:
+            - "1A Scientifico"
+            - "1B Scientifico"
+            - "1C Scientifico"
+            - "1D Scientifico"
+            - "1F Scientifico"
+            - "2A Scientifico"
+            - "2B Scientifico"
+            - "2C Scientifico"
+            - "2D Scientifico"
+            - "2F Scientifico"
+            - "3A Scientifico"
+            - "3B Scientifico"
+            - "3C Scientifico"
+            - "3D Scientifico"
+            - "3F Scientifico"
+            - "4A Scientifico"
+            - "4B Scientifico"
+            - "4C Scientifico"
+            - "4D Scientifico"
+            - "4F Scientifico"
+            - "5A Scientifico"
+            - "5B Scientifico"
+            - "5C Scientifico"
+            - "5D Scientifico"
+            - "5F Scientifico"
+            - "1A Classico"
+            - "1B Classico"
+            - "2A Classico"
+            - "2B Classico"
+            - "3A Classico"
+            - "3B Classico"
+            - "4A Classico"
+            - "4B Classico"
+            - "5A Classico"
+            - "5B Classico"
+          description: Student's school class
+          example: "3A Scientifico"
+        pronouns:
+          type: string
+          nullable: true
+          maxLength: 30
+          enum:
+            - "Lui"
+            - "Lei"
+            - "They"
+            - "Altro"
+            - "Preferisco non dire"
+            - null
+          description: Optional pronouns (null = "Non specificato")
+          example: "Lui"
+        avatar_url:
+          type: string
+          nullable: true
+          format: uri
+          description: Signed URL to avatar in Supabase Storage (1-hour expiry)
+          example: "https://...supabase.co/storage/v1/object/sign/avatars/...?token=..."
+        bio:
+          type: string
+          nullable: true
+          maxLength: 150
+          pattern: '^[a-zA-Z0-9\s\u00C0-\u017F.,!?''"-🎨🚀💡📚]*$'
+          description: Optional bio text (max 150 chars, sanitized)
+          example: "Appassionato di fisica e matematica 🎨"
+        created_at:
+          type: string
+          format: date-time
+          description: Profile creation timestamp
+          example: "2025-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp (auto-updated)
+          example: "2025-01-20T14:45:00Z"
+      required:
+        - user_id
+        - full_name
+        - class
+        - created_at
+        - updated_at
+
+    ProfileCreate:
+      type: object
+      description: Request body for creating new profile
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Must match auth.uid()
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-Z\u00C0-\u017F\s''-]{2,50}$'
+        class:
+          type: string
+          maxLength: 20
+          description: Required for completion, but can be NULL initially (skip flow)
+          example: "3A Scientifico"
+        pronouns:
+          type: string
+          nullable: true
+          enum: ["Lui", "Lei", "They", "Altro", "Preferisco non dire", null]
+        bio:
+          type: string
+          nullable: true
+          maxLength: 150
+      required:
+        - user_id
+        - full_name
+
+    ProfileUpdate:
+      type: object
+      description: Request body for updating profile (partial updates allowed)
+      properties:
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-Z\u00C0-\u017F\s''-]{2,50}$'
+        class:
+          type: string
+          maxLength: 20
+        pronouns:
+          type: string
+          nullable: true
+          enum: ["Lui", "Lei", "They", "Altro", "Preferisco non dire", null]
+        avatar_url:
+          type: string
+          nullable: true
+          format: uri
+        bio:
+          type: string
+          nullable: true
+          maxLength: 150
+      minProperties: 1
+      additionalProperties: false
+
+    ProfilePublic:
+      type: object
+      description: Public profile view (excludes metadata)
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        class:
+          type: string
+        pronouns:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+          format: uri
+        bio:
+          type: string
+          nullable: true
+      required:
+        - user_id
+        - full_name
+        - class
+
+    Error:
+      type: object
+      description: Standard error response
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: "PGRST116"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Could not update profile"
+        details:
+          type: string
+          nullable: true
+          description: Additional error details
+          example: "duplicate key value violates unique constraint"
+        hint:
+          type: string
+          nullable: true
+          description: Suggested fix
+          example: "Profile already exists for this user"
+      required:
+        - code
+        - message
+
+  responses:
+    Unauthorized:
+      description: Unauthorized (missing or invalid JWT token)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "401"
+            message: "JWT expired or invalid"
+            hint: "Re-authenticate via magic link"
+
+    BadRequest:
+      description: Bad request (validation failed)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            name_too_short:
+              summary: Name validation failed
+              value:
+                code: "23514"
+                message: "Check constraint violation"
+                details: "full_name must be 2-50 characters"
+            invalid_class:
+              summary: Invalid class value
+              value:
+                code: "23514"
+                message: "Check constraint violation"
+                details: "class must be one of 35 valid values"
+            bio_too_long:
+              summary: Bio exceeds 150 characters
+              value:
+                code: "23514"
+                message: "Check constraint violation"
+                details: "bio must be <= 150 characters"
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            profile_update_limit:
+              summary: Too many profile updates
+              value:
+                code: "429"
+                message: "Rate limit exceeded"
+                details: "Max 10 profile updates per minute"
+            avatar_upload_limit:
+              summary: Too many avatar uploads
+              value:
+                code: "429"
+                message: "Rate limit exceeded"
+                details: "Max 5 avatar uploads per hour"
+
+  examples:
+    CompleteProfile:
+      summary: Complete profile with all optional fields
+      value:
+        user_id: "11111111-1111-1111-1111-111111111111"
+        full_name: "Giovanni Rossi"
+        class: "3A Scientifico"
+        pronouns: "Lui"
+        avatar_url: "https://...supabase.co/storage/v1/object/sign/avatars/...?token=..."
+        bio: "Appassionato di fisica e matematica 🎨"
+        created_at: "2025-01-15T10:30:00Z"
+        updated_at: "2025-01-20T14:45:00Z"
+
+    MinimalProfile:
+      summary: Minimal profile (required fields only)
+      value:
+        user_id: "22222222-2222-2222-2222-222222222222"
+        full_name: "Maria Bianchi"
+        class: "3A Classico"
+        pronouns: null
+        avatar_url: null
+        bio: null
+        created_at: "2025-01-16T11:00:00Z"
+        updated_at: "2025-01-16T11:00:00Z"
+
+    IncompleteProfile:
+      summary: Incomplete profile (skipped setup, class = NULL)
+      value:
+        user_id: "33333333-3333-3333-3333-333333333333"
+        full_name: "Alex Verdi"
+        class: null
+        pronouns: null
+        avatar_url: null
+        bio: null
+        created_at: "2025-01-17T12:00:00Z"
+        updated_at: "2025-01-17T12:00:00Z"

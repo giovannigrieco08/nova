@@ -1,0 +1,33 @@
+# Supabase Credentials - NEVER COMMIT THESE
+.env*
+!.env.example
+
+# Supabase CLI
+.supabase/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Flutter/Dart
+nova/.dart_tool/
+nova/.packages
+nova/build/
+nova/.flutter-plugins
+nova/.flutter-plugins-dependencies
+nova/pubspec.lock
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+*.log
+*.tmp

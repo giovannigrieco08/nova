@@ -1,0 +1,574 @@
+openapi: 3.0.3
+info:
+  title: Nova Magic Link Authentication API
+  description: |
+    Supabase Auth endpoints for passwordless magic link authentication in Nova school events app.
+    Students authenticate using @galileimoro.edu.it email addresses with 15-minute magic links
+    and 30-day session tokens.
+  version: 1.0.0
+  contact:
+    name: Nova Development Team
+    email: dev@galileimoro.edu.it
+
+servers:
+  - url: https://{project-ref}.supabase.co/auth/v1
+    description: Supabase Auth API
+    variables:
+      project-ref:
+        default: your-project-ref
+        description: Supabase project reference ID
+
+tags:
+  - name: Magic Link
+    description: Magic link request and verification endpoints
+  - name: Session
+    description: Session management (refresh tokens, logout)
+
+paths:
+  /otp:
+    post:
+      tags:
+        - Magic Link
+      summary: Request magic link
+      description: |
+        Send a magic link email to the specified email address. Creates a new user account if the
+        email doesn't exist (auto-signup). Enforces @galileimoro.edu.it domain validation and
+        rate limiting (3 requests per 15 minutes per email).
+      operationId: sendMagicLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  pattern: '^[a-zA-Z0-9._%+-]+@galileimoro\.edu\.it$'
+                  description: Student email address (must be @galileimoro.edu.it domain)
+                  example: mario.rossi@galileimoro.edu.it
+                options:
+                  type: object
+                  description: Optional configuration (not typically needed)
+                  properties:
+                    redirectTo:
+                      type: string
+                      format: uri
+                      description: Deep link URL to redirect after verification
+                      example: https://nova.galileimoro.edu.it/auth/confirm
+            examples:
+              validRequest:
+                summary: Valid magic link request
+                value:
+                  email: mario.rossi@galileimoro.edu.it
+              invalidDomain:
+                summary: Invalid domain (will be rejected)
+                value:
+                  email: mario.rossi@gmail.com
+      responses:
+        '200':
+          description: Magic link sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Always true for 200 responses
+                    example: true
+              examples:
+                success:
+                  summary: Magic link sent
+                  value:
+                    success: true
+        '400':
+          description: Bad request (invalid email format or domain)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidDomain:
+                  summary: Email domain not authorized
+                  value:
+                    error: Email address cannot be used as it is not authorized
+                    error_description: Please use your school email (@galileimoro.edu.it)
+                    status: 400
+                invalidFormat:
+                  summary: Invalid email format
+                  value:
+                    error: Invalid email format
+                    error_description: Email must be a valid email address
+                    status: 400
+        '429':
+          description: Rate limit exceeded (3 requests per 15 minutes)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                rateLimitExceeded:
+                  summary: Too many requests
+                  value:
+                    error: Email rate limit exceeded
+                    error_description: Too many requests. Please wait 15 minutes before requesting another magic link.
+                    status: 429
+        '500':
+          description: Internal server error (email delivery failure, database error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                serverError:
+                  summary: Server error
+                  value:
+                    error: Internal server error
+                    error_description: Unable to send magic link. Please try again in a few moments.
+                    status: 500
+      security:
+        - apiKey: []
+
+  /verify:
+    post:
+      tags:
+        - Magic Link
+      summary: Verify magic link token
+      description: |
+        Verify a magic link token and create an authenticated session. This endpoint is called
+        automatically when the user clicks the magic link. Returns access token, refresh token,
+        and user details on success.
+      operationId: verifyMagicLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token_hash
+                - type
+              properties:
+                token_hash:
+                  type: string
+                  description: Hashed magic link token from email URL
+                  example: a1b2c3d4e5f6...
+                type:
+                  type: string
+                  enum: [email, magiclink]
+                  description: Token type (always 'email' or 'magiclink' for magic links)
+                  example: email
+            examples:
+              validToken:
+                summary: Valid token verification
+                value:
+                  token_hash: a1b2c3d4e5f6789012345678901234567890abcdef
+                  type: email
+      responses:
+        '200':
+          description: Token verified successfully, session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                newUser:
+                  summary: First-time user authentication
+                  value:
+                    access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    refresh_token: v1.MRiPGiXRBXChKhD6T...
+                    expires_in: 3600
+                    expires_at: 1698854400
+                    token_type: bearer
+                    user:
+                      id: 550e8400-e29b-41d4-a716-446655440000
+                      aud: authenticated
+                      role: authenticated
+                      email: mario.rossi@galileimoro.edu.it
+                      email_confirmed_at: "2025-10-30T10:30:00Z"
+                      created_at: "2025-10-30T10:30:00Z"
+                      last_sign_in_at: "2025-10-30T10:30:00Z"
+                      app_metadata:
+                        provider: email
+                      user_metadata: {}
+        '400':
+          description: Bad request (expired, used, or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                expiredToken:
+                  summary: Token expired (>15 minutes old)
+                  value:
+                    error: Token expired
+                    error_description: This magic link has expired. Please request a new one.
+                    status: 400
+                usedToken:
+                  summary: Token already used
+                  value:
+                    error: Token already used
+                    error_description: This magic link has already been used. Please request a new one if needed.
+                    status: 400
+        '404':
+          description: Token not found or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    error: Invalid token
+                    error_description: This magic link is invalid. Please request a new one.
+                    status: 404
+      security:
+        - apiKey: []
+
+  /token:
+    post:
+      tags:
+        - Session
+      summary: Refresh access token
+      description: |
+        Exchange a refresh token for a new access token and refresh token pair. This endpoint
+        is called automatically by the Supabase Flutter client when the access token nears
+        expiration (automatic background refresh).
+      operationId: refreshToken
+      parameters:
+        - name: grant_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [refresh_token]
+          description: OAuth2 grant type (always 'refresh_token')
+          example: refresh_token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  description: Current refresh token from previous authentication
+                  example: v1.MRiPGiXRBXChKhD6T...
+            examples:
+              validRefresh:
+                summary: Valid refresh token
+                value:
+                  refresh_token: v1.MRiPGiXRBXChKhD6T123456789...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                tokenRefreshed:
+                  summary: New token pair
+                  value:
+                    access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.NEW...
+                    refresh_token: v1.NEW_REFRESH_TOKEN...
+                    expires_in: 3600
+                    expires_at: 1698858000
+                    token_type: bearer
+                    user:
+                      id: 550e8400-e29b-41d4-a716-446655440000
+                      email: mario.rossi@galileimoro.edu.it
+        '400':
+          description: Bad request (expired or invalid refresh token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                expiredRefreshToken:
+                  summary: Refresh token expired (>30 days old)
+                  value:
+                    error: Refresh token expired
+                    error_description: Your session has expired. Please log in again.
+                    status: 400
+                invalidRefreshToken:
+                  summary: Invalid refresh token
+                  value:
+                    error: Invalid refresh token
+                    error_description: Invalid refresh token. Please log in again.
+                    status: 400
+      security:
+        - apiKey: []
+
+  /logout:
+    post:
+      tags:
+        - Session
+      summary: Logout (terminate session)
+      description: |
+        Terminate the current authenticated session. Invalidates the refresh token and clears
+        the session from the database. This only affects the current device's session; other
+        devices remain authenticated.
+      operationId: logout
+      responses:
+        '204':
+          description: Logout successful (no content)
+        '400':
+          description: Bad request (no active session)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                noSession:
+                  summary: No active session
+                  value:
+                    error: No session
+                    error_description: No active session found.
+                    status: 400
+      security:
+        - bearerAuth: []
+
+components:
+  schemas:
+    AuthResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - expires_in
+        - expires_at
+        - token_type
+        - user
+      properties:
+        access_token:
+          type: string
+          description: JWT access token (1-hour expiration)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refresh_token:
+          type: string
+          description: Refresh token (30-day expiration, single-use)
+          example: v1.MRiPGiXRBXChKhD6T...
+        expires_in:
+          type: integer
+          description: Access token expiration in seconds (3600 = 1 hour)
+          example: 3600
+        expires_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when access token expires
+          example: 1698854400
+        token_type:
+          type: string
+          enum: [bearer]
+          description: Token type (always 'bearer')
+          example: bearer
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required:
+        - id
+        - aud
+        - role
+        - email
+        - email_confirmed_at
+        - created_at
+        - last_sign_in_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        aud:
+          type: string
+          enum: [authenticated]
+          description: Audience claim (always 'authenticated' for logged-in users)
+          example: authenticated
+        role:
+          type: string
+          enum: [authenticated]
+          description: User role (always 'authenticated' for students)
+          example: authenticated
+        email:
+          type: string
+          format: email
+          description: User email address (normalized to lowercase)
+          example: mario.rossi@galileimoro.edu.it
+        email_confirmed_at:
+          type: string
+          format: date-time
+          description: Timestamp when email was verified via magic link
+          example: "2025-10-30T10:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2025-10-30T10:30:00Z"
+        last_sign_in_at:
+          type: string
+          format: date-time
+          description: Most recent authentication timestamp
+          example: "2025-10-30T10:30:00Z"
+        app_metadata:
+          type: object
+          description: Application metadata (managed by backend)
+          properties:
+            provider:
+              type: string
+              enum: [email]
+              description: Authentication provider (always 'email' for magic links)
+              example: email
+        user_metadata:
+          type: object
+          description: User-provided metadata (empty for magic link auth)
+          example: {}
+
+    Error:
+      type: object
+      required:
+        - error
+        - error_description
+        - status
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+          example: Email rate limit exceeded
+        error_description:
+          type: string
+          description: Human-readable error message
+          example: Too many requests. Please wait 15 minutes before requesting another magic link.
+        status:
+          type: integer
+          description: HTTP status code
+          example: 429
+
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: apikey
+      description: |
+        Supabase anonymous API key (public). Required for all authentication endpoints.
+        Example: apikey: your-supabase-anon-key
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token from successful authentication. Required for authenticated endpoints
+        like logout. Example: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+security:
+  - apiKey: []
+
+# Rate Limiting Behavior
+x-rate-limits:
+  magic-link-requests:
+    description: Magic link requests per email address
+    limit: 3
+    window: 15 minutes
+    window-type: sliding
+    error-response:
+      status: 429
+      error: Email rate limit exceeded
+      error_description: Too many requests. Please wait 15 minutes before requesting another magic link.
+  token-refresh:
+    description: Token refresh requests per session
+    limit: 30
+    window: 1 hour
+    window-type: sliding
+    error-response:
+      status: 429
+      error: Token refresh rate limit exceeded
+      error_description: Too many token refresh requests. Please wait before retrying.
+
+# Email Domain Validation
+x-email-domain-validation:
+  allowed-domains:
+    - galileimoro.edu.it
+  validation-regex: '^[a-zA-Z0-9._%+-]+@galileimoro\.edu\.it$'
+  case-insensitive: true
+  normalization: lowercase
+  enforcement:
+    - client-side: true  # Flutter email validator
+    - server-side: true  # Supabase Before User Created hook
+
+# Session Configuration
+x-session-config:
+  access-token-expiration: 3600  # 1 hour (seconds)
+  refresh-token-expiration: 2592000  # 30 days (seconds)
+  token-rotation: true  # Single-use refresh tokens with automatic rotation
+  secure-storage:
+    ios: Keychain
+    android: EncryptedSharedPreferences
+    web: localStorage (encrypted)
+
+# Magic Link Configuration
+x-magic-link-config:
+  expiration: 900  # 15 minutes (seconds)
+  single-use: true
+  url-format: https://nova.galileimoro.edu.it/auth/confirm?token_hash={token_hash}&type=email
+  fallback-url: https://nova-landing.vercel.app
+  deep-link-schemes:
+    - nova://auth/verify
+    - https://nova.galileimoro.edu.it/auth/confirm
+
+# Audit Logging
+x-audit-logging:
+  events:
+    - signup: First account creation
+    - signin: Successful authentication (magic link or token refresh)
+    - signout: Manual logout
+    - session_expired: Automatic session expiration
+    - token_refreshed: Background token refresh
+    - failed_signin: Authentication failure (invalid domain, expired token, rate limit)
+  storage: public.auth_events (PostgreSQL)
+  retention: 90 days
+  privacy:
+    - email-hashing: SHA256
+    - no-sensitive-data: Tokens never logged
+    - gdpr-compliant: Right to erasure, data portability
+
+# Testing Examples
+x-testing-examples:
+  curl-send-magic-link:
+    description: Request magic link via curl
+    command: |
+      curl -X POST 'https://your-project-ref.supabase.co/auth/v1/otp' \
+        -H "apikey: your-supabase-anon-key" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "email": "mario.rossi@galileimoro.edu.it"
+        }'
+
+  flutter-send-magic-link:
+    description: Request magic link in Flutter
+    code: |
+      await Supabase.instance.client.auth.signInWithOtp(
+        email: 'mario.rossi@galileimoro.edu.it',
+      );
+
+  flutter-verify-magic-link:
+    description: Verify magic link in Flutter (called from deep link handler)
+    code: |
+      await Supabase.instance.client.auth.verifyOTP(
+        tokenHash: tokenHashFromUrl,
+        type: OtpType.magiclink,
+      );
+
+  flutter-logout:
+    description: Logout in Flutter
+    code: |
+      await Supabase.instance.client.auth.signOut();
