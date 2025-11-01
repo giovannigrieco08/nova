@@ -215,17 +215,23 @@ Deno.serve(async (req) => {
 
     console.error('❌ Edge Function error:', error)
 
-    // Detailed error logging
+    // Detailed error logging (stack traces only in development to prevent leaking sensitive data)
     if (error instanceof Error) {
       console.error('   Error name:', error.name)
       console.error('   Error message:', error.message)
-      console.error('   Error stack:', error.stack)
+
+      // Stack traces can expose environment variables or internal paths
+      // Only log in development environment
+      const isDevelopment = Deno.env.get('ENVIRONMENT') === 'development'
+      if (isDevelopment) {
+        console.error('   Error stack:', error.stack)
+      }
     }
 
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        details: error instanceof Error ? error.toString() : String(error),
+        error: 'Failed to log auth event',
+        message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       }),
       {

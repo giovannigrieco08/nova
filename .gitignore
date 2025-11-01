@@ -1,8 +1,6 @@
 # Supabase Credentials - NEVER COMMIT THESE
-.env
-.env.local
-.env.development
-.env.production
+.env*
+!.env.example
 
 # Supabase CLI
 .supabase/
