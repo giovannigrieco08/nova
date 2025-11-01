@@ -47,3 +47,11 @@ app.*.map.json
 # Environment files - NEVER COMMIT CREDENTIALS
 .env*
 !.env.example
+
+# Generated code (build_runner, freezed, Riverpod)
+*.g.dart
+*.freezed.dart
+
+# Hive database files (local storage)
+*.hive
+*.lock

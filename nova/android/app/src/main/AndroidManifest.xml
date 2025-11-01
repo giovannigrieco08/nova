@@ -2,6 +2,11 @@
     <!-- Required for Supabase network requests -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Profile Feature: Camera and Storage Access (002-profile-setup) -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+
     <application
         android:label="nova"
         android:name="${applicationName}"

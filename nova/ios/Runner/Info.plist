@@ -60,5 +60,11 @@
 			</array>
 		</dict>
 	</array>
+
+	<!-- Profile Feature: Camera and Photo Library Access (002-profile-setup) -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Nova richiede accesso alla libreria foto per impostare la tua foto profilo.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Nova richiede accesso alla fotocamera per scattare la tua foto profilo.</string>
 </dict>
 </plist>

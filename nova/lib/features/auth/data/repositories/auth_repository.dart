@@ -73,10 +73,10 @@ class AuthRepository {
 
       // Send magic link via Supabase Auth
       // Note: Rate limiting (3 per 15 min) is enforced server-side
-      // Include email in redirect URL for token verification (see verifyMagicLink)
+      // No custom emailRedirectTo - let Supabase handle the redirect
+      // The HTTPS URL will be intercepted by our intent-filter
       await _supabase.auth.signInWithOtp(
         email: normalizedEmail,
-        emailRedirectTo: 'novaapp://auth/callback?email=${Uri.encodeComponent(normalizedEmail)}',
       );
 
       // Debug logging
@@ -138,7 +138,27 @@ class AuthRepository {
         return true;
       }());
 
-      // Extract token_hash, type, and email from URL
+      // For HTTPS URLs from Supabase email, use getSessionFromUrl
+      // This handles the token parameter automatically
+      if (uri.scheme == 'https' && uri.host.contains('supabase.co')) {
+        final response = await _supabase.auth.getSessionFromUrl(uri);
+
+        if (response.session?.user == null) {
+          throw AuthException('Magic link verification failed');
+        }
+
+        // Debug logging
+        assert(() {
+          debugPrint('✅ Magic link verified successfully (HTTPS)');
+          debugPrint('   User ID: ${response.session!.user.id}');
+          debugPrint('   Email: ${response.session!.user.email}');
+          return true;
+        }());
+
+        return response.session!.user;
+      }
+
+      // For custom scheme URLs (novaapp://), use verifyOTP
       final tokenHash = uri.queryParameters['token_hash'];
       final type = uri.queryParameters['type'];
       final email = uri.queryParameters['email'];
@@ -171,7 +191,7 @@ class AuthRepository {
 
       // Debug logging
       assert(() {
-        debugPrint('✅ Magic link verified successfully');
+        debugPrint('✅ Magic link verified successfully (custom scheme)');
         debugPrint('   User ID: ${response.user!.id}');
         debugPrint('   Email: ${response.user!.email}');
         return true;

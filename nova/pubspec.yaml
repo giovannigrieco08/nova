@@ -30,6 +30,17 @@ dependencies:
   # SVG Support
   flutter_svg: ^2.0.10
 
+  # Profile Feature Dependencies (002-profile-setup)
+  shimmer: ^2.0.0                    # Skeleton loading animations
+  image_picker: ^1.0.4               # Camera/gallery access
+  image: ^4.0.0                      # Image cropping and manipulation
+  hive: ^2.2.3                       # Offline storage
+  hive_flutter: ^1.1.0               # Flutter-specific Hive integration
+  connectivity_plus: ^5.0.0          # Network status monitoring
+  path_provider: ^2.1.1              # File system paths for Hive
+  freezed_annotation: ^2.4.0         # Immutable entities annotations
+  json_annotation: ^4.8.0            # JSON serialization annotations
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -40,6 +51,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+  # Code Generation (Profile Feature)
+  build_runner: ^2.4.0               # Code generation runner
+  hive_generator: ^2.0.0             # Generate Hive type adapters
+  freezed: ^2.4.0                    # Generate immutable entities
+  json_serializable: ^6.7.0          # Generate JSON serialization code
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
