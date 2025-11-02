@@ -50,7 +50,11 @@
       "Bash(AndroidManifest.xml.new)",
       "Bash(flutter clean:*)",
       "Bash(./gradlew assembleRelease:*)",
-      "Bash(./gradlew:*)"
+      "Bash(./gradlew:*)",
+      "Bash(adb:*)",
+      "Bash(nc:*)",
+      "Bash(flutter pub run build_runner build:*)",
+      "Bash(scoop --version:*)"
     ],
     "deny": [],
     "ask": []

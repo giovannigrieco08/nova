@@ -7,6 +7,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
 import 'package:nova/core/models/auth_state.dart';
@@ -15,6 +17,11 @@ import 'package:nova/core/widgets/splash_screen.dart';
 import 'package:nova/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:nova/features/auth/presentation/screens/login_screen.dart';
 import 'package:nova/features/events/presentation/screens/main_feed_screen.dart';
+import 'package:nova/features/profile/data/models/profile_model.dart';
+import 'package:nova/features/profile/domain/entities/profile.dart';
+import 'package:nova/features/profile/presentation/providers/profile_provider.dart';
+import 'package:nova/features/profile/presentation/providers/incomplete_profile_provider.dart';
+import 'package:nova/features/profile/presentation/screens/profile_setup_screen.dart';
 
 Future<void> main() async {
   // Ensure Flutter binding is initialized
@@ -23,10 +30,26 @@ Future<void> main() async {
   // Initialize Supabase BEFORE runApp
   await SupabaseConfig.initialize();
 
+  // Initialize Hive for offline-first profile storage
+  await Hive.initFlutter();
+  Hive.registerAdapter(ProfileModelAdapter());
+  await Hive.openBox<ProfileModel>('profiles');
+
+  // Initialize SharedPreferences for banner dismissal state
+  final prefs = await SharedPreferences.getInstance();
+
   runApp(
-    // ProviderScope wraps entire app for Riverpod
-    const ProviderScope(
-      child: NovaApp(),
+    // ProviderScope wraps entire app for Riverpod with profile overrides
+    ProviderScope(
+      overrides: [
+        // Override Hive box provider with opened box
+        profileBoxProvider.overrideWithValue(
+          Hive.box<ProfileModel>('profiles'),
+        ),
+        // Override SharedPreferences provider with instance
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const NovaApp(),
     ),
   );
 }
@@ -133,8 +156,8 @@ class AuthGuard extends ConsumerWidget {
       // Data loaded - check auth state
       data: (state) {
         return switch (state) {
-          // User authenticated - show main feed
-          AuthStateAuthenticated() => const MainFeedScreen(),
+          // User authenticated - check profile before routing
+          AuthStateAuthenticated() => const _ProfileCheckGuard(),
 
           // User not authenticated - show login
           AuthStateUnauthenticated() => const LoginScreen(),
@@ -154,6 +177,52 @@ class AuthGuard extends ConsumerWidget {
       error: (error, stackTrace) => _ErrorScreen(
         message: error.toString(),
       ),
+    );
+  }
+}
+
+/// Profile check guard - routes to setup or main feed based on profile status
+///
+/// Routes:
+/// - ProfileSetupScreen: Profile doesn't exist or is incomplete (class is null)
+/// - MainFeedScreen: Profile exists and is complete
+class _ProfileCheckGuard extends ConsumerWidget {
+  const _ProfileCheckGuard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Get current user ID
+    final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
+
+    // If no user ID, return to login (shouldn't happen after AuthStateAuthenticated)
+    if (userId == null) {
+      return const LoginScreen();
+    }
+
+    // Watch profile for current user
+    final profileAsync = ref.watch(currentProfileProvider);
+
+    return profileAsync.when(
+      // Profile loaded successfully
+      data: (profile) {
+        // Check if profile is complete (has class selected)
+        if (profile.isComplete) {
+          // Profile complete - show main feed
+          return const MainFeedScreen();
+        } else {
+          // Profile incomplete (class is null) - show setup to complete
+          return const ProfileSetupScreen();
+        }
+      },
+
+      // Loading profile
+      loading: () => const _LoadingScreen(),
+
+      // Error loading profile (likely profile doesn't exist yet)
+      error: (error, stackTrace) {
+        // Profile doesn't exist - show setup screen to create it
+        return const ProfileSetupScreen();
+      },
     );
   }
 }

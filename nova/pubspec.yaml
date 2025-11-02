@@ -38,6 +38,7 @@ dependencies:
   hive_flutter: ^1.1.0               # Flutter-specific Hive integration
   connectivity_plus: ^5.0.0          # Network status monitoring
   path_provider: ^2.1.1              # File system paths for Hive
+  shared_preferences: ^2.2.2         # Persistent key-value storage
   freezed_annotation: ^2.4.0         # Immutable entities annotations
   json_annotation: ^4.8.0            # JSON serialization annotations
 

@@ -42,6 +42,14 @@ class EmailValidator {
   /// This prevents accidentally deploying with development mode enabled.
   static final bool isDevelopment = kDebugMode;
 
+  /// TEMPORARY: Force allow personal emails even in release builds
+  ///
+  /// ⚠️ WARNING: Set this to false before deploying to production!
+  /// This flag allows testing with personal emails (Gmail, etc.) in release APKs.
+  ///
+  /// Usage: Set to true for testing, false for production deployment.
+  static const bool forceAllowPersonalEmails = true;
+
   /// Regular expression for validating @galileimoro.edu.it emails
   ///
   /// Pattern explanation:
@@ -109,7 +117,7 @@ class EmailValidator {
 
     // In development: accept any valid email
     // In production: only @galileimoro.edu.it
-    if (isDevelopment) {
+    if (isDevelopment || forceAllowPersonalEmails) {
       return _genericEmailRegex.hasMatch(trimmedEmail);
     } else {
       return _schoolEmailRegex.hasMatch(trimmedEmail);
@@ -163,7 +171,7 @@ class EmailValidator {
 
     // Check if email matches the pattern (school or generic, depends on mode)
     if (!isValid(trimmedEmail)) {
-      if (isDevelopment) {
+      if (isDevelopment || forceAllowPersonalEmails) {
         return 'Please enter a valid email address';
       } else {
         return 'Please use your school email address (@galileimoro.edu.it)';

@@ -73,10 +73,11 @@ class AuthRepository {
 
       // Send magic link via Supabase Auth
       // Note: Rate limiting (3 per 15 min) is enforced server-side
-      // No custom emailRedirectTo - let Supabase handle the redirect
-      // The HTTPS URL will be intercepted by our intent-filter
+      // Use custom URL scheme (novaapp://) for direct app opening
+      // This bypasses the need for assetlinks.json and works immediately
       await _supabase.auth.signInWithOtp(
         email: normalizedEmail,
+        emailRedirectTo: 'novaapp://auth/callback',
       );
 
       // Debug logging

@@ -182,39 +182,40 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   /// Send magic link to email address
   ///
-  /// Sets state to loading, sends magic link via repository,
-  /// then updates state based on result.
+  /// Does NOT change global auth state - loading is handled locally in LoginScreen.
+  /// Throws exceptions on failure for the caller to handle.
   ///
   /// Parameters:
   /// - [email]: User's email address
   ///
   /// Returns:
   /// - `true` if magic link sent successfully
-  /// - `false` if error occurred
+  ///
+  /// Throws:
+  /// - [AuthException] if Supabase auth error
+  /// - [Exception] for other errors
   ///
   /// Usage:
   /// ```dart
-  /// final success = await ref.read(authNotifierProvider.notifier).sendMagicLink(email);
-  /// if (success) {
-  ///   // Show success message
+  /// try {
+  ///   final success = await ref.read(authNotifierProvider.notifier).sendMagicLink(email);
+  ///   if (success) {
+  ///     // Show success UI (handled locally in LoginScreen)
+  ///   }
+  /// } catch (e) {
+  ///   // Show error message
   /// }
   /// ```
   Future<bool> sendMagicLink(String email) async {
+    // Debug logging
+    assert(() {
+      debugPrint('📧 AuthNotifier: Sending magic link to $email');
+      return true;
+    }());
+
     try {
-      // Set loading state
-      state = const AsyncLoading();
-
-      // Debug logging
-      assert(() {
-        debugPrint('📧 AuthNotifier: Sending magic link to $email');
-        return true;
-      }());
-
       // Send magic link via repository
       final result = await _authRepository.sendMagicLink(email);
-
-      // Return to unauthenticated state (user needs to check email)
-      state = const AsyncData(AuthStateUnauthenticated());
 
       // Debug logging
       assert(() {
@@ -224,23 +225,23 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       return result;
     } on supabase.AuthException catch (e) {
-      // Set error state with user-friendly message
+      // Debug logging
       assert(() {
         debugPrint('❌ AuthNotifier: Magic link send failed - ${e.message}');
         return true;
       }());
 
-      state = AsyncError(e.message, StackTrace.current);
-      return false;
-    } catch (e, stackTrace) {
-      // Set error state for unexpected errors
+      // Re-throw for LoginScreen to handle
+      rethrow;
+    } catch (e) {
+      // Debug logging
       assert(() {
         debugPrint('❌ AuthNotifier: Unexpected error - $e');
         return true;
       }());
 
-      state = AsyncError(e, stackTrace);
-      return false;
+      // Re-throw for LoginScreen to handle
+      rethrow;
     }
   }
 
