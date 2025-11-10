@@ -28,6 +28,7 @@ import 'package:nova/features/profile/presentation/providers/profile_provider.da
 import 'package:nova/features/profile/presentation/providers/incomplete_profile_provider.dart';
 import 'package:nova/features/profile/presentation/screens/profile_setup_screen.dart';
 import 'package:nova/features/events/data/models/event_model.dart';
+import 'package:nova/features/events/data/models/event_draft.dart';
 import 'package:nova/features/events/data/models/comment_model.dart';
 import 'package:nova/features/events/data/models/like_model.dart';
 import 'package:nova/features/events/data/models/participation_model.dart';
@@ -70,6 +71,7 @@ Future<void> main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(ProfileModelAdapter());
   Hive.registerAdapter(EventModelAdapter());
+  Hive.registerAdapter(EventDraftAdapter()); // Feature 004: Event drafts
   Hive.registerAdapter(CommentModelAdapter());
   Hive.registerAdapter(LikeModelAdapter());
   Hive.registerAdapter(ParticipationModelAdapter());
@@ -77,6 +79,7 @@ Future<void> main() async {
   Hive.registerAdapter(OfflineActionAdapter());
   await Hive.openBox<ProfileModel>('profiles');
   await Hive.openBox<EventModel>('events_cache');
+  await Hive.openBox<EventDraft>('event_drafts'); // Feature 004: Event creation drafts
   await Hive.openBox<OfflineAction>('offline_actions_queue');
 
   // Initialize SharedPreferences for banner dismissal state
