@@ -1,20 +1,17 @@
 // =====================================================================
-// Nova - Image Gallery Widget
+// Nova - Image Gallery Widget (Instagram-style)
 // =====================================================================
-// Purpose: Swipeable image gallery with dot indicators for event details
-// Architecture: PageView with AnimatedContainer dot indicators
+// Purpose: Swipeable image gallery with dot indicators
+// Architecture: PageView with native Material components
 // =====================================================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../core/theme/nova_colors.dart';
-import '../../../../core/theme/nova_spacing.dart';
-import '../../../../core/theme/nova_radius.dart';
 
-/// Swipeable image gallery with pagination indicators
+/// Swipeable image gallery with pagination indicators (Instagram-style)
 ///
 /// Features:
-/// - 16:9 aspect ratio images
+/// - 1:1 aspect ratio images (square, Instagram-style)
 /// - Horizontal swipe gesture
 /// - Dot indicators (active/inactive states)
 /// - Cached image loading with placeholder
@@ -22,9 +19,15 @@ import '../../../../core/theme/nova_radius.dart';
 ///
 /// Usage:
 /// ```dart
+/// // For events with single image (Feature 004+):
 /// ImageGallery(
-///   images: event.coverImages,
+///   images: event.imageUrl != null ? [event.imageUrl!] : [],
 ///   heroTag: 'event-${event.id}',
+/// )
+/// // Or for generic multi-image galleries:
+/// ImageGallery(
+///   images: galleryUrls,
+///   heroTag: 'gallery-${id}',
 /// )
 /// ```
 class ImageGallery extends StatefulWidget {
@@ -34,14 +37,14 @@ class ImageGallery extends StatefulWidget {
   /// Optional Hero tag for animation from feed
   final String? heroTag;
 
-  /// Optional aspect ratio (default: 16/9 for Instagram-style)
+  /// Optional aspect ratio (default: 1.0 for Instagram-style square)
   final double aspectRatio;
 
   const ImageGallery({
     super.key,
     required this.images,
     this.heroTag,
-    this.aspectRatio = 16 / 9,
+    this.aspectRatio = 1.0, // Changed to 1:1 (Instagram square)
   });
 
   @override
@@ -97,7 +100,7 @@ class _ImageGalleryState extends State<ImageGallery> {
         // Dot indicators
         if (widget.images.length > 1)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: _buildDotIndicators(),
           ),
       ],
@@ -109,28 +112,26 @@ class _ImageGalleryState extends State<ImageGallery> {
     final imageWidget = AspectRatio(
       aspectRatio: widget.aspectRatio,
       child: ClipRRect(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(NovaRadius.l),
-        ),
+        borderRadius: BorderRadius.circular(14), // Instagram-style rounded corners
         child: CachedNetworkImage(
           imageUrl: imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: NovaColors.surface(context),
-            child: Center(
+            color: const Color(0xFFF0F0F0), // Light gray placeholder
+            child: const Center(
               child: CircularProgressIndicator(
-                color: NovaColors.primary(context),
+                color: Color(0xFF737373), // Instagram gray
                 strokeWidth: 2,
               ),
             ),
           ),
           errorWidget: (context, url, error) => Container(
-            color: NovaColors.surface(context),
-            child: Center(
+            color: const Color(0xFFF0F0F0),
+            child: const Center(
               child: Icon(
                 Icons.image_not_supported_outlined,
                 size: 64,
-                color: NovaColors.textSecondary(context),
+                color: Color(0xFF737373),
               ),
             ),
           ),
@@ -155,21 +156,21 @@ class _ImageGalleryState extends State<ImageGallery> {
       imageUrl: imageUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
-        color: NovaColors.surface(context),
-        child: Center(
+        color: const Color(0xFFF0F0F0),
+        child: const Center(
           child: CircularProgressIndicator(
-            color: NovaColors.primary(context),
+            color: Color(0xFF737373),
             strokeWidth: 2,
           ),
         ),
       ),
       errorWidget: (context, url, error) => Container(
-        color: NovaColors.surface(context),
-        child: Center(
+        color: const Color(0xFFF0F0F0),
+        child: const Center(
           child: Icon(
             Icons.image_not_supported_outlined,
             size: 64,
-            color: NovaColors.textSecondary(context),
+            color: Color(0xFF737373),
           ),
         ),
       ),
@@ -180,18 +181,14 @@ class _ImageGalleryState extends State<ImageGallery> {
       return Hero(
         tag: widget.heroTag!,
         child: ClipRRect(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(NovaRadius.l),
-          ),
+          borderRadius: BorderRadius.circular(14),
           child: imageWidget,
         ),
       );
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(NovaRadius.l),
-      ),
+      borderRadius: BorderRadius.circular(14),
       child: imageWidget,
     );
   }
@@ -207,21 +204,21 @@ class _ImageGalleryState extends State<ImageGallery> {
     );
   }
 
-  /// Build single dot indicator
+  /// Build single dot indicator (Instagram-style)
   Widget _buildDot(int index) {
     final isActive = index == _currentPage;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
-      margin: const EdgeInsets.symmetric(horizontal: NovaSpacing.xxs),
-      width: isActive ? 24 : 8,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      width: isActive ? 8 : 8,
       height: 8,
       decoration: BoxDecoration(
         color: isActive
-            ? NovaColors.primary(context)
-            : NovaColors.textTertiary(context),
-        borderRadius: BorderRadius.circular(NovaRadius.full),
+            ? const Color(0xFF0095f6) // Instagram blue for active
+            : const Color(0xFFDBDBDB), // Light gray for inactive
+        shape: BoxShape.circle,
       ),
     );
   }

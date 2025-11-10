@@ -1,10 +1,12 @@
 // Data Model: EventModel
-// Feature: 003-events-feed
+// Feature: 004-event-creation-moderation (Updated from 003-events-feed)
 // Purpose: Data layer model with JSON serialization and Hive persistence
+// Schema: Unified schema from migration 005
 
 import 'package:hive/hive.dart';
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/event.dart';
+import '../../domain/entities/event_status.dart';
 
 part 'event_model.g.dart';
 
@@ -25,33 +27,45 @@ class EventModel {
 
   @HiveField(3)
   @JsonKey(name: 'event_date')
-  final DateTime eventDate;
+  final DateTime eventDate; // TIMESTAMPTZ (merged date+time)
 
   @HiveField(4)
-  @JsonKey(name: 'event_time')
-  final String eventTime; // Stored as HH:mm format
+  @JsonKey(name: 'location')
+  final String? location; // Optional
 
   @HiveField(5)
-  @JsonKey(name: 'location')
-  final String location;
+  @JsonKey(name: 'image_url')
+  final String? imageUrl; // Single image URL (optional)
 
   @HiveField(6)
-  @JsonKey(name: 'cover_images')
-  final List<String> coverImages; // Array of image URLs
-
-  @HiveField(7)
   @JsonKey(name: 'creator_id')
   final String creatorId;
+
+  @HiveField(7)
+  @JsonKey(name: 'co_organizers')
+  final List<String> coOrganizers; // Array of user IDs
 
   @HiveField(8)
   @JsonKey(name: 'status')
   final String status; // pending, approved, rejected
 
   @HiveField(9)
+  @JsonKey(name: 'rejection_reason')
+  final String? rejectionReason;
+
+  @HiveField(10)
+  @JsonKey(name: 'moderated_by')
+  final String? moderatedBy;
+
+  @HiveField(11)
+  @JsonKey(name: 'moderated_at')
+  final DateTime? moderatedAt;
+
+  @HiveField(12)
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
-  @HiveField(10)
+  @HiveField(13)
   @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
 
@@ -65,11 +79,14 @@ class EventModel {
     required this.title,
     required this.description,
     required this.eventDate,
-    required this.eventTime,
-    required this.location,
-    required this.coverImages,
+    this.location,
+    this.imageUrl,
     required this.creatorId,
+    required this.coOrganizers,
     required this.status,
+    this.rejectionReason,
+    this.moderatedBy,
+    this.moderatedAt,
     required this.createdAt,
     required this.updatedAt,
     this.creatorData,
@@ -89,11 +106,14 @@ class EventModel {
       title: entity.title,
       description: entity.description,
       eventDate: entity.eventDate,
-      eventTime: entity.eventTime,
       location: entity.location,
-      coverImages: entity.coverImages,
+      imageUrl: entity.imageUrl,
       creatorId: entity.creatorId,
-      status: entity.status,
+      coOrganizers: entity.coOrganizers,
+      status: entity.status.name, // Convert EventStatus enum to String
+      rejectionReason: entity.rejectionReason,
+      moderatedBy: entity.moderatedBy,
+      moderatedAt: entity.moderatedAt,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );
@@ -106,11 +126,14 @@ class EventModel {
       title: title,
       description: description,
       eventDate: eventDate,
-      eventTime: eventTime,
       location: location,
-      coverImages: coverImages,
+      imageUrl: imageUrl,
       creatorId: creatorId,
-      status: status,
+      coOrganizers: coOrganizers,
+      status: EventStatus.values.byName(status), // Convert String to EventStatus enum
+      rejectionReason: rejectionReason,
+      moderatedBy: moderatedBy,
+      moderatedAt: moderatedAt,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -122,11 +145,14 @@ class EventModel {
     String? title,
     String? description,
     DateTime? eventDate,
-    String? eventTime,
     String? location,
-    List<String>? coverImages,
+    String? imageUrl,
     String? creatorId,
+    List<String>? coOrganizers,
     String? status,
+    String? rejectionReason,
+    String? moderatedBy,
+    DateTime? moderatedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? creatorData,
@@ -136,11 +162,14 @@ class EventModel {
       title: title ?? this.title,
       description: description ?? this.description,
       eventDate: eventDate ?? this.eventDate,
-      eventTime: eventTime ?? this.eventTime,
       location: location ?? this.location,
-      coverImages: coverImages ?? this.coverImages,
+      imageUrl: imageUrl ?? this.imageUrl,
       creatorId: creatorId ?? this.creatorId,
+      coOrganizers: coOrganizers ?? this.coOrganizers,
       status: status ?? this.status,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      moderatedBy: moderatedBy ?? this.moderatedBy,
+      moderatedAt: moderatedAt ?? this.moderatedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       creatorData: creatorData ?? this.creatorData,

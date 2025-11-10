@@ -51,12 +51,12 @@ Tasks are organized by **user story priority** (P1 → P2) with dependency track
 
 - [X] [T003] Run flutter pub get to install all dependencies (command)
 
-- [ ] [T004] [P] Configure Firebase for iOS (file: nova/ios/Runner/GoogleService-Info.plist)
+- [X] [T004] [P] Configure Firebase for iOS (file: nova/ios/Runner/GoogleService-Info.plist)
   - Download GoogleService-Info.plist from Firebase Console
   - Add to ios/Runner/ directory
   - Update Info.plist with URL schemes
 
-- [ ] [T005] [P] Configure Firebase for Android (file: nova/android/app/google-services.json)
+- [X] [T005] [P] Configure Firebase for Android (file: nova/android/app/google-services.json)
   - Download google-services.json from Firebase Console
   - Add to android/app/ directory
   - Update AndroidManifest.xml with permissions
@@ -65,11 +65,11 @@ Tasks are organized by **user story priority** (P1 → P2) with dependency track
   - Add Firebase.initializeApp() before runApp()
   - Configure FCM background message handler
 
-- [ ] [T007] [P] Create Supabase Storage bucket for event images (command)
+- [X] [T007] [P] Create Supabase Storage bucket for event images (command)
   - Run: `supabase storage create event-images --public`
   - Configure bucket policies for authenticated upload, public read
 
-- [ ] [T008] Run database migration 005_create_events_tables.sql (command)
+- [X] [T008] Run database migration 005_create_events_tables.sql (command)
   - Execute migration in Supabase dashboard or via CLI
   - Verify tables created: events, notifications
   - Verify RLS policies enabled (11 policies)

@@ -1,7 +1,6 @@
 // lib/core/theme/nova_typography.dart
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class NovaTextStyles {
   // Prevent instantiation
@@ -9,7 +8,7 @@ class NovaTextStyles {
 
   /// Display text style (32px, bold, -0.02em tracking)
   /// Usage: Hero headlines, splash screen titles
-  static final TextStyle display = GoogleFonts.inter(
+  static const TextStyle display = TextStyle(
     fontSize: 32,
     fontWeight: FontWeight.w700,
     height: 1.2,
@@ -18,7 +17,7 @@ class NovaTextStyles {
 
   /// H1 text style (24px, bold, -0.01em tracking)
   /// Usage: Screen titles
-  static final TextStyle h1 = GoogleFonts.inter(
+  static const TextStyle h1 = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.w700,
     height: 1.25,
@@ -27,7 +26,7 @@ class NovaTextStyles {
 
   /// H2 text style (20px, semibold)
   /// Usage: Section headers
-  static final TextStyle h2 = GoogleFonts.inter(
+  static const TextStyle h2 = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.w600,
     height: 1.3,
@@ -35,7 +34,7 @@ class NovaTextStyles {
 
   /// H3 text style (18px, semibold)
   /// Usage: Subsection headers, card titles
-  static final TextStyle h3 = GoogleFonts.inter(
+  static const TextStyle h3 = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
     height: 1.3,
@@ -43,7 +42,7 @@ class NovaTextStyles {
 
   /// Body Large text style (16px, regular)
   /// Usage: Emphasized paragraphs
-  static final TextStyle bodyLarge = GoogleFonts.inter(
+  static const TextStyle bodyLarge = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.5,
@@ -51,7 +50,7 @@ class NovaTextStyles {
 
   /// Body text style (15px, regular) - Instagram size
   /// Usage: Primary body text, descriptions, comments, chat
-  static final TextStyle body = GoogleFonts.inter(
+  static const TextStyle body = TextStyle(
     fontSize: 15,
     fontWeight: FontWeight.w400,
     height: 1.4,
@@ -59,7 +58,7 @@ class NovaTextStyles {
 
   /// Body Bold text style (15px, semibold)
   /// Usage: Usernames, inline emphasis
-  static final TextStyle bodyBold = GoogleFonts.inter(
+  static const TextStyle bodyBold = TextStyle(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     height: 1.4,
@@ -67,7 +66,7 @@ class NovaTextStyles {
 
   /// Caption text style (13px, regular)
   /// Usage: Timestamps, metadata, secondary labels
-  static final TextStyle caption = GoogleFonts.inter(
+  static const TextStyle caption = TextStyle(
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.4,
@@ -75,7 +74,7 @@ class NovaTextStyles {
 
   /// Small text style (11px, regular)
   /// Usage: Legal text, micro labels (use sparingly)
-  static final TextStyle small = GoogleFonts.inter(
+  static const TextStyle small = TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.w400,
     height: 1.3,
@@ -83,7 +82,7 @@ class NovaTextStyles {
 
   /// Button text style (15px, semibold, tight line height)
   /// Usage: All buttons and CTAs
-  static final TextStyle button = GoogleFonts.inter(
+  static const TextStyle button = TextStyle(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     height: 1.0, // Tight for vertical centering
@@ -91,7 +90,7 @@ class NovaTextStyles {
 
   /// Overline text style (10px, semibold, uppercase, tracked)
   /// Usage: Category labels, badges, eyebrows
-  static final TextStyle overline = GoogleFonts.inter(
+  static const TextStyle overline = TextStyle(
     fontSize: 10,
     fontWeight: FontWeight.w600,
     height: 1.2,

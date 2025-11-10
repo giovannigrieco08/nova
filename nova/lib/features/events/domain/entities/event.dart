@@ -29,13 +29,13 @@ class Event with _$Event {
     /// Event description (20-500 characters)
     required String description,
 
-    /// When the event takes place (must be in future)
+    /// Event date and time (TIMESTAMPTZ from database, merged from DATE+TIME)
     required DateTime eventDate,
 
     /// Where the event takes place (optional)
     String? location,
 
-    /// Event image URL from Supabase Storage (optional, max 200KB)
+    /// Single cover image URL (from Supabase Storage)
     String? imageUrl,
 
     /// Creator user ID (UUID)
@@ -80,7 +80,7 @@ class Event with _$Event {
 
   /// Format event date and time for display
   String get formattedDateTime {
-    // Format: "15 Feb 2025 at 14:30"
+    // Format: "15 Feb 2025 alle 14:30"
     final months = [
       'Gen',
       'Feb',
