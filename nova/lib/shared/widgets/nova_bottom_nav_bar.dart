@@ -16,6 +16,7 @@ import 'package:nova/core/theme/nova_icons.dart';
 /// - Material elevation on Android (subtle shadow)
 /// - 5 items: Home, Friends, + button (center, large), Chat, Profile
 /// - Plus button emphasized: larger, circular, white
+/// - Optional badge support for Profile tab (for moderators with pending events)
 ///
 /// Example:
 /// ```dart
@@ -23,6 +24,7 @@ import 'package:nova/core/theme/nova_icons.dart';
 ///   currentIndex: _selectedIndex,
 ///   onTap: (index) => setState(() => _selectedIndex = index),
 ///   onCameraTap: () => _openCamera(),
+///   profileBadgeCount: 3, // Show badge with count
 /// )
 /// ```
 class NovaBottomNavBar extends StatelessWidget {
@@ -36,11 +38,16 @@ class NovaBottomNavBar extends StatelessWidget {
   /// Callback when camera button is tapped
   final VoidCallback onCameraTap;
 
+  /// Optional badge count for Profile tab (for moderators with pending events)
+  /// If > 0, shows red badge with count. If null or 0, no badge shown.
+  final int? profileBadgeCount;
+
   const NovaBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
     required this.onCameraTap,
+    this.profileBadgeCount,
   });
 
   @override
@@ -83,7 +90,7 @@ class NovaBottomNavBar extends StatelessWidget {
                 _buildNavItem(context, 1, 'person.2.fill', Icons.people, 'Amici'),
                 _buildPlusButton(context),
                 _buildNavItem(context, 2, 'message.fill', Icons.chat_bubble, 'Chat'),
-                _buildNavItem(context, 3, 'person.circle.fill', Icons.person, 'Profilo'),
+                _buildNavItem(context, 3, 'person.circle.fill', Icons.person, 'Profilo', badgeCount: profileBadgeCount),
               ],
             ),
           ),
@@ -119,7 +126,7 @@ class NovaBottomNavBar extends StatelessWidget {
           _buildNavItem(context, 1, 'person.2.fill', Icons.people, 'Amici'),
           _buildPlusButton(context),
           _buildNavItem(context, 2, 'message.fill', Icons.chat_bubble, 'Chat'),
-          _buildNavItem(context, 3, 'person.circle.fill', Icons.person, 'Profilo'),
+          _buildNavItem(context, 3, 'person.circle.fill', Icons.person, 'Profilo', badgeCount: profileBadgeCount),
         ],
       ),
     );
@@ -131,12 +138,14 @@ class NovaBottomNavBar extends StatelessWidget {
     int index,
     String sfSymbol,
     IconData materialIcon,
-    String label,
-  ) {
+    String label, {
+    int? badgeCount,
+  }) {
     final isSelected = currentIndex == index;
     final color = isSelected
         ? NovaColors.primary(context)
         : NovaColors.textSecondary(context);
+    final showBadge = badgeCount != null && badgeCount > 0;
 
     return Expanded(
       child: GestureDetector(
@@ -148,12 +157,47 @@ class NovaBottomNavBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              NovaIcons.adaptive(
-                context,
-                sfSymbol: sfSymbol,
-                materialIcon: materialIcon,
-                size: 24,
-                color: color,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  NovaIcons.adaptive(
+                    context,
+                    sfSymbol: sfSymbol,
+                    materialIcon: materialIcon,
+                    size: 24,
+                    color: color,
+                  ),
+                  // Badge indicator
+                  if (showBadge)
+                    Positioned(
+                      right: -8,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD32F2F), // Material Red 700
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Center(
+                          child: Text(
+                            badgeCount! > 99 ? '99+' : badgeCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
