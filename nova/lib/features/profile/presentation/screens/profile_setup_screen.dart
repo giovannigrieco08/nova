@@ -9,6 +9,7 @@ import '../../../../core/constants/classes.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
+import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/nova_toast.dart';
 import '../providers/profile_provider.dart';
@@ -289,7 +290,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             onPressed: _isSaving ? null : _skipSetup,
             child: Text(
               'Skip per ora',
-              style: TextStyle(
+              style: NovaTextStyles.body.copyWith(
                 color: NovaColors.textSecondary(context),
               ),
             ),
@@ -369,9 +370,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                 SizedBox(height: NovaSpacing.s),
                                 Text(
                                   '${(_uploadProgress * 100).toInt()}%',
-                                  style: const TextStyle(
+                                  style: NovaTextStyles.caption.copyWith(
                                     color: Colors.white,
-                                    fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -530,11 +530,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Salva e inizia',
-                          style: TextStyle(
+                          style: NovaTextStyles.bodyLarge.copyWith(
                             color: Colors.white,
-                            fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

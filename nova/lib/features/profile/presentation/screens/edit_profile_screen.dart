@@ -9,6 +9,7 @@ import '../../../../core/constants/classes.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
+import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/nova_toast.dart';
 import '../providers/profile_provider.dart';
@@ -253,10 +254,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ),
         title: Text(
           'Modifica profilo',
-          style: TextStyle(
+          style: NovaTextStyles.h3.copyWith(
             color: NovaColors.textPrimary(context),
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
           ),
         ),
         actions: [
@@ -274,9 +273,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   )
                 : Text(
                     'Salva',
-                    style: TextStyle(
+                    style: NovaTextStyles.bodyLarge.copyWith(
                       color: NovaColors.primary(context),
-                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -334,9 +332,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                       SizedBox(height: NovaSpacing.s),
                                       Text(
                                         '${(_uploadProgress * 100).toInt()}%',
-                                        style: const TextStyle(
+                                        style: NovaTextStyles.caption.copyWith(
                                           color: Colors.white,
-                                          fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -441,11 +438,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                           ?.displayName ??
                                       'Classe non trovata'
                                   : 'Seleziona classe',
-                              style: TextStyle(
+                              style: NovaTextStyles.bodyLarge.copyWith(
                                 color: _selectedClass != null
                                     ? NovaColors.textPrimary(context)
                                     : NovaColors.textSecondary(context),
-                                fontSize: 16,
                               ),
                             ),
                             Icon(

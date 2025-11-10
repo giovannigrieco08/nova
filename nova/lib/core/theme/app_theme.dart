@@ -5,17 +5,35 @@ import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
+import 'package:nova/core/theme/nova_animations.dart';
 
 class AppTheme {
   // Prevent instantiation
   AppTheme._();
 
-  /// Light theme configuration
+  // Private cache variables for lazy initialization
+  static ThemeData? _cachedLightTheme;
+  static ThemeData? _cachedDarkTheme;
+
+  /// Light theme configuration (lazy-initialized and cached)
   static ThemeData get lightTheme {
-    return ThemeData(
+    _cachedLightTheme ??= ThemeData(
+      useMaterial3: true, // Enable Material 3
       brightness: Brightness.light,
 
-      // Colors
+      // Material 3 ColorScheme
+      colorScheme: ColorScheme.light(
+        primary: NovaColors.primaryLight,
+        surface: NovaColors.surfaceLight,
+        background: NovaColors.backgroundLight,
+        error: NovaColors.errorLight,
+        onPrimary: Colors.white,
+        onSurface: NovaColors.textPrimaryLight,
+        onBackground: NovaColors.textPrimaryLight,
+        onError: Colors.white,
+      ),
+
+      // Colors (legacy, kept for compatibility)
       primaryColor: NovaColors.primaryLight,
       scaffoldBackgroundColor: NovaColors.backgroundLight,
 
@@ -93,15 +111,69 @@ class AppTheme {
           ),
         ),
       ),
+
+      // Material 3 filled button theme
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: NovaColors.primaryLight,
+          foregroundColor: Colors.white,
+          textStyle: NovaTextStyles.button,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: NovaRadius.circularL,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: NovaSpacing.l,
+            vertical: NovaSpacing.m,
+          ),
+        ),
+      ),
+
+      // Material 3 navigation bar theme (for bottom navigation)
+      navigationBarTheme: NavigationBarThemeData(
+        height: 60,
+        elevation: 0,
+        backgroundColor: NovaColors.surfaceLight,
+        indicatorColor: NovaColors.primaryLight.withOpacity(0.1),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelTextStyle: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
+            return NovaTextStyles.caption.copyWith(
+              color: NovaColors.primaryLight,
+              fontWeight: FontWeight.w600,
+            );
+          }
+          return NovaTextStyles.caption.copyWith(
+            color: NovaColors.textSecondaryLight,
+          );
+        }),
+      ),
+
+      // Page transitions (platform-adaptive)
+      pageTransitionsTheme: NovaAnimations.pageTransitionsTheme,
     );
+    return _cachedLightTheme!;
   }
 
-  /// Dark theme configuration
+  /// Dark theme configuration (lazy-initialized and cached)
   static ThemeData get darkTheme {
-    return ThemeData(
+    _cachedDarkTheme ??= ThemeData(
+      useMaterial3: true, // Enable Material 3
       brightness: Brightness.dark,
 
-      // Colors
+      // Material 3 ColorScheme
+      colorScheme: ColorScheme.dark(
+        primary: NovaColors.primaryDark,
+        surface: NovaColors.surfaceDark,
+        background: NovaColors.backgroundDark,
+        error: NovaColors.errorDark,
+        onPrimary: Colors.white,
+        onSurface: NovaColors.textPrimaryDark,
+        onBackground: NovaColors.textPrimaryDark,
+        onError: Colors.white,
+      ),
+
+      // Colors (legacy, kept for compatibility)
       primaryColor: NovaColors.primaryDark,
       scaffoldBackgroundColor: NovaColors.backgroundDark,
 
@@ -197,6 +269,47 @@ class AppTheme {
           ),
         ),
       ),
+
+      // Material 3 filled button theme
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: NovaColors.primaryDark,
+          foregroundColor: Colors.white,
+          textStyle: NovaTextStyles.button,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: NovaRadius.circularL,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: NovaSpacing.l,
+            vertical: NovaSpacing.m,
+          ),
+        ),
+      ),
+
+      // Material 3 navigation bar theme (for bottom navigation)
+      navigationBarTheme: NavigationBarThemeData(
+        height: 60,
+        elevation: 0,
+        backgroundColor: NovaColors.surfaceDark,
+        indicatorColor: NovaColors.primaryDark.withOpacity(0.1),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelTextStyle: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
+            return NovaTextStyles.caption.copyWith(
+              color: NovaColors.primaryDark,
+              fontWeight: FontWeight.w600,
+            );
+          }
+          return NovaTextStyles.caption.copyWith(
+            color: NovaColors.textSecondaryDark,
+          );
+        }),
+      ),
+
+      // Page transitions (platform-adaptive)
+      pageTransitionsTheme: NovaAnimations.pageTransitionsTheme,
     );
+    return _cachedDarkTheme!;
   }
 }
