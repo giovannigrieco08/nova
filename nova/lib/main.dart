@@ -5,12 +5,17 @@
 // Architecture: Riverpod for state management, MaterialApp with auth guard
 // =====================================================================
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
+import 'package:nova/core/theme/cupertino_theme.dart';
+import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/models/auth_state.dart';
 import 'package:nova/core/services/deep_link_service.dart';
 import 'package:nova/core/widgets/splash_screen.dart';
@@ -22,18 +27,57 @@ import 'package:nova/features/profile/domain/entities/profile.dart';
 import 'package:nova/features/profile/presentation/providers/profile_provider.dart';
 import 'package:nova/features/profile/presentation/providers/incomplete_profile_provider.dart';
 import 'package:nova/features/profile/presentation/screens/profile_setup_screen.dart';
+import 'package:nova/features/events/data/models/event_model.dart';
+import 'package:nova/features/events/data/models/comment_model.dart';
+import 'package:nova/features/events/data/models/like_model.dart';
+import 'package:nova/features/events/data/models/participation_model.dart';
+import 'package:nova/features/events/data/models/report_model.dart';
+import 'package:nova/features/events/domain/entities/offline_action.dart';
+
+/// Firebase Cloud Messaging background message handler
+/// Must be top-level function (not inside a class)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Initialize Firebase if not already initialized
+  await Firebase.initializeApp();
+
+  // Handle background notification
+  assert(() {
+    debugPrint('🔔 Handling background FCM message: ${message.messageId}');
+    debugPrint('   Title: ${message.notification?.title}');
+    debugPrint('   Body: ${message.notification?.body}');
+    return true;
+  }());
+
+  // Background message handling logic will be added in Phase 4 (US2)
+  // For now, just log the message
+}
 
 Future<void> main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Firebase (for FCM push notifications)
+  await Firebase.initializeApp();
+
+  // Configure FCM background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   // Initialize Supabase BEFORE runApp
   await SupabaseConfig.initialize();
 
-  // Initialize Hive for offline-first profile storage
+  // Initialize Hive for offline-first storage (profiles + events)
   await Hive.initFlutter();
   Hive.registerAdapter(ProfileModelAdapter());
+  Hive.registerAdapter(EventModelAdapter());
+  Hive.registerAdapter(CommentModelAdapter());
+  Hive.registerAdapter(LikeModelAdapter());
+  Hive.registerAdapter(ParticipationModelAdapter());
+  Hive.registerAdapter(ReportModelAdapter());
+  Hive.registerAdapter(OfflineActionAdapter());
   await Hive.openBox<ProfileModel>('profiles');
+  await Hive.openBox<EventModel>('events_cache');
+  await Hive.openBox<OfflineAction>('offline_actions_queue');
 
   // Initialize SharedPreferences for banner dismissal state
   final prefs = await SharedPreferences.getInstance();
@@ -121,11 +165,34 @@ class _NovaAppState extends ConsumerState<NovaApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Platform-adaptive app wrapper
+    if (PlatformUtils.isIOS) {
+      // iOS: CupertinoApp with native theme
+      return CupertinoApp(
+        title: 'Nova',
+        debugShowCheckedModeBanner: false,
+
+        // Cupertino theme configuration (cached themes)
+        theme: NovaCupertinoTheme.light,
+
+        // Splash screen shown first, then navigates to AuthGuard
+        home: const SplashScreen(),
+
+        // Material localizations for compatibility
+        localizationsDelegates: const [
+          DefaultMaterialLocalizations.delegate,
+          DefaultCupertinoLocalizations.delegate,
+          DefaultWidgetsLocalizations.delegate,
+        ],
+      );
+    }
+
+    // Android: MaterialApp with Material 3 theme
     return MaterialApp(
       title: 'Nova - School Events Platform',
       debugShowCheckedModeBanner: false,
 
-      // Theme configuration from AppTheme
+      // Material 3 theme configuration
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system, // Auto follow OS theme

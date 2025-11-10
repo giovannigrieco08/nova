@@ -1,221 +1,157 @@
 // =====================================================================
-// Nova - Main Feed Screen (MVP Version - Placeholder)
+// Nova - Main Feed Screen (BeReal-Inspired Design)
 // =====================================================================
-// Purpose: Placeholder screen after successful authentication
-// Architecture: Stateless widget with Riverpod integration
+// Purpose: Main screen with tab navigation between Eventi and Bacheche
+// Architecture: TabController with custom NovaAppBar and NovaBottomNavBar
 // =====================================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nova/features/auth/presentation/providers/auth_notifier.dart';
-import 'package:nova/core/models/auth_state.dart';
+import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_icons.dart';
+import '../../../../shared/widgets/nova_tabs.dart';
+import '../../../../shared/widgets/adaptive/adaptive_scaffold.dart';
+import '../../../../shared/widgets/adaptive/adaptive_app_bar.dart';
+import '../../../../shared/widgets/nova_bottom_nav_bar.dart';
+import '../../../../shared/widgets/adaptive/adaptive_dialog.dart';
+import '../../../bacheche/presentation/screens/bacheche_screen.dart';
+import 'events_feed_screen.dart';
 
-/// Main feed screen - shown after successful authentication
+/// Main feed screen with tab navigation (Eventi/Bacheche)
 ///
-/// This is a placeholder screen for the MVP.
-/// Future implementation will include:
-/// - List of upcoming school events
-/// - Event filters and search
-/// - Event details view
-/// - User preferences
-class MainFeedScreen extends ConsumerWidget {
+/// Features:
+/// - NovaAppBar with logo and notifications
+/// - Tab bar to switch between Eventi and Bacheche
+/// - NovaBottomNavBar with pill-shaped glassmorphic design
+/// - Clean white background (BeReal-inspired)
+class MainFeedScreen extends ConsumerStatefulWidget {
   const MainFeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authNotifierProvider);
+  ConsumerState<MainFeedScreen> createState() => _MainFeedScreenState();
+}
 
-    // Get authenticated user
-    final user = authState.when(
-      data: (state) => switch (state) {
-        AuthStateAuthenticated(:final user) => user,
-        _ => null,
-      },
-      loading: () => null,
-      error: (_, __) => null,
+class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  int _currentNavIndex = 0; // Bottom nav index
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  /// Handle bottom navigation item selection
+  void _onNavItemSelected(int index) {
+    setState(() {
+      _currentNavIndex = index;
+    });
+
+    switch (index) {
+      case 0: // Home
+        _tabController.animateTo(0);
+        break;
+      case 1: // Amici
+        _showComingSoonDialog('Amici');
+        break;
+      case 2: // Chat
+        _showComingSoonDialog('Chat');
+        break;
+      case 3: // Profilo
+        _showComingSoonDialog('Profilo');
+        break;
+    }
+  }
+
+  /// Handle camera FAB tap
+  void _onCameraTap() {
+    _showComingSoonDialog('Camera');
+  }
+
+  /// Show "Coming Soon" dialog for unimplemented features
+  void _showComingSoonDialog(String feature) {
+    AdaptiveDialog.show(
+      context: context,
+      title: 'Prossimamente',
+      content: 'La funzionalità "$feature" sarà disponibile presto!',
+      actions: [
+        AdaptiveDialogAction(
+          text: 'OK',
+          onPressed: () {},
+        ),
+      ],
     );
+  }
 
-    return Scaffold(
-      appBar: AppBar(
+  /// Handle notifications icon tap
+  void _onNotificationsTap() {
+    // TODO: Open notifications screen
+    _showComingSoonDialog('Notifiche');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdaptiveScaffold(
+      backgroundColor: NovaColors.background(context),
+      appBar: AdaptiveAppBar(
         title: const Text('Nova'),
         actions: [
-          // Sign out button
           IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () => _handleSignOut(context, ref),
-            tooltip: 'Sign out',
+            icon: NovaIcons.notifications(context),
+            onPressed: _onNotificationsTap,
           ),
         ],
       ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Welcome section
-                const Icon(
-                  Icons.celebration_rounded,
-                  size: 80,
-                  color: Colors.deepPurple,
+      body: Stack(
+        children: [
+          // Main content
+          Column(
+            children: [
+              // Tab bar (Eventi / Bacheche)
+              NovaTabs(
+                controller: _tabController,
+                tab1Label: 'Eventi',
+                tab2Label: 'Bacheche',
+              ),
+
+              // Tab content
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: const [
+                    // Eventi tab
+                    EventsFeedScreen(showAppBar: false),
+
+                    // Bacheche tab
+                    BachecheScreen(),
+                  ],
                 ),
-                const SizedBox(height: 24),
+              ),
+            ],
+          ),
 
-                Text(
-                  'Welcome to Nova!',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 16),
-
-                if (user?.email != null) ...[
-                  Text(
-                    'Signed in as:',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    user!.email!,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-
-                const SizedBox(height: 40),
-
-                // Success message
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          size: 64,
-                          color: Colors.green,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Authentication Working!',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Magic link authentication has been successfully implemented.',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Coming soon section
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Coming Soon',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildFeatureItem(
-                          Icons.event_rounded,
-                          'Browse school events',
-                        ),
-                        _buildFeatureItem(
-                          Icons.search_rounded,
-                          'Search and filter events',
-                        ),
-                        _buildFeatureItem(
-                          Icons.bookmark_rounded,
-                          'Save favorite events',
-                        ),
-                        _buildFeatureItem(
-                          Icons.notifications_rounded,
-                          'Get event reminders',
-                        ),
-                        _buildFeatureItem(
-                          Icons.people_rounded,
-                          'See who\'s attending',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+          // Bottom navigation overlay (pill-shaped glassmorphic design)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              child: NovaBottomNavBar(
+                currentIndex: _currentNavIndex,
+                onTap: _onNavItemSelected,
+                onCameraTap: _onCameraTap,
+              ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Build feature item
-  Widget _buildFeatureItem(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 24, color: Colors.grey[600]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text, style: const TextStyle(fontSize: 16)),
-          ),
         ],
       ),
     );
-  }
-
-  /// Handle sign out button press
-  Future<void> _handleSignOut(BuildContext context, WidgetRef ref) async {
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sign Out'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      // Sign out via auth notifier
-      await ref.read(authNotifierProvider.notifier).signOut();
-    }
   }
 }
