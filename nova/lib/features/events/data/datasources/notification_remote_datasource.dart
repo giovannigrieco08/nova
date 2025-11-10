@@ -48,11 +48,12 @@ class NotificationRemoteDataSource {
     try {
       final response = await _supabase
           .from('notifications')
-          .select('id', const FetchOptions(count: CountOption.exact))
+          .select('*', const CountOption.exact())
           .eq('user_id', userId)
-          .eq('read', false);
+          .eq('read', false)
+          .count();
 
-      return response.count ?? 0;
+      return response.count;
     } catch (e) {
       throw NotificationDataSourceException(
         'Failed to fetch unread count: $e',

@@ -35,15 +35,13 @@ class ShareService {
     final message = _formatShareMessage(event.title, deepLink);
 
     try {
-      final result = await Share.share(
+      await Share.share(
         message,
         subject: 'Evento Nova: ${event.title}', // Used for email/messaging apps
       );
 
-      if (result.status == ShareResultStatus.success) {
-        // Successfully shared
-        // TODO: Track share analytics (Phase 8)
-      }
+      // Share sheet was opened successfully
+      // TODO: Track share analytics (Phase 8)
     } catch (e) {
       // Share failed - could show error snackbar
       throw ShareException('Failed to share event: $e');

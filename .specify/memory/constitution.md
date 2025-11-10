@@ -191,24 +191,24 @@ Nova connects Liceo Galilei Moro students through a transparent, safe, and engag
 
 **Name:** DESIGN_SYSTEM_STRICT
 
-**Statement:** All UI code MUST follow design system constants. Zero hardcoded colors, spacing, or typography values. Design system is single source of truth for visual design.
+**Statement:** Nova uses **native-first design** with platform-adaptive UI. iOS gets Cupertino widgets with SF Pro font, Android gets Material Design 3 with Roboto font. Universal spacing via `NovaSpacing` constants ensures consistency across platforms.
 
 **Rules:**
-- All colors from `NovaColors` class (no hex color codes in widgets: `Color(0xFF...)` forbidden)
-- All spacing from `NovaSpacing` class (no magic numbers like `padding: EdgeInsets.all(16)`)
-- All typography from `NovaTypography` class (no inline `TextStyle(fontSize: 18, ...)`)
-- All border radius from `NovaRadius` class
-- Glassmorphism effect via `GlassContainer` widget only (no inline `BackdropFilter` implementations)
-- Design system documented in `specs/design-system.md` with exact pixel-perfect values
-- Claude Code prompts always reference design system constants
+- **Platform-native widgets required:** `CupertinoTextField` (iOS) vs `TextField` (Android), `CupertinoButton` vs `ElevatedButton`, adaptive wrappers preferred
+- **Native colors enforced:** `CupertinoColors` (iOS) + Material `ColorScheme` (Android) with automatic dark mode support
+- **Native typography enforced:** SF Pro (iOS system font) + Roboto (Android system font) - NO custom font loading via google_fonts
+- **Universal spacing:** All spacing from `NovaSpacing` class (no magic numbers like `padding: EdgeInsets.all(16)`)
+- **Native glass effect:** `BackdropFilter` (built-in Flutter GPU-accelerated) for glassmorphism, not custom libraries like liquid_glass_renderer
+- **Adaptive widgets pattern:** Use helper widgets like `AdaptiveTextField` that detect platform and render appropriate native component
+- **Design system documented:** `specs/design-system-v2.md` with native-first guidelines and platform-specific patterns
 
-**Rationale:** Hardcoded values create visual inconsistency, make design changes expensive, and violate single source of truth principle. Design systems enable rapid iteration while maintaining visual consistency and quality.
+**Rationale:** Native widgets provide 60fps performance, automatic accessibility, platform conventions, and system font rendering. System fonts (SF Pro/Roboto) eliminate font loading overhead and respect user accessibility settings. BackdropFilter is GPU-accelerated and works reliably across devices. Platform-native design feels familiar to users and respects OS conventions.
 
 **Testing/Validation:**
-- Automated lint rules flag raw color values (e.g., `Color(0xFF...)`) and reject pull request
-- Visual regression tests: golden file tests for key screens
-- Design system compliance in pull request checklist: "All values from design system constants? Y/N"
-- Random monthly audit: check 3 random widget files for compliance
+- Automated lint rules flag hardcoded spacing values (e.g., `EdgeInsets.all(16)`) and reject pull request
+- Visual testing on both iOS simulator and Android emulator required before merge
+- Design system compliance in pull request checklist: "Native widgets used? Universal spacing applied? Y/N"
+- Random monthly audit: check 3 random widget files for hardcoded values and non-native widget usage
 
 ---
 
@@ -632,7 +632,7 @@ If adhering to a principle creates existential risk to project survival:
 
 This constitution should be read alongside:
 
-- `specs/design-system.md` - Complete visual design system including glassmorphism formula, color palette, typography scale, spacing grid
+- `specs/design-system-v2.md` - Native-first design system with platform-adaptive UI patterns, SF Pro/Roboto system fonts, and BackdropFilter glassmorphism
 - `specs/architecture.md` - Detailed technical architecture document (to be created)
 - `README.md` - Project setup instructions, installation guide, how to run locally
 - `CHANGELOG.md` - User-facing release history and version notes

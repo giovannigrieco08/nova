@@ -11,7 +11,6 @@ import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../providers/events_feed_provider.dart';
 import '../widgets/event_card.dart';
 import '../widgets/offline_banner.dart';
-import 'event_detail_screen.dart';
 
 class EventsFeedScreen extends ConsumerStatefulWidget {
   /// Whether to show the AppBar (default: true)
@@ -70,53 +69,26 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final feedState = ref.watch(eventsFeedProvider);
 
-    final bodyContent = Stack(
+    final bodyContent = Column(
         children: [
-          // Gradient background for glassmorphism effect
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: isDark
-                    ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Near black
-                        const Color(0xFF1A1A2E), // Dark purple-blue
-                      ]
-                    : [
-                        const Color(0xFFF9FAFB), // Light gray
-                        const Color(0xFFFFFFFF), // Pure white
-                        const Color(0xFFF3F4F6), // Very light gray
-                      ],
-                stops: const [0.0, 0.5, 1.0],
-              ),
+          // Offline banner
+          if (_isOffline)
+            OfflineBanner(
+              isOffline: _isOffline,
+              onDismiss: () {
+                setState(() {
+                  _isOffline = false;
+                });
+              },
             ),
-          ),
 
-          // Content layer
-          Column(
-            children: [
-              // Offline banner
-              if (_isOffline)
-                OfflineBanner(
-                  isOffline: _isOffline,
-                  onDismiss: () {
-                    setState(() {
-                      _isOffline = false;
-                    });
-                  },
-                ),
-
-              // Feed content
-              Expanded(
-                child: feedState.when(
-                  data: (state) => _buildFeedContent(state),
-                  loading: () => _buildLoadingIndicator(),
-                  error: (error, stack) => _buildErrorState(error.toString()),
-                ),
-              ),
-            ],
+          // Feed content
+          Expanded(
+            child: feedState.when(
+              data: (state) => _buildFeedContent(state),
+              loading: () => _buildLoadingIndicator(),
+              error: (error, stack) => _buildErrorState(error.toString()),
+            ),
           ),
         ],
       );
@@ -124,6 +96,7 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     // Conditionally wrap with Scaffold + AppBar
     if (widget.showAppBar) {
       return Scaffold(
+        backgroundColor: const Color(0xFFFFFFFF), // Pure white background (Instagram-style)
         appBar: AppBar(
           title: Text(
             'Eventi',
@@ -167,9 +140,9 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
-        padding: const EdgeInsets.only(
-          top: NovaSpacing.m,
-          bottom: NovaSpacing.xxl,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12.0, // Instagram-style horizontal padding
+          vertical: NovaSpacing.m,
         ),
         itemCount: state.events.length + (state.isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
@@ -179,24 +152,9 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
           }
 
           final event = state.events[index];
+          // EventCard now has internal tap-to-expand, no navigation needed
           return EventCard(
             event: event,
-            onTap: () {
-              // Save current scroll position before navigating
-              if (_scrollController.hasClients) {
-                ref.read(eventsFeedScrollPositionProvider.notifier).state =
-                    _scrollController.position.pixels;
-              }
-
-              // Navigate to event detail screen with Hero animation
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => EventDetailScreen(
-                    eventId: event.id,
-                  ),
-                ),
-              );
-            },
           );
         },
       ),

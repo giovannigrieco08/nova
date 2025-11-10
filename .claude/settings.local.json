@@ -80,7 +80,12 @@
       "Bash(if [ -d \"specs/005-event-detail-interactions\" ])",
       "Bash(then powershell -Command \"Remove-Item -Path ''specs\\005-event-detail-interactions'' -Recurse -Force\")",
       "Bash(else echo \"Directory doesn''t exist\")",
-      "Bash(.gitignore)"
+      "Bash(.gitignore)",
+      "Bash(git config:*)",
+      "Bash(.gradlew:*)",
+      "Bash(gradlew.bat --stop)",
+      "Bash(cmd /c \"gradlew.bat assembleDebug --info\")",
+      "Bash(Select-String -Pattern \"error|fail|BUILD\")"
     ],
     "deny": [],
     "ask": []

@@ -7,7 +7,6 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
-import '../../domain/entities/event.dart';
 
 /// Remote data source for event operations via Supabase REST API
 class EventRemoteDataSource {

@@ -15,7 +15,6 @@
 // 4. added_as_coorganizer: "Sei stato aggiunto come co-organizer"
 // 5. event_modified: "Un evento che organizzi è stato modificato"
 
-import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
