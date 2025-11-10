@@ -48,10 +48,10 @@ class NotificationRemoteDataSource {
     try {
       final response = await _supabase
           .from('notifications')
-          .select('*', const CountOption.exact())
+          .select('id')
           .eq('user_id', userId)
           .eq('read', false)
-          .count();
+          .count(CountOption.exact);
 
       return response.count;
     } catch (e) {
