@@ -52,7 +52,7 @@ dependencies:
   firebase_messaging: ^14.7.0        # FCM push notifications
   flutter_image_compress: ^2.1.0     # Client-side image compression (WebP/JPEG)
   share_plus: ^7.2.0                 # Native share sheet for deep links
-  uni_links: ^0.5.1                  # Deep link handling (nova://events/{id})
+  # Removed uni_links: ^0.5.1 (deprecated, replaced by app_links ^6.3.2 above)
 
 dev_dependencies:
   flutter_test:
