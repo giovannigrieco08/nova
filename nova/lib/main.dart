@@ -23,6 +23,7 @@ import 'package:nova/core/widgets/splash_screen.dart';
 import 'package:nova/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:nova/features/auth/presentation/screens/login_screen.dart';
 import 'package:nova/features/events/presentation/screens/main_feed_screen.dart';
+import 'package:nova/features/events/presentation/screens/event_detail_screen.dart';
 import 'package:nova/features/profile/data/models/profile_model.dart';
 import 'package:nova/features/profile/domain/entities/profile.dart';
 import 'package:nova/features/profile/presentation/providers/profile_provider.dart';
@@ -242,13 +243,41 @@ class _NovaAppState extends ConsumerState<NovaApp> {
             switch (deepLinkInfo.type) {
               case DeepLinkType.event:
                 // Navigate to event detail screen
-                // Note: Navigation will be handled by MaterialApp's onGenerateRoute
-                // For now, just log - T067 will add actual navigation
                 assert(() {
                   debugPrint('📍 Navigating to event: ${deepLinkInfo.eventId}');
                   return true;
                 }());
-                // TODO T067: Add actual navigation to EventDetailScreen
+
+                // Wait a bit for app initialization to complete
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                // Navigate to EventDetailScreen with eventId
+                if (_navigatorKey.currentState != null) {
+                  if (PlatformUtils.isIOS) {
+                    // iOS: Use CupertinoPageRoute
+                    _navigatorKey.currentState!.push(
+                      CupertinoPageRoute(
+                        builder: (context) => EventDetailScreen(
+                          eventId: deepLinkInfo.eventId,
+                        ),
+                      ),
+                    );
+                  } else {
+                    // Android: Use MaterialPageRoute
+                    _navigatorKey.currentState!.push(
+                      MaterialPageRoute(
+                        builder: (context) => EventDetailScreen(
+                          eventId: deepLinkInfo.eventId,
+                        ),
+                      ),
+                    );
+                  }
+                } else {
+                  assert(() {
+                    debugPrint('⚠️ Navigator not ready yet for deep link');
+                    return true;
+                  }());
+                }
                 break;
 
               case DeepLinkType.profile:
@@ -284,6 +313,7 @@ class _NovaAppState extends ConsumerState<NovaApp> {
       return CupertinoApp(
         title: 'Nova',
         debugShowCheckedModeBanner: false,
+        navigatorKey: _navigatorKey, // For deep link navigation
 
         // Cupertino theme configuration (cached themes)
         theme: NovaCupertinoTheme.light,
@@ -304,6 +334,7 @@ class _NovaAppState extends ConsumerState<NovaApp> {
     return MaterialApp(
       title: 'Nova - School Events Platform',
       debugShowCheckedModeBanner: false,
+      navigatorKey: _navigatorKey, // For deep link navigation
 
       // Material 3 theme configuration
       theme: AppTheme.lightTheme,
