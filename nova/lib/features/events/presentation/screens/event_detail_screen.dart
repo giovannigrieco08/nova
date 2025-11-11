@@ -4,14 +4,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
-import '../../../../core/theme/nova_typography.dart';
+import '../../../../core/theme/nova_typography.dart'; // NovaTextStyles
 import '../../../../core/services/share_service.dart';
-import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../providers/event_detail_provider.dart';
+import '../providers/repository_providers.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/event_status.dart';
 
@@ -28,8 +27,7 @@ class EventDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentUser = ref.watch(authNotifierProvider).value;
+    final currentUserId = ref.watch(currentUserIdProvider);
 
     // If eventId provided, fetch event by ID (deep link navigation)
     if (eventId != null) {
@@ -39,9 +37,9 @@ class EventDetailScreen extends ConsumerWidget {
         appBar: AppBar(
           title: Text(
             'Dettagli Evento',
-            style: NovaTypography.h3,
+            style: NovaTextStyles.h3,
           ),
-          backgroundColor: NovaColors.backgroundPrimary(isDark),
+          backgroundColor: NovaColors.background(context),
           elevation: 0,
         ),
         body: eventAsync.when(
@@ -49,46 +47,42 @@ class EventDetailScreen extends ConsumerWidget {
             if (event == null) {
               return _buildErrorState(
                 context,
-                isDark,
                 'Evento non trovato',
-                'Questo evento non esiste o è stato eliminato.',
+                'Questo evento non esiste o Ã¨ stato eliminato.',
               );
             }
 
             // Handle pending event (only creator and moderators can see)
             if (event.status == EventStatus.pending &&
-                event.creatorId != currentUser?.id) {
+                event.creatorId != currentUserId) {
               return _buildErrorState(
                 context,
-                isDark,
                 'Evento in attesa',
-                'Questo evento è in attesa di moderazione.',
+                'Questo evento Ã¨ in attesa di moderazione.',
               );
             }
 
             // Handle rejected event (only creator can see)
             if (event.status == EventStatus.rejected &&
-                event.creatorId != currentUser?.id) {
+                event.creatorId != currentUserId) {
               return _buildErrorState(
                 context,
-                isDark,
                 'Evento non disponibile',
-                'Questo evento non è disponibile.',
+                'Questo evento non Ã¨ disponibile.',
               );
             }
 
-            return _buildEventContent(context, isDark, event, currentUser?.id);
+            return _buildEventContent(context, event, currentUserId);
           },
           loading: () => Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(
-                NovaColors.primary(isDark),
+                NovaColors.primary(context),
               ),
             ),
           ),
           error: (error, stack) => _buildErrorState(
             context,
-            isDark,
             'Errore',
             'Impossibile caricare l\'evento: $error',
           ),
@@ -102,9 +96,9 @@ class EventDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           'Dettagli Evento',
-          style: NovaTypography.h3,
+          style: NovaTextStyles.h3,
         ),
-        backgroundColor: NovaColors.backgroundPrimary(isDark),
+        backgroundColor: NovaColors.background(context),
         elevation: 0,
         actions: [
           // Share button (only visible if event is approved)
@@ -112,7 +106,7 @@ class EventDetailScreen extends ConsumerWidget {
             IconButton(
               icon: Icon(
                 Icons.share,
-                color: NovaColors.textPrimary(isDark),
+                color: NovaColors.textPrimary(context),
               ),
               onPressed: () async {
                 try {
@@ -122,7 +116,7 @@ class EventDetailScreen extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Errore durante la condivisione'),
-                        backgroundColor: NovaColors.error(isDark),
+                        backgroundColor: NovaColors.error(context),
                       ),
                     );
                   }
@@ -131,13 +125,12 @@ class EventDetailScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: _buildEventContent(context, isDark, event, currentUser?.id),
+      body: _buildEventContent(context, event, currentUserId),
     );
   }
 
   Widget _buildEventContent(
     BuildContext context,
-    bool isDark,
     Event event,
     String? currentUserId,
   ) {
@@ -166,8 +159,8 @@ class EventDetailScreen extends ConsumerWidget {
                 // Title
                 Text(
                   event.title,
-                  style: NovaTypography.h2.copyWith(
-                    color: NovaColors.textPrimary(isDark),
+                  style: NovaTextStyles.h2.copyWith(
+                    color: NovaColors.textPrimary(context),
                   ),
                 ),
                 SizedBox(height: NovaSpacing.m),
@@ -178,13 +171,13 @@ class EventDetailScreen extends ConsumerWidget {
                     Icon(
                       Icons.calendar_today,
                       size: 16,
-                      color: NovaColors.textSecondary(isDark),
+                      color: NovaColors.textSecondary(context),
                     ),
                     SizedBox(width: NovaSpacing.xs),
                     Text(
                       event.formattedDateTime,
-                      style: NovaTypography.body.copyWith(
-                        color: NovaColors.textSecondary(isDark),
+                      style: NovaTextStyles.body.copyWith(
+                        color: NovaColors.textSecondary(context),
                       ),
                     ),
                   ],
@@ -198,14 +191,14 @@ class EventDetailScreen extends ConsumerWidget {
                       Icon(
                         Icons.location_on,
                         size: 16,
-                        color: NovaColors.textSecondary(isDark),
+                        color: NovaColors.textSecondary(context),
                       ),
                       SizedBox(width: NovaSpacing.xs),
                       Expanded(
                         child: Text(
                           event.location!,
-                          style: NovaTypography.body.copyWith(
-                            color: NovaColors.textSecondary(isDark),
+                          style: NovaTextStyles.body.copyWith(
+                            color: NovaColors.textSecondary(context),
                           ),
                         ),
                       ),
@@ -216,15 +209,15 @@ class EventDetailScreen extends ConsumerWidget {
                 // Description
                 Text(
                   'Descrizione',
-                  style: NovaTypography.h3.copyWith(
-                    color: NovaColors.textPrimary(isDark),
+                  style: NovaTextStyles.h3.copyWith(
+                    color: NovaColors.textPrimary(context),
                   ),
                 ),
                 SizedBox(height: NovaSpacing.s),
                 Text(
                   event.description,
-                  style: NovaTypography.body.copyWith(
-                    color: NovaColors.textPrimary(isDark),
+                  style: NovaTextStyles.body.copyWith(
+                    color: NovaColors.textPrimary(context),
                   ),
                 ),
                 SizedBox(height: NovaSpacing.l),
@@ -239,8 +232,8 @@ class EventDetailScreen extends ConsumerWidget {
                     ),
                     decoration: BoxDecoration(
                       color: event.status == EventStatus.pending
-                          ? NovaColors.primary(isDark).withOpacity(0.2)
-                          : NovaColors.error(isDark).withOpacity(0.2),
+                          ? NovaColors.primary(context).withOpacity(0.2)
+                          : NovaColors.error(context).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(NovaRadius.s),
                     ),
                     child: Row(
@@ -252,18 +245,18 @@ class EventDetailScreen extends ConsumerWidget {
                               : Icons.cancel,
                           size: 16,
                           color: event.status == EventStatus.pending
-                              ? NovaColors.primary(isDark)
-                              : NovaColors.error(isDark),
+                              ? NovaColors.primary(context)
+                              : NovaColors.error(context),
                         ),
                         SizedBox(width: NovaSpacing.xs),
                         Text(
                           event.status == EventStatus.pending
                               ? 'In attesa di moderazione'
                               : 'Rifiutato',
-                          style: NovaTypography.caption.copyWith(
+                          style: NovaTextStyles.caption.copyWith(
                             color: event.status == EventStatus.pending
-                                ? NovaColors.primary(isDark)
-                                : NovaColors.error(isDark),
+                                ? NovaColors.primary(context)
+                                : NovaColors.error(context),
                           ),
                         ),
                       ],
@@ -278,10 +271,10 @@ class EventDetailScreen extends ConsumerWidget {
                   Container(
                     padding: EdgeInsets.all(NovaSpacing.m),
                     decoration: BoxDecoration(
-                      color: NovaColors.error(isDark).withOpacity(0.1),
+                      color: NovaColors.error(context).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(NovaRadius.s),
                       border: Border.all(
-                        color: NovaColors.error(isDark).withOpacity(0.3),
+                        color: NovaColors.error(context).withOpacity(0.3),
                       ),
                     ),
                     child: Column(
@@ -289,16 +282,16 @@ class EventDetailScreen extends ConsumerWidget {
                       children: [
                         Text(
                           'Motivo del rifiuto',
-                          style: NovaTypography.caption.copyWith(
-                            color: NovaColors.error(isDark),
+                          style: NovaTextStyles.caption.copyWith(
+                            color: NovaColors.error(context),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         SizedBox(height: NovaSpacing.xs),
                         Text(
                           event.rejectionReason!,
-                          style: NovaTypography.body.copyWith(
-                            color: NovaColors.textPrimary(isDark),
+                          style: NovaTextStyles.body.copyWith(
+                            color: NovaColors.textPrimary(context),
                           ),
                         ),
                       ],
@@ -315,7 +308,6 @@ class EventDetailScreen extends ConsumerWidget {
 
   Widget _buildErrorState(
     BuildContext context,
-    bool isDark,
     String title,
     String message,
   ) {
@@ -328,21 +320,21 @@ class EventDetailScreen extends ConsumerWidget {
             Icon(
               Icons.error_outline,
               size: 64,
-              color: NovaColors.textSecondary(isDark),
+              color: NovaColors.textSecondary(context),
             ),
             SizedBox(height: NovaSpacing.m),
             Text(
               title,
-              style: NovaTypography.h2.copyWith(
-                color: NovaColors.textPrimary(isDark),
+              style: NovaTextStyles.h2.copyWith(
+                color: NovaColors.textPrimary(context),
               ),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: NovaSpacing.s),
             Text(
               message,
-              style: NovaTypography.body.copyWith(
-                color: NovaColors.textSecondary(isDark),
+              style: NovaTextStyles.body.copyWith(
+                color: NovaColors.textSecondary(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -350,7 +342,7 @@ class EventDetailScreen extends ConsumerWidget {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: NovaColors.primary(isDark),
+                backgroundColor: NovaColors.primary(context),
                 padding: EdgeInsets.symmetric(
                   horizontal: NovaSpacing.l,
                   vertical: NovaSpacing.m,
@@ -361,7 +353,7 @@ class EventDetailScreen extends ConsumerWidget {
               ),
               child: Text(
                 'Torna indietro',
-                style: NovaTypography.button.copyWith(
+                style: NovaTextStyles.button.copyWith(
                   color: Colors.white,
                 ),
               ),
