@@ -30,25 +30,25 @@ class EventForm extends ConsumerWidget {
     final notifier = ref.read(eventCreationProvider.notifier);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(NovaSpacing.large),
+      padding: EdgeInsets.all(NovaSpacing.l),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title field
           _buildTitleField(context, state, notifier),
-          SizedBox(height: NovaSpacing.large),
+          SizedBox(height: NovaSpacing.l),
 
           // Description field
           _buildDescriptionField(context, state, notifier),
-          SizedBox(height: NovaSpacing.large),
+          SizedBox(height: NovaSpacing.l),
 
           // Date/Time picker
           _buildDateTimePicker(context, state, notifier),
-          SizedBox(height: NovaSpacing.large),
+          SizedBox(height: NovaSpacing.l),
 
           // Location field (optional)
           _buildLocationField(context, state, notifier),
-          SizedBox(height: NovaSpacing.large),
+          SizedBox(height: NovaSpacing.l),
 
           // Image picker
           ImagePickerWidget(
@@ -57,7 +57,7 @@ class EventForm extends ConsumerWidget {
             onImagePicked: (file) => notifier.pickImage(file),
             onImageRemoved: () => notifier.removeImage(),
           ),
-          SizedBox(height: NovaSpacing.large),
+          SizedBox(height: NovaSpacing.l),
 
           // Info text
           _buildInfoText(context),
@@ -80,17 +80,17 @@ class EventForm extends ConsumerWidget {
           children: [
             Text(
               'Titolo *',
-              style: NovaTypography.labelMedium,
+              style: NovaTextStyles.body,
             ),
             Text(
               state.titleCharCount,
-              style: NovaTypography.bodySmall.copyWith(
+              style: NovaTextStyles.caption.copyWith(
                 color: NovaColors.textSecondary(context),
               ),
             ),
           ],
         ),
-        SizedBox(height: NovaSpacing.small),
+        SizedBox(height: NovaSpacing.s),
         TextField(
           onChanged: notifier.updateTitle,
           maxLength: 100,
@@ -99,25 +99,25 @@ class EventForm extends ConsumerWidget {
             errorText: state.titleError,
             counterText: '', // Hide default counter (using custom)
             filled: true,
-            fillColor: NovaColors.backgroundSecondary(context),
+            fillColor: NovaColors.surface(context),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide(color: NovaColors.border(context)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide(color: NovaColors.error(context)),
             ),
           ),
-          style: NovaTypography.bodyMedium,
+          style: NovaTextStyles.body,
         ),
       ],
     );
@@ -137,17 +137,17 @@ class EventForm extends ConsumerWidget {
           children: [
             Text(
               'Descrizione *',
-              style: NovaTypography.labelMedium,
+              style: NovaTextStyles.body,
             ),
             Text(
               state.descriptionCharCount,
-              style: NovaTypography.bodySmall.copyWith(
+              style: NovaTextStyles.caption.copyWith(
                 color: NovaColors.textSecondary(context),
               ),
             ),
           ],
         ),
-        SizedBox(height: NovaSpacing.small),
+        SizedBox(height: NovaSpacing.s),
         TextField(
           onChanged: notifier.updateDescription,
           maxLength: 500,
@@ -157,25 +157,25 @@ class EventForm extends ConsumerWidget {
             errorText: state.descriptionError,
             counterText: '', // Hide default counter
             filled: true,
-            fillColor: NovaColors.backgroundSecondary(context),
+            fillColor: NovaColors.surface(context),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide(color: NovaColors.border(context)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide(color: NovaColors.error(context)),
             ),
           ),
-          style: NovaTypography.bodyMedium,
+          style: NovaTextStyles.body,
         ),
       ],
     );
@@ -197,17 +197,17 @@ class EventForm extends ConsumerWidget {
       children: [
         Text(
           'Data e Ora *',
-          style: NovaTypography.labelMedium,
+          style: NovaTextStyles.body,
         ),
-        SizedBox(height: NovaSpacing.small),
+        SizedBox(height: NovaSpacing.s),
         InkWell(
           onTap: () => _showDateTimePicker(context, state, notifier),
-          borderRadius: BorderRadius.circular(NovaRadius.medium),
+          borderRadius: NovaRadius.circularM,
           child: Container(
-            padding: EdgeInsets.all(NovaSpacing.medium),
+            padding: EdgeInsets.all(NovaSpacing.m),
             decoration: BoxDecoration(
-              color: NovaColors.backgroundSecondary(context),
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              color: NovaColors.surface(context),
+              borderRadius: NovaRadius.circularM,
               border: Border.all(
                 color: state.eventDateError != null
                     ? NovaColors.error(context)
@@ -223,10 +223,10 @@ class EventForm extends ConsumerWidget {
                       ? NovaColors.textPrimary(context)
                       : NovaColors.textSecondary(context),
                 ),
-                SizedBox(width: NovaSpacing.medium),
+                SizedBox(width: NovaSpacing.m),
                 Text(
                   displayText,
-                  style: NovaTypography.bodyMedium.copyWith(
+                  style: NovaTextStyles.body.copyWith(
                     color: state.eventDate != null
                         ? NovaColors.textPrimary(context)
                         : NovaColors.textSecondary(context),
@@ -237,10 +237,10 @@ class EventForm extends ConsumerWidget {
           ),
         ),
         if (state.eventDateError != null) ...[
-          SizedBox(height: NovaSpacing.xsmall),
+          SizedBox(height: NovaSpacing.xs),
           Text(
             state.eventDateError!,
-            style: NovaTypography.bodySmall.copyWith(
+            style: NovaTextStyles.caption.copyWith(
               color: NovaColors.error(context),
             ),
           ),
@@ -260,9 +260,9 @@ class EventForm extends ConsumerWidget {
       children: [
         Text(
           'Luogo (Opzionale)',
-          style: NovaTypography.labelMedium,
+          style: NovaTextStyles.body,
         ),
-        SizedBox(height: NovaSpacing.small),
+        SizedBox(height: NovaSpacing.s),
         TextField(
           onChanged: (value) => notifier.updateLocation(
             value.isEmpty ? null : value,
@@ -270,21 +270,21 @@ class EventForm extends ConsumerWidget {
           decoration: InputDecoration(
             hintText: 'Es: Campo sportivo del liceo',
             filled: true,
-            fillColor: NovaColors.backgroundSecondary(context),
+            fillColor: NovaColors.surface(context),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide(color: NovaColors.border(context)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(NovaRadius.medium),
+              borderRadius: NovaRadius.circularM,
               borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
             ),
           ),
-          style: NovaTypography.bodyMedium,
+          style: NovaTextStyles.body,
         ),
       ],
     );
@@ -293,10 +293,10 @@ class EventForm extends ConsumerWidget {
   /// Info text at bottom
   Widget _buildInfoText(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(NovaSpacing.medium),
+      padding: EdgeInsets.all(NovaSpacing.m),
       decoration: BoxDecoration(
         color: NovaColors.primary(context).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(NovaRadius.medium),
+        borderRadius: NovaRadius.circularM,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,12 +306,12 @@ class EventForm extends ConsumerWidget {
             size: 20,
             color: NovaColors.primary(context),
           ),
-          SizedBox(width: NovaSpacing.small),
+          SizedBox(width: NovaSpacing.s),
           Expanded(
             child: Text(
               'Il tuo evento sarà visibile dopo l\'approvazione del moderatore. '
               'La bozza viene salvata automaticamente.',
-              style: NovaTypography.bodySmall.copyWith(
+              style: NovaTextStyles.caption.copyWith(
                 color: NovaColors.textSecondary(context),
               ),
             ),

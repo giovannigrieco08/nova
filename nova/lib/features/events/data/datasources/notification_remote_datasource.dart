@@ -44,16 +44,16 @@ class NotificationRemoteDataSource {
   /// Get unread notifications count
   ///
   /// Query: SELECT COUNT(*) FROM notifications WHERE user_id = {userId} AND read = false
+  /// TODO: Optimize with Supabase count() in Phase 8
   Future<int> getUnreadCount(String userId) async {
     try {
       final response = await _supabase
           .from('notifications')
           .select('id')
           .eq('user_id', userId)
-          .eq('read', false)
-          .count(CountOption.exact);
+          .eq('read', false);
 
-      return response.count;
+      return (response as List).length;
     } catch (e) {
       throw NotificationDataSourceException(
         'Failed to fetch unread count: $e',

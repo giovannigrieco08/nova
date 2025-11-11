@@ -119,7 +119,7 @@ final isModeratorProvider = FutureProvider<bool>((ref) async {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .inFilter('role', ['moderator', 'admin'])
+        .or('role.eq.moderator,role.eq.admin')
         .maybeSingle();
 
     return response != null;

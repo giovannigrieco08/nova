@@ -39,7 +39,7 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
         title: const Text('Crea Evento'),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: NovaColors.backgroundPrimary(context),
+        backgroundColor: NovaColors.background(context),
         foregroundColor: NovaColors.textPrimary(context),
         actions: [
           // Clear/Reset button
@@ -77,9 +77,9 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     EventCreationNotifier notifier,
   ) {
     return Container(
-      padding: EdgeInsets.all(NovaSpacing.large),
+      padding: EdgeInsets.all(NovaSpacing.l),
       decoration: BoxDecoration(
-        color: NovaColors.backgroundPrimary(context),
+        color: NovaColors.background(context),
         border: Border(
           top: BorderSide(
             color: NovaColors.border(context),
@@ -94,11 +94,11 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
             // Error message (if any)
             if (state.submitError != null) ...[
               Container(
-                padding: EdgeInsets.all(NovaSpacing.medium),
-                margin: EdgeInsets.only(bottom: NovaSpacing.medium),
+                padding: EdgeInsets.all(NovaSpacing.m),
+                margin: EdgeInsets.only(bottom: NovaSpacing.m),
                 decoration: BoxDecoration(
                   color: NovaColors.error(context).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(NovaRadius.medium),
+                  borderRadius: NovaRadius.circularM,
                 ),
                 child: Row(
                   children: [
@@ -107,11 +107,11 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
                       color: NovaColors.error(context),
                       size: 20,
                     ),
-                    SizedBox(width: NovaSpacing.small),
+                    SizedBox(width: NovaSpacing.s),
                     Expanded(
                       child: Text(
                         state.submitError!,
-                        style: NovaTypography.bodySmall.copyWith(
+                        style: NovaTextStyles.caption.copyWith(
                           color: NovaColors.error(context),
                         ),
                       ),
@@ -133,9 +133,9 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: NovaColors.border(context),
                   disabledForegroundColor: NovaColors.textSecondary(context),
-                  padding: EdgeInsets.symmetric(vertical: NovaSpacing.medium),
+                  padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(NovaRadius.medium),
+                    borderRadius: NovaRadius.circularM,
                   ),
                   elevation: 0,
                 ),

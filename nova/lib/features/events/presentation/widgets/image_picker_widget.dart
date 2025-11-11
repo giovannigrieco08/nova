@@ -50,9 +50,9 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
         // Label
         Text(
           'Immagine Evento (Opzionale)',
-          style: NovaTypography.labelMedium,
+          style: NovaTextStyles.body,
         ),
-        SizedBox(height: NovaSpacing.small),
+        SizedBox(height: NovaSpacing.s),
 
         // Image preview or placeholder
         GestureDetector(
@@ -61,8 +61,8 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             aspectRatio: 16 / 9,
             child: Container(
               decoration: BoxDecoration(
-                color: NovaColors.backgroundSecondary(context),
-                borderRadius: BorderRadius.circular(NovaRadius.large),
+                color: NovaColors.surface(context),
+                borderRadius: NovaRadius.circularL,
                 border: Border.all(
                   color: NovaColors.border(context),
                   width: 1,
@@ -76,7 +76,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             ),
           ),
         ),
-        SizedBox(height: NovaSpacing.small),
+        SizedBox(height: NovaSpacing.s),
 
         // Action buttons (only show if no image)
         if (!hasImage) _buildActionButtons(),
@@ -96,10 +96,10 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
           CircularProgressIndicator(
             color: NovaColors.primary(context),
           ),
-          SizedBox(height: NovaSpacing.medium),
+          SizedBox(height: NovaSpacing.m),
           Text(
             'Compressione immagine...',
-            style: NovaTypography.bodySmall.copyWith(
+            style: NovaTextStyles.caption.copyWith(
               color: NovaColors.textSecondary(context),
             ),
           ),
@@ -111,7 +111,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   /// Image preview
   Widget _buildImagePreview() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(NovaRadius.large),
+      borderRadius: NovaRadius.circularL,
       child: widget.imageFile != null
           ? Image.file(
               widget.imageFile!,
@@ -137,10 +137,10 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             size: 48,
             color: NovaColors.textSecondary(context),
           ),
-          SizedBox(height: NovaSpacing.small),
+          SizedBox(height: NovaSpacing.s),
           Text(
             'Aggiungi un\'immagine',
-            style: NovaTypography.bodyMedium.copyWith(
+            style: NovaTextStyles.body.copyWith(
               color: NovaColors.textSecondary(context),
             ),
           ),
@@ -159,25 +159,25 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             icon: const Icon(Icons.camera_alt_outlined, size: 20),
             label: const Text('Camera'),
             style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: NovaSpacing.medium),
+              padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
               side: BorderSide(color: NovaColors.border(context)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(NovaRadius.medium),
+                borderRadius: NovaRadius.circularM,
               ),
             ),
           ),
         ),
-        SizedBox(width: NovaSpacing.small),
+        SizedBox(width: NovaSpacing.s),
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () => _pickImage(ImageSource.gallery),
             icon: const Icon(Icons.photo_library_outlined, size: 20),
             label: const Text('Galleria'),
             style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: NovaSpacing.medium),
+              padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
               side: BorderSide(color: NovaColors.border(context)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(NovaRadius.medium),
+                borderRadius: NovaRadius.circularM,
               ),
             ),
           ),
@@ -208,7 +208,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       context: context,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(NovaRadius.large),
+          top: NovaRadius.l,
         ),
       ),
       builder: (context) => SafeArea(
