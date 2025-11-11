@@ -10,12 +10,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+// import 'package:firebase_core/firebase_core.dart'; // Temporarily disabled for testing
+// import 'package:firebase_messaging/firebase_messaging.dart'; // Temporarily disabled for testing
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
 import 'package:nova/core/theme/cupertino_theme.dart';
 import 'package:nova/core/utils/platform_utils.dart';
+import 'package:nova/core/utils/deep_link_handler.dart';
 import 'package:nova/core/models/auth_state.dart';
 import 'package:nova/core/services/deep_link_service.dart';
 import 'package:nova/core/widgets/splash_screen.dart';
@@ -35,48 +36,121 @@ import 'package:nova/features/events/data/models/participation_model.dart';
 import 'package:nova/features/events/data/models/report_model.dart';
 import 'package:nova/features/events/domain/entities/offline_action.dart';
 
-/// Firebase Cloud Messaging background message handler
-/// Must be top-level function (not inside a class)
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Initialize Firebase if not already initialized
-  await Firebase.initializeApp();
-
-  // Handle background notification
-  assert(() {
-    debugPrint('🔔 Handling background FCM message: ${message.messageId}');
-    debugPrint('   Title: ${message.notification?.title}');
-    debugPrint('   Body: ${message.notification?.body}');
-    return true;
-  }());
-
-  // Background message handling logic will be added in Phase 4 (US2)
-  // For now, just log the message
-}
+// Temporarily disabled for testing
+// /// Firebase Cloud Messaging background message handler
+// /// Must be top-level function (not inside a class)
+// @pragma('vm:entry-point')
+// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+//   // Initialize Firebase if not already initialized
+//   await Firebase.initializeApp();
+//
+//   // Handle background notification
+//   assert(() {
+//     debugPrint('🔔 Handling background FCM message: ${message.messageId}');
+//     debugPrint('   Title: ${message.notification?.title}');
+//     debugPrint('   Body: ${message.notification?.body}');
+//     return true;
+//   }());
+//
+//   // Background message handling logic will be added in Phase 4 (US2)
+//   // For now, just log the message
+// }
 
 Future<void> main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase (for FCM push notifications)
-  await Firebase.initializeApp();
-
-  // Configure FCM background message handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Temporarily disabled for testing
+  // // Initialize Firebase (for FCM push notifications)
+  // await Firebase.initializeApp();
+  //
+  // // Configure FCM background message handler
+  // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Initialize Supabase BEFORE runApp
   await SupabaseConfig.initialize();
 
   // Initialize Hive for offline-first storage (profiles + events)
   await Hive.initFlutter();
-  Hive.registerAdapter(ProfileModelAdapter());
-  Hive.registerAdapter(EventModelAdapter());
-  Hive.registerAdapter(EventDraftAdapter()); // Feature 004: Event drafts
-  Hive.registerAdapter(CommentModelAdapter());
-  Hive.registerAdapter(LikeModelAdapter());
-  Hive.registerAdapter(ParticipationModelAdapter());
-  Hive.registerAdapter(ReportModelAdapter());
-  Hive.registerAdapter(OfflineActionAdapter());
+
+  // TEMPORARY: Delete corrupted Hive boxes due to typeId changes
+  // This ensures old data with wrong typeIds doesn't cause errors
+  // Remove this code after all users have updated
+  try {
+    await Hive.deleteBoxFromDisk('events_cache');
+    await Hive.deleteBoxFromDisk('profiles');
+    await Hive.deleteBoxFromDisk('event_drafts');
+    await Hive.deleteBoxFromDisk('offline_actions_queue');
+    debugPrint('✅ Cleared Hive boxes due to typeId migration');
+  } catch (e) {
+    debugPrint('ℹ️ Hive box cleanup: $e');
+  }
+
+  // Register adapters (with error handling for hot reload/restart)
+  try {
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(ProfileModelAdapter());
+    }
+  } catch (e) {
+    debugPrint('ProfileModelAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(EventModelAdapter());
+    }
+  } catch (e) {
+    debugPrint('EventModelAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(2)) {
+      Hive.registerAdapter(EventDraftAdapter()); // Feature 004: Event drafts
+    }
+  } catch (e) {
+    debugPrint('EventDraftAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(3)) {
+      Hive.registerAdapter(CommentModelAdapter());
+    }
+  } catch (e) {
+    debugPrint('CommentModelAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(4)) {
+      Hive.registerAdapter(LikeModelAdapter());
+    }
+  } catch (e) {
+    debugPrint('LikeModelAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(5)) {
+      Hive.registerAdapter(ParticipationModelAdapter());
+    }
+  } catch (e) {
+    debugPrint('ParticipationModelAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(6)) {
+      Hive.registerAdapter(ReportModelAdapter());
+    }
+  } catch (e) {
+    debugPrint('ReportModelAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(7)) {
+      Hive.registerAdapter(OfflineActionAdapter());
+    }
+  } catch (e) {
+    debugPrint('OfflineActionAdapter already registered: $e');
+  }
+
   await Hive.openBox<ProfileModel>('profiles');
   await Hive.openBox<EventModel>('events_cache');
   await Hive.openBox<EventDraft>('event_drafts'); // Feature 004: Event creation drafts
@@ -112,6 +186,10 @@ class NovaApp extends ConsumerStatefulWidget {
 class _NovaAppState extends ConsumerState<NovaApp> {
   // Deep link service instance
   final _deepLinkService = DeepLinkService();
+  final _deepLinkHandler = DeepLinkHandler();
+
+  // Global navigator key for deep link navigation
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -151,10 +229,42 @@ class _NovaAppState extends ConsumerState<NovaApp> {
             }());
           }
         } else {
-          assert(() {
-            debugPrint('⚠️ Unknown deep link: $uri');
-            return true;
-          }());
+          // Try parsing as Nova event/profile deep link (nova://events/{id})
+          final deepLinkInfo = _deepLinkHandler.parse(uri);
+
+          if (deepLinkInfo != null) {
+            assert(() {
+              debugPrint('✅ Parsed Nova deep link: $deepLinkInfo');
+              return true;
+            }());
+
+            // Handle based on deep link type
+            switch (deepLinkInfo.type) {
+              case DeepLinkType.event:
+                // Navigate to event detail screen
+                // Note: Navigation will be handled by MaterialApp's onGenerateRoute
+                // For now, just log - T067 will add actual navigation
+                assert(() {
+                  debugPrint('📍 Navigating to event: ${deepLinkInfo.eventId}');
+                  return true;
+                }());
+                // TODO T067: Add actual navigation to EventDetailScreen
+                break;
+
+              case DeepLinkType.profile:
+                assert(() {
+                  debugPrint('📍 Navigating to profile: ${deepLinkInfo.userId}');
+                  return true;
+                }());
+                // TODO: Add profile deep link navigation (future feature)
+                break;
+            }
+          } else {
+            assert(() {
+              debugPrint('⚠️ Unknown deep link: $uri');
+              return true;
+            }());
+          }
         }
       },
     );

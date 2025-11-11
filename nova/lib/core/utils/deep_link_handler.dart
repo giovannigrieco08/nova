@@ -22,7 +22,7 @@ class DeepLinkHandler {
 
   /// Stream of incoming deep links (for warm start)
   Stream<DeepLinkInfo> get linkStream => _appLinks.uriLinkStream
-      .map((uri) => _parseDeepLink(uri))
+      .map((uri) => parse(uri))
       .where((info) => info != null)
       .cast<DeepLinkInfo>();
 
@@ -33,7 +33,7 @@ class DeepLinkHandler {
     try {
       final uri = await _appLinks.getInitialLink();
       if (uri == null) return null;
-      return _parseDeepLink(uri);
+      return parse(uri);
     } catch (e) {
       return null;
     }
@@ -44,7 +44,9 @@ class DeepLinkHandler {
   /// Supported formats:
   /// - nova://events/{event_id}
   /// - nova://profile/{user_id} (future)
-  DeepLinkInfo? _parseDeepLink(Uri uri) {
+  ///
+  /// Returns null if URI format is invalid or unsupported.
+  DeepLinkInfo? parse(Uri uri) {
     // Check scheme (must be "nova")
     if (uri.scheme != 'nova') return null;
 

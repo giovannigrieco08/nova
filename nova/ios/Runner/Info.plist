@@ -46,17 +46,29 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
-	<!-- Deep Link: Custom URL Scheme (novaapp://) for Magic Link Authentication -->
+	<!-- Deep Link: Custom URL Schemes -->
 	<key>CFBundleURLTypes</key>
 	<array>
+		<!-- novaapp:// - Magic Link Authentication -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.galileimoro.nova</string>
+			<string>com.galileimoro.nova.auth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>novaapp</string>
+			</array>
+		</dict>
+		<!-- nova:// - Event Sharing & Deep Links -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.galileimoro.nova.events</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>nova</string>
 			</array>
 		</dict>
 	</array>
