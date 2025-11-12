@@ -82,5 +82,17 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- Image Picker: Required for Android 11+ (API 30+) package visibility -->
+        <!-- Query for camera apps -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
+        </intent>
+
+        <!-- Query for gallery/media picker apps -->
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT"/>
+            <data android:mimeType="image/*"/>
+        </intent>
     </queries>
 </manifest>
