@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Visualizza i dettagli di questo evento su Nova - School Events Platform">
+    <title>Evento - Nova</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="">
+    <meta property="og:title" content="Evento su Nova">
+    <meta property="og:description" content="Visualizza i dettagli di questo evento su Nova">
+    <meta property="og:image" content="">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="">
+    <meta property="twitter:title" content="Evento su Nova">
+    <meta property="twitter:description" content="Visualizza i dettagli di questo evento su Nova">
+    <meta property="twitter:image" content="">
+
+    <style>
+        /* Nova Design System Colors */
+        :root {
+            /* Light Theme */
+            --color-primary-light: #FF6B35;
+            --color-background-light: #FFFFFF;
+            --color-surface-light: #F8F9FA;
+            --color-text-primary-light: #1A1A2E;
+            --color-text-secondary-light: #6C757D;
+            --color-border-light: #E9ECEF;
+            --color-error-light: #DC3545;
+
+            /* Dark Theme */
+            --color-primary-dark: #FF8A5B;
+            --color-background-dark: #1A1A2E;
+            --color-surface-dark: #16213E;
+            --color-text-primary-dark: #FFFFFF;
+            --color-text-secondary-dark: #ADB5BD;
+            --color-border-dark: #495057;
+            --color-error-dark: #F8D7DA;
+
+            /* Spacing (Nova Design System) */
+            --spacing-xs: 4px;
+            --spacing-s: 8px;
+            --spacing-m: 16px;
+            --spacing-l: 24px;
+            --spacing-xl: 32px;
+            --spacing-xxl: 48px;
+
+            /* Border Radius */
+            --radius-s: 8px;
+            --radius-m: 12px;
+            --radius-l: 16px;
+        }
+
+        /* Light theme (default) */
+        body {
+            --color-primary: var(--color-primary-light);
+            --color-background: var(--color-background-light);
+            --color-surface: var(--color-surface-light);
+            --color-text-primary: var(--color-text-primary-light);
+            --color-text-secondary: var(--color-text-secondary-light);
+            --color-border: var(--color-border-light);
+            --color-error: var(--color-error-light);
+        }
+
+        /* Dark theme */
+        @media (prefers-color-scheme: dark) {
+            body {
+                --color-primary: var(--color-primary-dark);
+                --color-background: var(--color-background-dark);
+                --color-surface: var(--color-surface-dark);
+                --color-text-primary: var(--color-text-primary-dark);
+                --color-text-secondary: var(--color-text-secondary-dark);
+                --color-border: var(--color-border-dark);
+                --color-error: var(--color-error-dark);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--spacing-l);
+        }
+
+        header {
+            text-align: center;
+            padding: var(--spacing-xl) 0;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-s);
+        }
+
+        .subtitle {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .loading, .error, .not-found {
+            text-align: center;
+            padding: var(--spacing-xxl) var(--spacing-l);
+        }
+
+        .loading {
+            color: var(--color-text-secondary);
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--spacing-m);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: var(--color-error);
+        }
+
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: var(--spacing-m);
+        }
+
+        .event-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-l);
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .event-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            background: var(--color-border);
+        }
+
+        .event-content {
+            padding: var(--spacing-l);
+        }
+
+        .event-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-m);
+            color: var(--color-text-primary);
+        }
+
+        .event-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-s);
+            margin-bottom: var(--spacing-m);
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .event-meta svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .event-description-label {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-s);
+            color: var(--color-text-primary);
+        }
+
+        .event-description {
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            margin-bottom: var(--spacing-l);
+        }
+
+        .download-section {
+            background: var(--color-surface);
+            border-radius: var(--radius-l);
+            padding: var(--spacing-xl);
+            text-align: center;
+        }
+
+        .download-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-s);
+            color: var(--color-text-primary);
+        }
+
+        .download-subtitle {
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-l);
+        }
+
+        .download-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-m);
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .download-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-m);
+            padding: var(--spacing-m) var(--spacing-l);
+            background: var(--color-text-primary);
+            color: var(--color-background);
+            border-radius: var(--radius-s);
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .download-button:hover {
+            opacity: 0.8;
+        }
+
+        .download-button svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        footer {
+            text-align: center;
+            padding: var(--spacing-xl) 0;
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            border-top: 1px solid var(--color-border);
+            margin-top: var(--spacing-xxl);
+        }
+
+        @media (min-width: 640px) {
+            .download-buttons {
+                flex-direction: row;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">Nova</div>
+            <div class="subtitle">School Events Platform - Liceo Galilei Moro</div>
+        </header>
+
+        <main id="content">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Caricamento evento...</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2025 Nova - School Events Platform</p>
+            <p style="margin-top: 8px;">Liceo Galilei Moro</p>
+        </footer>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://jhnxscorszeslkhnxtif.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobnhzY29yc3plc2xraG54dGlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NDU4MzYsImV4cCI6MjA3NzQyMTgzNn0.9CF4nKERtW0U-oQ2jpX6zhMFP2zrjROQMR75pFTnQdY';
+
+        // App Store URLs (TODO: Replace with actual URLs when apps are published)
+        const IOS_APP_URL = 'https://apps.apple.com/app/nova'; // Placeholder
+        const ANDROID_APP_URL = 'https://play.google.com/store/apps/details?id=com.galileimoro.nova'; // Placeholder
+
+        // Extract event ID from URL query parameter
+        function getEventIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+
+        // Format date/time for display
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return date.toLocaleDateString('it-IT', options);
+        }
+
+        // Fetch event from Supabase
+        async function fetchEvent(eventId) {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/events?id=eq.${eventId}&select=*`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    return null;
+                }
+
+                return data[0];
+            } catch (error) {
+                console.error('Error fetching event:', error);
+                throw error;
+            }
+        }
+
+        // Render event details
+        function renderEvent(event) {
+            // Update page meta tags
+            document.title = `${event.title} - Nova`;
+
+            // Update Open Graph meta tags
+            const ogUrl = document.querySelector('meta[property="og:url"]');
+            const ogTitle = document.querySelector('meta[property="og:title"]');
+            const ogDescription = document.querySelector('meta[property="og:description"]');
+            const ogImage = document.querySelector('meta[property="og:image"]');
+
+            if (ogUrl) ogUrl.content = window.location.href;
+            if (ogTitle) ogTitle.content = event.title;
+            if (ogDescription) ogDescription.content = event.description.substring(0, 150) + '...';
+            if (ogImage && event.image_url) ogImage.content = event.image_url;
+
+            // Build event HTML
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="event-card">
+                    ${event.image_url ? `
+                        <img src="${event.image_url}" alt="${event.title}" class="event-image">
+                    ` : ''}
+                    <div class="event-content">
+                        <h1 class="event-title">${event.title}</h1>
+
+                        <div class="event-meta">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"/>
+                            </svg>
+                            <span>${formatDateTime(event.event_date)}</span>
+                        </div>
+
+                        ${event.location ? `
+                            <div class="event-meta">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                </svg>
+                                <span>${event.location}</span>
+                            </div>
+                        ` : ''}
+
+                        <div style="margin-top: 24px;">
+                            <div class="event-description-label">Descrizione</div>
+                            <p class="event-description">${event.description}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="download-section">
+                    <h2 class="download-title">Scarica l'app Nova</h2>
+                    <p class="download-subtitle">Per vedere tutti i dettagli e interagire con l'evento</p>
+
+                    <div class="download-buttons">
+                        <a href="${IOS_APP_URL}" class="download-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                            </svg>
+                            App Store
+                        </a>
+
+                        <a href="${ANDROID_APP_URL}" class="download-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+                            </svg>
+                            Google Play
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render error state
+        function renderError(message) {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="error">
+                    <div class="error-icon">⚠️</div>
+                    <h2>Errore</h2>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Render not found state
+        function renderNotFound() {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="not-found">
+                    <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>
+                    <h2>Evento non trovato</h2>
+                    <p style="color: var(--color-text-secondary); margin-top: 8px;">
+                        Questo evento non esiste o non è più disponibile.
+                    </p>
+                </div>
+
+                <div class="download-section">
+                    <h2 class="download-title">Scarica l'app Nova</h2>
+                    <p class="download-subtitle">Scopri tutti gli eventi del Liceo Galilei Moro</p>
+
+                    <div class="download-buttons">
+                        <a href="${IOS_APP_URL}" class="download-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                            </svg>
+                            App Store
+                        </a>
+
+                        <a href="${ANDROID_APP_URL}" class="download-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+                            </svg>
+                            Google Play
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Main initialization
+        async function init() {
+            const eventId = getEventIdFromUrl();
+
+            if (!eventId) {
+                renderError('ID evento mancante nell\'URL');
+                return;
+            }
+
+            try {
+                const event = await fetchEvent(eventId);
+
+                if (!event) {
+                    renderNotFound();
+                    return;
+                }
+
+                // Only show approved events (RLS policy handles this automatically)
+                if (event.status !== 'approved') {
+                    renderNotFound();
+                    return;
+                }
+
+                renderEvent(event);
+            } catch (error) {
+                console.error('Error initializing:', error);
+                renderError('Impossibile caricare l\'evento. Riprova più tardi.');
+            }
+        }
+
+        // Run on page load
+        init();
+    </script>
+</body>
+</html>
