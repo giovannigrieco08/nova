@@ -3,7 +3,7 @@
 // Purpose: Displays "X eventi creati | Y partecipazioni"
 
 import 'package:flutter/material.dart';
-import '../../domain/entities/profile_stats.dart';
+import '../../domain/entities/profile_stats.dart' as entities;
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
@@ -19,12 +19,12 @@ import '../../../../core/theme/nova_typography.dart';
 ///
 /// **Usage**:
 /// ```dart
-/// ProfileStats(stats: ProfileStats(eventsCreatedCount: 5, participationsCount: 12))
+/// UserProfileStats(stats: ProfileStats(eventsCreatedCount: 5, participationsCount: 12))
 /// ```
-class ProfileStats extends StatelessWidget {
-  final ProfileStats stats;
+class UserProfileStats extends StatelessWidget {
+  final entities.ProfileStats stats;
 
-  const ProfileStats({
+  const UserProfileStats({
     required this.stats,
     super.key,
   });

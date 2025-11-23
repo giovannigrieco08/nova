@@ -153,7 +153,8 @@
       "Bash(lib/features/events/presentation/screens/main_feed_screen.dart )",
       "Bash(lib/features/moderation/presentation/providers/pending_count_provider.dart)",
       "Bash(Select-String -Pattern \"(Error|error|Warning)\" -Context 0,2)",
-      "Bash(Select-Object -First 50)"
+      "Bash(Select-Object -First 50)",
+      "Bash(\"C:\\Users\\grigi\\scoop\\apps\\postgresql\\current\\bin\\psql.exe\" \"postgresql://postgres.jhnxscorszeslkhnxtif:Luciferasfuck2006.@aws-0-eu-central-1.pooler.supabase.com:6543/postgres\" -f \"c:\\Users\\grigi\\nova_def\\supabase\\migrations\\008_realtime_notifications.sql\")"
     ],
     "deny": [],
     "ask": []

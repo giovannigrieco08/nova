@@ -418,7 +418,7 @@ class _ProfileCheckGuard extends ConsumerWidget {
       // Profile loaded successfully
       data: (profile) {
         // Check if profile is complete (has class selected)
-        if (profile.isComplete) {
+        if (profile.isSetupComplete) {
           // Profile complete - show main feed
           return const MainFeedScreen();
         } else {

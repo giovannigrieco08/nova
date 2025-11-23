@@ -12,9 +12,9 @@ class ProfileLocalDataSource {
   ProfileLocalDataSource(this._profileBox);
 
   /// Save profile to local storage
-  /// Key format: 'profile_{userId}'
+  /// Key format: 'profile_{id}'
   Future<void> saveProfile(ProfileModel profile) async {
-    await _profileBox.put('profile_${profile.userId}', profile);
+    await _profileBox.put('profile_${profile.id}', profile);
   }
 
   /// Get profile from local storage
@@ -29,9 +29,9 @@ class ProfileLocalDataSource {
   }
 
   /// Save profile to pending sync queue (for offline edits)
-  /// Key format: 'pending_sync_{userId}'
+  /// Key format: 'pending_sync_{id}'
   Future<void> saveToPendingSync(ProfileModel profile) async {
-    await _profileBox.put('pending_sync_${profile.userId}', profile);
+    await _profileBox.put('pending_sync_${profile.id}', profile);
   }
 
   /// Get all profiles pending sync

@@ -7,6 +7,7 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/comment_input_notifier.dart';
+import '../providers/reply_mode_notifier.dart';
 
 /// CommentInputField Widget
 ///
@@ -27,18 +28,45 @@ import '../providers/comment_input_notifier.dart';
 /// - TextField with send button on right
 /// - Character counter below field (conditional)
 /// - Error message below counter (conditional)
-class CommentInputField extends ConsumerWidget {
+class CommentInputField extends ConsumerStatefulWidget {
   final String eventId;
+  final ReplyModeState replyModeState;
 
   const CommentInputField({
     super.key,
     required this.eventId,
+    required this.replyModeState,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final inputState = ref.watch(commentInputNotifierProvider(eventId));
-    final inputNotifier = ref.read(commentInputNotifierProvider(eventId).notifier);
+  ConsumerState<CommentInputField> createState() => _CommentInputFieldState();
+}
+
+class _CommentInputFieldState extends ConsumerState<CommentInputField> {
+  @override
+  void didUpdateWidget(CommentInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Pre-fill @mention when entering reply mode
+    if (!oldWidget.replyModeState.isReplyMode && widget.replyModeState.isReplyMode) {
+      final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
+      inputNotifier.textController.text = widget.replyModeState.mentionPrefix;
+      inputNotifier.textController.selection = TextSelection.fromPosition(
+        TextPosition(offset: widget.replyModeState.mentionPrefix.length),
+      );
+    }
+
+    // Clear @mention when exiting reply mode
+    if (oldWidget.replyModeState.isReplyMode && !widget.replyModeState.isReplyMode) {
+      final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
+      inputNotifier.textController.clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inputState = ref.watch(commentInputNotifierProvider(widget.eventId));
+    final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
 
     return Container(
       padding: EdgeInsets.symmetric(

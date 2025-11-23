@@ -8,6 +8,7 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/comments_notifier.dart';
 import '../providers/comment_input_notifier.dart';
+import '../providers/reply_mode_notifier.dart';
 import '../widgets/comment_card.dart';
 import '../widgets/comment_input_field.dart';
 import '../widgets/empty_comments_state.dart';
@@ -109,8 +110,13 @@ class CommentsSheet extends ConsumerWidget {
     WidgetRef ref,
     AsyncValue<List<dynamic>> commentsAsync,
   ) {
+    final replyModeState = ref.watch(replyModeNotifierProvider(eventId));
+
     return Column(
       children: [
+        // Reply mode header (purple banner when replying to a comment)
+        if (replyModeState.isReplyMode) _buildReplyModeHeader(context, ref, replyModeState),
+
         // Comments list (expanded to fill available space)
         Expanded(
           child: commentsAsync.when(
@@ -140,7 +146,10 @@ class CommentsSheet extends ConsumerWidget {
                   ),
                   itemBuilder: (context, index) {
                     final comment = comments[index];
-                    return CommentCard(comment: comment);
+                    return CommentCard(
+                      comment: comment,
+                      eventId: eventId,
+                    );
                   },
                 ),
                 ),
@@ -196,8 +205,73 @@ class CommentsSheet extends ConsumerWidget {
         ),
 
         // Comment input field (sticky at bottom)
-        CommentInputField(eventId: eventId),
+        CommentInputField(
+          eventId: eventId,
+          replyModeState: replyModeState,
+        ),
       ],
+    );
+  }
+
+  /// Builds reply mode header with purple background and close button
+  Widget _buildReplyModeHeader(
+    BuildContext context,
+    WidgetRef ref,
+    ReplyModeState replyModeState,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.m,
+        vertical: NovaSpacing.s,
+      ),
+      decoration: BoxDecoration(
+        color: NovaColors.primaryLight.withOpacity(0.1),
+        border: Border(
+          bottom: BorderSide(
+            color: NovaColors.primaryLight.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Reply icon
+          Icon(
+            Icons.reply,
+            size: 16,
+            color: NovaColors.primaryLight,
+          ),
+
+          SizedBox(width: NovaSpacing.xs),
+
+          // Reply header text
+          Expanded(
+            child: Text(
+              replyModeState.replyHeaderText ?? 'Rispondi',
+              style: NovaTextStyles.bodyBold.copyWith(
+                color: NovaColors.primaryLight,
+              ),
+            ),
+          ),
+
+          // Close button
+          Semantics(
+            button: true,
+            label: 'Annulla risposta',
+            child: GestureDetector(
+              onTap: () {
+                ref.read(replyModeNotifierProvider(eventId).notifier).cancelReply();
+              },
+              child: Icon(
+                Icons.close,
+                size: 20,
+                color: NovaColors.primaryLight,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

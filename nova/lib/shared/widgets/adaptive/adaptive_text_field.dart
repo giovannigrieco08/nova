@@ -60,6 +60,9 @@ class AdaptiveTextField extends StatelessWidget {
   /// Whether the text field is enabled
   final bool enabled;
 
+  /// Validator function
+  final String? Function(String?)? validator;
+
   const AdaptiveTextField({
     super.key,
     this.controller,
@@ -75,6 +78,7 @@ class AdaptiveTextField extends StatelessWidget {
     this.onTap,
     this.focusNode,
     this.enabled = true,
+    this.validator,
   });
 
   @override

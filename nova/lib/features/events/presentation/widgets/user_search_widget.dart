@@ -62,7 +62,7 @@ class _UserSearchWidgetState extends ConsumerState<UserSearchWidget> {
 
   void _addUser(Profile user) {
     // Check if already selected
-    if (widget.selectedUsers.any((u) => u.userId == user.userId)) {
+    if (widget.selectedUsers.any((u) => u.id == user.id)) {
       return;
     }
 
@@ -83,7 +83,7 @@ class _UserSearchWidgetState extends ConsumerState<UserSearchWidget> {
 
   void _removeUser(Profile user) {
     final updated =
-        widget.selectedUsers.where((u) => u.userId != user.userId).toList();
+        widget.selectedUsers.where((u) => u.id != user.id).toList();
     widget.onSelectionChanged(updated);
   }
 
@@ -228,7 +228,7 @@ class _UserSearchWidgetState extends ConsumerState<UserSearchWidget> {
                 itemBuilder: (context, index) {
                   final user = results[index];
                   final isSelected =
-                      widget.selectedUsers.any((u) => u.userId == user.userId);
+                      widget.selectedUsers.any((u) => u.id == user.id);
 
                   return ListTile(
                     leading: CircleAvatar(
@@ -250,7 +250,7 @@ class _UserSearchWidgetState extends ConsumerState<UserSearchWidget> {
                       ),
                     ),
                     subtitle: Text(
-                      user.classValue ?? '',
+                      user.classYear ?? '',
                       style: NovaTextStyles.caption.copyWith(
                         color: NovaColors.textSecondary(context),
                       ),

@@ -99,7 +99,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
             // Profile stats
             SliverToBoxAdapter(
               child: statsAsync.when(
-                data: (stats) => widgets.ProfileStats(stats: stats),
+                data: (stats) => widgets.UserProfileStats(stats: stats),
                 loading: () => Padding(
                   padding: EdgeInsets.all(NovaSpacing.medium),
                   child: const AdaptiveLoadingIndicator(),

@@ -92,7 +92,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Profile stats
             SliverToBoxAdapter(
               child: statsAsync.when(
-                data: (stats) => widgets.ProfileStats(stats: stats),
+                data: (stats) => widgets.UserProfileStats(stats: stats),
                 loading: () => Padding(
                   padding: EdgeInsets.all(NovaSpacing.medium),
                   child: const AdaptiveLoadingIndicator(),
@@ -107,11 +107,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
                 child: AdaptiveButton(
                   onPressed: () => _navigateToEditProfile(profile),
-                  backgroundColor: NovaColors.backgroundSecondary,
+                  backgroundColor: NovaColors.backgroundSecondary(context),
                   child: Text(
                     'Modifica Profilo',
                     style: NovaTypography.bodyMedium.copyWith(
-                      color: NovaColors.textPrimary,
+                      color: NovaColors.textPrimary(context),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -245,13 +245,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Icon(
                 Icons.error_outline_rounded,
                 size: 64,
-                color: NovaColors.error,
+                color: NovaColors.error(context),
               ),
               SizedBox(height: NovaSpacing.medium),
               Text(
                 'Errore nel caricare il profilo',
                 style: NovaTypography.headingSmall.copyWith(
-                  color: NovaColors.textPrimary,
+                  color: NovaColors.textPrimary(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -259,7 +259,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(
                 error.toString(),
                 style: NovaTypography.bodySmall.copyWith(
-                  color: NovaColors.textSecondary,
+                  color: NovaColors.textSecondary(context),
                 ),
                 textAlign: TextAlign.center,
               ),

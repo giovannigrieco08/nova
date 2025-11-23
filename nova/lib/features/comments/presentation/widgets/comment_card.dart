@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/comment.dart';
+import '../providers/reply_mode_notifier.dart';
 import 'like_button.dart';
 
 /// CommentCard Widget
@@ -22,16 +24,18 @@ import 'like_button.dart';
 /// - "(modificato)" indicator if edited
 /// - Avatar with initials fallback
 /// - Truncated text with "altro" expansion (future enhancement)
-class CommentCard extends StatelessWidget {
+class CommentCard extends ConsumerWidget {
   final Comment comment;
+  final String eventId;
 
   const CommentCard({
     super.key,
     required this.comment,
+    required this.eventId,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final accessibilityLabel = _buildAccessibilityLabel();
 
     return Semantics(
@@ -89,13 +93,52 @@ class CommentCard extends StatelessWidget {
                     ),
                   ),
 
-                  // Like button (T047: Phase 4 - User Story 2)
+                  // Like button and Reply button (Phase 4-5)
                   if (!comment.isDeleted) ...[
                     SizedBox(height: NovaSpacing.xs),
-                    LikeButton(
-                      commentId: comment.id,
-                      initialLikeCount: comment.likeCount,
-                      initialIsLiked: comment.isLikedByCurrentUser,
+                    Row(
+                      children: [
+                        // Like button
+                        LikeButton(
+                          commentId: comment.id,
+                          initialLikeCount: comment.likeCount,
+                          initialIsLiked: comment.isLikedByCurrentUser,
+                        ),
+
+                        SizedBox(width: NovaSpacing.m),
+
+                        // Reply button (T056: Phase 5)
+                        // Only show for top-level comments (not replies)
+                        if (comment.parentCommentId == null)
+                          Semantics(
+                            button: true,
+                            label: 'Rispondi al commento di ${comment.authorName}',
+                            child: GestureDetector(
+                              onTap: () {
+                                ref
+                                    .read(replyModeNotifierProvider(eventId).notifier)
+                                    .startReply(comment);
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 16,
+                                    color: NovaColors.textTertiaryLight,
+                                  ),
+                                  SizedBox(width: NovaSpacing.xxs),
+                                  Text(
+                                    'Rispondi',
+                                    style: NovaTextStyles.caption.copyWith(
+                                      color: NovaColors.textTertiaryLight,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ],

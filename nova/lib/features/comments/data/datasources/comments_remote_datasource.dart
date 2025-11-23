@@ -51,9 +51,9 @@ class CommentsRemoteDataSource {
             )
           ''')
           .eq('event_id', eventId)
-          .isFilter('parent_comment_id', 'is', null) // Top-level only
-          .isFilter('deleted_at', 'is', null) // Not deleted
-          .isFilter('hidden_at', 'is', null); // Not hidden
+          .is_('parent_comment_id', null) // Top-level only
+          .is_('deleted_at', null) // Not deleted
+          .is_('hidden_at', null); // Not hidden
 
       // Apply sort order
       if (sortOrder == CommentSortOrder.popular) {
@@ -114,8 +114,8 @@ class CommentsRemoteDataSource {
             )
           ''')
           .eq('parent_comment_id', commentId)
-          .isFilter('deleted_at', 'is', null)
-          .isFilter('hidden_at', 'is', null)
+          .is_('deleted_at', null)
+          .is_('hidden_at', null)
           .order('created_at', ascending: true);
 
       final List<dynamic> data = response as List;
@@ -146,8 +146,8 @@ class CommentsRemoteDataSource {
             )
           ''')
           .eq('id', commentId)
-          .isFilter('deleted_at', 'is', null)
-          .isFilter('hidden_at', 'is', null)
+          .is_('deleted_at', null)
+          .is_('hidden_at', null)
           .single();
 
       return _parseCommentWithProfile(response);
@@ -187,8 +187,8 @@ class CommentsRemoteDataSource {
             )
           ''')
           .eq('user_id', userId)
-          .isFilter('deleted_at', 'is', null)
-          .isFilter('hidden_at', 'is', null)
+          .is_('deleted_at', null)
+          .is_('hidden_at', null)
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
 
@@ -412,7 +412,7 @@ class CommentsRemoteDataSource {
           })
           .eq('id', commentId)
           .eq('user_id', currentUserId) // Ownership check
-          .isFilter('deleted_at', 'is', null); // Not already deleted
+          .is_('deleted_at', null); // Not already deleted
     } on PostgrestException catch (e, stackTrace) {
       if (e.code == 'PGRST116') {
         throw ForbiddenException(

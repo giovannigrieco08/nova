@@ -14,7 +14,7 @@ final isProfileIncompleteProvider = Provider<AsyncValue<bool>>((ref) {
   return profileAsync.when(
     data: (profile) {
       // Profile is incomplete if class is null or empty
-      final isIncomplete = !profile.isComplete;
+      final isIncomplete = !profile.isSetupComplete;
       return AsyncValue.data(isIncomplete);
     },
     loading: () => const AsyncValue.loading(),
