@@ -1,14 +1,22 @@
 // Repository: ProfileRepository
-// Feature: 002-profile-setup
+// Feature: 006-user-profile (evolved from 002-profile-setup)
 // Purpose: Combines remote + local datasources with offline-first logic
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../domain/entities/profile.dart';
+import '../../domain/entities/profile_stats.dart';
 import '../datasources/profile_local_datasource.dart';
 import '../datasources/profile_remote_datasource.dart';
 import '../models/profile_model.dart';
 
 /// Repository for profile operations with offline-first strategy
+///
+/// Responsibilities:
+/// - Profile CRUD operations
+/// - Profile statistics (events created, participations)
+/// - GDPR data export and deletion
+/// - Offline-first caching with Hive
+/// - Profile visibility toggle
 class ProfileRepository {
   final ProfileRemoteDataSource _remoteDataSource;
   final ProfileLocalDataSource _localDataSource;
@@ -157,10 +165,65 @@ class ProfileRepository {
     }
   }
 
-  /// Delete profile (GDPR Right to Erasure)
+  /// Get user profile by username (for deep link navigation)
+  /// **Strategy**: Remote-only (no caching for username lookups)
+  Future<Profile> getProfileByUsername(String username) async {
+    final remoteProfile = await _remoteDataSource.getProfileByUsername(username);
+    return remoteProfile.toEntity();
+  }
+
+  /// Get profile statistics (events created, participations count)
+  /// **Strategy**: Remote-only (computed from database)
+  Future<ProfileStats> getProfileStats(String userId) async {
+    final statsModel = await _remoteDataSource.getProfileStats(userId);
+    return statsModel.toEntity();
+  }
+
+  /// Update profile visibility toggle (privacy setting)
+  /// **Strategy**: Optimistic UI (update local immediately, sync in background)
+  Future<void> updateProfileVisibility(String userId, bool visible) async {
+    // Update local cache immediately (optimistic)
+    final currentProfile = _localDataSource.getProfile(userId);
+    if (currentProfile != null) {
+      final updatedModel = currentProfile.copyWith(profileVisible: visible);
+      await _localDataSource.saveProfile(updatedModel);
+    }
+
+    // Sync to remote
+    try {
+      await _remoteDataSource.updateProfileVisibility(userId, visible);
+    } catch (e) {
+      // Revert local cache on error
+      if (currentProfile != null) {
+        await _localDataSource.saveProfile(currentProfile);
+      }
+      rethrow;
+    }
+  }
+
+  /// Soft delete profile (GDPR Right to Erasure)
+  /// Sets deleted_at timestamp, triggering 30-day grace period
   /// **Strategy**: Online-only (cannot delete offline)
+  Future<void> softDeleteProfile(String userId) async {
+    await _remoteDataSource.softDeleteProfile(userId);
+
+    // Clear local cache
+    await _localDataSource.deleteProfile(userId);
+    await _localDataSource.removeFromPendingSync(userId);
+  }
+
+  /// Export user data (GDPR Right to Access, Art. 15)
+  /// Returns JSON with profile, events, participations, comments
+  /// **Strategy**: Remote-only (requires fresh data from database)
+  Future<Map<String, dynamic>> exportUserData(String userId) async {
+    return await _remoteDataSource.exportUserData(userId);
+  }
+
+  /// Delete profile (hard delete, admin-only)
+  /// **Strategy**: Online-only (cannot delete offline)
+  @deprecated
   Future<void> deleteProfile(String userId) async {
-    await _remoteDataSource.deleteProfile(userId);
+    await _remoteDataSource.hardDeleteProfile(userId);
 
     // Clear local cache
     await _localDataSource.deleteProfile(userId);
@@ -202,33 +265,21 @@ class ProfileRepository {
         await _localDataSource.removeFromPendingSync(userId);
       } catch (e) {
         // Keep in queue for next sync attempt
-        // TODO: Add logging here
+        // TODO(sync/future): Add structured logging with error tracking service
         continue;
       }
     }
   }
 
-  /// Check if profile is complete (has class)
-  Future<bool> isProfileComplete(String userId) async {
-    try {
-      // Try remote first
-      return await _remoteDataSource.isProfileComplete(userId);
-    } catch (e) {
-      // Fallback to local cache
-      final localProfile = _localDataSource.getProfile(userId);
-
-      if (localProfile != null) {
-        return localProfile.classValue != null &&
-            localProfile.classValue!.isNotEmpty;
-      }
-
-      return false;
+  /// Search profiles by name, username, or class
+  /// **Strategy**: Remote-only (no local cache needed)
+  Future<List<Profile>> searchProfiles(String query) async {
+    if (query.trim().isEmpty) {
+      return [];
     }
-  }
 
-  /// Parse name from email
-  Future<String?> parseNameFromEmail(String email) async {
-    return await _remoteDataSource.parseNameFromEmail(email);
+    final profiles = await _remoteDataSource.searchProfiles(query);
+    return profiles.map((model) => model.toEntity()).toList();
   }
 
   /// Helper: Apply updates to profile model
@@ -237,18 +288,21 @@ class ProfileRepository {
     Map<String, dynamic> updates,
   ) {
     return ProfileModel(
-      userId: current.userId,
+      id: current.id,
+      email: current.email,
       fullName: updates['full_name'] as String? ?? current.fullName,
-      classValue: updates['class'] as String? ?? current.classValue,
-      pronouns: updates.containsKey('pronouns')
-          ? updates['pronouns'] as String?
-          : current.pronouns,
+      username: current.username, // Username is read-only
+      classYear: updates['class'] as String? ?? current.classYear,
       avatarUrl: updates.containsKey('avatar_url')
           ? updates['avatar_url'] as String?
           : current.avatarUrl,
       bio: updates.containsKey('bio') ? updates['bio'] as String? : current.bio,
+      role: current.role, // Role is read-only in UI
+      profileVisible: updates.containsKey('profile_visible')
+          ? updates['profile_visible'] as bool
+          : current.profileVisible,
       createdAt: current.createdAt,
-      updatedAt: DateTime.now(), // Update timestamp
+      deletedAt: current.deletedAt, // Managed by softDeleteProfile
     );
   }
 }

@@ -10,21 +10,27 @@
 // - Instagram colors (#0095f6 button, #ed4956 like active)
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io' show Platform;
 import '../../domain/entities/event.dart';
+import '../../../../core/theme/nova_colors.dart';
+import '../../../profile/presentation/screens/other_profile_screen.dart';
 
 class EventCard extends StatefulWidget {
   final Event event;
   final VoidCallback? onTap;
   final bool showParticipantBadge;
 
-  // TODO: Add these fields to Event model or fetch from joined data
+  // TODO(#003): Add these fields to Event model via JOIN with profiles table (requires data layer update)
   final String? organizerName;
   final String? organizerClass;
+  final String? creatorId; // Creator's user ID for profile navigation (T050)
   final String? emoji;
   final int likeCount;
   final int commentCount;
   final bool isLiked;
+  final bool isParticipating; // Nuovo: traccia se l'utente partecipa già
 
   const EventCard({
     super.key,
@@ -34,67 +40,80 @@ class EventCard extends StatefulWidget {
     // Temporary props until data layer updated
     this.organizerName,
     this.organizerClass,
+    this.creatorId, // T050: Required for profile navigation
     this.emoji,
     this.likeCount = 0,
     this.commentCount = 0,
     this.isLiked = false,
+    this.isParticipating = false, // Default: non partecipante
   });
 
   @override
   State<EventCard> createState() => _EventCardState();
 }
 
-class _EventCardState extends State<EventCard> {
+class _EventCardState extends State<EventCard> with SingleTickerProviderStateMixin {
   bool _isCaptionExpanded = false;  // Caption "altro" expansion
-  bool _isCardExpanded = false;      // Full card expansion (participants/comments)
   late bool _isLiked;
+  late bool _isParticipating; // Traccia stato partecipazione (ottimistico)
+
+  // Animation for double tap like (Instagram-style)
+  late AnimationController _likeAnimationController;
+  late Animation<double> _likeAnimation;
 
   @override
   void initState() {
     super.initState();
     _isLiked = widget.isLiked;
+    _isParticipating = widget.isParticipating;
+
+    // Initialize like animation controller
+    _likeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    // Scale animation: 0.0 → 1.2 → 0.0 with opacity
+    _likeAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.2)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.2, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 50,
+      ),
+    ]).animate(_likeAnimationController);
+  }
+
+  @override
+  void dispose() {
+    _likeAnimationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _toggleCardExpansion,
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 12), // Card separator per specs
-          color: const Color(0xFFFFFFFF), // Pure white background
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              _buildImage(),
-              _buildActions(),
-              _buildCaption(),
-              _buildParticipateButton(),
-              _buildMetaInfo(),
-
-              // EXPANDED SECTIONS (conditional)
-              if (_isCardExpanded) ...[
-                _buildDivider(),
-                _buildParticipantsSection(),
-                _buildDivider(),
-                _buildCommentsPreview(),
-              ],
-
-              _buildTimestamp(),
-            ],
-          ),
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12), // Card separator per specs
+      color: Colors.white, // Pure white background
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          _buildImage(),
+          _buildActions(),
+          _buildLikesAndParticipants(), // Nuovo: mostra likes + partecipanti
+          _buildCaption(),
+          _buildCommentsPreview(), // Sempre visibile (stile BeReal)
+          _buildParticipateButton(),
+          _buildMetaInfo(),
+          _buildTimestamp(),
+        ],
       ),
     );
-  }
-
-  void _toggleCardExpansion() {
-    setState(() {
-      _isCardExpanded = !_isCardExpanded;
-    });
   }
 
   /// Header: Avatar (32px) + Username (14px bold) + Class (12px) + Menu dots
@@ -103,36 +122,42 @@ class _EventCardState extends State<EventCard> {
     final organizerClass = widget.organizerClass ?? '';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: Row(
         children: [
-          // Avatar with brand gradient
-          _buildAvatar(organizerName),
+          // Avatar with brand gradient (clickable - T050)
+          GestureDetector(
+            onTap: _navigateToCreatorProfile,
+            child: _buildAvatar(organizerName),
+          ),
           const SizedBox(width: 10),
-          // Username + Class stacked
+          // Username + Class stacked (clickable - T050)
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  organizerName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF000000),
-                  ),
-                ),
-                if (organizerClass.isNotEmpty)
+            child: GestureDetector(
+              onTap: _navigateToCreatorProfile,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Text(
-                    organizerClass,
+                    organizerName,
                     style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF737373),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
                     ),
                   ),
-              ],
+                  if (organizerClass.isNotEmpty)
+                    Text(
+                      organizerClass,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: NovaColors.instagramUsernameGray,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           // Menu dots
@@ -171,7 +196,7 @@ class _EventCardState extends State<EventCard> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFFFFFFFF),
+            color: Colors.white,
           ),
         ),
       ),
@@ -187,6 +212,7 @@ class _EventCardState extends State<EventCard> {
   }
 
   /// Image: 1:1 aspect ratio, 6.375px padding, 14px radius
+  /// Double tap to like (Instagram-style)
   Widget _buildImage() {
     final hasImage = widget.event.imageUrl != null;
     final emoji = widget.emoji;
@@ -195,13 +221,42 @@ class _EventCardState extends State<EventCard> {
       padding: const EdgeInsets.symmetric(horizontal: 6.375), // EXACT per specs
       child: AspectRatio(
         aspectRatio: 1.0, // 1:1 square
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: emoji != null
-              ? _buildEmojiPlaceholder(emoji)
-              : hasImage
-                  ? _buildNetworkImage(widget.event.imageUrl!)
-                  : _buildDefaultPlaceholder(),
+        child: GestureDetector(
+          onDoubleTap: _handleDoubleTapLike,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: emoji != null
+                    ? _buildEmojiPlaceholder(emoji)
+                    : hasImage
+                        ? _buildNetworkImage(widget.event.imageUrl!)
+                        : _buildDefaultPlaceholder(),
+              ),
+
+              // Animated heart overlay (Instagram-style)
+              AnimatedBuilder(
+                animation: _likeAnimation,
+                builder: (context, child) {
+                  return _likeAnimation.value > 0.0
+                      ? Opacity(
+                          opacity: _likeAnimation.value,
+                          child: Transform.scale(
+                            scale: _likeAnimation.value,
+                            child: const Icon(
+                              Icons.favorite,
+                              size: 100,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -210,7 +265,7 @@ class _EventCardState extends State<EventCard> {
   /// Emoji placeholder (120px font size, #F0F0F0 background)
   Widget _buildEmojiPlaceholder(String emoji) {
     return Container(
-      color: const Color(0xFFF0F0F0),
+      color: NovaColors.dividerLight,
       child: Center(
         child: Text(
           emoji,
@@ -226,7 +281,7 @@ class _EventCardState extends State<EventCard> {
       imageUrl: url,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
-        color: const Color(0xFFF0F0F0),
+        color: NovaColors.dividerLight,
         child: const Center(
           child: CircularProgressIndicator(),
         ),
@@ -238,52 +293,79 @@ class _EventCardState extends State<EventCard> {
   /// Default placeholder (#F0F0F0)
   Widget _buildDefaultPlaceholder() {
     return Container(
-      color: const Color(0xFFF0F0F0),
+      color: NovaColors.dividerLight,
       child: const Center(
         child: Icon(
           Icons.event_rounded,
           size: 64,
-          color: Color(0xFFD0D0D0),
+          color: NovaColors.textTertiaryLight,
         ),
       ),
     );
   }
 
-  /// Actions: Like (24px) + Comment (24px) with 1.5px offset
+  /// Actions: Like (24px) + Comment (24px) with counts
   Widget _buildActions() {
+    final likeCount = widget.likeCount;
+    // T029: Use event.commentCount from Event model instead of widget parameter
+    final commentCount = widget.event.commentCount;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Row(
         children: [
-          // Like icon with 1.5px offset toward center
-          Padding(
-            padding: const EdgeInsets.only(left: 1.5),
-            child: IconButton(
-              icon: Icon(
-                _isLiked ? Icons.favorite : Icons.favorite_border,
-                size: 24,
-              ),
-              color: _isLiked ? const Color(0xFFed4956) : const Color(0xFF000000),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _handleLike,
+          // Like button with count
+          GestureDetector(
+            onTap: _handleLike,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _isLiked ? Icons.favorite : Icons.favorite_border,
+                  size: 24,
+                  color: _isLiked ? NovaColors.instagramRed : Colors.black,
+                ),
+                if (likeCount > 0) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '$likeCount',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Comment button with count (T029: Uses event.commentCount)
+          GestureDetector(
+            onTap: _handleComment,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.mode_comment_outlined,
+                  size: 24,
+                  color: Colors.black,
+                ),
+                if (commentCount > 0) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '$commentCount',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           const Spacer(),
-          // Comment icon with 1.5px offset toward center
-          Padding(
-            padding: const EdgeInsets.only(right: 1.5),
-            child: IconButton(
-              icon: const Icon(
-                Icons.mode_comment_outlined,
-                size: 24,
-              ),
-              color: const Color(0xFF000000),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _handleComment,
-            ),
-          ),
         ],
       ),
     );
@@ -295,7 +377,7 @@ class _EventCardState extends State<EventCard> {
     final description = widget.event.description;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -306,7 +388,7 @@ class _EventCardState extends State<EventCard> {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF000000),
+                color: Colors.black,
                 height: 1.3,
               ),
               children: [
@@ -328,7 +410,7 @@ class _EventCardState extends State<EventCard> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF737373),
+                    color: NovaColors.instagramUsernameGray,
                   ),
                 ),
               ),
@@ -360,26 +442,31 @@ class _EventCardState extends State<EventCard> {
     return textPainter.didExceedMaxLines;
   }
 
-  /// Button: "Partecipo" full-width, #0095f6, 10px padding
+  /// Button: "Partecipo" full-width, #8B5CF6 (purple navbar), 10px padding
+  /// Toggle: partecipa/rimuovi partecipazione
   Widget _buildParticipateButton() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _handleParticipate,
+          onPressed: _handleParticipate, // Sempre abilitato (toggle)
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0095f6), // Instagram blue
-            foregroundColor: const Color(0xFFFFFFFF),
+            backgroundColor: _isParticipating
+                ? NovaColors.dividerLight // Grigio se già partecipante
+                : NovaColors.primaryLight, // Viola se non partecipante
+            foregroundColor: _isParticipating
+                ? NovaColors.instagramUsernameGray // Grigio scuro per testo
+                : Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(vertical: 10),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          child: const Text(
-            'Partecipo',
-            style: TextStyle(
+          child: Text(
+            _isParticipating ? 'Già partecipante' : 'Partecipo',
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -395,13 +482,13 @@ class _EventCardState extends State<EventCard> {
     final location = widget.event.location ?? 'Nessuna posizione';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
       child: Row(
         children: [
           const Icon(
             Icons.calendar_today,
             size: 12,
-            color: Color(0xFF737373),
+            color: NovaColors.instagramUsernameGray,
           ),
           const SizedBox(width: 4),
           Text(
@@ -409,14 +496,14 @@ class _EventCardState extends State<EventCard> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: Color(0xFF737373),
+              color: NovaColors.instagramUsernameGray,
             ),
           ),
           const SizedBox(width: 8),
           const Icon(
             Icons.location_on,
             size: 12,
-            color: Color(0xFF737373),
+            color: NovaColors.instagramUsernameGray,
           ),
           const SizedBox(width: 4),
           Expanded(
@@ -425,7 +512,7 @@ class _EventCardState extends State<EventCard> {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF737373),
+                color: NovaColors.instagramUsernameGray,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -440,13 +527,13 @@ class _EventCardState extends State<EventCard> {
     final timestamp = _formatTimestamp(widget.event.createdAt);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
       child: Text(
         timestamp.toUpperCase(), // UPPERCASE per specs
         style: const TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w400,
-          color: Color(0xFF737373),
+          color: NovaColors.instagramUsernameGray,
         ),
       ),
     );
@@ -478,49 +565,80 @@ class _EventCardState extends State<EventCard> {
   // INTERACTION HANDLERS
   // =========================================================================
 
+  /// Navigate to creator's profile (T050)
+  void _navigateToCreatorProfile() {
+    // Safety check: need creatorId to navigate
+    if (widget.creatorId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profilo non disponibile')),
+      );
+      return;
+    }
+
+    // Platform-adaptive navigation
+    Navigator.push(
+      context,
+      Platform.isIOS
+          ? CupertinoPageRoute(
+              builder: (_) => OtherProfileScreen(userId: widget.creatorId!),
+            )
+          : MaterialPageRoute(
+              builder: (_) => OtherProfileScreen(userId: widget.creatorId!),
+            ),
+    );
+  }
+
   void _handleLike() {
+    if (!mounted) return; // Safety check
     setState(() {
       _isLiked = !_isLiked;
     });
-    // TODO: Call repository to toggle like optimistically
+    // TODO(#003): Call EventsRepository to toggle like optimistically (FR-015)
+  }
+
+  /// Handle double tap on image (Instagram-style like)
+  void _handleDoubleTapLike() {
+    // Safety checks before animation
+    if (!mounted) return;
+
+    // Only toggle like if not already liked (Instagram behavior)
+    if (!_isLiked) {
+      _handleLike();
+    }
+
+    // Always play animation regardless of like state
+    // Check controller is not disposed
+    if (_likeAnimationController.isAnimating || _likeAnimationController.status == AnimationStatus.completed) {
+      _likeAnimationController.reset();
+    }
+    _likeAnimationController.forward(from: 0.0);
   }
 
   void _handleComment() {
-    // TODO: Show comments bottom sheet
+    // TODO(US5): Show comments bottom sheet (requires comments feature implementation)
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Comments sheet coming soon')),
     );
   }
 
   void _handleParticipate() {
-    // TODO: Show confirmation dialog with CupertinoAlertDialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Conferma Partecipazione'),
-        content: Text('Vuoi partecipare a "${widget.event.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Call repository to add participation
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Partecipazione confermata!')),
-              );
-            },
-            child: const Text('Partecipo'),
-          ),
-        ],
-      ),
-    );
+    if (!mounted) return; // Safety check
+
+    // Toggle ottimistico dello stato di partecipazione
+    setState(() {
+      _isParticipating = !_isParticipating;
+    });
+
+    // TODO(#003): Call EventsRepository to toggle participation
+    // if (_isParticipating) {
+    //   await eventsRepository.participateInEvent(widget.event.id);
+    // } else {
+    //   await eventsRepository.removeParticipation(widget.event.id);
+    // }
   }
 
   void _showMenuSheet() {
-    // TODO: Show action sheet with CupertinoActionSheet (iOS) / showModalBottomSheet (Android)
+    // TODO(#003): Show platform-adaptive action sheet (CupertinoActionSheet on iOS, ModalBottomSheet on Android)
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -533,7 +651,7 @@ class _EventCardState extends State<EventCard> {
               title: const Text('Condividi'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement share
+                // TODO(US4): Call ShareService.shareEvent() (deep link sharing)
               },
             ),
             ListTile(
@@ -541,7 +659,7 @@ class _EventCardState extends State<EventCard> {
               title: const Text('Segnala'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement report
+                // TODO(US8): Show report event dialog (content moderation)
               },
             ),
           ],
@@ -554,123 +672,118 @@ class _EventCardState extends State<EventCard> {
   // EXPANDED SECTIONS (shown when card is expanded)
   // =========================================================================
 
-  /// Divider between sections
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Container(
-        height: 1,
-        color: const Color(0xFFEFEFEF),
-      ),
-    );
-  }
+  /// Likes and participants count (Instagram-style)
+  Widget _buildLikesAndParticipants() {
+    final likeCount = widget.likeCount;
+    // TODO(#003): Get real participant count from EventsRepository.getParticipationCount (FR-024)
+    // Mock: mostra sempre un numero per testing
+    final participantCount = 12; // Mock data
 
-  /// Participants section (compact view with avatars)
-  Widget _buildParticipantsSection() {
-    // TODO: Get participants from event data
-    final participantCount = 0; // widget.event.participantCount
+    // Se entrambi sono 0, non mostrare nulla
+    if (likeCount == 0 && participantCount == 0) {
+      return const SizedBox.shrink();
+    }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+      child: Row(
         children: [
-          Text(
-            'Participants ($participantCount)',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF000000),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (participantCount > 0)
-            // TODO: Add ParticipantAvatars widget here
+          if (likeCount > 0)
             Text(
-              'Participant avatars will appear here',
+              '$likeCount ${likeCount == 1 ? "mi piace" : "mi piace"}',
               style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF737373),
-              ),
-            )
-          else
-            Text(
-              'Nessun partecipante ancora',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF737373),
-              ),
-            ),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () {
-              // TODO: Show full participants modal
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Participants modal coming soon')),
-              );
-            },
-            child: const Text(
-              'Vedi tutti',
-              style: TextStyle(
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF0095f6),
+                color: Colors.black,
               ),
             ),
-          ),
+          if (likeCount > 0 && participantCount > 0)
+            const Text(
+              '  •  ',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: NovaColors.instagramUsernameGray,
+              ),
+            ),
+          if (participantCount > 0)
+            Text(
+              '$participantCount ${participantCount == 1 ? "partecipante" : "partecipanti"}',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
         ],
       ),
     );
   }
 
-  /// Comments preview section (shows first 2 comments)
+  /// Comments preview (BeReal-style: always visible with usernames)
+  /// Opzione C: Minimal style - less prominent than caption
   Widget _buildCommentsPreview() {
-    // TODO: Get comments from event data
-    final commentCount = 0; // widget.commentCount
+    // TODO(US5): Get real comments from EventsRepository.getEventComments (FR-027)
+    final commentCount = widget.commentCount;
+
+    // Mock data per ora
+    final mockComments = [
+      {'username': 'mario.rossi', 'text': 'Ci sarò!'},
+      {'username': 'giulia_98', 'text': 'Che bello 🎉'},
+      {'username': 'luca.b', 'text': 'A che ora inizia?'},
+    ];
+
+    if (commentCount == 0 && mockComments.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2), // Ridotto da 4px a 2px
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Comments ($commentCount)',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF000000),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (commentCount > 0)
-            // TODO: Add comment widgets here
-            Text(
-              'Comment previews will appear here',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF737373),
-              ),
-            )
-          else
-            Text(
-              'Nessun commento ancora',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF737373),
+          // Show first 2 comments (BeReal style)
+          ...mockComments.take(2).map((comment) => Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 13, // Ridotto da 14px a 13px
+                  fontWeight: FontWeight.w400,
+                  color: NovaColors.instagramCommentGray, // Grigio chiaro (era nero)
+                  height: 1.3,
+                ),
+                children: [
+                  TextSpan(
+                    text: '${comment['username']} ',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500, // Semi-bold (era w600)
+                      color: NovaColors.instagramUsernameGray, // Grigio medio
+                    ),
+                  ),
+                  TextSpan(text: comment['text']),
+                ],
               ),
             ),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: _handleComment,
-            child: Text(
-              commentCount > 2 ? 'Vedi tutti i commenti' : 'Aggiungi un commento',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0095f6),
+          )),
+
+          // "Vedi tutti i commenti" link
+          if (commentCount > 2)
+            GestureDetector(
+              onTap: _handleComment,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2), // Ridotto da 4px a 2px
+                child: Text(
+                  'Vedi tutti i $commentCount commenti',
+                  style: const TextStyle(
+                    fontSize: 13, // Ridotto da 14px a 13px
+                    fontWeight: FontWeight.w400,
+                    color: NovaColors.instagramUsernameGray,
+                  ),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

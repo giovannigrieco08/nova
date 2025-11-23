@@ -206,7 +206,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         NovaToast.showSuccess(context, 'Profilo creato ✓');
 
         // Navigate to Feed with replace (FR-009d: remove setup from stack)
-        // TODO: Replace with actual FeedScreen when available
+        // TODO(#002): Replace with Navigator.pushReplacement to MainFeedScreen (currently handled by AuthGuard)
         // For now, just pop back
         Navigator.of(context).pop();
       }
@@ -257,7 +257,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         );
 
         // Navigate to Feed with replace
-        // TODO: Replace with actual FeedScreen when available
+        // TODO(#002): Replace with Navigator.pushReplacement to MainFeedScreen (currently handled by AuthGuard)
         Navigator.of(context).pop();
       }
     } catch (e) {

@@ -14,6 +14,10 @@ dependencies:
   # State Management
   flutter_riverpod: ^2.4.0
 
+  # Reactive UI (Event Comments feature)
+  flutter_hooks: ^0.20.0        # Reactive UI patterns for comments
+  rxdart: ^0.27.0                # Stream utilities for debouncing real-time updates
+
   # Design System & UI
   cupertino_native: ^0.1.0  # iOS native UIKit components (requires Xcode 26 beta)
   # Removed google_fonts: ^6.1.0 (using SF Pro/Roboto system fonts - design-system v2.0)
@@ -22,8 +26,9 @@ dependencies:
   # Supabase Backend
   supabase_flutter: ^2.8.0
 
-  # Deep Linking
+  # Deep Linking & Routing
   app_links: ^6.3.2
+  go_router: ^13.0.0  # Declarative routing with deep link support (User Profile feature)
 
   # Environment Variables
   flutter_dotenv: ^5.1.0
@@ -31,10 +36,11 @@ dependencies:
   # SVG Support
   flutter_svg: ^2.0.10
 
-  # Profile Feature Dependencies (002-profile-setup)
+  # Profile Feature Dependencies (002-profile-setup, 006-user-profile)
   shimmer: ^2.0.0                    # Skeleton loading animations
   image_picker: ^1.0.4               # Camera/gallery access
-  image: ^4.0.0                      # Image cropping and manipulation
+  image_cropper: ^5.0.1              # Circular avatar crop with pinch-to-zoom (User Profile feature)
+  image: ^4.0.0                      # Image manipulation utilities
   hive: ^2.2.3                       # Offline storage
   hive_flutter: ^1.1.0               # Flutter-specific Hive integration
   connectivity_plus: ^5.0.0          # Network status monitoring
@@ -50,8 +56,10 @@ dependencies:
   # Event Creation & Moderation Feature Dependencies (004-event-creation-moderation)
   firebase_core: ^2.24.0             # Firebase initialization
   firebase_messaging: ^14.7.0        # FCM push notifications
+  flutter_local_notifications: ^17.0.0  # Local notifications display
   flutter_image_compress: ^2.1.0     # Client-side image compression (WebP/JPEG)
   share_plus: ^7.2.0                 # Native share sheet for deep links
+  uuid: ^4.0.0                       # Generate unique event IDs
   # Removed uni_links: ^0.5.1 (deprecated, replaced by app_links ^6.3.2 above)
 
 dev_dependencies:
@@ -64,6 +72,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+  # Testing (added for comprehensive test coverage)
+  mockito: ^5.4.0                    # Mock generation for unit tests
+  mocktail: ^1.0.0                   # Manual mocking with type-safe API
 
   # Code Generation (Profile Feature)
   build_runner: ^2.4.0               # Code generation runner

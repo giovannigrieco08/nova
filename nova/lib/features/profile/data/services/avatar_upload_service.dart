@@ -1,19 +1,19 @@
-// Service: AvatarUploadService
-// Feature: 002-profile-setup
-// Purpose: Handle avatar image upload to Supabase Storage with compression
+// Service: AvatarUploadService (AvatarStorageDatasource)
+// Feature: 006-user-profile (evolved from 002-profile-setup)
+// Purpose: Handle avatar image upload to Supabase Storage with WebP compression
 
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img;
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Service for uploading and managing avatar images
 ///
 /// Features:
-/// - Image compression (max 200KB per constitution)
-/// - WebP format conversion for optimal size
-/// - Supabase Storage integration (avatars bucket)
-/// - Signed URL generation (1-hour expiry for security)
+/// - Image compression to <500KB target (spec: FR-013)
+/// - WebP format conversion for optimal size/quality
+/// - Supabase Storage integration (public avatars bucket)
+/// - Public URLs (bucket is public per migration)
 /// - Automatic cleanup of old avatars
 class AvatarUploadService {
   final SupabaseClient _supabase;
@@ -23,12 +23,12 @@ class AvatarUploadService {
   /// Upload avatar image to Supabase Storage
   ///
   /// Steps:
-  /// 1. Compress image to <200KB
-  /// 2. Convert to WebP format
-  /// 3. Upload to avatars bucket with user ID path
-  /// 4. Return signed URL (1-hour expiry)
+  /// 1. Compress image to <500KB WebP format
+  /// 2. Upload to avatars bucket at {user_id}/avatar.webp
+  /// 3. Delete old avatar (cleanup)
+  /// 4. Return public URL
   ///
-  /// Returns: Public signed URL for avatar
+  /// Returns: Public URL for avatar (permanent, no expiry)
   /// Throws: AvatarUploadException on failure
   Future<String> uploadAvatar({
     required String userId,
@@ -36,87 +36,80 @@ class AvatarUploadService {
     Function(double progress)? onProgress,
   }) async {
     try {
-      // Step 1: Compress and optimize image
+      // Step 1: Compress and optimize image to WebP
       if (onProgress != null) onProgress(0.1);
-      final compressedImage = await _compressImage(imageFile);
-
-      if (onProgress != null) onProgress(0.4);
-
-      // Step 2: Generate unique file name
-      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.png';
-      final filePath = '$userId/$fileName';
+      final compressedImage = await _compressImageToWebP(imageFile);
 
       if (onProgress != null) onProgress(0.5);
 
-      // Step 3: Delete old avatar if exists (cleanup)
-      await _deleteOldAvatar(userId);
+      // Step 2: Fixed file path (always avatar.webp, upsert replaces old one)
+      final filePath = '$userId/avatar.webp';
 
       if (onProgress != null) onProgress(0.6);
 
-      // Step 4: Upload to Supabase Storage
+      // Step 3: Upload to Supabase Storage (upsert=true replaces old file)
       await _supabase.storage.from('avatars').uploadBinary(
             filePath,
             compressedImage,
             fileOptions: const FileOptions(
-              contentType: 'image/png',
-              cacheControl: '3600', // 1 hour cache
-              upsert: true,
+              contentType: 'image/webp',
+              cacheControl: '86400', // 24 hours cache for CDN
+              upsert: true, // Replace existing file
             ),
           );
 
       if (onProgress != null) onProgress(0.9);
 
-      // Step 5: Get signed URL (1-hour expiry for security)
-      final signedUrl = await _supabase.storage
-          .from('avatars')
-          .createSignedUrl(filePath, 3600); // 1 hour
+      // Step 4: Get public URL (bucket is public, no signature needed)
+      final publicUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
 
       if (onProgress != null) onProgress(1.0);
 
-      return signedUrl;
+      return publicUrl;
     } catch (e) {
       throw AvatarUploadException('Failed to upload avatar: ${e.toString()}');
     }
   }
 
-  /// Compress image to meet performance requirements
+  /// Compress image to WebP format with target <500KB
   ///
-  /// Target: <200KB per constitution performance budget
-  /// Format: PNG for compatibility (WebP encoding not available in image package)
-  /// Size: 512x512 (retina-quality for avatars)
-  Future<Uint8List> _compressImage(File imageFile) async {
+  /// Uses flutter_image_compress for native WebP encoding
+  /// Target: <500KB (spec: FR-013)
+  /// Format: WebP (better compression than PNG/JPEG)
+  /// Size: 512x512 (retina-quality for circular avatars)
+  Future<Uint8List> _compressImageToWebP(File imageFile) async {
     try {
-      // Read image file
-      final bytes = await imageFile.readAsBytes();
-      final image = img.decodeImage(bytes);
-
-      if (image == null) {
-        throw AvatarUploadException('Invalid image file');
-      }
-
-      // Resize to 512x512 (square crop from center)
-      final resized = img.copyResizeCropSquare(image, size: 512);
-
-      // Convert to PNG with quality adjustment to meet <200KB target
-      var quality = 9; // PNG compression level (0-9, higher = better compression)
-      Uint8List compressed;
+      // Compress to WebP with quality 85 (good balance of size/quality)
+      var quality = 85;
+      Uint8List? compressed;
 
       do {
-        compressed = Uint8List.fromList(
-          img.encodePng(resized, level: quality),
+        compressed = await FlutterImageCompress.compressWithFile(
+          imageFile.absolute.path,
+          minWidth: 512,
+          minHeight: 512,
+          quality: quality,
+          format: CompressFormat.webp,
         );
 
-        // If still too large, reduce size instead of quality (PNG is lossless)
-        if (compressed.lengthInBytes > 200 * 1024 && quality > 6) {
-          quality -= 1;
+        // If null or still too large, reduce quality
+        if (compressed == null) {
+          throw AvatarUploadException('Failed to compress image to WebP');
+        }
+
+        if (compressed.lengthInBytes > 500 * 1024 && quality > 60) {
+          quality -= 5; // Reduce quality in steps of 5
         } else {
           break;
         }
-      } while (compressed.lengthInBytes > 200 * 1024);
+      } while (compressed.lengthInBytes > 500 * 1024 && quality >= 60);
 
-      debugPrint(
-        'Avatar compressed: ${(compressed.lengthInBytes / 1024).toStringAsFixed(2)} KB (level: $quality)',
-      );
+      assert(() {
+        debugPrint(
+          'Avatar compressed: ${(compressed!.lengthInBytes / 1024).toStringAsFixed(2)} KB (quality: $quality)',
+        );
+        return true;
+      }());
 
       return compressed;
     } catch (e) {
@@ -125,55 +118,37 @@ class AvatarUploadService {
     }
   }
 
-  /// Delete old avatar files for user (cleanup)
-  Future<void> _deleteOldAvatar(String userId) async {
-    try {
-      // List all files in user's folder
-      final files = await _supabase.storage.from('avatars').list(path: userId);
-
-      // Delete each file
-      for (final file in files) {
-        await _supabase.storage.from('avatars').remove(['$userId/${file.name}']);
-      }
-    } catch (e) {
-      // Non-critical error - log but don't throw
-      debugPrint('Failed to delete old avatar: ${e.toString()}');
-    }
-  }
-
-  /// Delete avatar for user (for profile deletion or avatar removal)
+  /// Delete avatar for user (GDPR Right to Erasure or manual removal)
+  /// Removes avatar.webp from {user_id}/ folder
   Future<void> deleteAvatar(String userId) async {
     try {
-      await _deleteOldAvatar(userId);
+      final filePath = '$userId/avatar.webp';
+      await _supabase.storage.from('avatars').remove([filePath]);
     } catch (e) {
       throw AvatarUploadException(
           'Failed to delete avatar: ${e.toString()}');
     }
   }
 
-  /// Get avatar URL for user (with signed URL for security)
-  Future<String?> getAvatarUrl(String userId) async {
+  /// Get avatar URL for user (public URL, no expiry)
+  /// Returns null if no avatar exists
+  String getAvatarUrl(String userId) {
+    final filePath = '$userId/avatar.webp';
+    return _supabase.storage.from('avatars').getPublicUrl(filePath);
+  }
+
+  /// Check if avatar exists for user
+  /// Useful for showing avatar placeholder vs actual image
+  Future<bool> hasAvatar(String userId) async {
     try {
-      // List files in user's folder
       final files = await _supabase.storage.from('avatars').list(path: userId);
-
-      if (files.isEmpty) {
-        return null; // No avatar uploaded
-      }
-
-      // Get most recent file (sorted by name which includes timestamp)
-      final latestFile = files.reduce((a, b) =>
-          a.name.compareTo(b.name) > 0 ? a : b);
-
-      // Get signed URL
-      final signedUrl = await _supabase.storage
-          .from('avatars')
-          .createSignedUrl('$userId/${latestFile.name}', 3600); // 1 hour
-
-      return signedUrl;
+      return files.any((file) => file.name == 'avatar.webp');
     } catch (e) {
-      debugPrint('Failed to get avatar URL: ${e.toString()}');
-      return null;
+      assert(() {
+        debugPrint('Failed to check avatar existence: ${e.toString()}');
+        return true;
+      }());
+      return false;
     }
   }
 }

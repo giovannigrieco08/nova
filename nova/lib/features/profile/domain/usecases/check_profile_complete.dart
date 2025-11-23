@@ -30,15 +30,4 @@ class CheckProfileComplete {
   Future<bool> call(String userId) async {
     return await _repository.isProfileComplete(userId);
   }
-
-  /// Check if profile is complete (synchronous, from local cache)
-  ///
-  /// Useful for UI checks without network call
-  /// Requires profile to be loaded in cache first
-  bool callSync(String userId) {
-    // This would require accessing local datasource directly
-    // For now, use the async version
-    throw UnimplementedError(
-        'Synchronous check not implemented. Use async call() instead.');
-  }
 }

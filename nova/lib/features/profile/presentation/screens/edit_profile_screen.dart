@@ -1,34 +1,46 @@
 // Screen: EditProfileScreen
-// Feature: 002-profile-setup
-// Purpose: Edit existing profile with pre-populated fields
+// Feature: 006-user-profile (User Story 1 - T040, T041, T042)
+// Purpose: Modal/screen for editing profile (avatar, name, class, bio)
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/classes.dart';
+import '../../domain/entities/profile.dart';
+import '../providers/profile_provider.dart';
+import '../providers/avatar_upload_provider.dart';
+import '../widgets/avatar_picker.dart';
+import '../widgets/profile_bio.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
-import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
-import '../../../../core/utils/validators.dart';
-import '../../../../shared/widgets/nova_toast.dart';
-import '../providers/profile_provider.dart';
-import '../widgets/avatar_initials.dart';
-import '../widgets/class_picker_bottom_sheet.dart';
-import '../widgets/avatar_picker_bottom_sheet.dart';
-import '../widgets/avatar_cropper.dart';
+import '../../../../core/theme/nova_radius.dart';
+import '../../../../shared/widgets/adaptive/adaptive_scaffold.dart';
+import '../../../../shared/widgets/adaptive/adaptive_button.dart';
+import '../../../../shared/widgets/adaptive/adaptive_text_field.dart';
+import '../../../../shared/widgets/adaptive/adaptive_loading_indicator.dart';
 
-/// Edit profile screen for existing users
+/// Edit profile screen with avatar picker, name, class, bio
 ///
-/// **Features**:
-/// - All fields pre-populated from existing profile
-/// - Avatar upload/change/remove
-/// - Name editing
-/// - Class selection
-/// - Bio editing (max 150 chars with live counter)
-/// - Pronouns selection (optional)
-/// - Save button (updates existing profile)
-/// - Navigate back after save
+/// **Form Fields**:
+/// - Avatar: Tap to change (image_picker → image_cropper circular crop)
+/// - Full Name: Text field (min 2 words validation)
+/// - Class: Dropdown (38 classes + "Altro")
+/// - Bio: Textarea (max 150 chars with counter)
+///
+/// **Validation** (T041):
+/// - Full name: Required, min 2 words (e.g., "Marco Rossi")
+/// - Class: Required, must be valid class
+/// - Bio: Optional, max 150 characters
+/// - Avatar: Optional, max 2MB, min 200×200px
+///
+/// **Save Flow** (T042):
+/// 1. Validate all fields
+/// 2. If avatar changed: compress to WebP <500KB, upload to Storage
+/// 3. Update profiles table (full_name, class, bio, avatar_url)
+/// 4. Show toast "Profilo aggiornato!"
+/// 5. Navigate back to ProfileScreen
+/// 6. On error: rollback optimistic UI, show error message
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -38,24 +50,53 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _bioController = TextEditingController();
-
+  late TextEditingController _nameController;
+  late TextEditingController _bioController;
   String? _selectedClass;
-  String? _selectedPronouns;
-  String? _avatarUrl;
-  File? _selectedAvatarFile;
-  bool _isLoading = true;
-  bool _isSaving = false;
-  bool _isUploadingAvatar = false;
-  double _uploadProgress = 0.0;
-  int _bioCharCount = 0;
+
+  // 38 classes from database schema: Scientifico A-E (1-5), F partial (1,3,4), Classico Ac-Bc (1-5), Altro
+  static const List<String> _classList = [
+    // Scientifico A (1A-5A)
+    '1A', '2A', '3A', '4A', '5A',
+    // Scientifico B (1B-5B)
+    '1B', '2B', '3B', '4B', '5B',
+    // Scientifico C (1C-5C)
+    '1C', '2C', '3C', '4C', '5C',
+    // Scientifico D (1D-5D)
+    '1D', '2D', '3D', '4D', '5D',
+    // Scientifico E (1E-5E)
+    '1E', '2E', '3E', '4E', '5E',
+    // Scientifico F partial (1F, 3F, 4F)
+    '1F', '3F', '4F',
+    // Classico Ac (1Ac-5Ac)
+    '1Ac', '2Ac', '3Ac', '4Ac', '5Ac',
+    // Classico Bc (1Bc-5Bc)
+    '1Bc', '2Bc', '3Bc', '4Bc', '5Bc',
+    // Other
+    'Altro',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadExistingProfile();
-    _bioController.addListener(_updateBioCharCount);
+
+    // Initialize controllers from current profile
+    final profileAsync = ref.read(currentProfileProvider);
+    profileAsync.when(
+      data: (profile) {
+        _nameController = TextEditingController(text: profile.fullName);
+        _bioController = TextEditingController(text: profile.bio);
+        _selectedClass = profile.classYear;
+      },
+      loading: () {
+        _nameController = TextEditingController();
+        _bioController = TextEditingController();
+      },
+      error: (err, stack) {
+        _nameController = TextEditingController();
+        _bioController = TextEditingController();
+      },
+    );
   }
 
   @override
@@ -65,442 +106,348 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
-  /// Update bio character count
-  void _updateBioCharCount() {
-    setState(() {
-      _bioCharCount = _bioController.text.length;
-    });
+  @override
+  Widget build(BuildContext context) {
+    final profileAsync = ref.watch(currentProfileProvider);
+    final uploadState = ref.watch(avatarUploadProvider);
+
+    return profileAsync.when(
+      data: (profile) => _buildEditView(profile, uploadState),
+      loading: () => _buildLoadingView(),
+      error: (error, stack) => _buildErrorView(error),
+    );
   }
 
-  /// Handle avatar selection and upload
-  Future<void> _handleAvatarPicker() async {
-    // Show picker bottom sheet
-    final selectedFile = await AvatarPickerBottomSheet.show(
-      context,
-      hasExistingAvatar: _avatarUrl != null || _selectedAvatarFile != null,
-      onRemoveAvatar: () {
-        setState(() {
-          _avatarUrl = null;
-          _selectedAvatarFile = null;
-        });
-        NovaToast.showInfo(context, 'Foto profilo rimossa');
+  /// Build edit view with form
+  Widget _buildEditView(Profile profile, AvatarUploadState uploadState) {
+    final isBusy = uploadState.isBusy;
+
+    return AdaptiveScaffold(
+      appBar: _buildAppBar(isBusy),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(NovaSpacing.large),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Avatar picker
+              Center(
+                child: AvatarPicker(
+                  currentAvatarUrl: profile.avatarUrl,
+                  onImageSelected: (File croppedFile) async {
+                    // Upload avatar via AvatarUploadProvider
+                    final uploadNotifier = ref.read(avatarUploadProvider.notifier);
+                    uploadNotifier.setSelectedImage(croppedFile);
+                    final updatedProfile = await uploadNotifier.upload();
+
+                    if (updatedProfile != null) {
+                      // Success - refresh profile provider
+                      ref.invalidate(currentProfileProvider);
+                      if (mounted) {
+                        _showToast('Avatar aggiornato!');
+                      }
+                    } else if (uploadState.errorMessage != null) {
+                      if (mounted) {
+                        _showError(uploadState.errorMessage!);
+                      }
+                    }
+                  },
+                  onRemoveAvatar: () async {
+                    // Remove avatar (set avatar_url to null)
+                    final updateProfile = ref.read(updateProfileUseCaseProvider);
+                    final userId = profile.id;
+
+                    try {
+                      await updateProfile(userId, {'avatar_url': null});
+                      ref.invalidate(currentProfileProvider);
+                      if (mounted) {
+                        _showToast('Avatar rimosso');
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        _showError('Errore nel rimuovere l\'avatar: ${e.toString()}');
+                      }
+                    }
+                  },
+                ),
+              ),
+
+              // Show upload progress
+              if (uploadState.isBusy) ...[
+                SizedBox(height: NovaSpacing.small),
+                Center(
+                  child: Text(
+                    uploadState.isCompressing
+                        ? 'Compressione...'
+                        : 'Caricamento...',
+                    style: NovaTypography.bodySmall.copyWith(
+                      color: NovaColors.textSecondary,
+                    ),
+                  ),
+                ),
+                SizedBox(height: NovaSpacing.xsmall),
+                const AdaptiveLoadingIndicator(),
+              ],
+
+              SizedBox(height: NovaSpacing.large),
+
+              // Full Name field
+              _buildSectionLabel('Nome completo'),
+              SizedBox(height: NovaSpacing.small),
+              AdaptiveTextField(
+                controller: _nameController,
+                placeholder: 'Nome e cognome',
+                enabled: !isBusy,
+                validator: _validateFullName,
+              ),
+
+              SizedBox(height: NovaSpacing.large),
+
+              // Class dropdown
+              _buildSectionLabel('Classe'),
+              SizedBox(height: NovaSpacing.small),
+              _buildClassDropdown(isBusy),
+
+              SizedBox(height: NovaSpacing.large),
+
+              // Bio editor
+              _buildSectionLabel('Bio (opzionale)'),
+              SizedBox(height: NovaSpacing.small),
+              BioEditor(
+                initialValue: profile.bio,
+                onChanged: (value) {
+                  _bioController.text = value;
+                },
+              ),
+
+              SizedBox(height: NovaSpacing.xlarge),
+
+              // Save button
+              AdaptiveButton(
+                onPressed: isBusy ? null : () => _save(profile),
+                backgroundColor: NovaColors.brandViolet,
+                child: Text(
+                  'Salva',
+                  style: NovaTypography.bodyMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build app bar with cancel/save buttons
+  PreferredSizeWidget _buildAppBar(bool isBusy) {
+    if (Platform.isIOS) {
+      return CupertinoNavigationBar(
+        middle: Text(
+          'Modifica Profilo',
+          style: NovaTypography.headingMedium,
+        ),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: isBusy ? null : () => Navigator.pop(context),
+          child: Text(
+            'Annulla',
+            style: NovaTypography.bodyMedium.copyWith(
+              color: NovaColors.brandViolet,
+            ),
+          ),
+        ),
+      );
+    } else {
+      return AppBar(
+        title: Text(
+          'Modifica Profilo',
+          style: NovaTypography.headingMedium,
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: isBusy ? null : () => Navigator.pop(context),
+        ),
+      );
+    }
+  }
+
+  /// Build section label
+  Widget _buildSectionLabel(String label) {
+    return Text(
+      label,
+      style: NovaTypography.bodyMedium.copyWith(
+        color: NovaColors.textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  /// Build class dropdown
+  Widget _buildClassDropdown(bool isBusy) {
+    return DropdownButtonFormField<String>(
+      value: _selectedClass,
+      decoration: InputDecoration(
+        hintText: 'Seleziona la tua classe',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(NovaRadius.medium),
+          borderSide: BorderSide(color: NovaColors.borderPrimary),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(NovaRadius.medium),
+          borderSide: BorderSide(color: NovaColors.brandViolet, width: 2),
+        ),
+        enabled: !isBusy,
+      ),
+      items: _classList.map((className) {
+        return DropdownMenuItem(
+          value: className,
+          child: Text(className),
+        );
+      }).toList(),
+      onChanged: isBusy ? null : (value) {
+        setState(() => _selectedClass = value);
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Seleziona la tua classe';
+        }
+        return null;
       },
     );
-
-    if (selectedFile == null) return;
-
-    // Show cropper
-    final croppedFile = await AvatarCropper.show(context, selectedFile);
-
-    if (croppedFile == null) return;
-
-    // Upload to Supabase Storage
-    setState(() {
-      _isUploadingAvatar = true;
-      _uploadProgress = 0.0;
-    });
-
-    try {
-      final uploadService = ref.read(avatarUploadServiceProvider);
-      final supabase = ref.read(supabaseClientProvider);
-      final userId = supabase.auth.currentUser?.id;
-
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
-
-      final avatarUrl = await uploadService.uploadAvatar(
-        userId: userId,
-        imageFile: croppedFile,
-        onProgress: (progress) {
-          if (mounted) {
-            setState(() {
-              _uploadProgress = progress;
-            });
-          }
-        },
-      );
-
-      if (mounted) {
-        setState(() {
-          _avatarUrl = avatarUrl;
-          _selectedAvatarFile = croppedFile;
-          _isUploadingAvatar = false;
-        });
-
-        NovaToast.showSuccess(context, 'Foto profilo aggiornata ✓');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isUploadingAvatar = false;
-        });
-
-        NovaToast.showError(
-          context,
-          'Errore nel caricamento: ${e.toString()}',
-        );
-      }
-    }
   }
 
-  /// Load existing profile and pre-populate fields
-  Future<void> _loadExistingProfile() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final profileAsync = ref.read(currentProfileProvider);
-      await profileAsync.when(
-        data: (profile) async {
-          if (mounted) {
-            setState(() {
-              _nameController.text = profile.fullName;
-              _selectedClass = profile.classValue;
-              _selectedPronouns = profile.pronouns;
-              _avatarUrl = profile.avatarUrl;
-              _bioController.text = profile.bio ?? '';
-              _bioCharCount = profile.bio?.length ?? 0;
-              _isLoading = false;
-            });
-          }
-        },
-        loading: () async {},
-        error: (error, stack) async {
-          if (mounted) {
-            NovaToast.showError(
-              context,
-              'Errore nel caricamento profilo: ${error.toString()}',
-            );
-            Navigator.of(context).pop();
-          }
-        },
-      );
-    } catch (e) {
-      if (mounted) {
-        NovaToast.showError(context, 'Errore: ${e.toString()}');
-        Navigator.of(context).pop();
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+  /// Validate full name (min 2 words)
+  String? _validateFullName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Nome completo richiesto';
     }
+
+    final words = value.trim().split(RegExp(r'\s+'));
+    if (words.length < 2) {
+      return 'Inserisci nome e cognome';
+    }
+
+    return null;
   }
 
   /// Save profile changes
-  Future<void> _saveProfile() async {
+  Future<void> _save(Profile profile) async {
+    // Validate form
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    setState(() {
-      _isSaving = true;
-    });
+    // Prepare updates
+    final updates = <String, dynamic>{};
 
+    if (_nameController.text.trim() != profile.fullName) {
+      updates['full_name'] = _nameController.text.trim();
+    }
+
+    if (_selectedClass != profile.classYear) {
+      updates['class'] = _selectedClass!;
+    }
+
+    if (_bioController.text.trim() != profile.bio) {
+      updates['bio'] = _bioController.text.trim().isEmpty
+          ? null
+          : _bioController.text.trim();
+    }
+
+    // If no changes, just go back
+    if (updates.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+
+    // Update profile
     try {
-      final repository = ref.read(profileRepositoryProvider);
-      final supabase = ref.read(supabaseClientProvider);
-      final userId = supabase.auth.currentUser?.id;
+      final updateProfile = ref.read(updateProfileUseCaseProvider);
+      await updateProfile(profile.id, updates);
 
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
-
-      // Update profile
-      await repository.updateProfile(userId, {
-        'full_name': _nameController.text.trim(),
-        'class': _selectedClass,
-        'pronouns': _selectedPronouns,
-        'avatar_url': _avatarUrl,
-        'bio': _bioController.text.trim().isNotEmpty
-            ? _bioController.text.trim()
-            : null,
-      });
+      // Refresh profile provider
+      ref.invalidate(currentProfileProvider);
 
       if (mounted) {
-        NovaToast.showSuccess(context, 'Profilo aggiornato ✓');
-        Navigator.of(context).pop(); // Navigate back
+        _showToast('Profilo aggiornato!');
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        NovaToast.showError(
-          context,
-          'Errore nel salvataggio: ${e.toString()}',
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
+        _showError('Errore nel salvare il profilo: ${e.toString()}');
       }
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: NovaColors.background(context),
-      appBar: AppBar(
-        backgroundColor: NovaColors.surface(context),
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: NovaColors.textPrimary(context)),
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Modifica profilo',
-          style: NovaTextStyles.h3.copyWith(
-            color: NovaColors.textPrimary(context),
-          ),
-        ),
-        actions: [
-          // Save button
-          TextButton(
-            onPressed: _isSaving ? null : _saveProfile,
-            child: _isSaving
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: NovaColors.primary(context),
-                    ),
-                  )
-                : Text(
-                    'Salva',
-                    style: NovaTextStyles.bodyLarge.copyWith(
-                      color: NovaColors.primary(context),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-          ),
-        ],
+  /// Show success toast
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: NovaColors.success,
+        duration: const Duration(seconds: 2),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  padding: EdgeInsets.all(NovaSpacing.xl),
-                  children: [
-                    // Avatar with edit button
-                    Center(
-                      child: Stack(
-                        children: [
-                          // Avatar (skeleton, initials, or uploaded image)
-                          if (_isUploadingAvatar)
-                            Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                // Show previous avatar or initials while uploading
-                                _selectedAvatarFile != null
-                                    ? CircleAvatar(
-                                        radius: 64,
-                                        backgroundImage:
-                                            FileImage(_selectedAvatarFile!),
-                                      )
-                                    : AvatarInitials(
-                                        fullName: _nameController.text.isNotEmpty
-                                            ? _nameController.text
-                                            : 'Utente Nova',
-                                      ),
-                                // Upload progress overlay
-                                Container(
-                                  width: 128,
-                                  height: 128,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.6),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(
-                                        width: 32,
-                                        height: 32,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 3,
-                                        ),
-                                      ),
-                                      SizedBox(height: NovaSpacing.s),
-                                      Text(
-                                        '${(_uploadProgress * 100).toInt()}%',
-                                        style: NovaTextStyles.caption.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            )
-                          else if (_selectedAvatarFile != null)
-                            CircleAvatar(
-                              radius: 64,
-                              backgroundImage: FileImage(_selectedAvatarFile!),
-                            )
-                          else
-                            AvatarInitials(
-                              fullName: _nameController.text.isNotEmpty
-                                  ? _nameController.text
-                                  : 'Utente Nova',
-                            ),
+    );
+  }
 
-                          // Edit button overlay
-                          if (!_isUploadingAvatar)
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: InkWell(
-                                onTap: _handleAvatarPicker,
-                                borderRadius:
-                                    BorderRadius.circular(NovaRadius.full),
-                                child: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: NovaColors.primary(context),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: NovaColors.surface(context),
-                                      width: 3,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.camera_alt,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+  /// Show error message
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: NovaColors.error,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
-                    SizedBox(height: NovaSpacing.xxl),
+  /// Build loading view
+  Widget _buildLoadingView() {
+    return AdaptiveScaffold(
+      appBar: _buildAppBar(false),
+      body: const Center(
+        child: AdaptiveLoadingIndicator(),
+      ),
+    );
+  }
 
-                    // Name field
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nome e Cognome *',
-                        hintText: 'Giovanni Rossi',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(NovaRadius.m),
-                        ),
-                      ),
-                      validator: Validators.validateName,
-                      enabled: !_isSaving,
-                    ),
-
-                    SizedBox(height: NovaSpacing.l),
-
-                    // Class picker
-                    InkWell(
-                      onTap: _isSaving
-                          ? null
-                          : () async {
-                              final selectedClass =
-                                  await ClassPickerBottomSheet.show(
-                                context,
-                                selectedClass: _selectedClass,
-                              );
-
-                              if (selectedClass != null && mounted) {
-                                setState(() {
-                                  _selectedClass = selectedClass;
-                                });
-                              }
-                            },
-                      child: Container(
-                        padding: EdgeInsets.all(NovaSpacing.l),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: NovaColors.border(context),
-                          ),
-                          borderRadius: BorderRadius.circular(NovaRadius.m),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _selectedClass != null
-                                  ? getClassById(_selectedClass!)
-                                          ?.displayName ??
-                                      'Classe non trovata'
-                                  : 'Seleziona classe',
-                              style: NovaTextStyles.bodyLarge.copyWith(
-                                color: _selectedClass != null
-                                    ? NovaColors.textPrimary(context)
-                                    : NovaColors.textSecondary(context),
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 16,
-                              color: NovaColors.textSecondary(context),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: NovaSpacing.l),
-
-                    // Bio field
-                    TextFormField(
-                      controller: _bioController,
-                      decoration: InputDecoration(
-                        labelText: 'Bio (opzionale)',
-                        hintText: 'Racconta qualcosa di te...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(NovaRadius.m),
-                        ),
-                        helperText: '$_bioCharCount/150 caratteri',
-                        helperStyle: TextStyle(
-                          color: _bioCharCount > 150
-                              ? NovaColors.error(context)
-                              : NovaColors.textSecondary(context),
-                        ),
-                      ),
-                      maxLines: 3,
-                      maxLength: 150,
-                      validator: Validators.validateBio,
-                      enabled: !_isSaving,
-                    ),
-
-                    SizedBox(height: NovaSpacing.l),
-
-                    // Pronouns field
-                    TextFormField(
-                      initialValue: _selectedPronouns,
-                      decoration: InputDecoration(
-                        labelText: 'Pronomi (opzionale)',
-                        hintText: 'lui/lei/loro',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(NovaRadius.m),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedPronouns = value.trim().isEmpty ? null : value.trim();
-                        });
-                      },
-                      enabled: !_isSaving,
-                    ),
-                  ],
-                ),
+  /// Build error view
+  Widget _buildErrorView(Object error) {
+    return AdaptiveScaffold(
+      appBar: _buildAppBar(false),
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(NovaSpacing.large),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: NovaColors.error,
               ),
-            ),
+              SizedBox(height: NovaSpacing.medium),
+              Text(
+                'Errore nel caricare il profilo',
+                style: NovaTypography.headingSmall,
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: NovaSpacing.small),
+              Text(
+                error.toString(),
+                style: NovaTypography.bodySmall.copyWith(
+                  color: NovaColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

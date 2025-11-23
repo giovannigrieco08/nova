@@ -1,6 +1,6 @@
 // Provider: ProfileProvider
-// Feature: 002-profile-setup
-// Purpose: Riverpod StateNotifier for profile state management with auto-save
+// Feature: 006-user-profile (evolved from 002-profile-setup)
+// Purpose: Riverpod StateNotifier for complete profile state management with auto-save
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,8 +8,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../domain/entities/profile.dart';
+import '../../domain/entities/profile_stats.dart';
 import '../../domain/usecases/create_profile.dart';
 import '../../domain/usecases/check_profile_complete.dart';
+import '../../domain/usecases/get_profile.dart';
+import '../../domain/usecases/update_profile.dart';
+import '../../domain/usecases/upload_avatar.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../data/datasources/profile_remote_datasource.dart';
 import '../../data/datasources/profile_local_datasource.dart';
@@ -73,6 +77,25 @@ final checkProfileCompleteUseCaseProvider =
   return CheckProfileComplete(repository);
 });
 
+/// GetProfile use case provider (T027)
+final getProfileUseCaseProvider = Provider<GetProfile>((ref) {
+  final repository = ref.watch(profileRepositoryProvider);
+  return GetProfile(repository);
+});
+
+/// UpdateProfile use case provider (T028)
+final updateProfileUseCaseProvider = Provider<UpdateProfile>((ref) {
+  final repository = ref.watch(profileRepositoryProvider);
+  return UpdateProfile(repository);
+});
+
+/// UploadAvatar use case provider (T029)
+final uploadAvatarUseCaseProvider = Provider<UploadAvatar>((ref) {
+  final avatarService = ref.watch(avatarUploadServiceProvider);
+  final repository = ref.watch(profileRepositoryProvider);
+  return UploadAvatar(avatarService, repository);
+});
+
 /// Current user's profile provider
 ///
 /// Loads and caches the authenticated user's profile
@@ -95,6 +118,30 @@ final currentProfileProvider = FutureProvider<Profile>((ref) async {
   }
 
   return await repository.getProfile(userId);
+});
+
+/// Current user's profile statistics provider
+///
+/// Loads profile stats (events created, participations count)
+/// Usage:
+/// ```dart
+/// final statsAsync = ref.watch(currentProfileStatsProvider);
+/// statsAsync.when(
+///   data: (stats) => Text('${stats.eventsCreatedCount} events'),
+///   loading: () => CircularProgressIndicator(),
+///   error: (err, stack) => Text('Error loading stats'),
+/// );
+/// ```
+final currentProfileStatsProvider = FutureProvider<ProfileStats>((ref) async {
+  final repository = ref.watch(profileRepositoryProvider);
+  final supabase = ref.watch(supabaseClientProvider);
+
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) {
+    throw Exception('User not authenticated');
+  }
+
+  return await repository.getProfileStats(userId);
 });
 
 /// Profile state notifier
@@ -140,9 +187,9 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
     await _updateField('class', className);
   }
 
-  /// Update profile pronouns (instant save)
-  Future<void> updatePronouns(String? pronouns) async {
-    await _updateField('pronouns', pronouns);
+  /// Update profile visibility toggle (instant save)
+  Future<void> updateProfileVisibility(bool visible) async {
+    await _updateField('profile_visible', visible);
   }
 
   /// Update profile bio (500ms debounce)
@@ -181,16 +228,16 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
             updatedProfile = profile.copyWith(fullName: value as String);
             break;
           case 'class':
-            updatedProfile = profile.copyWith(classValue: value as String);
-            break;
-          case 'pronouns':
-            updatedProfile = profile.copyWith(pronouns: value as String?);
+            updatedProfile = profile.copyWith(classYear: value as String);
             break;
           case 'avatar_url':
             updatedProfile = profile.copyWith(avatarUrl: value as String?);
             break;
           case 'bio':
             updatedProfile = profile.copyWith(bio: value as String?);
+            break;
+          case 'profile_visible':
+            updatedProfile = profile.copyWith(profileVisible: value as bool);
             break;
           default:
             throw Exception('Unknown field: $fieldName');
