@@ -11,6 +11,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/event.dart';
+import '../../domain/entities/event_status.dart';
 import '../../domain/repositories/event_repository_interface.dart';
 import '../datasources/event_remote_datasource.dart';
 import '../datasources/event_local_datasource.dart';
@@ -140,6 +141,34 @@ class EventRepositoryImpl implements EventRepository {
       await _remoteDataSource.rejectEvent(eventId, rejectionReason);
     } catch (e) {
       throw EventRepositoryException('Failed to reject event: $e');
+    }
+  }
+
+  @override
+  Future<void> resubmitEvent(String eventId, String newDescription) async {
+    try {
+      // Step 1: Get current event to retrieve submission count
+      final currentEvent = await getEventById(eventId);
+      if (currentEvent == null) {
+        throw EventRepositoryException('Event not found');
+      }
+
+      // Step 2: Validate event is rejected
+      if (currentEvent.status != EventStatus.rejected) {
+        throw EventRepositoryException('Only rejected events can be resubmitted');
+      }
+
+      // Step 3: Update event with new description and reset moderation fields
+      await _remoteDataSource.updateEvent(eventId, {
+        'description': newDescription,
+        'status': 'pending',
+        'rejection_reason': null,
+        'moderated_by': null,
+        'moderated_at': null,
+        'submission_count': currentEvent.submissionCount + 1,
+      });
+    } catch (e) {
+      throw EventRepositoryException('Failed to resubmit event: $e');
     }
   }
 
