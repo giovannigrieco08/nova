@@ -8,7 +8,7 @@ import '../../domain/entities/comment.dart';
 
 part 'comment_model.g.dart';
 
-@HiveType(typeId: 4) // Hive type adapter ID
+@HiveType(typeId: 3) // Hive type adapter ID
 @JsonSerializable()
 class CommentModel {
   @HiveField(0)

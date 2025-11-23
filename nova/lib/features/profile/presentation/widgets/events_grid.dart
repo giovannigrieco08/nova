@@ -93,10 +93,10 @@ class EventsGrid extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Event image (first image or placeholder)
-            if (event.imageUrls != null && event.imageUrls!.isNotEmpty)
+            // Event image (cover image or placeholder)
+            if (event.imageUrl != null && event.imageUrl!.isNotEmpty)
               Image.network(
-                event.imageUrls!.first,
+                event.imageUrl!,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return _buildPlaceholder(event);

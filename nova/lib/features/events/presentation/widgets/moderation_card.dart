@@ -206,7 +206,7 @@ class ModerationCard extends StatelessWidget {
           ),
           SizedBox(width: NovaSpacing.xs),
           Text(
-            'Creato da: ${event.creatorId}', // TODO: Replace with actual user name
+            'Creato da: ${event.creatorId}', // TODO(#004): Replace with creator profile name via JOIN query
             style: NovaTextStyles.caption.copyWith(
               color: NovaColors.textSecondary(context),
             ),
@@ -247,7 +247,7 @@ class ModerationCard extends StatelessWidget {
             label: const Text('Approva'),
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
-              backgroundColor: const Color(0xFF4CAF50), // Material Green 500
+              backgroundColor: NovaColors.successLight, // Material Green 500
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(NovaRadius.m),

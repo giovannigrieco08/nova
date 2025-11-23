@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../../profile/presentation/widgets/avatar_initials.dart';
+import '../../../../core/theme/nova_colors.dart';
 
 /// Bottom sheet modal displaying all event participants
 ///
@@ -65,7 +66,7 @@ class ParticipantsModal extends StatelessWidget {
     return Container(
       height: height,
       decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF), // Pure white (Instagram-style)
+        color: Colors.white, // Pure white (Instagram-style)
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(16),
         ),
@@ -84,7 +85,7 @@ class ParticipantsModal extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF000000),
+                      color: Colors.black,
                     ),
                   ),
                 ),
@@ -93,7 +94,7 @@ class ParticipantsModal extends StatelessWidget {
                 IconButton(
                   icon: const Icon(
                     Icons.close,
-                    color: Color(0xFF000000),
+                    color: Colors.black,
                     size: 24,
                   ),
                   onPressed: () => Navigator.of(context).pop(),
@@ -105,10 +106,10 @@ class ParticipantsModal extends StatelessWidget {
           ),
 
           // Divider
-          const Divider(
+          Divider(
             height: 1,
             thickness: 0.5,
-            color: Color(0xFFDBDBDB),
+            color: NovaColors.dividerLight,
           ),
 
           // Participants list
@@ -127,11 +128,11 @@ class ParticipantsModal extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: participants.length,
-      separatorBuilder: (context, index) => const Divider(
+      separatorBuilder: (context, index) => Divider(
         height: 1,
         thickness: 0.5,
         indent: 72, // Align with text (48px avatar + 24px padding)
-        color: Color(0xFFDBDBDB),
+        color: NovaColors.dividerLight,
       ),
       itemBuilder: (context, index) {
         final participant = participants[index];
@@ -156,13 +157,13 @@ class ParticipantsModal extends StatelessWidget {
                       imageUrl: participant.avatarUrl!,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
-                        color: const Color(0xFFF0F0F0),
+                        color: NovaColors.dividerLight,
                         child: const Center(
                           child: SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              color: Color(0xFF737373),
+                              color: NovaColors.instagramUsernameGray,
                               strokeWidth: 2,
                             ),
                           ),
@@ -193,7 +194,7 @@ class ParticipantsModal extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF000000),
+                    color: Colors.black,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -208,7 +209,7 @@ class ParticipantsModal extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      color: Color(0xFF737373),
+                      color: NovaColors.instagramUsernameGray,
                     ),
                   ),
               ],
@@ -230,7 +231,7 @@ class ParticipantsModal extends StatelessWidget {
             const Icon(
               Icons.people_outline,
               size: 64,
-              color: Color(0xFF737373),
+              color: NovaColors.instagramUsernameGray,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -238,7 +239,7 @@ class ParticipantsModal extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF000000),
+                color: Colors.black,
               ),
             ),
             const SizedBox(height: 8),
@@ -247,7 +248,7 @@ class ParticipantsModal extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF737373),
+                color: NovaColors.instagramUsernameGray,
               ),
               textAlign: TextAlign.center,
             ),

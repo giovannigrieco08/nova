@@ -233,11 +233,11 @@ class CommentsRepository implements CommentsRepositoryInterface {
   // ==========================================================================
 
   @override
-  Future<void> likeComment({
+  Future<Comment> likeComment({
     required String commentId,
   }) async {
     try {
-      await _remoteDataSource.likeComment(
+      return await _remoteDataSource.likeComment(
         commentId: commentId,
       );
     } on NetworkException catch (_) {
@@ -257,11 +257,11 @@ class CommentsRepository implements CommentsRepositoryInterface {
   }
 
   @override
-  Future<void> unlikeComment({
+  Future<Comment> unlikeComment({
     required String commentId,
   }) async {
     try {
-      await _remoteDataSource.unlikeComment(
+      return await _remoteDataSource.unlikeComment(
         commentId: commentId,
       );
     } on NetworkException catch (_) {

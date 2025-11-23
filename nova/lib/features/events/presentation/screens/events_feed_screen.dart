@@ -96,7 +96,7 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     // Conditionally wrap with Scaffold + AppBar
     if (widget.showAppBar) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF), // Pure white background (Instagram-style)
+        backgroundColor: Colors.white, // Pure white background (Instagram-style)
         appBar: AppBar(
           title: Text(
             'Eventi',
@@ -141,7 +141,7 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
           parent: BouncingScrollPhysics(),
         ),
         padding: const EdgeInsets.symmetric(
-          horizontal: 12.0, // Instagram-style horizontal padding
+          horizontal: 0.0, // No padding - Instagram style (content touches edges except images)
           vertical: NovaSpacing.m,
         ),
         itemCount: state.events.length + (state.isLoadingMore ? 1 : 0),

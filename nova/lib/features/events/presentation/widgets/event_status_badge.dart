@@ -29,12 +29,12 @@ class EventStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? NovaSpacing.small : NovaSpacing.medium,
-        vertical: compact ? NovaSpacing.xsmall : NovaSpacing.small,
+        horizontal: compact ? NovaSpacing.s : NovaSpacing.m,
+        vertical: compact ? NovaSpacing.xs : NovaSpacing.s,
       ),
       decoration: BoxDecoration(
         color: _getBackgroundColor(context),
-        borderRadius: BorderRadius.circular(NovaRadius.small),
+        borderRadius: BorderRadius.circular(NovaRadius.s),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -44,10 +44,10 @@ class EventStatusBadge extends StatelessWidget {
             size: compact ? 14 : 16,
             color: _getTextColor(context),
           ),
-          SizedBox(width: NovaSpacing.xsmall),
+          SizedBox(width: NovaSpacing.xs),
           Text(
             status.label,
-            style: (compact ? NovaTypography.bodySmall : NovaTypography.bodyMedium).copyWith(
+            style: (compact ? NovaTextStyles.caption : NovaTextStyles.body).copyWith(
               color: _getTextColor(context),
               fontWeight: FontWeight.w600,
             ),
@@ -61,11 +61,11 @@ class EventStatusBadge extends StatelessWidget {
   Color _getBackgroundColor(BuildContext context) {
     switch (status) {
       case EventStatus.pending:
-        return const Color(0xFFFFF3CD); // Light yellow
+        return NovaColors.warningLight.withOpacity(0.2); // Light yellow
       case EventStatus.approved:
-        return const Color(0xFFD4EDDA); // Light green
+        return NovaColors.successLight.withOpacity(0.2); // Light green
       case EventStatus.rejected:
-        return const Color(0xFFF8D7DA); // Light red
+        return NovaColors.errorLight.withOpacity(0.2); // Light red
     }
   }
 
@@ -73,11 +73,11 @@ class EventStatusBadge extends StatelessWidget {
   Color _getTextColor(BuildContext context) {
     switch (status) {
       case EventStatus.pending:
-        return const Color(0xFF856404); // Dark yellow
+        return NovaColors.warningLight; // Dark yellow
       case EventStatus.approved:
-        return const Color(0xFF155724); // Dark green
+        return NovaColors.successLight; // Dark green
       case EventStatus.rejected:
-        return const Color(0xFF721C24); // Dark red
+        return NovaColors.errorLight; // Dark red
     }
   }
 

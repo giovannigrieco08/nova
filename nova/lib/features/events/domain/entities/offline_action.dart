@@ -6,7 +6,7 @@ import 'package:hive/hive.dart';
 
 part 'offline_action.g.dart';
 
-@HiveType(typeId: 3) // Hive type adapter ID
+@HiveType(typeId: 7) // Hive type adapter ID
 class OfflineAction {
   @HiveField(0)
   final String id; // Unique action ID (UUID)

@@ -7,7 +7,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'like_model.g.dart';
 
-@HiveType(typeId: 5) // Hive type adapter ID
+@HiveType(typeId: 4) // Hive type adapter ID
 @JsonSerializable()
 class LikeModel {
   @HiveField(0)

@@ -42,11 +42,11 @@ class CommentInputField extends ConsumerWidget {
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: NovaSpacing.medium,
-        vertical: NovaSpacing.small,
+        horizontal: NovaSpacing.m,
+        vertical: NovaSpacing.s,
       ),
       decoration: BoxDecoration(
-        color: NovaColors.backgroundPrimary(context),
+        color: NovaColors.background(context),
         border: Border(
           top: BorderSide(
             color: NovaColors.dividerLight,
@@ -73,16 +73,16 @@ class CommentInputField extends ConsumerWidget {
                       ? CupertinoTextField(
                           controller: inputNotifier.textController,
                           placeholder: 'Aggiungi un commento...',
-                          placeholderStyle: NovaTypography.bodyMedium.copyWith(
+                          placeholderStyle: NovaTextStyles.body.copyWith(
                             color: NovaColors.textTertiaryLight,
                           ),
-                          style: NovaTypography.bodyMedium,
+                          style: NovaTextStyles.body,
                           maxLines: null,
                           minLines: 1,
                           maxLength: 500,
                           textInputAction: TextInputAction.newline,
                           decoration: BoxDecoration(
-                            color: NovaColors.backgroundSecondaryLight,
+                            color: NovaColors.surfaceLight,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: NovaColors.dividerLight,
@@ -90,8 +90,8 @@ class CommentInputField extends ConsumerWidget {
                             ),
                           ),
                           padding: EdgeInsets.symmetric(
-                            horizontal: NovaSpacing.medium,
-                            vertical: NovaSpacing.small,
+                            horizontal: NovaSpacing.m,
+                            vertical: NovaSpacing.s,
                           ),
                           enabled: !inputState.isPosting,
                         )
@@ -99,11 +99,11 @@ class CommentInputField extends ConsumerWidget {
                           controller: inputNotifier.textController,
                           decoration: InputDecoration(
                             hintText: 'Aggiungi un commento...',
-                            hintStyle: NovaTypography.bodyMedium.copyWith(
+                            hintStyle: NovaTextStyles.body.copyWith(
                               color: NovaColors.textTertiaryLight,
                             ),
                             filled: true,
-                            fillColor: NovaColors.backgroundSecondaryLight,
+                            fillColor: NovaColors.surfaceLight,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide(
@@ -121,17 +121,17 @@ class CommentInputField extends ConsumerWidget {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide(
-                                color: NovaColors.primary,
+                                color: NovaColors.primaryLight,
                                 width: 2,
                               ),
                             ),
                             contentPadding: EdgeInsets.symmetric(
-                              horizontal: NovaSpacing.medium,
-                              vertical: NovaSpacing.small,
+                              horizontal: NovaSpacing.m,
+                              vertical: NovaSpacing.s,
                             ),
                             counterText: '', // Hide default counter
                           ),
-                          style: NovaTypography.bodyMedium,
+                          style: NovaTextStyles.body,
                           maxLines: null,
                           minLines: 1,
                           maxLength: 500,
@@ -141,7 +141,7 @@ class CommentInputField extends ConsumerWidget {
                 ),
               ),
 
-              SizedBox(width: NovaSpacing.small),
+              SizedBox(width: NovaSpacing.s),
 
               // Send button
               _buildSendButton(context, inputState, inputNotifier),
@@ -150,14 +150,14 @@ class CommentInputField extends ConsumerWidget {
 
           // Character counter (shown when approaching limit)
           if (inputState.isApproachingLimit) ...[
-            SizedBox(height: NovaSpacing.tiny),
+            SizedBox(height: NovaSpacing.xs),
             Padding(
-              padding: EdgeInsets.only(left: NovaSpacing.small),
+              padding: EdgeInsets.only(left: NovaSpacing.s),
               child: Text(
                 '${inputState.characterCount}/500',
-                style: NovaTypography.labelSmall.copyWith(
+                style: NovaTextStyles.caption.copyWith(
                   color: inputState.hasReachedLimit
-                      ? NovaColors.error
+                      ? NovaColors.errorLight
                       : NovaColors.textTertiaryLight,
                 ),
               ),
@@ -166,13 +166,13 @@ class CommentInputField extends ConsumerWidget {
 
           // Error message
           if (inputState.error != null) ...[
-            SizedBox(height: NovaSpacing.tiny),
+            SizedBox(height: NovaSpacing.xs),
             Padding(
-              padding: EdgeInsets.only(left: NovaSpacing.small),
+              padding: EdgeInsets.only(left: NovaSpacing.s),
               child: Text(
                 inputState.error!,
-                style: NovaTypography.labelSmall.copyWith(
-                  color: NovaColors.error,
+                style: NovaTextStyles.caption.copyWith(
+                  color: NovaColors.errorLight,
                 ),
               ),
             ),
@@ -215,7 +215,7 @@ class CommentInputField extends ConsumerWidget {
         icon: Icon(
           Platform.isIOS ? CupertinoIcons.arrow_up_circle_fill : Icons.send,
           color: inputState.canSend
-              ? NovaColors.primary
+              ? NovaColors.primaryLight
               : NovaColors.textTertiaryLight,
         ),
         iconSize: 32,

@@ -99,6 +99,20 @@ abstract class EventRepository {
   /// Triggers notification to creator (event_rejected channel)
   Future<void> rejectEvent(String eventId, String rejectionReason);
 
+  /// Resubmit rejected event with updated description
+  ///
+  /// Updates:
+  /// - description = {newDescription}
+  /// - status = 'pending'
+  /// - rejection_reason = NULL
+  /// - moderated_by = NULL
+  /// - moderated_at = NULL
+  /// - submission_count = submission_count + 1
+  ///
+  /// RLS Policy: creators_update_own_rejected_events
+  /// Returns to moderation queue for review
+  Future<void> resubmitEvent(String eventId, String newDescription);
+
   // =========================================================================
   // CO-ORGANIZER OPERATIONS
   // =========================================================================

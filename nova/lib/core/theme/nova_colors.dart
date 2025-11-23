@@ -60,6 +60,25 @@ class NovaColors {
   /// Blue - informational messages
   static const Color infoLight = Color(0xFF3B82F6);
 
+  /// Instagram-style heart red (like button)
+  static const Color instagramRed = Color(0xFFED4956);
+
+  /// Instagram-style comment text gray (BeReal-inspired)
+  static const Color instagramCommentGray = Color(0xFF8E8E8E);
+
+  /// Instagram-style username gray (BeReal-inspired)
+  static const Color instagramUsernameGray = Color(0xFF737373);
+
+  // ============================================
+  // BRAND COLORS (Nova branding - violet and pink gradient)
+  // ============================================
+
+  /// Nova brand violet (primary brand color)
+  static const Color brandViolet = Color(0xFF8B5CF6);
+
+  /// Nova brand pink (accent brand color)
+  static const Color brandPink = Color(0xFFEC4899);
+
   // ============================================
   // DARK MODE COLORS
   // ============================================
@@ -206,4 +225,20 @@ class NovaColors {
   static Color info(BuildContext context) {
     return isDark(context) ? infoDark : infoLight;
   }
+
+  // ============================================
+  // SEMANTIC ALIASES (for backwards compatibility)
+  // ============================================
+
+  /// Background primary (same as background)
+  static Color backgroundPrimary(BuildContext context) => background(context);
+
+  /// Background secondary (same as surface)
+  static Color backgroundSecondary(BuildContext context) => surface(context);
+
+  /// Background tertiary (same as card)
+  static Color backgroundTertiary(BuildContext context) => card(context);
+
+  /// Border primary (same as border)
+  static Color borderPrimary(BuildContext context) => border(context);
 }

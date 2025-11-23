@@ -83,18 +83,23 @@ class DeepLinkHandler {
     );
   }
 
-  /// Parse profile deep link: nova://profile/{user_id} (future feature)
+  /// Parse profile deep link: nova://profile/{user_id_or_username}
+  /// Supports both UUID format and username format (nome.cognome)
   DeepLinkInfo? _parseProfileLink(List<String> pathSegments) {
     if (pathSegments.length < 2) return null;
 
-    final userId = pathSegments[1];
+    final userIdOrUsername = pathSegments[1];
 
-    // Validate UUID format (basic check)
-    if (!_isValidUuid(userId)) return null;
+    // Accept both UUID format and username format
+    // UUID: 8-4-4-4-12 hex digits
+    // Username: lowercase alphanumeric with dots/hyphens (e.g., giovanni.grieco)
+    if (!_isValidUuid(userIdOrUsername) && !_isValidUsername(userIdOrUsername)) {
+      return null;
+    }
 
     return DeepLinkInfo(
       type: DeepLinkType.profile,
-      userId: userId,
+      userId: userIdOrUsername,
     );
   }
 
@@ -104,6 +109,19 @@ class DeepLinkHandler {
       r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
     );
     return uuidPattern.hasMatch(uuid);
+  }
+
+  /// Username validation (lowercase alphanumeric with dots/hyphens)
+  /// Examples: giovanni.grieco, marco.rossi2, a.b.c
+  /// Min length: 3 characters
+  bool _isValidUsername(String username) {
+    // Username format: lowercase letters, numbers, dots, hyphens
+    // Minimum 3 characters (per database schema)
+    // Cannot start/end with dot or hyphen
+    final usernamePattern = RegExp(
+      r'^[a-z0-9][a-z0-9.-]{1,}[a-z0-9]$',
+    );
+    return username.length >= 3 && usernamePattern.hasMatch(username);
   }
 }
 

@@ -170,21 +170,28 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
   ) async {
     final event = await notifier.createEvent();
 
-    if (event != null && mounted) {
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            '✅ Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
-          ),
-          backgroundColor: NovaColors.success(context),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+    // Early return if creation failed
+    if (event == null) return;
 
-      // Navigate back to feed
-      Navigator.pop(context);
-    }
+    // Check if widget is still mounted before using context
+    if (!mounted) return;
+
+    // Show success message
+    // ignore: use_build_context_synchronously
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          '✅ Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
+        ),
+        // ignore: use_build_context_synchronously
+        backgroundColor: NovaColors.success(context),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+
+    // Navigate back to feed
+    // ignore: use_build_context_synchronously
+    Navigator.pop(context);
     // Error is already shown in bottom bar via submitError
   }
 

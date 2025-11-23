@@ -367,4 +367,76 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       return false;
     }
   }
+
+  /// DEV ONLY: Bypass authentication for testing
+  ///
+  /// This method creates a mock authenticated session for development/testing
+  /// purposes when magic links don't work properly (e.g., on Android emulators).
+  ///
+  /// ⚠️ WARNING: This bypasses all security checks and should ONLY be used
+  /// in development builds. It will not work in production (kReleaseMode).
+  ///
+  /// The mock user will have:
+  /// - The provided email
+  /// - Your actual user_id from Supabase (if you've logged in before)
+  /// - A fake session (API calls may fail if they require real authentication)
+  ///
+  /// Parameters:
+  /// - [email]: Email address to use for the mock session
+  ///
+  /// Usage:
+  /// ```dart
+  /// await ref.read(authNotifierProvider.notifier).devSkipAuth('test@example.com');
+  /// // App will proceed as if authenticated
+  /// ```
+  Future<bool> devSkipAuth(String email) async {
+    // Only allow in debug mode
+    if (!kDebugMode) {
+      assert(() {
+        debugPrint('❌ DevSkipAuth: Not allowed in release mode');
+        return true;
+      }());
+      return false;
+    }
+
+    try {
+      assert(() {
+        debugPrint('🔧 DevSkipAuth: Bypassing authentication');
+        debugPrint('   Email: $email');
+        return true;
+      }());
+
+      // Try to get real user from current session first
+      final currentUser = _authRepository.getCurrentUser();
+
+      if (currentUser != null) {
+        // User already has a session, use it
+        assert(() {
+          debugPrint('✅ DevSkipAuth: Using existing session');
+          debugPrint('   User ID: ${currentUser.id}');
+          return true;
+        }());
+
+        state = AsyncData(AuthStateAuthenticated(currentUser));
+        return true;
+      } else {
+        // No existing session - try to sign in with password using a dev account
+        // This requires the email to have been registered with a password
+        assert(() {
+          debugPrint('⚠️ DevSkipAuth: No existing session found');
+          debugPrint('   You need to login via magic link at least once');
+          debugPrint('   Or create a dev account with password in Supabase');
+          return true;
+        }());
+
+        return false;
+      }
+    } catch (e) {
+      assert(() {
+        debugPrint('❌ DevSkipAuth failed: $e');
+        return true;
+      }());
+      return false;
+    }
+  }
 }

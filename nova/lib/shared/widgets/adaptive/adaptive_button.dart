@@ -55,6 +55,9 @@ class AdaptiveButton extends StatelessWidget {
   /// Android only: Material icon
   final IconData? androidIcon;
 
+  /// Custom background color (overrides type-based color)
+  final Color? backgroundColor;
+
   const AdaptiveButton({
     super.key,
     required this.child,
@@ -64,6 +67,7 @@ class AdaptiveButton extends StatelessWidget {
     this.minHeight,
     this.iconSystemName,
     this.androidIcon,
+    this.backgroundColor,
   });
 
   @override
@@ -74,17 +78,22 @@ class AdaptiveButton extends StatelessWidget {
       // iOS: CupertinoButton (TODO: Migrate to CNButton from cupertino_native)
       Color? buttonColor;
 
-      switch (type) {
-        case AdaptiveButtonType.primary:
-          buttonColor = filled ? NovaColors.primary(context) : null;
-          break;
-        case AdaptiveButtonType.destructive:
-          buttonColor = filled ? CupertinoColors.destructiveRed : null;
-          break;
-        case AdaptiveButtonType.secondary:
-        case AdaptiveButtonType.text:
-          buttonColor = null;
-          break;
+      // Use custom backgroundColor if provided, otherwise use type-based color
+      if (backgroundColor != null) {
+        buttonColor = backgroundColor;
+      } else {
+        switch (type) {
+          case AdaptiveButtonType.primary:
+            buttonColor = filled ? NovaColors.primary(context) : null;
+            break;
+          case AdaptiveButtonType.destructive:
+            buttonColor = filled ? CupertinoColors.destructiveRed : null;
+            break;
+          case AdaptiveButtonType.secondary:
+          case AdaptiveButtonType.text:
+            buttonColor = null;
+            break;
+        }
       }
 
       return CupertinoButton(
@@ -109,6 +118,7 @@ class AdaptiveButton extends StatelessWidget {
           onPressed: onPressed,
           style: FilledButton.styleFrom(
             minimumSize: Size.fromHeight(height),
+            backgroundColor: backgroundColor,
           ),
           child: androidIcon != null
               ? Row(

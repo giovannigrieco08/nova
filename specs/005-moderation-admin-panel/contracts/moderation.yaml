@@ -1,0 +1,669 @@
+openapi: 3.0.0
+info:
+  title: Moderation Queue API Contract
+  description: API contract for the moderation queue system. Defines Supabase RPC functions, database queries, and Realtime subscriptions for event moderation workflows.
+  version: 1.0.0
+  contact:
+    name: Nova Development Team
+
+servers:
+  - url: https://<project-ref>.supabase.co/rest/v1
+    description: Supabase REST API (auto-generated from PostgreSQL schema)
+  - url: https://<project-ref>.supabase.co/realtime/v1
+    description: Supabase Realtime WebSocket API
+
+tags:
+  - name: Moderation
+    description: Event moderation endpoints (approve/reject)
+  - name: Queue
+    description: Moderation queue queries
+  - name: Statistics
+    description: Moderator personal statistics
+  - name: Realtime
+    description: Real-time subscription endpoints
+
+paths:
+  /rpc/moderate_event:
+    post:
+      tags:
+        - Moderation
+      summary: Approve or reject a pending event
+      description: |
+        Moderates an event by approving or rejecting it. Includes:
+        - Row-level locking (FOR UPDATE NOWAIT) to prevent concurrent moderation
+        - Self-moderation prevention (cannot moderate own events)
+        - Automatic audit log creation in moderation_log table
+        - Automatic notification creation for event creator
+        - Automatic moderator statistics update via trigger
+
+        **RLS Policy**: `Moderators can moderate events` (role must be moderator/admin)
+
+        **Business Rules**:
+        - Event must be in 'pending' status
+        - Moderator cannot be the event creator (self-moderation blocked)
+        - Rejection reason required when action = 'rejected'
+        - Approval must not include rejection reason
+
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - p_event_id
+                - p_action
+              properties:
+                p_event_id:
+                  type: string
+                  format: uuid
+                  description: UUID of the event to moderate
+                  example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                p_action:
+                  type: string
+                  enum: [approved, rejected]
+                  description: Action to perform on the event
+                  example: "approved"
+                p_rejection_reason:
+                  type: string
+                  nullable: true
+                  description: Required when p_action is 'rejected'. Must be non-empty string. Predefined options include 'Contenuto inappropriato', 'Informazioni incomplete', 'Duplicato', 'Fuori tema' or custom text.
+                  example: "Contenuto inappropriato - Modifica la descrizione"
+            examples:
+              approve_event:
+                summary: Approve an event
+                value:
+                  p_event_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  p_action: "approved"
+              reject_event:
+                summary: Reject an event with reason
+                value:
+                  p_event_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  p_action: "rejected"
+                  p_rejection_reason: "Contenuto inappropriato - Modifica la descrizione"
+      responses:
+        '204':
+          description: Event successfully moderated. No content returned.
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_action:
+                  summary: Invalid action parameter
+                  value:
+                    code: "22000"
+                    message: "Invalid action. Must be \"approved\" or \"rejected\"."
+                    hint: "Provide p_action as 'approved' or 'rejected'"
+                missing_rejection_reason:
+                  summary: Rejection reason required but missing
+                  value:
+                    code: "22000"
+                    message: "Rejection reason required when rejecting event"
+                    hint: "Provide p_rejection_reason when p_action is 'rejected'"
+        '403':
+          description: Forbidden - Authorization errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                self_moderation:
+                  summary: Cannot moderate own event
+                  value:
+                    code: "P0001"
+                    message: "Cannot moderate your own event"
+                    hint: "Self-moderation is blocked per FR-062"
+                not_moderator:
+                  summary: User is not a moderator
+                  value:
+                    code: "42501"
+                    message: "permission denied for function moderate_event"
+                    hint: "User role must be 'moderator' or 'admin'"
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                event_not_found:
+                  summary: Event ID does not exist
+                  value:
+                    code: "P0001"
+                    message: "Event not found"
+                    hint: "Check that event_id is valid"
+        '409':
+          description: Conflict - Concurrent moderation or already moderated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                concurrent_moderation:
+                  summary: Another moderator is reviewing the event
+                  value:
+                    code: "55P03"
+                    message: "Another moderator is currently reviewing this event"
+                    hint: "The event is locked by another moderator. Try again in a few seconds."
+                already_moderated:
+                  summary: Event already processed
+                  value:
+                    code: "P0001"
+                    message: "Event already moderated with status: approved"
+                    hint: "Event has already been approved or rejected by another moderator"
+
+  /events:
+    get:
+      tags:
+        - Queue
+      summary: Get all pending events for moderation queue
+      description: |
+        Retrieves all events with status='pending' sorted by created_at (oldest first).
+        Used to populate the moderation queue dashboard.
+
+        **RLS Policy**: `Moderators see all events` (role must be moderator/admin)
+
+        **Sorting**: Oldest pending events appear first (FIFO queue per FR-019)
+
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [pending]
+          description: Filter events by status (always 'pending' for moderation queue)
+          example: "eq.pending"
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Order by created_at ascending (oldest first)
+          example: "created_at.asc"
+        - name: select
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Columns to select. Default: id,title,description,emoji,image_url,event_date,location,created_by,created_at,creator:profiles(full_name,class)
+          example: "id,title,description,emoji,image_url,event_date,location,created_by,created_at,creator:profiles(full_name,class)"
+      responses:
+        '200':
+          description: List of pending events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingEvent'
+              examples:
+                pending_events:
+                  summary: Two pending events in queue
+                  value:
+                    - id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                      title: "Torneo Basket 3v3"
+                      description: "Torneo di basket 3 contro 3 nel cortile della scuola. Iscrizioni aperte a tutte le classi. Premi per i vincitori!"
+                      emoji: "🏀"
+                      image_url: null
+                      event_date: "2025-11-20T15:00:00Z"
+                      location: "Cortile scuola"
+                      created_by: "user-uuid-123"
+                      created_at: "2025-11-12T10:30:00Z"
+                      creator:
+                        full_name: "Marco Rossi"
+                        class: "3A"
+                    - id: "b2c3d4e5-f6g7-8901-bcde-f12345678901"
+                      title: "Festa Halloween"
+                      description: "Festa di Halloween in aula magna con costumi, musica e dolcetti"
+                      emoji: "🎃"
+                      image_url: "https://storage.supabase.co/events/halloween.jpg"
+                      event_date: "2025-10-31T18:00:00Z"
+                      location: "Aula magna"
+                      created_by: "user-uuid-456"
+                      created_at: "2025-11-12T11:45:00Z"
+                      creator:
+                        full_name: "Sofia Bianchi"
+                        class: "2B"
+        '403':
+          description: Forbidden - User is not a moderator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /moderator_stats:
+    get:
+      tags:
+        - Statistics
+      summary: Get personal moderator statistics
+      description: |
+        Retrieves statistics for the authenticated moderator's account.
+        Used to display personal performance metrics on moderation dashboard.
+
+        **RLS Policy**: `Moderators can view own stats` (can only view own user_id)
+
+        **Real-time Updates**: Statistics update automatically via trigger after each moderation action (FR-030)
+
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Filter by current user's ID (use eq.<auth.uid()>)
+          example: "eq.auth.uid()"
+      responses:
+        '200':
+          description: Moderator statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModeratorStats'
+                minItems: 0
+                maxItems: 1
+              examples:
+                active_moderator:
+                  summary: Moderator with activity
+                  value:
+                    - id: "stats-uuid-123"
+                      user_id: "user-uuid-789"
+                      total_reviews: 47
+                      reviews_today: 5
+                      reviews_this_week: 18
+                      approval_count: 38
+                      rejection_count: 9
+                      approval_rate_percent: 80.85
+                      last_review_at: "2025-11-13T14:22:00Z"
+                      stats_updated_at: "2025-11-13T14:22:00Z"
+                new_moderator:
+                  summary: Newly promoted moderator (no reviews yet)
+                  value:
+                    - id: "stats-uuid-456"
+                      user_id: "user-uuid-999"
+                      total_reviews: 0
+                      reviews_today: 0
+                      reviews_this_week: 0
+                      approval_count: 0
+                      rejection_count: 0
+                      approval_rate_percent: 0
+                      last_review_at: null
+                      stats_updated_at: "2025-11-13T10:00:00Z"
+        '403':
+          description: Forbidden - User is not a moderator or trying to view other moderator's stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token obtained from auth.session
+
+  schemas:
+    PendingEvent:
+      type: object
+      description: Event awaiting moderation
+      required:
+        - id
+        - title
+        - description
+        - event_date
+        - location
+        - created_by
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Event UUID
+        title:
+          type: string
+          description: Event title
+          maxLength: 100
+        description:
+          type: string
+          description: Event description (show first 150 characters in queue per FR-020)
+          maxLength: 1000
+        emoji:
+          type: string
+          nullable: true
+          description: Event emoji icon (single emoji character)
+          maxLength: 10
+        image_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Event image URL from Supabase Storage
+        event_date:
+          type: string
+          format: date-time
+          description: When the event occurs (ISO 8601 format)
+        location:
+          type: string
+          description: Physical location of event
+          maxLength: 200
+        created_by:
+          type: string
+          format: uuid
+          description: UUID of user who created the event
+        created_at:
+          type: string
+          format: date-time
+          description: When event was submitted for moderation (ISO 8601 format)
+        creator:
+          type: object
+          description: Embedded creator profile information
+          properties:
+            full_name:
+              type: string
+              description: Full name of event creator
+            class:
+              type: string
+              description: Class/grade of event creator (e.g., "3A")
+
+    ModeratorStats:
+      type: object
+      description: Performance statistics for a moderator
+      required:
+        - id
+        - user_id
+        - total_reviews
+        - reviews_today
+        - reviews_this_week
+        - approval_count
+        - rejection_count
+        - approval_rate_percent
+        - stats_updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Statistics record UUID
+        user_id:
+          type: string
+          format: uuid
+          description: Moderator user UUID
+        total_reviews:
+          type: integer
+          minimum: 0
+          description: Total number of moderation actions (all time)
+        reviews_today:
+          type: integer
+          minimum: 0
+          description: Number of reviews performed today (resets daily at midnight UTC)
+        reviews_this_week:
+          type: integer
+          minimum: 0
+          description: Number of reviews this week (Monday 00:00 UTC - Sunday 23:59 UTC)
+        approval_count:
+          type: integer
+          minimum: 0
+          description: Total number of approved events
+        rejection_count:
+          type: integer
+          minimum: 0
+          description: Total number of rejected events
+        approval_rate_percent:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Approval rate calculated as (approval_count / total_reviews) × 100
+        last_review_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of most recent moderation action (null if no reviews yet)
+        stats_updated_at:
+          type: string
+          format: date-time
+          description: When these statistics were last recalculated
+
+    Error:
+      type: object
+      description: PostgreSQL error response
+      properties:
+        code:
+          type: string
+          description: PostgreSQL error code (SQLSTATE)
+          example: "P0001"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Event not found"
+        hint:
+          type: string
+          nullable: true
+          description: Optional hint for resolving the error
+          example: "Check that event_id is valid"
+        details:
+          type: string
+          nullable: true
+          description: Additional error details
+
+realtime:
+  channels:
+    - channel: realtime:public:events
+      description: Real-time updates to events table
+      subscriptions:
+        - event: INSERT
+          filter: status=eq.pending
+          description: |
+            Notifies when new event enters moderation queue.
+            Used to update badge count and add event to queue list (FR-027).
+            **Latency requirement**: Updates must appear within 2 seconds.
+          payload:
+            type: object
+            properties:
+              record:
+                $ref: '#/components/schemas/PendingEvent'
+          example:
+            record:
+              id: "new-event-uuid"
+              title: "Nuovo Torneo Calcetto"
+              status: "pending"
+              created_at: "2025-11-13T15:30:00Z"
+
+        - event: UPDATE
+          filter: status=eq.approved OR status=eq.rejected
+          description: |
+            Notifies when event is moderated by another moderator.
+            Used to remove event from queue list and update badge count (FR-028).
+            **Latency requirement**: Updates must appear within 2 seconds.
+          payload:
+            type: object
+            properties:
+              old_record:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "pending"
+              record:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [approved, rejected]
+                  moderated_by:
+                    type: string
+                    format: uuid
+                  moderated_at:
+                    type: string
+                    format: date-time
+          example:
+            old_record:
+              status: "pending"
+            record:
+              id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+              status: "approved"
+              moderated_by: "moderator-uuid-123"
+              moderated_at: "2025-11-13T15:35:00Z"
+
+    - channel: realtime:public:moderator_stats
+      description: Real-time updates to moderator statistics
+      subscriptions:
+        - event: UPDATE
+          filter: user_id=eq.auth.uid()
+          description: |
+            Notifies when moderator's personal statistics update after moderation action.
+            Used to update statistics display without page refresh (FR-030).
+            **Trigger source**: `update_moderator_stats_after_moderation` trigger fires after moderation_log INSERT.
+          payload:
+            type: object
+            properties:
+              record:
+                $ref: '#/components/schemas/ModeratorStats'
+          example:
+            record:
+              user_id: "current-moderator-uuid"
+              total_reviews: 48
+              reviews_today: 6
+              approval_rate_percent: 81.25
+              stats_updated_at: "2025-11-13T15:35:00Z"
+
+fallback:
+  description: |
+    **Hybrid Realtime/Polling Fallback Strategy (FR-069)**
+
+    If Supabase Realtime connection fails or consistently exceeds 2-second latency:
+    1. **Automatic Fallback**: Switch to 15-second polling mode
+    2. **Warning Indicator**: Display subtle yellow dot to indicate degraded real-time capability
+    3. **Background Retry**: Attempt to re-establish Realtime connection every 45 seconds
+    4. **Automatic Recovery**: When Realtime connection restored, switch back and hide warning
+
+    Polling endpoint for fallback mode:
+    - GET /events?status=eq.pending&order=created_at.asc (every 15 seconds)
+    - GET /moderator_stats?user_id=eq.auth.uid() (every 15 seconds)
+
+exampleCode:
+  dart:
+    moderate_event_approve: |
+      // Approve event using Supabase RPC
+      final supabase = Supabase.instance.client;
+
+      try {
+        await supabase.rpc('moderate_event', params: {
+          'p_event_id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          'p_action': 'approved',
+        });
+
+        // Success - event approved
+        print('Event approved successfully');
+      } on PostgrestException catch (e) {
+        if (e.code == '55P03') {
+          // Concurrent moderation error
+          showError('Another moderator is reviewing this event. Try again.');
+        } else if (e.message.contains('Cannot moderate your own event')) {
+          // Self-moderation blocked
+          showError('You cannot moderate your own events');
+        } else if (e.message.contains('already moderated')) {
+          // Already processed
+          showError('This event was already moderated by another moderator');
+        } else {
+          // Generic error
+          showError('Failed to moderate event: ${e.message}');
+        }
+      }
+
+    moderate_event_reject: |
+      // Reject event with reason
+      final supabase = Supabase.instance.client;
+
+      try {
+        await supabase.rpc('moderate_event', params: {
+          'p_event_id': 'b2c3d4e5-f6g7-8901-bcde-f12345678901',
+          'p_action': 'rejected',
+          'p_rejection_reason': 'Contenuto inappropriato - Modifica la descrizione',
+        });
+
+        // Success - event rejected
+        print('Event rejected with reason');
+      } on PostgrestException catch (e) {
+        // Handle errors (same as approve example)
+      }
+
+    get_pending_events: |
+      // Get all pending events for moderation queue
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase
+        .from('events')
+        .select('id, title, description, emoji, image_url, event_date, location, created_by, created_at, creator:profiles(full_name, class)')
+        .eq('status', 'pending')
+        .order('created_at', ascending: true);
+
+      final pendingEvents = response as List<dynamic>;
+      print('Pending events: ${pendingEvents.length}');
+
+    subscribe_pending_events: |
+      // Subscribe to real-time updates for pending events
+      final supabase = Supabase.instance.client;
+
+      // Subscribe to new pending events
+      final subscription = supabase
+        .from('events')
+        .stream(primaryKey: ['id'])
+        .eq('status', 'pending')
+        .order('created_at', ascending: true)
+        .listen((List<Map<String, dynamic>> events) {
+          // Update UI with new pending events
+          updateQueueBadge(events.length);
+          updateQueueList(events);
+        });
+
+      // Unsubscribe when widget disposed
+      subscription.cancel();
+
+    subscribe_moderator_stats: |
+      // Subscribe to real-time updates for personal moderator statistics
+      final supabase = Supabase.instance.client;
+      final userId = supabase.auth.currentUser!.id;
+
+      final subscription = supabase
+        .from('moderator_stats')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .listen((List<Map<String, dynamic>> data) {
+          if (data.isNotEmpty) {
+            final stats = data.first;
+            updateStatsDisplay(
+              reviewsToday: stats['reviews_today'],
+              reviewsThisWeek: stats['reviews_this_week'],
+              totalReviews: stats['total_reviews'],
+              approvalRate: stats['approval_rate_percent'],
+            );
+          }
+        });
+
+      // Unsubscribe when widget disposed
+      subscription.cancel();
+
+notes:
+  - All timestamps use UTC timezone (server-side enforced)
+  - Week boundaries: Monday 00:00 UTC to Sunday 23:59 UTC (per Assumption #7)
+  - Day boundaries: Reset at midnight UTC (00:00:00)
+  - Badge count shows total pending events system-wide (all moderators see same count per clarification)
+  - Moderators cannot see which specific moderator approved/rejected an event (privacy requirement FR-018)
+  - All RPC functions use SECURITY DEFINER (execute with elevated privileges but RLS still enforced)
+  - Concurrent moderation protection uses PostgreSQL row-level locking (FOR UPDATE NOWAIT)

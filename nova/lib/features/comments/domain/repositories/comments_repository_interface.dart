@@ -275,7 +275,7 @@ abstract class CommentsRepositoryInterface {
   /// - [UnauthorizedException]: User not authenticated
   /// - [NotFoundException]: Comment does not exist or is deleted
   /// - [ServerException]: Supabase error
-  Future<void> likeComment({
+  Future<Comment> likeComment({
     required String commentId,
   });
 
@@ -284,7 +284,7 @@ abstract class CommentsRepositoryInterface {
   /// Parameters:
   /// - [commentId]: Comment UUID to unlike
   ///
-  /// Returns: void (success is no exception thrown)
+  /// Returns: Updated [Comment] entity with decremented like_count and isLikedByCurrentUser=false
   ///
   /// Side Effects:
   /// - Decrements like_count on comment (via database trigger)
@@ -295,7 +295,7 @@ abstract class CommentsRepositoryInterface {
   /// - [UnauthorizedException]: User not authenticated
   /// - [NotFoundException]: Comment does not exist
   /// - [ServerException]: Supabase error
-  Future<void> unlikeComment({
+  Future<Comment> unlikeComment({
     required String commentId,
   });
 

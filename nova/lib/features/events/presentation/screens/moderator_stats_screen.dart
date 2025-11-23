@@ -72,7 +72,7 @@ class ModeratorStatsScreen extends ConsumerWidget {
                       child: _buildStatCard(
                         context,
                         icon: Icons.check_circle_outline,
-                        iconColor: const Color(0xFF4CAF50),
+                        iconColor: NovaColors.successLight,
                         label: 'Approvati',
                         value: stats.approvedToday.toString(),
                       ),

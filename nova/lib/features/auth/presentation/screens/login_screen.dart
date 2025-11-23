@@ -284,6 +284,84 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             textAlign: TextAlign.center,
         ),
 
+        // DEV: Skip Auth button (only in development mode)
+        if (EmailValidator.isDevelopment) ...[
+          const SizedBox(height: NovaSpacing.l),
+
+          // DEV Skip Auth button
+          OutlinedButton.icon(
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    final email = _emailController.text.trim();
+
+                    if (email.isEmpty) {
+                      setState(() {
+                        _emailError = 'Please enter your email first';
+                      });
+                      return;
+                    }
+
+                    if (!EmailValidator.isValid(email)) {
+                      setState(() {
+                        _emailError = EmailValidator.validate(email);
+                      });
+                      return;
+                    }
+
+                    setState(() {
+                      _isLoading = true;
+                      _emailError = null;
+                    });
+
+                    final success = await ref
+                        .read(authNotifierProvider.notifier)
+                        .devSkipAuth(email);
+
+                    if (mounted) {
+                      setState(() {
+                        _isLoading = false;
+                      });
+
+                      if (!success) {
+                        // Show error - need to login at least once
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'No session found. You need to login via magic link at least once.',
+                              ),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+            icon: const Icon(Icons.developer_mode, size: 20),
+            label: const Text('DEV: Skip Auth'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: NovaColors.warning(context),
+              side: BorderSide(color: NovaColors.warning(context)),
+              padding: const EdgeInsets.symmetric(
+                vertical: NovaSpacing.m,
+                horizontal: NovaSpacing.l,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: NovaSpacing.xs),
+
+          Text(
+            'Bypasses magic link if you have logged in before',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: NovaColors.warning(context),
+                  fontSize: 11,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+
         // Debug section (only in development mode)
         if (EmailValidator.isDevelopment) ...[
           const SizedBox(height: NovaSpacing.xxxl),

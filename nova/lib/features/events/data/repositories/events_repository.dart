@@ -232,7 +232,7 @@ class EventsRepository {
   /// Fetch comments for event
   /// FR-027: Load comments
   Future<List<dynamic>> getEventComments(String eventId) async {
-    // TODO: Implement comment fetching (US5)
+    // TODO(US5): Implement comment fetching from Supabase comments table
     throw UnimplementedError('Comments will be implemented in US5');
   }
 
@@ -243,7 +243,7 @@ class EventsRepository {
     required String userId,
     required String content,
   }) async {
-    // TODO: Implement comment posting (US5)
+    // TODO(US5): Implement comment posting to Supabase comments table
     throw UnimplementedError('Comments will be implemented in US5');
   }
 
@@ -259,7 +259,7 @@ class EventsRepository {
     required String reason,
     required String explanation,
   }) async {
-    // TODO: Implement reporting (US8)
+    // TODO(US8): Implement reporting to Supabase reports table with moderation queue integration
     throw UnimplementedError('Reporting will be implemented in US8');
   }
 }

@@ -140,11 +140,7 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
         isLoadingMore: false,
         error: null,
       );
-    } catch (e, stackTrace) {
-      // Log error for debugging
-      print('Error loading events feed page $page: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e) {
       return EventsFeedState(
         events: const [],
         currentPage: 0,
@@ -187,10 +183,7 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
         isLoadingMore: false,
         error: null,
       ));
-    } catch (e, stackTrace) {
-      print('Error loading next page: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e) {
       // Keep existing events but show error
       state = AsyncData(currentState.copyWith(
         isLoadingMore: false,

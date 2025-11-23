@@ -390,6 +390,207 @@ Container(
 )
 ```
 
+### Platform-Native Widget Guidelines
+
+Nova MUST use platform-native widgets to ensure authentic iOS and Android experiences. **Never use generic cross-platform widgets when native alternatives exist.**
+
+#### Widget Selection Rules
+
+**Always use platform-specific widgets:**
+
+```dart
+import 'dart:io' show Platform;
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+
+// ✅ CORRECT - Platform detection with native widgets
+Widget buildSubmitButton() {
+  if (Platform.isIOS) {
+    return CupertinoButton(
+      color: NovaColors.primary,
+      onPressed: _onSubmit,
+      child: Text('Invia'),
+    );
+  } else {
+    return ElevatedButton(
+      onPressed: _onSubmit,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: NovaColors.primary,
+      ),
+      child: Text('Invia'),
+    );
+  }
+}
+
+// ❌ FORBIDDEN - Generic widget without platform detection
+Widget buildSubmitButton() {
+  return ElevatedButton(  // Will look wrong on iOS
+    onPressed: _onSubmit,
+    child: Text('Invia'),
+  );
+}
+```
+
+#### Common Widget Mappings
+
+**Reference table for widget selection:**
+
+| Purpose | iOS (Cupertino) | Android (Material) | Notes |
+|---------|----------------|-------------------|-------|
+| **Buttons** | `CupertinoButton` | `ElevatedButton`, `TextButton` | iOS uses filled style by default |
+| **Text Input** | `CupertinoTextField` | `TextField` | iOS has distinct border style |
+| **Dialogs** | `CupertinoAlertDialog` | `AlertDialog` | iOS has bottom sheet for actions |
+| **Action Sheet** | `CupertinoActionSheet` | `BottomSheet` | iOS-specific pattern |
+| **Switches** | `CupertinoSwitch` | `Switch` | Visual style differs significantly |
+| **Sliders** | `CupertinoSlider` | `Slider` | iOS has larger touch target |
+| **Navigation** | `CupertinoNavigationBar` | `AppBar` | iOS has centered title |
+| **Tabs** | `CupertinoTabBar` | `BottomNavigationBar` | iOS uses blur effect |
+| **Activity Indicator** | `CupertinoActivityIndicator` | `CircularProgressIndicator` | iOS spinner is smaller |
+| **Pickers** | `CupertinoPicker` | `DropdownButton` or `showDatePicker` | iOS uses bottom sheet |
+| **Segmented Control** | `CupertinoSegmentedControl` | `SegmentedButton` (Material 3) | iOS-first pattern |
+| **Context Menu** | `CupertinoContextMenu` | `PopupMenuButton` | Long-press interactions |
+
+#### Adaptive Widget Pattern
+
+**For frequently used components, create adaptive wrappers in `lib/shared/widgets/adaptive/`:**
+
+```dart
+// lib/shared/widgets/adaptive/adaptive_button.dart
+import 'dart:io' show Platform;
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+
+class AdaptiveButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final Widget child;
+  final Color? backgroundColor;
+
+  const AdaptiveButton({
+    required this.onPressed,
+    required this.child,
+    this.backgroundColor,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (Platform.isIOS) {
+      return CupertinoButton(
+        color: backgroundColor,
+        onPressed: onPressed,
+        child: child,
+      );
+    } else {
+      return ElevatedButton(
+        onPressed: onPressed,
+        style: backgroundColor != null
+            ? ElevatedButton.styleFrom(backgroundColor: backgroundColor)
+            : null,
+        child: child,
+      );
+    }
+  }
+}
+```
+
+**Usage:**
+```dart
+// ✅ CORRECT - Use adaptive wrapper
+AdaptiveButton(
+  onPressed: _onSubmit,
+  backgroundColor: NovaColors.primary,
+  child: Text('Invia'),
+)
+
+// ❌ FORBIDDEN - Hardcoded platform choice
+CupertinoButton(
+  onPressed: _onSubmit,
+  child: Text('Invia'),
+)
+```
+
+#### Navigation Pattern
+
+**Use `CupertinoPageRoute` on iOS, `MaterialPageRoute` on Android:**
+
+```dart
+// ✅ CORRECT - Adaptive navigation
+void navigateToProfile() {
+  Navigator.of(context).push(
+    Platform.isIOS
+        ? CupertinoPageRoute(builder: (_) => ProfileScreen())
+        : MaterialPageRoute(builder: (_) => ProfileScreen()),
+  );
+}
+
+// EVEN BETTER - Use GoRouter with adaptive transitions
+final router = GoRouter(
+  routes: [
+    GoRoute(
+      path: '/profile',
+      pageBuilder: (context, state) {
+        final child = ProfileScreen();
+        if (Platform.isIOS) {
+          return CupertinoPage(child: child);
+        } else {
+          return MaterialPage(child: child);
+        }
+      },
+    ),
+  ],
+);
+```
+
+#### App Scaffold Pattern
+
+**Use `CupertinoApp` + `CupertinoPageScaffold` on iOS, `MaterialApp` + `Scaffold` on Android:**
+
+```dart
+// ✅ CORRECT - Platform-specific app wrapper
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    if (Platform.isIOS) {
+      return CupertinoApp(
+        theme: CupertinoThemeData(
+          primaryColor: NovaColors.primary,
+          brightness: Brightness.light,
+        ),
+        home: HomeScreen(),
+      );
+    } else {
+      return MaterialApp(
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: NovaColors.primary),
+          useMaterial3: true,
+        ),
+        home: HomeScreen(),
+      );
+    }
+  }
+}
+```
+
+#### Critical Rules
+
+1. **Always import both frameworks:**
+   ```dart
+   import 'package:flutter/cupertino.dart';
+   import 'package:flutter/material.dart';
+   ```
+
+2. **Never use Material widgets on iOS** (e.g., `FloatingActionButton`, `Drawer`, `SnackBar`) - find Cupertino equivalents or skip the feature on iOS
+
+3. **Prefer adaptive helpers over manual detection** - Create reusable wrappers in `lib/shared/widgets/adaptive/`
+
+4. **Test on both platforms** - UI should feel native to each OS, not like a hybrid compromise
+
+5. **Respect platform conventions:**
+   - iOS: Centered navigation titles, swipe-back gestures, bottom sheets for actions
+   - Android: Left-aligned titles, FABs allowed, modal dialogs for actions
+
+**This is mandatory per Constitution Principle 6 (DESIGN_SYSTEM_STRICT).** Code review will reject any non-adaptive widget usage.
+
 ### State Management Pattern (Riverpod)
 
 All state management MUST use Riverpod providers:

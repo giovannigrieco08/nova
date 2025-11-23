@@ -60,29 +60,29 @@ class _NotificationPreferencesScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isModerator Async = ref.watch(isModeratorProvider);
+    final isModeratorAsync = ref.watch(isModeratorProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifiche'),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: NovaColors.backgroundPrimary(context),
+        backgroundColor: NovaColors.background(context),
         foregroundColor: NovaColors.textPrimary(context),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: EdgeInsets.all(NovaSpacing.large),
+              padding: EdgeInsets.all(NovaSpacing.l),
               children: [
                 // Header text
                 Text(
                   'Gestisci le tue notifiche push',
-                  style: NovaTypography.bodyMedium.copyWith(
+                  style: NovaTextStyles.body.copyWith(
                     color: NovaColors.textSecondary(context),
                   ),
                 ),
-                SizedBox(height: NovaSpacing.large),
+                SizedBox(height: NovaSpacing.l),
 
                 // Own Events notifications
                 _buildSwitchTile(
@@ -96,7 +96,7 @@ class _NotificationPreferencesScreenState
                   },
                 ),
 
-                SizedBox(height: NovaSpacing.medium),
+                SizedBox(height: NovaSpacing.m),
 
                 // Co-Organizer notifications
                 _buildSwitchTile(
@@ -111,12 +111,12 @@ class _NotificationPreferencesScreenState
                 ),
 
                 // Moderation notifications (only if moderator)
-                isModerator Async.when(
+                isModeratorAsync.when(
                   data: (isModerator) {
                     if (!isModerator) return const SizedBox();
                     return Column(
                       children: [
-                        SizedBox(height: NovaSpacing.medium),
+                        SizedBox(height: NovaSpacing.m),
                         _buildSwitchTile(
                           context,
                           title: 'Moderazione',
@@ -135,14 +135,14 @@ class _NotificationPreferencesScreenState
                   error: (_, __) => const SizedBox(),
                 ),
 
-                SizedBox(height: NovaSpacing.xlarge),
+                SizedBox(height: NovaSpacing.xl),
 
                 // Info box
                 Container(
-                  padding: EdgeInsets.all(NovaSpacing.medium),
+                  padding: EdgeInsets.all(NovaSpacing.m),
                   decoration: BoxDecoration(
                     color: NovaColors.primary(context).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(NovaRadius.medium),
+                    borderRadius: BorderRadius.circular(NovaRadius.m),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,12 +152,12 @@ class _NotificationPreferencesScreenState
                         size: 20,
                         color: NovaColors.primary(context),
                       ),
-                      SizedBox(width: NovaSpacing.small),
+                      SizedBox(width: NovaSpacing.s),
                       Expanded(
                         child: Text(
                           'Puoi modificare le impostazioni di notifica in qualsiasi momento. '
                           'Le notifiche importanti (es: evento rifiutato) verranno sempre inviate.',
-                          style: NovaTypography.bodySmall.copyWith(
+                          style: NovaTextStyles.caption.copyWith(
                             color: NovaColors.textSecondary(context),
                           ),
                         ),
@@ -180,10 +180,10 @@ class _NotificationPreferencesScreenState
     IconData? icon,
   }) {
     return Container(
-      padding: EdgeInsets.all(NovaSpacing.medium),
+      padding: EdgeInsets.all(NovaSpacing.m),
       decoration: BoxDecoration(
         border: Border.all(color: NovaColors.border(context)),
-        borderRadius: BorderRadius.circular(NovaRadius.medium),
+        borderRadius: BorderRadius.circular(NovaRadius.m),
       ),
       child: Row(
         children: [
@@ -193,7 +193,7 @@ class _NotificationPreferencesScreenState
               size: 24,
               color: NovaColors.primary(context),
             ),
-            SizedBox(width: NovaSpacing.medium),
+            SizedBox(width: NovaSpacing.m),
           ],
           Expanded(
             child: Column(
@@ -201,12 +201,12 @@ class _NotificationPreferencesScreenState
               children: [
                 Text(
                   title,
-                  style: NovaTypography.labelMedium,
+                  style: NovaTextStyles.bodyBold,
                 ),
-                SizedBox(height: NovaSpacing.xsmall),
+                SizedBox(height: NovaSpacing.xs),
                 Text(
                   subtitle,
-                  style: NovaTypography.bodySmall.copyWith(
+                  style: NovaTextStyles.caption.copyWith(
                     color: NovaColors.textSecondary(context),
                   ),
                 ),
@@ -216,7 +216,7 @@ class _NotificationPreferencesScreenState
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: NovaColors.primary(context),
+            activeTrackColor: NovaColors.primary(context),
           ),
         ],
       ),

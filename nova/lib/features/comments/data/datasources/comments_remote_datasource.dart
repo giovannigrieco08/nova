@@ -51,9 +51,9 @@ class CommentsRemoteDataSource {
             )
           ''')
           .eq('event_id', eventId)
-          .is_('parent_comment_id', null) // Top-level only
-          .is_('deleted_at', null) // Not deleted
-          .is_('hidden_at', null); // Not hidden
+          .isFilter('parent_comment_id', 'is', null) // Top-level only
+          .isFilter('deleted_at', 'is', null) // Not deleted
+          .isFilter('hidden_at', 'is', null); // Not hidden
 
       // Apply sort order
       if (sortOrder == CommentSortOrder.popular) {
@@ -114,8 +114,8 @@ class CommentsRemoteDataSource {
             )
           ''')
           .eq('parent_comment_id', commentId)
-          .is_('deleted_at', null)
-          .is_('hidden_at', null)
+          .isFilter('deleted_at', 'is', null)
+          .isFilter('hidden_at', 'is', null)
           .order('created_at', ascending: true);
 
       final List<dynamic> data = response as List;
@@ -146,8 +146,8 @@ class CommentsRemoteDataSource {
             )
           ''')
           .eq('id', commentId)
-          .is_('deleted_at', null)
-          .is_('hidden_at', null)
+          .isFilter('deleted_at', 'is', null)
+          .isFilter('hidden_at', 'is', null)
           .single();
 
       return _parseCommentWithProfile(response);
@@ -187,8 +187,8 @@ class CommentsRemoteDataSource {
             )
           ''')
           .eq('user_id', userId)
-          .is_('deleted_at', null)
-          .is_('hidden_at', null)
+          .isFilter('deleted_at', 'is', null)
+          .isFilter('hidden_at', 'is', null)
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
 
@@ -412,7 +412,7 @@ class CommentsRemoteDataSource {
           })
           .eq('id', commentId)
           .eq('user_id', currentUserId) // Ownership check
-          .is_('deleted_at', null); // Not already deleted
+          .isFilter('deleted_at', 'is', null); // Not already deleted
     } on PostgrestException catch (e, stackTrace) {
       if (e.code == 'PGRST116') {
         throw ForbiddenException(
@@ -434,7 +434,7 @@ class CommentsRemoteDataSource {
   /// Like a comment (idempotent - duplicate likes ignored)
   ///
   /// Triggers: rate limit check (100/hour), counter update.
-  Future<void> likeComment({
+  Future<Comment> likeComment({
     required String commentId,
   }) async {
     try {
@@ -451,10 +451,13 @@ class CommentsRemoteDataSource {
           })
           .select()
           .single();
+
+      // Fetch and return the updated comment
+      return await getCommentById(commentId: commentId);
     } on PostgrestException catch (e, stackTrace) {
       if (e.code == '23505') {
-        // Duplicate like (idempotent - ignore)
-        return;
+        // Duplicate like (idempotent - return current comment state)
+        return await getCommentById(commentId: commentId);
       } else if (e.code == 'P0001' &&
           e.message.contains('Rate limit exceeded')) {
         throw RateLimitException(
@@ -479,7 +482,7 @@ class CommentsRemoteDataSource {
   /// Unlike a comment (idempotent - unliking already-unliked is no-op)
   ///
   /// Triggers: counter update (decrement like_count).
-  Future<void> unlikeComment({
+  Future<Comment> unlikeComment({
     required String commentId,
   }) async {
     try {
@@ -493,6 +496,9 @@ class CommentsRemoteDataSource {
           .delete()
           .eq('comment_id', commentId)
           .eq('user_id', currentUserId);
+
+      // Fetch and return the updated comment
+      return await getCommentById(commentId: commentId);
     } on PostgrestException catch (e, stackTrace) {
       throw _mapSupabaseError(e, stackTrace);
     } catch (e, stackTrace) {

@@ -10,8 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:firebase_core/firebase_core.dart'; // Temporarily disabled for testing
-// import 'package:firebase_messaging/firebase_messaging.dart'; // Temporarily disabled for testing
+// TODO(firebase): Re-enable Firebase imports when ready for push notifications
+// Currently disabled to avoid emulator/device setup complexity during UI development
+// import 'package:firebase_core/firebase_core.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
 import 'package:nova/core/theme/cupertino_theme.dart';
@@ -37,7 +39,16 @@ import 'package:nova/features/events/data/models/participation_model.dart';
 import 'package:nova/features/events/data/models/report_model.dart';
 import 'package:nova/features/events/domain/entities/offline_action.dart';
 
-// Temporarily disabled for testing
+// TODO(firebase): Re-enable Firebase background message handler
+// This handles FCM notifications when app is in background/terminated state
+// Required for: Event approval/rejection notifications, co-organizer invites
+// Steps to re-enable:
+//   1. Add google-services.json (Android) and GoogleService-Info.plist (iOS)
+//   2. Uncomment Firebase imports above
+//   3. Uncomment this handler function
+//   4. Uncomment Firebase.initializeApp() and onBackgroundMessage in main()
+//   5. Test with real device (FCM doesn't work on emulator without Google Play Services)
+//
 // /// Firebase Cloud Messaging background message handler
 // /// Must be top-level function (not inside a class)
 // @pragma('vm:entry-point')
@@ -61,7 +72,10 @@ Future<void> main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Temporarily disabled for testing
+  // TODO(firebase): Re-enable Firebase initialization for push notifications
+  // Currently disabled during UI development to avoid setup overhead
+  // When ready, uncomment these lines:
+  //
   // // Initialize Firebase (for FCM push notifications)
   // await Firebase.initializeApp();
   //
@@ -73,19 +87,6 @@ Future<void> main() async {
 
   // Initialize Hive for offline-first storage (profiles + events)
   await Hive.initFlutter();
-
-  // TEMPORARY: Delete corrupted Hive boxes due to typeId changes
-  // This ensures old data with wrong typeIds doesn't cause errors
-  // Remove this code after all users have updated
-  try {
-    await Hive.deleteBoxFromDisk('events_cache');
-    await Hive.deleteBoxFromDisk('profiles');
-    await Hive.deleteBoxFromDisk('event_drafts');
-    await Hive.deleteBoxFromDisk('offline_actions_queue');
-    debugPrint('✅ Cleared Hive boxes due to typeId migration');
-  } catch (e) {
-    debugPrint('ℹ️ Hive box cleanup: $e');
-  }
 
   // Register adapters (with error handling for hot reload/restart)
   try {
@@ -285,7 +286,7 @@ class _NovaAppState extends ConsumerState<NovaApp> {
                   debugPrint('📍 Navigating to profile: ${deepLinkInfo.userId}');
                   return true;
                 }());
-                // TODO: Add profile deep link navigation (future feature)
+                // TODO(profile/future): Add profile deep link navigation to ProfileScreen
                 break;
             }
           } else {

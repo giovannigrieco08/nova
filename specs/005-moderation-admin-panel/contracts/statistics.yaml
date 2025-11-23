@@ -1,0 +1,739 @@
+openapi: 3.0.0
+info:
+  title: Statistics API Contract
+  description: API contract for system-wide and moderator-specific statistics. Defines Supabase RPC functions and database views for performance monitoring and analytics.
+  version: 1.0.0
+  contact:
+    name: Nova Development Team
+
+servers:
+  - url: https://<project-ref>.supabase.co/rest/v1
+    description: Supabase REST API (auto-generated from PostgreSQL schema)
+  - url: https://<project-ref>.supabase.co/realtime/v1
+    description: Supabase Realtime WebSocket API
+
+tags:
+  - name: System Statistics
+    description: System-wide moderation performance metrics
+  - name: Moderator Leaderboard
+    description: Moderator performance rankings
+  - name: Realtime
+    description: Real-time subscription endpoints
+
+paths:
+  /rpc/get_system_statistics:
+    post:
+      tags:
+        - System Statistics
+      summary: Get system-wide moderation statistics
+      description: |
+        Retrieves aggregated system-wide statistics for the Admin Panel dashboard.
+        This is a wrapper function around the `system_statistics` database view.
+
+        **Calculated Metrics**:
+        - Event counts and percentages (pending/approved/rejected)
+        - Moderator counts (total, active in last 7 days, inactive)
+        - Performance metrics (average review time, backlog size, events pending >24h)
+        - All metrics calculated in real-time from source tables
+
+        **RLS Policy**: Only admins can execute this function
+
+        **View Source**: `system_statistics` view aggregates from `events`, `moderation_log`, and `user_roles` tables
+
+        **Performance**: View is not materialized (always current data), optimized with indexes on underlying tables
+
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: No parameters required (empty object or omit body)
+            examples:
+              no_params:
+                summary: No parameters needed
+                value: {}
+      responses:
+        '200':
+          description: System statistics successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatistics'
+              examples:
+                active_system:
+                  summary: System with active moderation
+                  value:
+                    - pending_events: 12
+                      approved_events: 145
+                      rejected_events: 23
+                      total_events: 180
+                      pending_percent: 6.67
+                      approved_percent: 80.56
+                      rejected_percent: 12.78
+                      events_pending_over_24h: 2
+                      total_moderators: 5
+                      active_moderators_7d: 4
+                      avg_review_time_minutes: 18.5
+                      current_backlog: 12
+                low_activity:
+                  summary: System with low activity
+                  value:
+                    - pending_events: 1
+                      approved_events: 50
+                      rejected_events: 5
+                      total_events: 56
+                      pending_percent: 1.79
+                      approved_percent: 89.29
+                      rejected_percent: 8.93
+                      events_pending_over_24h: 0
+                      total_moderators: 3
+                      active_moderators_7d: 2
+                      avg_review_time_minutes: 12.3
+                      current_backlog: 1
+        '403':
+          description: Forbidden - User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_admin:
+                  summary: Current user is not an admin
+                  value:
+                    code: "42501"
+                    message: "permission denied for function get_system_statistics"
+                    hint: "Only admins can view system statistics"
+
+  /moderator_stats:
+    get:
+      tags:
+        - Moderator Leaderboard
+      summary: Get moderator leaderboard
+      description: |
+        Retrieves all moderator statistics sorted by total reviews or approval rate.
+        Used in Admin Panel to display moderator performance rankings.
+
+        **RLS Policy**: Admins can view all moderator statistics
+
+        **Common Sorting**:
+        - By total reviews (descending) - most active moderators
+        - By approval rate (descending) - highest approval rates
+        - By last_review_at (descending) - most recently active
+
+        **Inactive Detection**: Moderators with `last_review_at > 7 days ago` should be highlighted (FR-042)
+
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: select
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Columns to select with embedded profile.
+            Default: user_id,total_reviews,approval_rate_percent,reviews_this_week,last_review_at,profile:profiles!user_id(full_name,class)
+          example: "user_id,total_reviews,approval_count,rejection_count,approval_rate_percent,reviews_this_week,last_review_at,profile:profiles!user_id(full_name,class)"
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Order results (default by total_reviews descending)
+          example: "total_reviews.desc"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Limit number of results (default all moderators)
+          example: 10
+      responses:
+        '200':
+          description: Moderator leaderboard successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModeratorLeaderboardEntry'
+              examples:
+                leaderboard_by_total_reviews:
+                  summary: Top moderators by total reviews
+                  value:
+                    - user_id: "sofia-rossi-uuid-111"
+                      total_reviews: 47
+                      approval_count: 38
+                      rejection_count: 9
+                      approval_rate_percent: 80.85
+                      reviews_this_week: 18
+                      last_review_at: "2025-11-13T14:22:00Z"
+                      profile:
+                        full_name: "Sofia Rossi"
+                        class: "4A"
+                    - user_id: "marco-neri-uuid-222"
+                      total_reviews: 23
+                      approval_count: 20
+                      rejection_count: 3
+                      approval_rate_percent: 86.96
+                      reviews_this_week: 5
+                      last_review_at: "2025-11-06T09:15:00Z"
+                      profile:
+                        full_name: "Marco Neri"
+                        class: "5B"
+                    - user_id: "anna-ferrari-uuid-333"
+                      total_reviews: 15
+                      approval_count: 12
+                      rejection_count: 3
+                      approval_rate_percent: 80.00
+                      reviews_this_week: 0
+                      last_review_at: "2025-11-02T16:30:00Z"
+                      profile:
+                        full_name: "Anna Ferrari"
+                        class: "3C"
+        '403':
+          description: Forbidden - User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /moderation_log:
+    get:
+      tags:
+        - System Statistics
+      summary: Get moderation log entries
+      description: |
+        Retrieves audit trail of moderation actions for analytics and reporting.
+        Used to calculate statistics, generate reports, and audit moderator activity.
+
+        **RLS Policy**: Admins can view all moderation logs
+
+        **Use Cases**:
+        - Calculate average review time for specific time periods
+        - Analyze moderator performance trends
+        - Generate moderation reports
+        - Audit specific events or moderators
+
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: moderator_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter by specific moderator
+          example: "eq.sofia-rossi-uuid-111"
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [approved, rejected]
+          description: Filter by action type
+          example: "eq.approved"
+        - name: created_at
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by date range (use gte/lte operators)
+          example: "gte.2025-11-01T00:00:00Z"
+        - name: select
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Columns to select with embedded event and moderator info.
+            Default: id,action,created_at,rejection_reason,event:events(title,created_at),moderator:profiles!moderator_id(full_name)
+          example: "id,action,created_at,rejection_reason,event:events(*),moderator:profiles!moderator_id(*)"
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Order results (default by created_at descending)
+          example: "created_at.desc"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Limit number of results
+          example: 100
+      responses:
+        '200':
+          description: Moderation log entries successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModerationLogEntry'
+              examples:
+                recent_moderations:
+                  summary: Recent moderation actions
+                  value:
+                    - id: "log-uuid-1"
+                      action: "approved"
+                      created_at: "2025-11-13T15:30:00Z"
+                      rejection_reason: null
+                      event:
+                        title: "Torneo Basket 3v3"
+                        created_at: "2025-11-13T10:00:00Z"
+                      moderator:
+                        full_name: "Sofia Rossi"
+                    - id: "log-uuid-2"
+                      action: "rejected"
+                      created_at: "2025-11-13T14:15:00Z"
+                      rejection_reason: "Contenuto inappropriato"
+                      event:
+                        title: "Festa Halloween"
+                        created_at: "2025-11-13T12:00:00Z"
+                      moderator:
+                        full_name: "Marco Neri"
+        '403':
+          description: Forbidden - User is not an admin or moderator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token obtained from auth.session
+
+  schemas:
+    SystemStatistics:
+      type: object
+      description: Aggregated system-wide moderation statistics
+      required:
+        - pending_events
+        - approved_events
+        - rejected_events
+        - total_events
+        - pending_percent
+        - approved_percent
+        - rejected_percent
+        - events_pending_over_24h
+        - total_moderators
+        - active_moderators_7d
+        - current_backlog
+      properties:
+        pending_events:
+          type: integer
+          minimum: 0
+          description: Number of events currently pending moderation
+          example: 12
+        approved_events:
+          type: integer
+          minimum: 0
+          description: Total number of approved events (all time)
+          example: 145
+        rejected_events:
+          type: integer
+          minimum: 0
+          description: Total number of rejected events (all time)
+          example: 23
+        total_events:
+          type: integer
+          minimum: 0
+          description: Total number of events (pending + approved + rejected)
+          example: 180
+        pending_percent:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Percentage of events currently pending (rounded to 2 decimals)
+          example: 6.67
+        approved_percent:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Percentage of events approved (rounded to 2 decimals)
+          example: 80.56
+        rejected_percent:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Percentage of events rejected (rounded to 2 decimals)
+          example: 12.78
+        events_pending_over_24h:
+          type: integer
+          minimum: 0
+          description: Number of events pending for more than 24 hours (alert if >0 per FR-048)
+          example: 2
+        total_moderators:
+          type: integer
+          minimum: 0
+          description: Total number of users with moderator or admin role
+          example: 5
+        active_moderators_7d:
+          type: integer
+          minimum: 0
+          description: Number of moderators who moderated at least one event in last 7 days
+          example: 4
+        avg_review_time_minutes:
+          type: number
+          format: float
+          nullable: true
+          description: |
+            Average time (in minutes) between event creation and moderation for events moderated in last 7 days.
+            Null if no events moderated in last 7 days.
+            Rolling 7-day window per FR-046.
+          example: 18.5
+        current_backlog:
+          type: integer
+          minimum: 0
+          description: Number of events currently pending (same as pending_events, included for clarity)
+          example: 12
+
+    ModeratorLeaderboardEntry:
+      type: object
+      description: Moderator statistics with profile for leaderboard display
+      required:
+        - user_id
+        - total_reviews
+        - approval_count
+        - rejection_count
+        - approval_rate_percent
+        - reviews_this_week
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Moderator user UUID
+        total_reviews:
+          type: integer
+          minimum: 0
+          description: Total number of moderation actions (all time)
+        approval_count:
+          type: integer
+          minimum: 0
+          description: Total number of approved events
+        rejection_count:
+          type: integer
+          minimum: 0
+          description: Total number of rejected events
+        approval_rate_percent:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Approval rate calculated as (approval_count / total_reviews) × 100
+        reviews_this_week:
+          type: integer
+          minimum: 0
+          description: Number of reviews performed this week (Monday 00:00 UTC - Sunday 23:59 UTC)
+        last_review_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            Timestamp of most recent moderation action.
+            Null if no reviews yet.
+            Used to detect inactive moderators (>7 days per FR-042).
+        profile:
+          type: object
+          description: Embedded moderator profile
+          properties:
+            full_name:
+              type: string
+              description: Moderator's full name
+              example: "Sofia Rossi"
+            class:
+              type: string
+              description: Moderator's class/grade
+              example: "4A"
+
+    ModerationLogEntry:
+      type: object
+      description: Audit log entry for a moderation action
+      required:
+        - id
+        - action
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Log entry UUID
+        action:
+          type: string
+          enum: [approved, rejected]
+          description: Moderation action performed
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Reason provided when rejecting (null if approved)
+        created_at:
+          type: string
+          format: date-time
+          description: When moderation action occurred (ISO 8601 format)
+        event:
+          type: object
+          description: Embedded event information
+          properties:
+            title:
+              type: string
+              description: Event title
+            created_at:
+              type: string
+              format: date-time
+              description: When event was created (for calculating review time)
+        moderator:
+          type: object
+          nullable: true
+          description: Embedded moderator profile (null if moderator deleted)
+          properties:
+            full_name:
+              type: string
+              description: Moderator's full name
+
+    Error:
+      type: object
+      description: PostgreSQL error response
+      properties:
+        code:
+          type: string
+          description: PostgreSQL error code (SQLSTATE)
+        message:
+          type: string
+          description: Human-readable error message
+        hint:
+          type: string
+          nullable: true
+          description: Optional hint for resolving the error
+        details:
+          type: string
+          nullable: true
+          description: Additional error details
+
+realtime:
+  channels:
+    - channel: realtime:public:events
+      description: Real-time updates to events table (impacts system statistics)
+      subscriptions:
+        - event: INSERT
+          filter: status=eq.pending
+          description: |
+            New pending event created - increments pending_events and current_backlog metrics.
+        - event: UPDATE
+          filter: status=eq.approved OR status=eq.rejected
+          description: |
+            Event moderated - decrements pending_events, increments approved_events or rejected_events.
+            Affects pending_percent, approved_percent, rejected_percent calculations.
+
+    - channel: realtime:public:moderation_log
+      description: Real-time updates to moderation log (impacts statistics)
+      subscriptions:
+        - event: INSERT
+          description: |
+            New moderation action logged - affects avg_review_time_minutes calculation.
+            Admin Panel can recalculate system statistics when this event fires.
+
+    - channel: realtime:public:moderator_stats
+      description: Real-time updates to moderator statistics (impacts leaderboard)
+      subscriptions:
+        - event: UPDATE
+          description: |
+            Moderator statistics updated after moderation action.
+            Used to update leaderboard rankings in real-time.
+
+calculatedFields:
+  approval_rate_percent:
+    description: Moderator approval rate percentage
+    formula: (approval_count / total_reviews) × 100
+    notes:
+      - Returns 0 if total_reviews is 0 (avoid division by zero)
+      - Rounded to 2 decimal places
+    example: "38 approvals / 47 total reviews = 80.85%"
+
+  avg_review_time_minutes:
+    description: Average time from event creation to moderation (rolling 7-day window)
+    formula: AVG(moderated_at - created_at) for events moderated in last 7 days
+    notes:
+      - Calculated in minutes (divide seconds by 60)
+      - Only includes events moderated in last 7 days (rolling window per FR-046)
+      - Returns null if no events moderated in last 7 days
+      - Uses UTC timezone for all timestamp calculations
+    example: "Event created 2025-11-13 10:00:00, moderated 2025-11-13 10:18:30 = 18.5 minutes"
+
+  events_pending_over_24h:
+    description: Number of events pending for more than 24 hours
+    formula: COUNT(*) WHERE status='pending' AND created_at < NOW() - INTERVAL '24 hours'
+    notes:
+      - Alert threshold: highlight in red/warning color if >0 (per FR-048)
+      - Indicates moderation backlog requiring attention
+    example: "2 events created >24h ago still pending"
+
+  reviews_today:
+    description: Number of reviews performed today
+    formula: COUNT(*) WHERE moderator_id = user_id AND created_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
+    notes:
+      - Resets daily at midnight UTC (00:00:00)
+      - Automated reset via pg_cron scheduled job
+    example: "5 reviews today (since 00:00:00 UTC)"
+
+  reviews_this_week:
+    description: Number of reviews performed this week
+    formula: COUNT(*) WHERE moderator_id = user_id AND created_at >= DATE_TRUNC('week', NOW() AT TIME ZONE 'UTC')
+    notes:
+      - Week starts Monday 00:00 UTC, ends Sunday 23:59:59 UTC (per Assumption #7)
+      - Resets weekly at Monday 00:00 UTC via pg_cron scheduled job
+    example: "18 reviews this week (since Monday 00:00 UTC)"
+
+exampleCode:
+  dart:
+    get_system_statistics: |
+      // Get system-wide statistics for Admin Panel
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase.rpc('get_system_statistics');
+      final stats = (response as List).first;
+
+      print('Pending events: ${stats['pending_events']}');
+      print('Total moderators: ${stats['total_moderators']}');
+      print('Active moderators (7d): ${stats['active_moderators_7d']}');
+      print('Avg review time: ${stats['avg_review_time_minutes']?.toStringAsFixed(1) ?? 'N/A'} minutes');
+
+      // Alert if events pending >24h
+      if (stats['events_pending_over_24h'] > 0) {
+        showAlert('${stats['events_pending_over_24h']} events pending >24 hours!');
+      }
+
+    get_moderator_leaderboard: |
+      // Get moderator leaderboard sorted by total reviews
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase
+        .from('moderator_stats')
+        .select('user_id, total_reviews, approval_count, rejection_count, approval_rate_percent, reviews_this_week, last_review_at, profile:profiles!user_id(full_name, class)')
+        .order('total_reviews', ascending: false);
+
+      final leaderboard = response as List<dynamic>;
+
+      for (var i = 0; i < leaderboard.length; i++) {
+        final mod = leaderboard[i];
+        final isInactive = mod['last_review_at'] != null &&
+          DateTime.now().difference(DateTime.parse(mod['last_review_at'])).inDays > 7;
+
+        print('${i + 1}. ${mod['profile']['full_name']} - ${mod['total_reviews']} reviews (${mod['approval_rate_percent']}% approval)');
+
+        if (isInactive) {
+          print('   ⚠️ INACTIVE (>7 days since last review)');
+        }
+      }
+
+    calculate_review_time: |
+      // Calculate average review time from moderation log
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase
+        .from('moderation_log')
+        .select('created_at, event:events!event_id(created_at)')
+        .gte('created_at', DateTime.now().subtract(Duration(days: 7)).toIso8601String());
+
+      final logs = response as List<dynamic>;
+
+      if (logs.isEmpty) {
+        print('No moderation actions in last 7 days');
+        return;
+      }
+
+      double totalMinutes = 0;
+      for (var log in logs) {
+        final eventCreated = DateTime.parse(log['event']['created_at']);
+        final moderated = DateTime.parse(log['created_at']);
+        final reviewTime = moderated.difference(eventCreated).inMinutes;
+        totalMinutes += reviewTime;
+      }
+
+      final avgReviewTime = totalMinutes / logs.length;
+      print('Average review time (7d): ${avgReviewTime.toStringAsFixed(1)} minutes');
+
+    subscribe_system_stats_changes: |
+      // Subscribe to changes that impact system statistics
+      // Note: system_statistics is a view, so subscribe to underlying tables
+      final supabase = Supabase.instance.client;
+
+      // Subscribe to events table changes
+      final eventsSubscription = supabase
+        .from('events')
+        .stream(primaryKey: ['id'])
+        .listen((events) async {
+          // Recalculate system stats when events change
+          final stats = await supabase.rpc('get_system_statistics');
+          updateSystemStatsDisplay(stats.first);
+        });
+
+      // Subscribe to moderation_log changes
+      final logsSubscription = supabase
+        .from('moderation_log')
+        .stream(primaryKey: ['id'])
+        .listen((logs) async {
+          // Recalculate when new moderation actions occur
+          final stats = await supabase.rpc('get_system_statistics');
+          updateSystemStatsDisplay(stats.first);
+        });
+
+      // Unsubscribe when widget disposed
+      eventsSubscription.cancel();
+      logsSubscription.cancel();
+
+    detect_inactive_moderators: |
+      // Detect moderators inactive for >7 days
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase
+        .from('moderator_stats')
+        .select('user_id, last_review_at, profile:profiles!user_id(full_name, class)')
+        .not('last_review_at', 'is', null);
+
+      final moderators = response as List<dynamic>;
+      final now = DateTime.now();
+      final inactiveModerators = <Map<String, dynamic>>[];
+
+      for (var mod in moderators) {
+        final lastReview = DateTime.parse(mod['last_review_at']);
+        final daysSince = now.difference(lastReview).inDays;
+
+        if (daysSince > 7) {
+          inactiveModerators.add({
+            'user_id': mod['user_id'],
+            'full_name': mod['profile']['full_name'],
+            'class': mod['profile']['class'],
+            'days_inactive': daysSince,
+          });
+        }
+      }
+
+      print('Inactive moderators (>7 days): ${inactiveModerators.length}');
+      for (var mod in inactiveModerators) {
+        print('- ${mod['full_name']} (${mod['class']}): ${mod['days_inactive']} days');
+      }
+
+notes:
+  - All timestamps use UTC timezone (server-side enforced)
+  - Week boundaries: Monday 00:00 UTC to Sunday 23:59 UTC
+  - Day boundaries: Reset at midnight UTC (00:00:00)
+  - System statistics view is not materialized (always reflects current state)
+  - Average review time uses rolling 7-day window (not calendar week)
+  - Inactive moderator threshold is 7 days since last_review_at (FR-042)
+  - Events pending >24h should be highlighted in red/warning color (FR-048)
+  - Statistics update in real-time via triggers (no manual refresh required)
+  - Moderator statistics reset daily/weekly via pg_cron scheduled jobs
+  - Division by zero handled: approval_rate returns 0 if total_reviews is 0

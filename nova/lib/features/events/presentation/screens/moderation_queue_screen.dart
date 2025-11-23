@@ -203,7 +203,7 @@ class _ModerationQueueScreenState
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50), // Material Green 500
+              backgroundColor: NovaColors.successLight, // Material Green 500
             ),
             child: const Text('Approva'),
           ),
@@ -224,7 +224,7 @@ class _ModerationQueueScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Evento approvato con successo'),
-            backgroundColor: Color(0xFF4CAF50),
+            backgroundColor: NovaColors.successLight,
           ),
         );
       }

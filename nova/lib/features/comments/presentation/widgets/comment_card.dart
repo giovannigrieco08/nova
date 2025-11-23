@@ -38,8 +38,8 @@ class CommentCard extends StatelessWidget {
       label: accessibilityLabel,
       child: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: NovaSpacing.medium,
-          vertical: NovaSpacing.medium,
+          horizontal: NovaSpacing.m,
+          vertical: NovaSpacing.m,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +47,7 @@ class CommentCard extends StatelessWidget {
             // Avatar
             _buildAvatar(),
 
-            SizedBox(width: NovaSpacing.small),
+            SizedBox(width: NovaSpacing.s),
 
             // Comment content (name, timestamp, text)
             Expanded(
@@ -60,29 +60,27 @@ class CommentCard extends StatelessWidget {
                       // Author name (bold)
                       Text(
                         comment.authorName ?? 'Unknown',
-                        style: NovaTypography.labelMedium.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: NovaTextStyles.bodyBold,
                       ),
 
-                      SizedBox(width: NovaSpacing.tiny),
+                      SizedBox(width: NovaSpacing.xs),
 
                       // Timestamp (relative)
                       Text(
                         comment.getFormattedTimestamp(DateTime.now()),
-                        style: NovaTypography.labelSmall.copyWith(
+                        style: NovaTextStyles.caption.copyWith(
                           color: NovaColors.textTertiaryLight,
                         ),
                       ),
                     ],
                   ),
 
-                  SizedBox(height: NovaSpacing.tiny),
+                  SizedBox(height: NovaSpacing.xs),
 
                   // Comment text
                   Text(
                     comment.displayText,
-                    style: NovaTypography.bodyMedium.copyWith(
+                    style: NovaTextStyles.body.copyWith(
                       color: comment.isDeleted
                           ? NovaColors.textTertiaryLight
                           : NovaColors.textPrimaryLight,
@@ -93,7 +91,7 @@ class CommentCard extends StatelessWidget {
 
                   // Like button (T047: Phase 4 - User Story 2)
                   if (!comment.isDeleted) ...[
-                    SizedBox(height: NovaSpacing.tiny),
+                    SizedBox(height: NovaSpacing.xs),
                     LikeButton(
                       commentId: comment.id,
                       initialLikeCount: comment.likeCount,
@@ -148,8 +146,7 @@ class CommentCard extends StatelessWidget {
       backgroundColor: NovaColors.dividerLight,
       child: Text(
         initials,
-        style: NovaTypography.labelMedium.copyWith(
-          fontWeight: FontWeight.w600,
+        style: NovaTextStyles.bodyBold.copyWith(
           color: NovaColors.textPrimaryLight,
         ),
       ),

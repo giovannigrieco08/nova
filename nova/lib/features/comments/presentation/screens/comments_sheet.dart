@@ -64,15 +64,15 @@ class CommentsSheet extends ConsumerWidget {
             child: commentsAsync.whenOrNull(
                   data: (comments) => Text(
                     '${comments.length} ${comments.length == 1 ? 'commento' : 'commenti'}',
-                    style: NovaTypography.headingSmall,
+                    style: NovaTextStyles.h3,
                   ),
                 ) ??
                 const Text('Commenti'),
           ),
-          backgroundColor: NovaColors.backgroundPrimary(context),
+          backgroundColor: NovaColors.background(context),
           border: null,
         ),
-        backgroundColor: NovaColors.backgroundPrimary(context),
+        backgroundColor: NovaColors.background(context),
         child: SafeArea(
           child: _buildBody(context, ref, commentsAsync),
         ),
@@ -90,15 +90,15 @@ class CommentsSheet extends ConsumerWidget {
             child: commentsAsync.whenOrNull(
                   data: (comments) => Text(
                     '${comments.length} ${comments.length == 1 ? 'commento' : 'commenti'}',
-                    style: NovaTypography.headingSmall,
+                    style: NovaTextStyles.h3,
                   ),
                 ) ??
                 const Text('Commenti'),
           ),
-          backgroundColor: NovaColors.backgroundPrimary(context),
+          backgroundColor: NovaColors.background(context),
           elevation: 0,
         ),
-        backgroundColor: NovaColors.backgroundPrimary(context),
+        backgroundColor: NovaColors.background(context),
         body: _buildBody(context, ref, commentsAsync),
       );
     }

@@ -149,7 +149,7 @@ class _LikeButtonState extends ConsumerState<LikeButton>
                             : Icons.favorite_border),
                     size: 20,
                     color: likesState.isLiked
-                        ? NovaColors.primary // Purple Nova brand color
+                        ? NovaColors.primaryLight // Purple Nova brand color
                         : NovaColors.textTertiaryLight, // Gray when not liked
                   ),
                 );
@@ -158,12 +158,12 @@ class _LikeButtonState extends ConsumerState<LikeButton>
 
             // Like count (if > 0)
             if (likesState.likeCount > 0) ...[
-              SizedBox(width: NovaSpacing.tiny),
+              SizedBox(width: NovaSpacing.xs),
               Text(
                 _formatLikeCount(likesState.likeCount),
-                style: NovaTypography.labelSmall.copyWith(
+                style: NovaTextStyles.caption.copyWith(
                   color: likesState.isLiked
-                      ? NovaColors.primary
+                      ? NovaColors.primaryLight
                       : NovaColors.textTertiaryLight,
                   fontWeight: FontWeight.w600,
                 ),

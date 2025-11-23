@@ -621,11 +621,17 @@ class _EventCardState extends State<EventCard> with SingleTickerProviderStateMix
       context,
       Platform.isIOS
           ? CupertinoPageRoute(
-              builder: (_) => CommentsSheet(eventId: widget.event.id),
+              builder: (_) => CommentsSheet(
+                eventId: widget.event.id,
+                eventTitle: widget.event.title,
+              ),
               fullscreenDialog: true, // Fullscreen modal on iOS
             )
           : MaterialPageRoute(
-              builder: (_) => CommentsSheet(eventId: widget.event.id),
+              builder: (_) => CommentsSheet(
+                eventId: widget.event.id,
+                eventTitle: widget.event.title,
+              ),
               fullscreenDialog: true, // Fullscreen modal on Android
             ),
     );

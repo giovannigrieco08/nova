@@ -97,3 +97,43 @@ class NovaTextStyles {
     letterSpacing: 0.5, // 0.05em = 0.5px at 10px
   );
 }
+
+/// NovaTypography - Semantic typography aliases for easier usage
+///
+/// This class provides semantic names for typography styles:
+/// - headingLarge, headingMedium, headingSmall
+/// - bodyLarge, bodyMedium, bodySmall
+///
+/// Maps to NovaTextStyles with clearer naming conventions.
+class NovaTypography {
+  // Prevent instantiation
+  NovaTypography._();
+
+  /// Heading large (24px, bold) - Maps to h1
+  /// Usage: Screen titles, page headers
+  static const TextStyle headingLarge = NovaTextStyles.h1;
+
+  /// Heading medium (20px, semibold) - Maps to h2
+  /// Usage: Section headers, card titles
+  static const TextStyle headingMedium = NovaTextStyles.h2;
+
+  /// Heading small (18px, semibold) - Maps to h3
+  /// Usage: Subsection headers, emphasized labels
+  static const TextStyle headingSmall = NovaTextStyles.h3;
+
+  /// Body large (16px, regular) - Maps to bodyLarge
+  /// Usage: Emphasized paragraphs, important text
+  static const TextStyle bodyLarge = NovaTextStyles.bodyLarge;
+
+  /// Body medium (15px, regular) - Maps to body
+  /// Usage: Primary body text, descriptions
+  static const TextStyle bodyMedium = NovaTextStyles.body;
+
+  /// Body small (13px, regular) - Maps to caption
+  /// Usage: Timestamps, metadata, secondary labels
+  static const TextStyle bodySmall = NovaTextStyles.caption;
+
+  /// Button text (15px, semibold, tight) - Maps to button
+  /// Usage: All buttons and CTAs
+  static const TextStyle button = NovaTextStyles.button;
+}

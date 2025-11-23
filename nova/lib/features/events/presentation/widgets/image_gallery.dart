@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/theme/nova_colors.dart';
 
 /// Swipeable image gallery with pagination indicators (Instagram-style)
 ///
@@ -117,21 +118,21 @@ class _ImageGalleryState extends State<ImageGallery> {
           imageUrl: imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: const Color(0xFFF0F0F0), // Light gray placeholder
+            color: NovaColors.dividerLight, // Light gray placeholder
             child: const Center(
               child: CircularProgressIndicator(
-                color: Color(0xFF737373), // Instagram gray
+                color: NovaColors.instagramUsernameGray, // Instagram gray
                 strokeWidth: 2,
               ),
             ),
           ),
           errorWidget: (context, url, error) => Container(
-            color: const Color(0xFFF0F0F0),
+            color: NovaColors.dividerLight,
             child: const Center(
               child: Icon(
                 Icons.image_not_supported_outlined,
                 size: 64,
-                color: Color(0xFF737373),
+                color: NovaColors.instagramUsernameGray,
               ),
             ),
           ),
@@ -156,21 +157,21 @@ class _ImageGalleryState extends State<ImageGallery> {
       imageUrl: imageUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
-        color: const Color(0xFFF0F0F0),
+        color: NovaColors.dividerLight,
         child: const Center(
           child: CircularProgressIndicator(
-            color: Color(0xFF737373),
+            color: NovaColors.instagramUsernameGray,
             strokeWidth: 2,
           ),
         ),
       ),
       errorWidget: (context, url, error) => Container(
-        color: const Color(0xFFF0F0F0),
+        color: NovaColors.dividerLight,
         child: const Center(
           child: Icon(
             Icons.image_not_supported_outlined,
             size: 64,
-            color: Color(0xFF737373),
+            color: NovaColors.instagramUsernameGray,
           ),
         ),
       ),
@@ -216,8 +217,8 @@ class _ImageGalleryState extends State<ImageGallery> {
       height: 8,
       decoration: BoxDecoration(
         color: isActive
-            ? const Color(0xFF0095f6) // Instagram blue for active
-            : const Color(0xFFDBDBDB), // Light gray for inactive
+            ? NovaColors.infoLight // Instagram blue for active
+            : NovaColors.dividerLight, // Light gray for inactive
         shape: BoxShape.circle,
       ),
     );

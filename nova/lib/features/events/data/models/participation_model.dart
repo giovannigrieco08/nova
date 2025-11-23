@@ -7,7 +7,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'participation_model.g.dart';
 
-@HiveType(typeId: 6) // Hive type adapter ID
+@HiveType(typeId: 5) // Hive type adapter ID
 @JsonSerializable()
 class ParticipationModel {
   @HiveField(0)

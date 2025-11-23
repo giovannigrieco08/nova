@@ -17,15 +17,87 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
+import '../../../profile/domain/entities/profile.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/event_creation_provider.dart';
 import './image_picker_widget.dart';
+import './user_search_widget.dart';
 
 /// Complete event creation form
-class EventForm extends ConsumerWidget {
+class EventForm extends ConsumerStatefulWidget {
   const EventForm({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EventForm> createState() => _EventFormState();
+}
+
+class _EventFormState extends ConsumerState<EventForm> {
+  List<Profile> _selectedCoOrganizers = [];
+  bool _isLoadingProfiles = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncCoOrganizersFromState();
+  }
+
+  /// Sync co-organizers from EventFormState (for draft restore)
+  Future<void> _syncCoOrganizersFromState() async {
+    final state = ref.read(eventCreationProvider);
+
+    // If state has co-organizer IDs but we don't have profiles yet
+    if (state.coOrganizers.isNotEmpty && _selectedCoOrganizers.isEmpty) {
+      setState(() => _isLoadingProfiles = true);
+
+      try {
+        final repository = ref.read(profileRepositoryProvider);
+        final profiles = <Profile>[];
+
+        for (final userId in state.coOrganizers) {
+          try {
+            final profile = await repository.getProfileById(userId);
+            profiles.add(profile);
+          } catch (e) {
+            // Skip profiles that can't be loaded
+            debugPrint('Failed to load profile $userId: $e');
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _selectedCoOrganizers = profiles;
+            _isLoadingProfiles = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoadingProfiles = false);
+        }
+      }
+    }
+  }
+
+  void _onCoOrganizersChanged(List<Profile> profiles) {
+    setState(() => _selectedCoOrganizers = profiles);
+
+    // Update EventFormState with user IDs
+    final notifier = ref.read(eventCreationProvider.notifier);
+    final userIds = profiles.map((p) => p.id).toList();
+
+    // Clear existing co-organizers
+    final currentIds = ref.read(eventCreationProvider).coOrganizers;
+    for (final id in currentIds) {
+      notifier.removeCoOrganizer(id);
+    }
+
+    // Add new co-organizers
+    for (final id in userIds) {
+      notifier.addCoOrganizer(id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(eventCreationProvider);
     final notifier = ref.read(eventCreationProvider.notifier);
 
@@ -57,6 +129,10 @@ class EventForm extends ConsumerWidget {
             onImagePicked: (file) => notifier.pickImage(file),
             onImageRemoved: () => notifier.removeImage(),
           ),
+          SizedBox(height: NovaSpacing.l),
+
+          // Co-organizers section
+          _buildCoOrganizersSection(context),
           SizedBox(height: NovaSpacing.l),
 
           // Info text
@@ -286,6 +362,40 @@ class EventForm extends ConsumerWidget {
           ),
           style: NovaTextStyles.body,
         ),
+      ],
+    );
+  }
+
+  /// Co-organizers section (optional)
+  Widget _buildCoOrganizersSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Co-Organizzatori (Opzionale)',
+          style: NovaTextStyles.body,
+        ),
+        SizedBox(height: NovaSpacing.xs),
+        Text(
+          'Aggiungi fino a 3 co-organizzatori che potranno modificare l\'evento',
+          style: NovaTextStyles.caption.copyWith(
+            color: NovaColors.textSecondary(context),
+          ),
+        ),
+        SizedBox(height: NovaSpacing.s),
+        if (_isLoadingProfiles)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(NovaSpacing.m),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else
+          UserSearchWidget(
+            selectedUsers: _selectedCoOrganizers,
+            onSelectionChanged: _onCoOrganizersChanged,
+            maxSelections: 3,
+          ),
       ],
     );
   }

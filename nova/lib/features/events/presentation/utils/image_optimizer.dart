@@ -191,30 +191,4 @@ class ImageOptimizer {
   static Future<void> clearCache() async {
     await CachedNetworkImage.evictFromCache('');
   }
-
-  /// Get cached image file (for offline access)
-  /// Returns null if not cached
-  static Future<String?> getCachedImagePath(String imageUrl) async {
-    try {
-      final file = await DefaultCacheManager().getSingleFile(imageUrl);
-      return file.path;
-    } catch (e) {
-      return null;
-    }
-  }
-}
-
-// CacheManager singleton (used by CachedNetworkImage)
-class DefaultCacheManager {
-  static final DefaultCacheManager _instance = DefaultCacheManager._();
-  DefaultCacheManager._();
-  factory DefaultCacheManager() => _instance;
-
-  /// Get single file from cache
-  /// Note: This is a simplified version - cached_network_image handles this internally
-  Future<dynamic> getSingleFile(String url) async {
-    // Cached network image handles this internally
-    // This method is a placeholder for future custom cache management
-    throw UnimplementedError('Use CachedNetworkImage internally');
-  }
 }

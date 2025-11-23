@@ -68,7 +68,7 @@ abstract class NotificationRepository {
   /// Uses Supabase Realtime to listen for INSERT events on notifications table
   /// where user_id = current user.
   ///
-  /// Returns Stream<AppNotification> that emits whenever a new notification
+  /// Returns `Stream<AppNotification>` that emits whenever a new notification
   /// is inserted server-side.
   ///
   /// Example usage:

@@ -87,7 +87,7 @@ final moderationStatsProvider = FutureProvider<ModerationStats>((ref) async {
 
     // Get approved/rejected events from last 30 days for stats
     // Note: This is client-side filtering. Move to server in Phase 8.
-    // TODO: Add getModeratedEvents(startDate, endDate) to repository
+    // TODO(Phase-8): Add getModeratedEvents(startDate, endDate) to EventsRepository for server-side aggregation
     // Placeholder variables for future date filtering:
     // - startOfToday, startOfWeek, startOfMonth, thirtyDaysAgo
     final totalPending = pendingEvents.length;
@@ -115,7 +115,7 @@ final moderationStatsProvider = FutureProvider<ModerationStats>((ref) async {
 /// Fetches last 100 moderated events (approved + rejected) for analysis.
 /// Used by ModeratorStatsScreen to show trends and patterns.
 final moderationHistoryProvider = FutureProvider<List<Event>>((ref) async {
-  // TODO: Add getModeratedEvents() to repository
+  // TODO(Phase-8): Add getModeratedEvents() to EventsRepository with query:
   // For now, return empty list as placeholder
   // Will be implemented in Phase 8 with proper query:
   // SELECT * FROM events
@@ -145,8 +145,8 @@ final dailyBatchNotificationEligibleProvider =
   // If no pending events, no notification needed
   if (pendingCount == 0) return false;
 
-  // TODO: Check last notification timestamp from SharedPreferences
-  // TODO: Check user notification preferences
+  // TODO(Phase-4): Check last notification timestamp from SharedPreferences (daily batch limit)
+  // TODO(Phase-4): Check user notification preferences (allow moderators to opt out)
   // For now, return true if pending events exist
   return true;
 });

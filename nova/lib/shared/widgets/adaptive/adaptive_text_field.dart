@@ -57,6 +57,9 @@ class AdaptiveTextField extends StatelessWidget {
   /// Focus node
   final FocusNode? focusNode;
 
+  /// Whether the text field is enabled
+  final bool enabled;
+
   const AdaptiveTextField({
     super.key,
     this.controller,
@@ -71,6 +74,7 @@ class AdaptiveTextField extends StatelessWidget {
     this.onChanged,
     this.onTap,
     this.focusNode,
+    this.enabled = true,
   });
 
   @override
@@ -100,6 +104,7 @@ class AdaptiveTextField extends StatelessWidget {
             focusNode: focusNode,
             maxLines: obscureText ? 1 : maxLines,
             padding: const EdgeInsets.all(NovaSpacing.m),
+            enabled: enabled,
             decoration: BoxDecoration(
               color: NovaColors.surface(context),
               borderRadius: NovaRadius.circularM,
@@ -145,6 +150,7 @@ class AdaptiveTextField extends StatelessWidget {
       onChanged: onChanged,
       onTap: onTap,
       focusNode: focusNode,
+      enabled: enabled,
       decoration: InputDecoration(
         labelText: label,
         hintText: placeholder,

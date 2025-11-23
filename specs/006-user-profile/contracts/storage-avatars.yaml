@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: Nova Avatars Storage API
+  description: Supabase Storage API contracts for avatar upload/download
+  version: 1.0.0
+
+servers:
+  - url: https://{project_id}.supabase.co/storage/v1
+    description: Supabase Storage API
+    variables:
+      project_id:
+        default: your-project-id
+
+security:
+  - BearerAuth: []
+
+paths:
+  /object/avatars/{user_id}/avatar.jpg:
+    post:
+      summary: Upload avatar (upsert)
+      description: Upload avatar image. Overwrites existing avatar. Requires authentication (RLS checks owner).
+      parameters:
+        - $ref: '#/components/parameters/userId'
+        - name: upsert
+          in: query
+          description: Overwrite existing file
+          schema:
+            type: boolean
+            default: true
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Avatar image file (WebP, JPEG, PNG)
+      responses:
+        '200':
+          description: Avatar uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Key:
+                    type: string
+                    example: "avatars/abc123-def456-.../avatar.jpg"
+        '400':
+          description: Invalid file (size >500KB, format not allowed, etc.)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Cannot upload to other user's folder (RLS violation)
+
+    get:
+      summary: Get avatar (public access)
+      description: Retrieve avatar image. Public read access (no auth required for GET).
+      parameters:
+        - $ref: '#/components/parameters/userId'
+        - name: v
+          in: query
+          description: Cache-busting version parameter (timestamp)
+          schema:
+            type: integer
+            example: 1705935000
+      responses:
+        '200':
+          description: Avatar image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=604800"
+              description: "7 days cache (604800 seconds)"
+            Content-Type:
+              schema:
+                type: string
+                enum: [image/webp, image/jpeg, image/png]
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Avatar not found (user has no avatar uploaded)
+
+    delete:
+      summary: Delete avatar
+      description: Remove avatar file. Requires authentication (RLS checks owner).
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: Avatar deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Cannot delete other user's avatar (RLS violation)
+        '404':
+          description: Avatar not found
+
+  /object/public/avatars/{user_id}/avatar.jpg:
+    get:
+      summary: Get avatar public URL (no auth)
+      description: Public CDN URL for avatar. Used for caching and embedding. No RLS check (public read).
+      security: []  # No auth required
+      parameters:
+        - $ref: '#/components/parameters/userId'
+        - name: v
+          in: query
+          description: Cache-busting version parameter
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Avatar image (CDN cached)
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=604800"
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth JWT token (required for POST/DELETE)
+
+  parameters:
+    userId:
+      name: user_id
+      in: path
+      required: true
+      description: User UUID (folder name in avatars bucket)
+      schema:
+        type: string
+        format: uuid
+        example: "abc123-def456-ghi789-..."
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "JWT required for upload/delete"
+
+  schemas:
+    AvatarMetadata:
+      type: object
+      description: Avatar file metadata (returned after upload)
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: File ID in Supabase Storage
+        name:
+          type: string
+          example: "avatar.jpg"
+        bucket_id:
+          type: string
+          example: "avatars"
+        owner:
+          type: string
+          format: uuid
+          description: User ID who uploaded
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          properties:
+            mimetype:
+              type: string
+              enum: [image/webp, image/jpeg, image/png]
+            size:
+              type: integer
+              description: File size in bytes (max 512000 = 500KB)
+              maximum: 512000
+            cacheControl:
+              type: string
+              example: "public, max-age=604800"

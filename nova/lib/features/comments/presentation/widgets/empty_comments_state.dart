@@ -29,30 +29,30 @@ class EmptyCommentsState extends StatelessWidget {
       label: 'Nessun commento ancora, sii il primo a commentare',
       child: Center(
         child: Padding(
-          padding: EdgeInsets.all(NovaSpacing.xxLarge),
+          padding: EdgeInsets.all(NovaSpacing.xxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Icon
               _buildIcon(context),
 
-              SizedBox(height: NovaSpacing.medium),
+              SizedBox(height: NovaSpacing.m),
 
               // Title
               Text(
                 'Nessun commento ancora',
-                style: NovaTypography.headingSmall.copyWith(
+                style: NovaTextStyles.h3.copyWith(
                   color: NovaColors.textSecondary(context),
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              SizedBox(height: NovaSpacing.small),
+              SizedBox(height: NovaSpacing.s),
 
               // Subtitle
               Text(
                 'Sii il primo a commentare!',
-                style: NovaTypography.bodyMedium.copyWith(
+                style: NovaTextStyles.body.copyWith(
                   color: NovaColors.textTertiary(context),
                 ),
                 textAlign: TextAlign.center,
