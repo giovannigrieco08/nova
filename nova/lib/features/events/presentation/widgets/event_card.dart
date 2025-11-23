@@ -16,6 +16,7 @@ import 'dart:io' show Platform;
 import '../../domain/entities/event.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../profile/presentation/screens/other_profile_screen.dart';
+import '../../../comments/presentation/screens/comments_sheet.dart';
 
 class EventCard extends StatefulWidget {
   final Event event;
@@ -615,9 +616,18 @@ class _EventCardState extends State<EventCard> with SingleTickerProviderStateMix
   }
 
   void _handleComment() {
-    // TODO(US5): Show comments bottom sheet (requires comments feature implementation)
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Comments sheet coming soon')),
+    // T039: Open CommentsSheet with platform-adaptive navigation
+    Navigator.push(
+      context,
+      Platform.isIOS
+          ? CupertinoPageRoute(
+              builder: (_) => CommentsSheet(eventId: widget.event.id),
+              fullscreenDialog: true, // Fullscreen modal on iOS
+            )
+          : MaterialPageRoute(
+              builder: (_) => CommentsSheet(eventId: widget.event.id),
+              fullscreenDialog: true, // Fullscreen modal on Android
+            ),
     );
   }
 

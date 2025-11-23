@@ -10,7 +10,7 @@ import '../../domain/entities/event_status.dart';
 
 part 'event_model.g.dart';
 
-@HiveType(typeId: 2) // Hive type adapter ID
+@HiveType(typeId: 1) // Hive type adapter ID (matches main.dart registration)
 @JsonSerializable()
 class EventModel {
   @HiveField(0)
@@ -69,6 +69,10 @@ class EventModel {
   @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
 
+  @HiveField(14)
+  @JsonKey(name: 'comment_count')
+  final int commentCount; // Denormalized counter from comments table
+
   // Optional nested creator profile (from Supabase joins)
   // Not stored in Hive - only used for display
   @JsonKey(name: 'creator', includeToJson: false, includeFromJson: true)
@@ -89,6 +93,7 @@ class EventModel {
     this.moderatedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.commentCount = 0,
     this.creatorData,
   });
 
@@ -116,6 +121,7 @@ class EventModel {
       moderatedAt: entity.moderatedAt,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      commentCount: entity.commentCount,
     );
   }
 
@@ -136,6 +142,7 @@ class EventModel {
       moderatedAt: moderatedAt,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      commentCount: commentCount,
     );
   }
 
@@ -155,6 +162,7 @@ class EventModel {
     DateTime? moderatedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? commentCount,
     Map<String, dynamic>? creatorData,
   }) {
     return EventModel(
@@ -172,6 +180,7 @@ class EventModel {
       moderatedAt: moderatedAt ?? this.moderatedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      commentCount: commentCount ?? this.commentCount,
       creatorData: creatorData ?? this.creatorData,
     );
   }

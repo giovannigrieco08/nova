@@ -8,12 +8,17 @@
 // - Handle foreground/background/terminated message callbacks
 // - Define notification channels for Android 8.0+ (Oreo)
 //
-// Supported Channels (from migration 005):
+// Supported Channels (from migration 005 + 007):
 // 1. event_approved: "Il tuo evento è stato approvato!"
 // 2. event_rejected: "Il tuo evento è stato rifiutato"
 // 3. new_pending_event: "Nuovo evento da moderare" (moderators only)
 // 4. added_as_coorganizer: "Sei stato aggiunto come co-organizer"
 // 5. event_modified: "Un evento che organizzi è stato modificato"
+//
+// Comment Channels (T030 - Feature 007):
+// 6. new_comment: "Nuovo commento sul tuo evento" (event creator)
+// 7. comment_reply: "[Name] ha risposto al tuo commento" (comment author)
+// 8. comment_auto_hidden: "Il tuo commento è stato nascosto automaticamente" (3+ reports)
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -48,7 +53,7 @@ class NotificationService {
         _setupMessageHandlers();
 
         assert(() {
-          debugPrint('✅ FCM initialized successfully. Token: ${token?.substring(0, 20)}...');
+          debugPrint('✅ FCM initialized successfully');
           return true;
         }());
       } else {
@@ -95,7 +100,7 @@ class NotificationService {
       );
 
       assert(() {
-        debugPrint('✅ FCM token saved to Supabase: ${token.substring(0, 20)}...');
+        debugPrint('✅ FCM token saved to Supabase');
         return true;
       }());
     } catch (e) {
@@ -130,7 +135,7 @@ class NotificationService {
       return true;
     }());
 
-    // TODO: Show in-app notification banner using package like overlay_support
+    // TODO(Phase-4): Show in-app notification banner using overlay_support or similar package
     // For now, just log it (will be implemented in Phase 4)
   }
 
@@ -148,7 +153,7 @@ class NotificationService {
     final eventId = message.data['event_id'] as String?;
 
     if (eventId != null) {
-      // TODO: Navigate to EventDetailScreen (requires navigation context)
+      // TODO(Phase-4): Navigate to EventDetailScreen using navigation context from main app
       // Will be implemented in Phase 4 with proper router integration
     }
   }

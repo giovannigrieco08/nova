@@ -61,6 +61,12 @@ class Event with _$Event {
 
     /// When event was last updated
     required DateTime updatedAt,
+
+    /// Number of times event was submitted for moderation (for re-submission tracking)
+    @Default(1) int submissionCount,
+
+    /// Number of comments on this event (denormalized counter from comments table)
+    @Default(0) int commentCount,
   }) = _Event;
 
   /// JSON deserialization factory
