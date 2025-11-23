@@ -135,8 +135,8 @@ class CommentsSheet extends ConsumerWidget {
                   },
                   child: ListView.separated(
                   padding: EdgeInsets.only(
-                    top: NovaSpacing.medium,
-                    bottom: NovaSpacing.large,
+                    top: NovaSpacing.m,
+                    bottom: NovaSpacing.l,
                   ),
                   itemCount: comments.length,
                   separatorBuilder: (_, __) => Divider(
@@ -170,14 +170,14 @@ class CommentsSheet extends ConsumerWidget {
                       size: 64,
                       color: NovaColors.textTertiaryLight,
                     ),
-                    SizedBox(height: NovaSpacing.medium),
+                    SizedBox(height: NovaSpacing.m),
                     Text(
                       'Errore nel caricamento dei commenti',
-                      style: NovaTypography.bodyMedium.copyWith(
+                      style: NovaTextStyles.body.copyWith(
                         color: NovaColors.textSecondaryLight,
                       ),
                     ),
-                    SizedBox(height: NovaSpacing.small),
+                    SizedBox(height: NovaSpacing.s),
                     Semantics(
                       button: true,
                       label: 'Riprova a caricare i commenti',
