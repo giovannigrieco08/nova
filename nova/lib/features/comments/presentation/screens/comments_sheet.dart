@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io' show Platform;
 
@@ -38,7 +39,7 @@ import '../widgets/empty_comments_state.dart';
 ///   builder: (_) => CommentsSheet(eventId: eventId, eventTitle: title),
 /// ));
 /// ```
-class CommentsSheet extends ConsumerWidget {
+class CommentsSheet extends ConsumerStatefulWidget {
   final String eventId;
   final String eventTitle;
 
@@ -49,8 +50,20 @@ class CommentsSheet extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final commentsAsync = ref.watch(commentsNotifierProvider(eventId));
+  ConsumerState<CommentsSheet> createState() => _CommentsSheetState();
+}
+
+class _CommentsSheetState extends ConsumerState<CommentsSheet> {
+  ReplyModeState? _previousReplyModeState;
+
+  @override
+  Widget build(BuildContext context) {
+    final commentsAsync = ref.watch(commentsNotifierProvider(widget.eventId));
+    final replyModeState = ref.watch(replyModeNotifierProvider(widget.eventId));
+
+    // T060: Announce reply mode changes to screen readers
+    _announceReplyModeChanges(context, replyModeState);
+    _previousReplyModeState = replyModeState;
 
     if (Platform.isIOS) {
       return CupertinoPageScaffold(
@@ -105,12 +118,34 @@ class CommentsSheet extends ConsumerWidget {
     }
   }
 
+  /// T060: Announce reply mode changes to screen readers
+  void _announceReplyModeChanges(BuildContext context, ReplyModeState newState) {
+    // Skip if first build or no change
+    if (_previousReplyModeState == null) return;
+    if (_previousReplyModeState!.isReplyMode == newState.isReplyMode &&
+        _previousReplyModeState!.targetComment?.id == newState.targetComment?.id) {
+      return;
+    }
+
+    // Build announcement message
+    String announcement;
+    if (newState.isReplyMode) {
+      final authorName = newState.targetComment?.authorName ?? 'Utente';
+      announcement = 'Modalità risposta attiva. Rispondi a $authorName.';
+    } else {
+      announcement = 'Modalità risposta terminata. Scrivi un nuovo commento.';
+    }
+
+    // Announce to screen readers
+    SemanticsService.announce(announcement, TextDirection.ltr);
+  }
+
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
     AsyncValue<List<dynamic>> commentsAsync,
   ) {
-    final replyModeState = ref.watch(replyModeNotifierProvider(eventId));
+    final replyModeState = ref.watch(replyModeNotifierProvider(widget.eventId));
 
     return Column(
       children: [
@@ -130,7 +165,7 @@ class CommentsSheet extends ConsumerWidget {
                 child: RefreshIndicator(
                   onRefresh: () async {
                     await ref
-                        .read(commentsNotifierProvider(eventId).notifier)
+                        .read(commentsNotifierProvider(widget.eventId).notifier)
                         .refresh();
                   },
                   child: ListView.separated(
@@ -184,7 +219,7 @@ class CommentsSheet extends ConsumerWidget {
                       child: TextButton(
                         onPressed: () {
                           ref
-                              .read(commentsNotifierProvider(eventId).notifier)
+                              .read(commentsNotifierProvider(widget.eventId).notifier)
                               .refresh();
                         },
                         child: const Text('Riprova'),
@@ -261,7 +296,7 @@ class CommentsSheet extends ConsumerWidget {
             label: 'Annulla risposta',
             child: GestureDetector(
               onTap: () {
-                ref.read(replyModeNotifierProvider(eventId).notifier).cancelReply();
+                ref.read(replyModeNotifierProvider(widget.eventId).notifier).cancelReply();
               },
               child: Icon(
                 Icons.close,

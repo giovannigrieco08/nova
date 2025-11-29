@@ -140,6 +140,34 @@ class CommentCard extends ConsumerWidget {
                           ),
                       ],
                     ),
+
+                    // Thread indicator (T057: Phase 5)
+                    // Shows reply count for top-level comments with replies
+                    if (comment.isTopLevel && comment.hasReplies) ...[
+                      SizedBox(height: NovaSpacing.xs),
+                      Semantics(
+                        label: '${comment.replyCount} ${comment.replyCount == 1 ? "risposta" : "risposte"}',
+                        child: Row(
+                          children: [
+                            Text(
+                              '└─',
+                              style: NovaTextStyles.caption.copyWith(
+                                color: NovaColors.primaryLight,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            SizedBox(width: NovaSpacing.xs),
+                            Text(
+                              '${comment.replyCount} ${comment.replyCount == 1 ? "risposta" : "risposte"}',
+                              style: NovaTextStyles.caption.copyWith(
+                                color: NovaColors.primaryLight,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),

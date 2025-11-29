@@ -10,10 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// TODO(firebase): Re-enable Firebase imports when ready for push notifications
-// Currently disabled to avoid emulator/device setup complexity during UI development
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:firebase_messaging/firebase_messaging.dart';
+// Firebase imports for push notifications
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
 import 'package:nova/core/theme/cupertino_theme.dart';
@@ -39,48 +38,34 @@ import 'package:nova/features/events/data/models/participation_model.dart';
 import 'package:nova/features/events/data/models/report_model.dart';
 import 'package:nova/features/events/domain/entities/offline_action.dart';
 
-// TODO(firebase): Re-enable Firebase background message handler
-// This handles FCM notifications when app is in background/terminated state
-// Required for: Event approval/rejection notifications, co-organizer invites
-// Steps to re-enable:
-//   1. Add google-services.json (Android) and GoogleService-Info.plist (iOS)
-//   2. Uncomment Firebase imports above
-//   3. Uncomment this handler function
-//   4. Uncomment Firebase.initializeApp() and onBackgroundMessage in main()
-//   5. Test with real device (FCM doesn't work on emulator without Google Play Services)
-//
-// /// Firebase Cloud Messaging background message handler
-// /// Must be top-level function (not inside a class)
-// @pragma('vm:entry-point')
-// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-//   // Initialize Firebase if not already initialized
-//   await Firebase.initializeApp();
-//
-//   // Handle background notification
-//   assert(() {
-//     debugPrint('🔔 Handling background FCM message: ${message.messageId}');
-//     debugPrint('   Title: ${message.notification?.title}');
-//     debugPrint('   Body: ${message.notification?.body}');
-//     return true;
-//   }());
-//
-//   // Background message handling logic will be added in Phase 4 (US2)
-//   // For now, just log the message
-// }
+/// Firebase Cloud Messaging background message handler
+/// Must be top-level function (not inside a class)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Initialize Firebase if not already initialized
+  await Firebase.initializeApp();
+
+  // Handle background notification
+  assert(() {
+    debugPrint('🔔 Handling background FCM message: ${message.messageId}');
+    debugPrint('   Title: ${message.notification?.title}');
+    debugPrint('   Body: ${message.notification?.body}');
+    return true;
+  }());
+
+  // Background message handling logic will be added in Phase 4 (US2)
+  // For now, just log the message
+}
 
 Future<void> main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // TODO(firebase): Re-enable Firebase initialization for push notifications
-  // Currently disabled during UI development to avoid setup overhead
-  // When ready, uncomment these lines:
-  //
-  // // Initialize Firebase (for FCM push notifications)
-  // await Firebase.initializeApp();
-  //
-  // // Configure FCM background message handler
-  // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Initialize Firebase (for FCM push notifications)
+  await Firebase.initializeApp();
+
+  // Configure FCM background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Initialize Supabase BEFORE runApp
   await SupabaseConfig.initialize();

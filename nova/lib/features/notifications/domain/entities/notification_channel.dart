@@ -4,45 +4,21 @@
 /// Each channel corresponds to a specific user action or system event.
 enum NotificationChannel {
   /// Event moderation status updates (approved/rejected)
-  ///
-  /// Sent to event creators when moderators approve or reject their event.
-  /// Maps to database: 'event_moderation'
-  /// Preference column: eventi_moderati_enabled
   eventModeration('event_moderation'),
 
   /// New comment on user's event
-  ///
-  /// Sent to event creators when someone comments on their event.
-  /// Maps to database: 'new_comment'
-  /// Preference column: nuovi_commenti_enabled
   newComment('new_comment'),
 
   /// Reply to user's comment
-  ///
-  /// Sent to commenters when someone replies to their comment.
-  /// Maps to database: 'comment_reply'
-  /// Preference column: risposte_commenti_enabled
   commentReply('comment_reply'),
 
   /// Like on user's event
-  ///
-  /// Sent to event creators when someone likes their event.
-  /// Maps to database: 'event_like'
-  /// Preference column: like_eventi_enabled
   eventLike('event_like'),
 
   /// New participation in user's event
-  ///
-  /// Sent to event creators when someone joins their event.
-  /// Maps to database: 'event_participation'
-  /// Preference column: nuove_partecipazioni_enabled
   eventParticipation('event_participation'),
 
   /// Co-organizer event updates
-  ///
-  /// Sent to co-organizers when the event they co-organize is edited.
-  /// Maps to database: 'coorganizer_update'
-  /// Preference column: coorganizer_updates_enabled
   coorganizerUpdate('coorganizer_update');
 
   /// Database representation of the notification channel
@@ -51,8 +27,6 @@ enum NotificationChannel {
   const NotificationChannel(this.value);
 
   /// Convert from database string to enum
-  ///
-  /// Throws [ArgumentError] if [value] doesn't match any channel
   static NotificationChannel fromString(String value) {
     return NotificationChannel.values.firstWhere(
       (channel) => channel.value == value,
