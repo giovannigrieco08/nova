@@ -228,11 +228,27 @@ class NotificationChannels {
   // Prevent instantiation
   NotificationChannels._();
 
+  // Event Channels (Feature 004)
   static const String eventApproved = 'event_approved';
   static const String eventRejected = 'event_rejected';
   static const String newPendingEvent = 'new_pending_event';
   static const String addedAsCoorganizer = 'added_as_coorganizer';
   static const String eventModified = 'event_modified';
+
+  // Comment Channels (Feature 007 - T122)
+  /// New top-level comment on user's event
+  /// Title: "Sofia ha commentato il tuo evento 'Torneo Basket'"
+  /// Deep link: nova://events/{event_id}/comments/{comment_id}
+  static const String newComment = 'new_comment';
+
+  /// Reply to user's comment
+  /// Title: "Marco ha risposto al tuo commento"
+  /// Deep link: nova://events/{event_id}/comments/{comment_id}
+  static const String commentReply = 'comment_reply';
+
+  /// Comment auto-hidden due to reports (3+ reports trigger)
+  /// Title: "Il tuo commento è stato nascosto automaticamente"
+  static const String commentAutoHidden = 'comment_auto_hidden';
 
   /// Get user-friendly channel name
   static String getChannelName(String channelId) {
@@ -247,6 +263,13 @@ class NotificationChannels {
         return 'Co-Organizer';
       case eventModified:
         return 'Eventi Modificati';
+      // Comment channels
+      case newComment:
+        return 'Nuovi Commenti';
+      case commentReply:
+        return 'Risposte ai Commenti';
+      case commentAutoHidden:
+        return 'Commenti Nascosti';
       default:
         return 'Notifiche';
     }
@@ -265,8 +288,27 @@ class NotificationChannels {
         return 'Notifiche quando sei aggiunto come co-organizer';
       case eventModified:
         return 'Notifiche quando eventi che organizzi vengono modificati';
+      // Comment channels
+      case newComment:
+        return 'Notifiche quando qualcuno commenta i tuoi eventi';
+      case commentReply:
+        return 'Notifiche quando qualcuno risponde ai tuoi commenti';
+      case commentAutoHidden:
+        return 'Notifiche quando un tuo commento viene nascosto per segnalazioni';
       default:
         return 'Notifiche generali';
     }
+  }
+
+  /// All comment-related channel IDs
+  static const List<String> commentChannels = [
+    newComment,
+    commentReply,
+    commentAutoHidden,
+  ];
+
+  /// Check if a channel is comment-related
+  static bool isCommentChannel(String channelId) {
+    return commentChannels.contains(channelId);
   }
 }

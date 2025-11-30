@@ -14,9 +14,12 @@ import 'package:app_links/app_links.dart';
 
 /// Deep link handler for Nova app
 ///
-/// Handles two types of deep links:
+/// Handles deep links:
 /// 1. Event detail: nova://events/{event_id}
-/// 2. (Future) Profile: nova://profile/{user_id}
+/// 2. Event comment: nova://events/{event_id}/comments/{comment_id}
+/// 3. Profile: nova://profile/{user_id}
+///
+/// **T126**: Extended to support comment deep links for notifications
 class DeepLinkHandler {
   final AppLinks _appLinks = AppLinks();
 
@@ -43,7 +46,8 @@ class DeepLinkHandler {
   ///
   /// Supported formats:
   /// - nova://events/{event_id}
-  /// - nova://profile/{user_id} (future)
+  /// - nova://events/{event_id}/comments/{comment_id}
+  /// - nova://profile/{user_id}
   ///
   /// Returns null if URI format is invalid or unsupported.
   DeepLinkInfo? parse(Uri uri) {
@@ -68,7 +72,9 @@ class DeepLinkHandler {
     }
   }
 
-  /// Parse event deep link: nova://events/{event_id}
+  /// Parse event deep link:
+  /// - nova://events/{event_id}
+  /// - nova://events/{event_id}/comments/{comment_id}
   DeepLinkInfo? _parseEventLink(List<String> pathSegments) {
     if (pathSegments.length < 2) return null;
 
@@ -77,6 +83,21 @@ class DeepLinkHandler {
     // Validate UUID format (basic check)
     if (!_isValidUuid(eventId)) return null;
 
+    // Check if this is a comment deep link: nova://events/{event_id}/comments/{comment_id}
+    if (pathSegments.length >= 4 && pathSegments[2] == 'comments') {
+      final commentId = pathSegments[3];
+
+      // Validate comment UUID format
+      if (!_isValidUuid(commentId)) return null;
+
+      return DeepLinkInfo(
+        type: DeepLinkType.eventComment,
+        eventId: eventId,
+        commentId: commentId,
+      );
+    }
+
+    // Simple event link: nova://events/{event_id}
     return DeepLinkInfo(
       type: DeepLinkType.event,
       eventId: eventId,
@@ -130,7 +151,11 @@ enum DeepLinkType {
   /// Event detail page: nova://events/{event_id}
   event,
 
-  /// Profile page: nova://profile/{user_id} (future)
+  /// Event comment page: nova://events/{event_id}/comments/{comment_id}
+  /// Opens event detail, then CommentsSheet, scrolls to specific comment
+  eventComment,
+
+  /// Profile page: nova://profile/{user_id}
   profile,
 }
 
@@ -138,19 +163,29 @@ enum DeepLinkType {
 class DeepLinkInfo {
   final DeepLinkType type;
   final String? eventId;
+  final String? commentId;
   final String? userId;
 
   DeepLinkInfo({
     required this.type,
     this.eventId,
+    this.commentId,
     this.userId,
   });
+
+  /// Check if this deep link should open comments sheet
+  bool get shouldOpenComments => type == DeepLinkType.eventComment;
+
+  /// Check if this deep link should scroll to a specific comment
+  bool get hasTargetComment => commentId != null;
 
   @override
   String toString() {
     switch (type) {
       case DeepLinkType.event:
         return 'DeepLinkInfo(event: $eventId)';
+      case DeepLinkType.eventComment:
+        return 'DeepLinkInfo(event: $eventId, comment: $commentId)';
       case DeepLinkType.profile:
         return 'DeepLinkInfo(profile: $userId)';
     }

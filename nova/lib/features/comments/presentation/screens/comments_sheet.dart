@@ -12,6 +12,7 @@ import '../providers/comments_notifier.dart';
 import '../providers/reply_mode_notifier.dart';
 import '../providers/delete_comment_provider.dart';
 import '../providers/edit_comment_provider.dart';
+import '../providers/viewing_comments_provider.dart';
 import '../widgets/comment_card.dart';
 import '../widgets/comment_input_field.dart';
 import '../widgets/comment_sort_toggle.dart';
@@ -32,6 +33,7 @@ import '../../domain/entities/comment.dart';
 /// **T093**: Infinite scroll with 80% threshold
 /// **T096**: Pull-to-refresh with cache clearing
 /// **T097**: Virtualized list with ListView.builder for 60fps
+/// **T126**: Deep link navigation to specific comment with highlight
 ///
 /// Features:
 /// - Adaptive title bar with comment count
@@ -41,6 +43,7 @@ import '../../domain/entities/comment.dart';
 /// - Loading/error states
 /// - Infinite scroll pagination
 /// - Real-time updates via WebSocket
+/// - Deep link scroll-to-comment with highlight animation
 ///
 /// Usage:
 /// ```dart
@@ -53,15 +56,22 @@ import '../../domain/entities/comment.dart';
 /// Navigator.push(context, MaterialPageRoute(
 ///   builder: (_) => CommentsSheet(eventId: eventId, eventTitle: title),
 /// ));
+///
+/// // With deep link target
+/// CommentsSheet(eventId: eventId, eventTitle: title, targetCommentId: commentId)
 /// ```
 class CommentsSheet extends ConsumerStatefulWidget {
   final String eventId;
   final String eventTitle;
 
+  /// Optional: Comment ID to scroll to and highlight (from deep link)
+  final String? targetCommentId;
+
   const CommentsSheet({
     super.key,
     required this.eventId,
-    required this.eventTitle,
+    this.eventTitle = '',
+    this.targetCommentId,
   });
 
   @override
@@ -77,18 +87,87 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
   /// Threshold for loading more (80% of scroll extent)
   static const double _loadMoreThreshold = 0.8;
 
+  /// T126: Track if we've scrolled to target comment from deep link
+  bool _hasScrolledToTarget = false;
+
+  /// T126: Currently highlighted comment ID (for fade animation)
+  String? _highlightedCommentId;
+
+  /// T126: GlobalKeys for comment items to enable scroll-to
+  final Map<String, GlobalKey> _commentKeys = {};
+
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+
+    // T126: Set initial highlighted comment from deep link
+    if (widget.targetCommentId != null) {
+      _highlightedCommentId = widget.targetCommentId;
+    }
+
+    // T128: Track viewing state for notification suppression
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(viewingCommentsProvider.notifier).startViewing(widget.eventId);
+    });
   }
 
   @override
   void dispose() {
+    // T128: Stop tracking viewing state
+    // Note: Can't use ref in dispose, but the provider will be cleaned up
+    // when the screen is disposed. For extra safety, we could store ref
+    // before super.dispose() but this is typically not needed.
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// T128: Called when widget is being removed from tree
+  /// Ensures viewing state is cleared even if dispose is delayed
+  @override
+  void deactivate() {
+    ref.read(viewingCommentsProvider.notifier).stopViewing(widget.eventId);
+    super.deactivate();
+  }
+
+  /// T126: Scroll to target comment and highlight it
+  void _scrollToTargetComment(List<Comment> comments) {
+    if (_hasScrolledToTarget || widget.targetCommentId == null) return;
+
+    // Find the target comment index
+    final targetIndex = comments.indexWhere((c) => c.id == widget.targetCommentId);
+    if (targetIndex == -1) {
+      // Comment not found in current list, might be on another page
+      // or deleted
+      return;
+    }
+
+    _hasScrolledToTarget = true;
+
+    // Use post-frame callback to ensure list is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final key = _commentKeys[widget.targetCommentId];
+      if (key?.currentContext != null) {
+        // Scroll to make the comment visible
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.3, // Position at 30% from top
+        );
+
+        // Start highlight fade animation (3 seconds)
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _highlightedCommentId = null;
+            });
+          }
+        });
+      }
+    });
   }
 
   /// T093: Detect scroll position near bottom (80% threshold)
@@ -300,6 +379,9 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
                 return const EmptyCommentsState();
               }
 
+              // T126: Scroll to target comment when list loads
+              _scrollToTargetComment(state.comments);
+
               // T091: Platform-specific refresh controls
               if (Platform.isIOS) {
                 return _buildIOSCommentsList(context, ref, state);
@@ -417,17 +499,26 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
 
                 final comment = state.comments[index];
                 final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-                return CommentCard(
-                  comment: comment,
-                  eventId: widget.eventId,
-                  currentUserId: currentUserId,
-                  onDelete: comment.userId == currentUserId
-                      ? () => _handleDeleteComment(context, ref, comment.id)
-                      : null,
-                  // T105: Pass onEdit callback for own comments within 5-min window
-                  onEdit: comment.userId == currentUserId && comment.canEdit(DateTime.now())
-                      ? () => _handleEditComment(context, ref, comment)
-                      : null,
+
+                // T126: Assign GlobalKey for scroll-to functionality
+                _commentKeys[comment.id] ??= GlobalKey();
+                final isHighlighted = _highlightedCommentId == comment.id;
+
+                return _buildHighlightedComment(
+                  key: _commentKeys[comment.id]!,
+                  isHighlighted: isHighlighted,
+                  child: CommentCard(
+                    comment: comment,
+                    eventId: widget.eventId,
+                    currentUserId: currentUserId,
+                    onDelete: comment.userId == currentUserId
+                        ? () => _handleDeleteComment(context, ref, comment.id)
+                        : null,
+                    // T105: Pass onEdit callback for own comments within 5-min window
+                    onEdit: comment.userId == currentUserId && comment.canEdit(DateTime.now())
+                        ? () => _handleEditComment(context, ref, comment)
+                        : null,
+                  ),
                 );
               },
             ),
@@ -474,21 +565,48 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
 
             final comment = state.comments[index];
             final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-            return CommentCard(
-              comment: comment,
-              eventId: widget.eventId,
-              currentUserId: currentUserId,
-              onDelete: comment.userId == currentUserId
-                  ? () => _handleDeleteComment(context, ref, comment.id)
-                  : null,
-              // T105: Pass onEdit callback for own comments within 5-min window
-              onEdit: comment.userId == currentUserId && comment.canEdit(DateTime.now())
-                  ? () => _handleEditComment(context, ref, comment)
-                  : null,
+
+            // T126: Assign GlobalKey for scroll-to functionality
+            _commentKeys[comment.id] ??= GlobalKey();
+            final isHighlighted = _highlightedCommentId == comment.id;
+
+            return _buildHighlightedComment(
+              key: _commentKeys[comment.id]!,
+              isHighlighted: isHighlighted,
+              child: CommentCard(
+                comment: comment,
+                eventId: widget.eventId,
+                currentUserId: currentUserId,
+                onDelete: comment.userId == currentUserId
+                    ? () => _handleDeleteComment(context, ref, comment.id)
+                    : null,
+                // T105: Pass onEdit callback for own comments within 5-min window
+                onEdit: comment.userId == currentUserId && comment.canEdit(DateTime.now())
+                    ? () => _handleEditComment(context, ref, comment)
+                    : null,
+              ),
             );
           },
         ),
       ),
+    );
+  }
+
+  /// T126: Build highlighted comment wrapper with fade animation
+  Widget _buildHighlightedComment({
+    required GlobalKey key,
+    required bool isHighlighted,
+    required Widget child,
+  }) {
+    return AnimatedContainer(
+      key: key,
+      duration: const Duration(milliseconds: 500),
+      decoration: BoxDecoration(
+        color: isHighlighted
+            ? NovaColors.primaryLight.withValues(alpha: 0.15)
+            : Colors.transparent,
+      ),
+      child: child,
     );
   }
 
