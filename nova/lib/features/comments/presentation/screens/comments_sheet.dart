@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io' show Platform;
 
 import '../../../../core/theme/nova_colors.dart';
@@ -10,9 +11,11 @@ import '../../../../core/theme/nova_typography.dart';
 import '../providers/comments_notifier.dart';
 import '../providers/comment_input_notifier.dart';
 import '../providers/reply_mode_notifier.dart';
+import '../providers/delete_comment_provider.dart';
 import '../widgets/comment_card.dart';
 import '../widgets/comment_input_field.dart';
 import '../widgets/empty_comments_state.dart';
+import '../widgets/delete_confirmation_dialog.dart';
 
 /// CommentsSheet Screen
 ///
@@ -140,6 +143,53 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
     SemanticsService.announce(announcement, TextDirection.ltr);
   }
 
+  /// T072: Handle delete comment with confirmation dialog
+  Future<void> _handleDeleteComment(
+    BuildContext context,
+    WidgetRef ref,
+    String commentId,
+  ) async {
+    // Show confirmation dialog
+    final confirmed = await showDeleteConfirmationDialog(context: context);
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Execute delete
+    final deleteNotifier = ref.read(deleteCommentNotifierProvider.notifier);
+    final result = await deleteNotifier.execute(commentId: commentId);
+
+    if (context.mounted) {
+      _showDeleteFeedback(context, result);
+
+      // Refresh comments list on success
+      if (result == DeleteOperationResult.success) {
+        await ref
+            .read(commentsNotifierProvider(widget.eventId).notifier)
+            .refresh();
+      }
+    }
+  }
+
+  /// Show feedback based on delete operation result
+  void _showDeleteFeedback(BuildContext context, DeleteOperationResult result) {
+    final (message, backgroundColor) = switch (result) {
+      DeleteOperationResult.success => ('Commento eliminato', NovaColors.successLight),
+      DeleteOperationResult.notFound => ('Commento non trovato', NovaColors.errorLight),
+      DeleteOperationResult.unauthorized => ('Non puoi eliminare questo commento', NovaColors.errorLight),
+      DeleteOperationResult.alreadyDeleted => ('Commento già eliminato', NovaColors.warningLight),
+      DeleteOperationResult.error => ('Errore durante l\'eliminazione', NovaColors.errorLight),
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
@@ -181,9 +231,14 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
                   ),
                   itemBuilder: (context, index) {
                     final comment = comments[index];
+                    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
                     return CommentCard(
                       comment: comment,
-                      eventId: eventId,
+                      eventId: widget.eventId,
+                      currentUserId: currentUserId,
+                      onDelete: comment.userId == currentUserId
+                          ? () => _handleDeleteComment(context, ref, comment.id)
+                          : null,
                     );
                   },
                 ),
@@ -241,7 +296,7 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
 
         // Comment input field (sticky at bottom)
         CommentInputField(
-          eventId: eventId,
+          eventId: widget.eventId,
           replyModeState: replyModeState,
         ),
       ],
