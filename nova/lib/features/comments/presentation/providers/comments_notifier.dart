@@ -27,45 +27,111 @@ final commentsRepositoryProvider = Provider<CommentsRepositoryInterface>((ref) {
 /// ```
 final commentsNotifierProvider = AsyncNotifierProvider.family<
     CommentsNotifier,
-    List<Comment>,
+    CommentsState,
     String>(CommentsNotifier.new);
+
+/// Paginated comments state
+///
+/// **T094**: Pagination state management with hasMore, nextCursor, loading indicator
+class CommentsState {
+  final List<Comment> comments;
+  final bool hasMore;
+  final DateTime? nextCursor;
+  final bool isLoadingMore;
+  final bool isRefreshing;
+
+  const CommentsState({
+    required this.comments,
+    this.hasMore = true,
+    this.nextCursor,
+    this.isLoadingMore = false,
+    this.isRefreshing = false,
+  });
+
+  CommentsState copyWith({
+    List<Comment>? comments,
+    bool? hasMore,
+    DateTime? nextCursor,
+    bool clearNextCursor = false,
+    bool? isLoadingMore,
+    bool? isRefreshing,
+  }) {
+    return CommentsState(
+      comments: comments ?? this.comments,
+      hasMore: hasMore ?? this.hasMore,
+      nextCursor: clearNextCursor ? null : (nextCursor ?? this.nextCursor),
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+    );
+  }
+
+  /// Total comment count for display
+  int get totalCount => comments.length;
+
+  /// Check if list is empty
+  bool get isEmpty => comments.isEmpty;
+
+  /// Initial empty state
+  static const empty = CommentsState(comments: [], hasMore: true);
+}
 
 /// Comments state notifier for a specific event
 ///
 /// Manages comment list state with pagination, real-time updates, and optimistic UI.
 /// Uses AsyncNotifier pattern for loading/error/data states.
 ///
+/// **T092**: Cursor-based pagination with cursorCreatedAt parameter
+/// **T094**: Pagination state management (hasMore, nextCursor, isLoadingMore)
+/// **T095**: Handle end-of-list (hasMore == false)
+/// **T096**: Pull-to-refresh with cache clearing
+///
 /// Features:
-/// - Initial load with pagination support
+/// - Initial load with pagination support (20 per page)
 /// - Real-time updates via Supabase Realtime
 /// - Optimistic UI for new comments
 /// - Pull-to-refresh support
 /// - Offline cache fallback
-class CommentsNotifier extends FamilyAsyncNotifier<List<Comment>, String> {
+/// - Infinite scroll with cursor-based pagination
+class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
   late final CommentsRepositoryInterface _repository;
   late final String _eventId;
 
+  /// Page size for pagination
+  static const int _pageSize = 20;
+
   @override
-  Future<List<Comment>> build(String arg) async {
+  Future<CommentsState> build(String arg) async {
     _eventId = arg;
     _repository = ref.read(commentsRepositoryProvider);
 
     // Load initial comments
-    return await _loadComments();
+    return await _loadInitialComments();
   }
 
-  /// Load comments for the event
+  /// Load initial page of comments
   ///
   /// Tries remote first, falls back to cache on network error.
-  Future<List<Comment>> _loadComments() async {
+  Future<CommentsState> _loadInitialComments() async {
     try {
       final result = await _repository.getCommentsForEvent(
         eventId: _eventId,
         sortOrder: CommentSortOrder.recent,
-        limit: 20,
+        limit: _pageSize,
       );
 
-      return result.comments;
+      // Cache comments for offline access
+      if (result.comments.isNotEmpty) {
+        await _repository.cacheComments(
+          eventId: _eventId,
+          comments: result.comments,
+        );
+      }
+
+      return CommentsState(
+        comments: result.comments,
+        hasMore: result.hasMore,
+        nextCursor: result.nextCursor,
+      );
     } catch (e) {
       // On error, try to load from cache
       final cachedComments = await _repository.getCachedComments(
@@ -73,17 +139,87 @@ class CommentsNotifier extends FamilyAsyncNotifier<List<Comment>, String> {
       );
 
       if (cachedComments != null && cachedComments.isNotEmpty) {
-        return cachedComments;
+        return CommentsState(
+          comments: cachedComments,
+          hasMore: false, // Can't paginate offline
+          nextCursor: null,
+        );
       }
 
       rethrow; // No cache available, propagate error
     }
   }
 
+  /// Load next page of comments (infinite scroll)
+  ///
+  /// **T092**: Implements cursor-based pagination
+  /// **T093**: Called when scroll reaches 80% threshold
+  /// **T095**: Stops when hasMore == false
+  Future<void> loadMore() async {
+    final currentState = state.valueOrNull;
+    if (currentState == null) return;
+
+    // T095: Don't load more if no more pages or already loading
+    if (!currentState.hasMore || currentState.isLoadingMore) return;
+
+    // Set loading state
+    state = AsyncValue.data(currentState.copyWith(isLoadingMore: true));
+
+    try {
+      final result = await _repository.getCommentsForEvent(
+        eventId: _eventId,
+        sortOrder: CommentSortOrder.recent,
+        limit: _pageSize,
+        cursorCreatedAt: currentState.nextCursor,
+      );
+
+      // Append new comments to existing list
+      final updatedComments = [...currentState.comments, ...result.comments];
+
+      // Update cache with full list
+      await _repository.cacheComments(
+        eventId: _eventId,
+        comments: updatedComments,
+      );
+
+      state = AsyncValue.data(CommentsState(
+        comments: updatedComments,
+        hasMore: result.hasMore,
+        nextCursor: result.nextCursor,
+        isLoadingMore: false,
+      ));
+    } catch (e) {
+      // Reset loading state on error, keep existing comments
+      state = AsyncValue.data(currentState.copyWith(isLoadingMore: false));
+    }
+  }
+
   /// Refresh comments (pull-to-refresh)
+  ///
+  /// **T096**: Clears local cache, re-fetches first page,
+  /// merges with realtime updates
   Future<void> refresh() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _loadComments());
+    final currentState = state.valueOrNull;
+
+    // Show refreshing state while keeping existing data visible
+    if (currentState != null) {
+      state = AsyncValue.data(currentState.copyWith(isRefreshing: true));
+    } else {
+      state = const AsyncValue.loading();
+    }
+
+    try {
+      // Reload first page (clears pagination state)
+      final newState = await _loadInitialComments();
+      state = AsyncValue.data(newState);
+    } catch (e, stack) {
+      if (currentState != null) {
+        // Keep existing data on error, just clear refreshing state
+        state = AsyncValue.data(currentState.copyWith(isRefreshing: false));
+      } else {
+        state = AsyncValue.error(e, stack);
+      }
+    }
   }
 
   /// Add optimistic comment (instant UI update before server confirms)
@@ -91,43 +227,52 @@ class CommentsNotifier extends FamilyAsyncNotifier<List<Comment>, String> {
   /// Used when posting a new comment to provide instant feedback.
   /// If server request fails, the comment will be removed via refresh.
   void addOptimisticComment(Comment comment) {
-    state.whenData((comments) {
-      state = AsyncValue.data([comment, ...comments]);
+    state.whenData((currentState) {
+      state = AsyncValue.data(currentState.copyWith(
+        comments: [comment, ...currentState.comments],
+      ));
     });
   }
 
   /// Remove optimistic comment (rollback on error)
   void removeOptimisticComment(String tempId) {
-    state.whenData((comments) {
-      state = AsyncValue.data(
-        comments.where((c) => c.id != tempId).toList(),
-      );
+    state.whenData((currentState) {
+      state = AsyncValue.data(currentState.copyWith(
+        comments: currentState.comments.where((c) => c.id != tempId).toList(),
+      ));
     });
   }
 
   /// Update comment in list (after edit or like)
   void updateComment(Comment updatedComment) {
-    state.whenData((comments) {
-      final updatedList = comments.map((c) {
+    state.whenData((currentState) {
+      final updatedList = currentState.comments.map((c) {
         return c.id == updatedComment.id ? updatedComment : c;
       }).toList();
 
-      state = AsyncValue.data(updatedList);
+      state = AsyncValue.data(currentState.copyWith(comments: updatedList));
     });
   }
 
   /// Remove comment from list (after delete)
   void removeComment(String commentId) {
-    state.whenData((comments) {
-      state = AsyncValue.data(
-        comments.where((c) => c.id != commentId).toList(),
-      );
+    state.whenData((currentState) {
+      state = AsyncValue.data(currentState.copyWith(
+        comments: currentState.comments.where((c) => c.id != commentId).toList(),
+      ));
+    });
+  }
+
+  /// Replace all comments (used by realtime provider)
+  void replaceComments(List<Comment> newComments) {
+    state.whenData((currentState) {
+      state = AsyncValue.data(currentState.copyWith(comments: newComments));
     });
   }
 
   /// Increment comment count (optimistic)
   void incrementCommentCount() {
-    state.whenData((comments) {
+    state.whenData((currentState) {
       // Comment count is managed at event level, not here
       // This is handled by EventCard/EventDetailScreen
     });

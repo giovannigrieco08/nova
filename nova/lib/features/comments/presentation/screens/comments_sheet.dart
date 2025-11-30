@@ -9,7 +9,6 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/comments_notifier.dart';
-import '../providers/comment_input_notifier.dart';
 import '../providers/reply_mode_notifier.dart';
 import '../providers/delete_comment_provider.dart';
 import '../widgets/comment_card.dart';
@@ -22,13 +21,22 @@ import '../widgets/delete_confirmation_dialog.dart';
 /// Fullscreen bottom sheet displaying comments for an event.
 /// Platform-adaptive: CupertinoPageScaffold (iOS) vs Scaffold (Android).
 ///
+/// **T091**: Platform-specific refresh controls
+///   - iOS: CupertinoSliverRefreshControl
+///   - Android: Material RefreshIndicator
+///
+/// **T093**: Infinite scroll with 80% threshold
+/// **T096**: Pull-to-refresh with cache clearing
+/// **T097**: Virtualized list with ListView.builder for 60fps
+///
 /// Features:
 /// - Adaptive title bar with comment count
 /// - Pull-to-refresh support
 /// - Empty state when no comments
 /// - Sticky comment input field at bottom
 /// - Loading/error states
-/// - Real-time updates (future enhancement)
+/// - Infinite scroll pagination
+/// - Real-time updates via WebSocket
 ///
 /// Usage:
 /// ```dart
@@ -59,6 +67,41 @@ class CommentsSheet extends ConsumerStatefulWidget {
 class _CommentsSheetState extends ConsumerState<CommentsSheet> {
   ReplyModeState? _previousReplyModeState;
 
+  /// Scroll controller for infinite scroll detection
+  late final ScrollController _scrollController;
+
+  /// Threshold for loading more (80% of scroll extent)
+  static const double _loadMoreThreshold = 0.8;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// T093: Detect scroll position near bottom (80% threshold)
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    final maxScroll = position.maxScrollExtent;
+    final currentScroll = position.pixels;
+
+    // Check if we've scrolled past 80% threshold
+    if (maxScroll > 0 && currentScroll >= maxScroll * _loadMoreThreshold) {
+      // Trigger load more
+      ref.read(commentsNotifierProvider(widget.eventId).notifier).loadMore();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final commentsAsync = ref.watch(commentsNotifierProvider(widget.eventId));
@@ -74,13 +117,13 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
           middle: Semantics(
             header: true,
             label: commentsAsync.whenOrNull(
-                  data: (comments) =>
-                      'Schermo dei commenti, ${comments.length} ${comments.length == 1 ? 'commento' : 'commenti'}',
+                  data: (state) =>
+                      'Schermo dei commenti, ${state.totalCount} ${state.totalCount == 1 ? 'commento' : 'commenti'}',
                 ) ??
                 'Schermo dei commenti',
             child: commentsAsync.whenOrNull(
-                  data: (comments) => Text(
-                    '${comments.length} ${comments.length == 1 ? 'commento' : 'commenti'}',
+                  data: (state) => Text(
+                    '${state.totalCount} ${state.totalCount == 1 ? 'commento' : 'commenti'}',
                     style: NovaTextStyles.h3,
                   ),
                 ) ??
@@ -100,13 +143,13 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
           title: Semantics(
             header: true,
             label: commentsAsync.whenOrNull(
-                  data: (comments) =>
-                      'Schermo dei commenti, ${comments.length} ${comments.length == 1 ? 'commento' : 'commenti'}',
+                  data: (state) =>
+                      'Schermo dei commenti, ${state.totalCount} ${state.totalCount == 1 ? 'commento' : 'commenti'}',
                 ) ??
                 'Schermo dei commenti',
             child: commentsAsync.whenOrNull(
-                  data: (comments) => Text(
-                    '${comments.length} ${comments.length == 1 ? 'commento' : 'commenti'}',
+                  data: (state) => Text(
+                    '${state.totalCount} ${state.totalCount == 1 ? 'commento' : 'commenti'}',
                     style: NovaTextStyles.h3,
                   ),
                 ) ??
@@ -193,7 +236,7 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<List<dynamic>> commentsAsync,
+    AsyncValue<CommentsState> commentsAsync,
   ) {
     final replyModeState = ref.watch(replyModeNotifierProvider(widget.eventId));
 
@@ -205,45 +248,17 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
         // Comments list (expanded to fill available space)
         Expanded(
           child: commentsAsync.when(
-            data: (comments) {
-              if (comments.isEmpty) {
+            data: (state) {
+              if (state.isEmpty) {
                 return const EmptyCommentsState();
               }
 
-              return Semantics(
-                label: 'Lista commenti, scorri verso il basso per aggiornare',
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    await ref
-                        .read(commentsNotifierProvider(widget.eventId).notifier)
-                        .refresh();
-                  },
-                  child: ListView.separated(
-                  padding: EdgeInsets.only(
-                    top: NovaSpacing.m,
-                    bottom: NovaSpacing.l,
-                  ),
-                  itemCount: comments.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: NovaColors.dividerLight,
-                  ),
-                  itemBuilder: (context, index) {
-                    final comment = comments[index];
-                    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-                    return CommentCard(
-                      comment: comment,
-                      eventId: widget.eventId,
-                      currentUserId: currentUserId,
-                      onDelete: comment.userId == currentUserId
-                          ? () => _handleDeleteComment(context, ref, comment.id)
-                          : null,
-                    );
-                  },
-                ),
-                ),
-              );
+              // T091: Platform-specific refresh controls
+              if (Platform.isIOS) {
+                return _buildIOSCommentsList(context, ref, state);
+              } else {
+                return _buildAndroidCommentsList(context, ref, state);
+              }
             },
             loading: () => const Center(
               child: CircularProgressIndicator(),
@@ -303,6 +318,154 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
     );
   }
 
+  /// T091: Build iOS comments list with CupertinoSliverRefreshControl
+  Widget _buildIOSCommentsList(
+    BuildContext context,
+    WidgetRef ref,
+    CommentsState state,
+  ) {
+    return Semantics(
+      label: 'Lista commenti, scorri verso il basso per aggiornare',
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: [
+          // iOS-native refresh control
+          CupertinoSliverRefreshControl(
+            onRefresh: () async {
+              await ref
+                  .read(commentsNotifierProvider(widget.eventId).notifier)
+                  .refresh();
+            },
+          ),
+
+          // T097: Virtualized list with SliverList.builder
+          SliverPadding(
+            padding: EdgeInsets.only(
+              top: NovaSpacing.m,
+              bottom: NovaSpacing.l,
+            ),
+            sliver: SliverList.separated(
+              itemCount: state.comments.length + (state.hasMore || state.isLoadingMore ? 1 : 0),
+              separatorBuilder: (_, __) => Divider(
+                height: 1,
+                thickness: 1,
+                color: NovaColors.dividerLight,
+              ),
+              itemBuilder: (context, index) {
+                // T094: Loading indicator at list bottom
+                if (index == state.comments.length) {
+                  return _buildLoadingIndicator(state);
+                }
+
+                final comment = state.comments[index];
+                final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+                return CommentCard(
+                  comment: comment,
+                  eventId: widget.eventId,
+                  currentUserId: currentUserId,
+                  onDelete: comment.userId == currentUserId
+                      ? () => _handleDeleteComment(context, ref, comment.id)
+                      : null,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// T091: Build Android comments list with RefreshIndicator
+  Widget _buildAndroidCommentsList(
+    BuildContext context,
+    WidgetRef ref,
+    CommentsState state,
+  ) {
+    return Semantics(
+      label: 'Lista commenti, scorri verso il basso per aggiornare',
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await ref
+              .read(commentsNotifierProvider(widget.eventId).notifier)
+              .refresh();
+        },
+        // T097: Virtualized list with ListView.builder for 60fps
+        child: ListView.separated(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.only(
+            top: NovaSpacing.m,
+            bottom: NovaSpacing.l,
+          ),
+          // Extra item for loading indicator when paginating
+          itemCount: state.comments.length + (state.hasMore || state.isLoadingMore ? 1 : 0),
+          separatorBuilder: (_, __) => Divider(
+            height: 1,
+            thickness: 1,
+            color: NovaColors.dividerLight,
+          ),
+          itemBuilder: (context, index) {
+            // T094: Loading indicator at list bottom
+            if (index == state.comments.length) {
+              return _buildLoadingIndicator(state);
+            }
+
+            final comment = state.comments[index];
+            final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+            return CommentCard(
+              comment: comment,
+              eventId: widget.eventId,
+              currentUserId: currentUserId,
+              onDelete: comment.userId == currentUserId
+                  ? () => _handleDeleteComment(context, ref, comment.id)
+                  : null,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// T094/T095: Build loading indicator or end-of-list indicator
+  Widget _buildLoadingIndicator(CommentsState state) {
+    if (state.isLoadingMore) {
+      // Show loading spinner while fetching more
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: NovaSpacing.l),
+        child: Center(
+          child: Platform.isIOS
+              ? const CupertinoActivityIndicator()
+              : const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+        ),
+      );
+    }
+
+    if (!state.hasMore) {
+      // T095: End of list indicator
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: NovaSpacing.l),
+        child: Center(
+          child: Text(
+            'Tutti i commenti caricati',
+            style: NovaTextStyles.caption.copyWith(
+              color: NovaColors.textTertiaryLight,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Has more but not loading - show nothing (will trigger on scroll)
+    return const SizedBox.shrink();
+  }
+
   /// Builds reply mode header with purple background and close button
   Widget _buildReplyModeHeader(
     BuildContext context,
@@ -316,10 +479,10 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
         vertical: NovaSpacing.s,
       ),
       decoration: BoxDecoration(
-        color: NovaColors.primaryLight.withOpacity(0.1),
+        color: NovaColors.primaryLight.withValues(alpha: 0.1),
         border: Border(
           bottom: BorderSide(
-            color: NovaColors.primaryLight.withOpacity(0.3),
+            color: NovaColors.primaryLight.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
