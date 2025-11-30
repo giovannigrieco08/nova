@@ -11,11 +11,14 @@ import '../../../../core/theme/nova_typography.dart';
 import '../providers/comments_notifier.dart';
 import '../providers/reply_mode_notifier.dart';
 import '../providers/delete_comment_provider.dart';
+import '../providers/edit_comment_provider.dart';
 import '../widgets/comment_card.dart';
 import '../widgets/comment_input_field.dart';
 import '../widgets/comment_sort_toggle.dart';
 import '../widgets/empty_comments_state.dart';
 import '../widgets/delete_confirmation_dialog.dart';
+import '../widgets/edit_input_field.dart';
+import '../../domain/entities/comment.dart';
 
 /// CommentsSheet Screen
 ///
@@ -234,17 +237,52 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
     );
   }
 
+  /// T105/T106: Handle edit comment - start edit mode
+  void _handleEditComment(BuildContext context, WidgetRef ref, Comment comment) {
+    // Cancel reply mode if active
+    ref.read(replyModeNotifierProvider(widget.eventId).notifier).cancelReply();
+
+    // Start edit mode
+    ref.read(editCommentNotifierProvider(widget.eventId).notifier).startEdit(comment);
+  }
+
+  /// T110: Show feedback based on edit operation result
+  void _showEditFeedback(BuildContext context, EditResult result) {
+    final (message, backgroundColor) = switch (result) {
+      EditResult.success => ('Commento modificato', NovaColors.successLight),
+      EditResult.windowExpired => ('Tempo scaduto per modifica (>5 min)', NovaColors.errorLight),
+      EditResult.validationError => ('Testo non valido', NovaColors.errorLight),
+      EditResult.unauthorized => ('Non puoi modificare questo commento', NovaColors.errorLight),
+      EditResult.notFound => ('Commento non trovato', NovaColors.errorLight),
+      EditResult.error => ('Errore durante il salvataggio', NovaColors.errorLight),
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
     AsyncValue<CommentsState> commentsAsync,
   ) {
     final replyModeState = ref.watch(replyModeNotifierProvider(widget.eventId));
+    final editModeState = ref.watch(editCommentNotifierProvider(widget.eventId));
 
     return Column(
       children: [
         // Reply mode header (purple banner when replying to a comment)
-        if (replyModeState.isReplyMode) _buildReplyModeHeader(context, ref, replyModeState),
+        if (replyModeState.isReplyMode && !editModeState.isEditing)
+          _buildReplyModeHeader(context, ref, replyModeState),
+
+        // T106: Edit mode header (orange banner when editing a comment)
+        if (editModeState.isEditing) _buildEditModeHeader(context, ref, editModeState),
 
         // T101: Sort toggle below title (only show when we have comments)
         commentsAsync.maybeWhen(
@@ -318,11 +356,19 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
           color: NovaColors.dividerLight,
         ),
 
-        // Comment input field (sticky at bottom)
-        CommentInputField(
-          eventId: widget.eventId,
-          replyModeState: replyModeState,
-        ),
+        // T106: Conditionally show edit input or normal comment input
+        if (editModeState.isEditing)
+          EditInputField(
+            eventId: widget.eventId,
+            onSaveSuccess: () {
+              _showEditFeedback(context, EditResult.success);
+            },
+          )
+        else
+          CommentInputField(
+            eventId: widget.eventId,
+            replyModeState: replyModeState,
+          ),
       ],
     );
   }
@@ -378,6 +424,10 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
                   onDelete: comment.userId == currentUserId
                       ? () => _handleDeleteComment(context, ref, comment.id)
                       : null,
+                  // T105: Pass onEdit callback for own comments within 5-min window
+                  onEdit: comment.userId == currentUserId && comment.canEdit(DateTime.now())
+                      ? () => _handleEditComment(context, ref, comment)
+                      : null,
                 );
               },
             ),
@@ -430,6 +480,10 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
               currentUserId: currentUserId,
               onDelete: comment.userId == currentUserId
                   ? () => _handleDeleteComment(context, ref, comment.id)
+                  : null,
+              // T105: Pass onEdit callback for own comments within 5-min window
+              onEdit: comment.userId == currentUserId && comment.canEdit(DateTime.now())
+                  ? () => _handleEditComment(context, ref, comment)
                   : null,
             );
           },
@@ -560,6 +614,82 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
                 Icons.close,
                 size: 20,
                 color: NovaColors.primaryLight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// T106: Builds edit mode header with orange background and cancel button
+  Widget _buildEditModeHeader(
+    BuildContext context,
+    WidgetRef ref,
+    EditCommentState editState,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.m,
+        vertical: NovaSpacing.s,
+      ),
+      decoration: BoxDecoration(
+        color: NovaColors.warningLight.withValues(alpha: 0.15),
+        border: Border(
+          bottom: BorderSide(
+            color: NovaColors.warningLight.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Edit icon
+          Icon(
+            Icons.edit,
+            size: 16,
+            color: NovaColors.warningDark,
+          ),
+
+          SizedBox(width: NovaSpacing.xs),
+
+          // Edit header text
+          Expanded(
+            child: Text(
+              'Modifica commento',
+              style: NovaTextStyles.bodyBold.copyWith(
+                color: NovaColors.warningDark,
+              ),
+            ),
+          ),
+
+          // Character counter
+          if (editState.currentText.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(right: NovaSpacing.s),
+              child: Text(
+                '${editState.characterCount}/500',
+                style: NovaTextStyles.caption.copyWith(
+                  color: editState.isApproachingLimit
+                      ? NovaColors.errorLight
+                      : NovaColors.textTertiaryLight,
+                ),
+              ),
+            ),
+
+          // Cancel button
+          Semantics(
+            button: true,
+            label: 'Annulla modifica',
+            child: GestureDetector(
+              onTap: () {
+                ref.read(editCommentNotifierProvider(widget.eventId).notifier).cancelEdit();
+              },
+              child: Icon(
+                Icons.close,
+                size: 20,
+                color: NovaColors.warningDark,
               ),
             ),
           ),
