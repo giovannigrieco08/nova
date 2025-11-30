@@ -1,5 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../domain/entities/comment.dart';
+import '../../domain/entities/comment_report.dart';
 import '../../domain/repositories/comments_repository_interface.dart';
 import '../models/comment_model.dart';
 
@@ -102,13 +104,15 @@ class CommentsLocalDataSource {
   /// Overwrites existing cache for the same event_id.
   Future<void> cacheComments({
     required String eventId,
-    required List<CommentModel> comments,
+    required List<Comment> comments,
   }) async {
     try {
       final cacheKey = 'event_$eventId';
 
-      // Serialize comments to JSON
-      final commentsJson = comments.map((c) => c.toJson()).toList();
+      // Convert entities to models for JSON serialization
+      final commentsJson = comments
+          .map((c) => CommentModel.fromEntity(c).toJson())
+          .toList();
 
       // Create cache entry with timestamp
       final cacheEntry = {

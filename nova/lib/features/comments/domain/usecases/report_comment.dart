@@ -23,7 +23,7 @@ import '../repositories/comments_repository_interface.dart';
 ///   await reportComment(
 ///     commentId: '123',
 ///     reason: CommentReportReason.inappropriate,
-///     additionalDetails: 'Contains offensive language',
+///     details: 'Contains offensive language',
 ///   );
 ///   // Show success: "Segnalazione inviata"
 /// } on ConflictException catch (e) {
@@ -39,8 +39,8 @@ class ReportComment {
   ///
   /// Parameters:
   /// - [commentId]: ID of comment to report
-  /// - [reason]: Reason for reporting (enum)
-  /// - [additionalDetails]: Optional text for "Altro" reason
+  /// - [reason]: Reason for reporting (enum from comment_report.dart)
+  /// - [details]: Optional text for "Altro" reason
   ///
   /// Throws:
   /// - [ConflictException]: User already reported this comment
@@ -50,10 +50,10 @@ class ReportComment {
   Future<void> call({
     required String commentId,
     required CommentReportReason reason,
-    String? additionalDetails,
+    String? details,
   }) async {
-    // Validate additional details length
-    if (additionalDetails != null && additionalDetails.length > 500) {
+    // Validate details length
+    if (details != null && details.length > 500) {
       throw ValidationException(
         message: 'I dettagli aggiuntivi non possono superare 500 caratteri',
       );
@@ -63,30 +63,7 @@ class ReportComment {
     await _repository.reportComment(
       commentId: commentId,
       reason: reason,
-      additionalDetails: additionalDetails,
-    );
-  }
-}
-
-/// Report reason enum
-///
-/// Matches database enum: comment_report_reason
-enum CommentReportReason {
-  spam('spam', 'Spam'),
-  inappropriate('inappropriate', 'Contenuto inappropriato'),
-  bullying('bullying', 'Bullismo/molestie'),
-  offTopic('off_topic', 'Off-topic'),
-  other('other', 'Altro');
-
-  final String value;
-  final String displayName;
-
-  const CommentReportReason(this.value, this.displayName);
-
-  static CommentReportReason fromValue(String value) {
-    return CommentReportReason.values.firstWhere(
-      (r) => r.value == value,
-      orElse: () => CommentReportReason.other,
+      details: details,
     );
   }
 }

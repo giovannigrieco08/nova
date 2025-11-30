@@ -1,4 +1,3 @@
-import '../entities/comment.dart';
 import '../repositories/comments_repository_interface.dart';
 
 /// Use Case: Get Comments For Event

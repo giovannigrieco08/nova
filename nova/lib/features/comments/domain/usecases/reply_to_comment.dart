@@ -38,19 +38,17 @@ class ReplyToComment {
   ///
   /// Returns newly created Comment entity (the reply).
   /// Throws ValidationException if trying to reply to a reply.
-  /// Throws all other exceptions from postComment.
+  /// Throws all other exceptions from replyToComment.
   Future<Comment> call({
-    required String eventId,
     required String parentCommentId,
     required String text,
   }) async {
     // Validation happens server-side via database trigger
     // Client just needs to pass parentCommentId
 
-    return await _repository.postComment(
-      eventId: eventId,
+    return await _repository.replyToComment(
+      commentId: parentCommentId, // This makes it a reply
       text: text,
-      parentCommentId: parentCommentId, // This makes it a reply
     );
   }
 }

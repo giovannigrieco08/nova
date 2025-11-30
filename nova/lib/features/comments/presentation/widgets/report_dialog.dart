@@ -6,7 +6,6 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/comment_report.dart';
-import '../../domain/usecases/report_comment.dart';
 
 /// ReportDialog Widget
 ///
@@ -47,7 +46,6 @@ class ReportDialog extends StatefulWidget {
 class _ReportDialogState extends State<ReportDialog> {
   CommentReportReason? _selectedReason;
   final TextEditingController _detailsController = TextEditingController();
-  bool _isSubmitting = false;
 
   @override
   void dispose() {

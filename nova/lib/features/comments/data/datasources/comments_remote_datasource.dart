@@ -38,47 +38,48 @@ class CommentsRemoteDataSource {
       // Validate limit (max 50 per API spec)
       final validLimit = limit.clamp(1, 50);
 
-      // Build query with profile JOIN
-      var query = _supabase
+      // Build base query with profile JOIN and filters
+      var baseQuery = _supabase
           .from('comments')
           .select('''
             *,
             profiles!user_id (
               full_name,
               avatar_url,
-              class,
-              role
+              class
             )
           ''')
           .eq('event_id', eventId)
-          .is_('parent_comment_id', null) // Top-level only
-          .is_('deleted_at', null) // Not deleted
-          .is_('hidden_at', null); // Not hidden
+          .isFilter('parent_comment_id', null) // Top-level only
+          .isFilter('deleted_at', null) // Not deleted
+          .isFilter('hidden_at', null); // Not hidden
 
-      // Apply sort order
-      if (sortOrder == CommentSortOrder.popular) {
-        query = query.order('like_count', ascending: false);
-      }
-      query = query.order('created_at', ascending: false);
-
-      // Apply cursor pagination (fetch comments older than cursor)
+      // Apply cursor pagination if provided
       if (cursorCreatedAt != null) {
-        query = query.lt('created_at', cursorCreatedAt.toIso8601String());
+        baseQuery = baseQuery.lt('created_at', cursorCreatedAt.toIso8601String());
       }
 
-      // Apply limit + 1 to detect if more pages exist
-      query = query.limit(validLimit + 1);
-
-      final response = await query;
+      // Apply sort order and limit in a single chain
+      final response = sortOrder == CommentSortOrder.popular
+          ? await baseQuery
+              .order('like_count', ascending: false)
+              .order('created_at', ascending: false)
+              .limit(validLimit + 1)
+          : await baseQuery
+              .order('created_at', ascending: false)
+              .limit(validLimit + 1);
 
       // Parse response
       final List<dynamic> data = response as List;
       final hasMore = data.length > validLimit;
       final commentsData = hasMore ? data.take(validLimit).toList() : data;
 
-      final comments = commentsData
+      final commentModels = commentsData
           .map((json) => _parseCommentWithProfile(json))
           .toList();
+
+      // Convert models to domain entities
+      final comments = commentModels.map((model) => model.toEntity()).toList();
 
       // Determine next cursor (created_at of last comment)
       final nextCursor = comments.isNotEmpty ? comments.last.createdAt : null;
@@ -109,13 +110,12 @@ class CommentsRemoteDataSource {
             profiles!user_id (
               full_name,
               avatar_url,
-              class,
-              role
+              class
             )
           ''')
           .eq('parent_comment_id', commentId)
-          .is_('deleted_at', null)
-          .is_('hidden_at', null)
+          .isFilter('deleted_at', null)
+          .isFilter('hidden_at', null)
           .order('created_at', ascending: true);
 
       final List<dynamic> data = response as List;
@@ -141,13 +141,12 @@ class CommentsRemoteDataSource {
             profiles!user_id (
               full_name,
               avatar_url,
-              class,
-              role
+              class
             )
           ''')
           .eq('id', commentId)
-          .is_('deleted_at', null)
-          .is_('hidden_at', null)
+          .isFilter('deleted_at', null)
+          .isFilter('hidden_at', null)
           .single();
 
       return _parseCommentWithProfile(response);
@@ -182,13 +181,12 @@ class CommentsRemoteDataSource {
             profiles!user_id (
               full_name,
               avatar_url,
-              class,
-              role
+              class
             )
           ''')
           .eq('user_id', userId)
-          .is_('deleted_at', null)
-          .is_('hidden_at', null)
+          .isFilter('deleted_at', null)
+          .isFilter('hidden_at', null)
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
 
@@ -231,8 +229,7 @@ class CommentsRemoteDataSource {
             profiles!user_id (
               full_name,
               avatar_url,
-              class,
-              role
+              class
             )
           ''')
           .single();
@@ -296,8 +293,7 @@ class CommentsRemoteDataSource {
             profiles!user_id (
               full_name,
               avatar_url,
-              class,
-              role
+              class
             )
           ''')
           .single();
@@ -362,8 +358,7 @@ class CommentsRemoteDataSource {
             profiles!user_id (
               full_name,
               avatar_url,
-              class,
-              role
+              class
             )
           ''')
           .single();
@@ -412,7 +407,7 @@ class CommentsRemoteDataSource {
           })
           .eq('id', commentId)
           .eq('user_id', currentUserId) // Ownership check
-          .is_('deleted_at', null); // Not already deleted
+          .isFilter('deleted_at', null); // Not already deleted
     } on PostgrestException catch (e, stackTrace) {
       if (e.code == 'PGRST116') {
         throw ForbiddenException(
@@ -434,7 +429,7 @@ class CommentsRemoteDataSource {
   /// Like a comment (idempotent - duplicate likes ignored)
   ///
   /// Triggers: rate limit check (100/hour), counter update.
-  Future<Comment> likeComment({
+  Future<CommentModel> likeComment({
     required String commentId,
   }) async {
     try {
@@ -482,7 +477,7 @@ class CommentsRemoteDataSource {
   /// Unlike a comment (idempotent - unliking already-unliked is no-op)
   ///
   /// Triggers: counter update (decrement like_count).
-  Future<Comment> unlikeComment({
+  Future<CommentModel> unlikeComment({
     required String commentId,
   }) async {
     try {
@@ -655,11 +650,15 @@ class CommentsRemoteDataSource {
       return _supabase
           .from('comments')
           .stream(primaryKey: ['id'])
-          .eq('event_id', eventId)
-          .eq('parent_comment_id', null) // Top-level only
           .order('created_at')
           .map((List<Map<String, dynamic>> data) {
-            return data
+            // Filter client-side for event_id and top-level only
+            final filtered = data.where((json) =>
+                json['event_id'] == eventId &&
+                json['parent_comment_id'] == null &&
+                json['deleted_at'] == null &&
+                json['hidden_at'] == null);
+            return filtered
                 .map((json) => _parseCommentWithProfile(json))
                 .toList();
           });
@@ -686,7 +685,7 @@ class CommentsRemoteDataSource {
       json['author_name'] = profileData['full_name'];
       json['author_avatar_url'] = profileData['avatar_url'];
       json['author_class'] = profileData['class'];
-      json['author_role'] = profileData['role'];
+      // Note: 'role' is stored in user_roles table, not profiles
     }
 
     return CommentModel.fromJson(json);

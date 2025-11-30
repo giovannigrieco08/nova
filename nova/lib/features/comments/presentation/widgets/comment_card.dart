@@ -275,21 +275,33 @@ class CommentCard extends ConsumerWidget {
   }
 
   /// Avatar with image or initials fallback
+  ///
+  /// T130: Optimized with CachedNetworkImage for efficient image loading
+  /// - Shows skeleton placeholder while loading
+  /// - Falls back to initials on error
   Widget _buildAvatar() {
     final hasAvatar = comment.authorAvatarUrl != null;
+    final initials = _getInitials(comment.authorName ?? 'U');
 
     if (hasAvatar) {
-      return CircleAvatar(
-        radius: 20,
-        backgroundColor: NovaColors.dividerLight,
-        backgroundImage: CachedNetworkImageProvider(
-          comment.authorAvatarUrl!,
+      return ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: comment.authorAvatarUrl!,
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => _buildInitialsFallback(initials),
+          errorWidget: (context, url, error) => _buildInitialsFallback(initials),
         ),
       );
     }
 
     // Fallback: Initials
-    final initials = _getInitials(comment.authorName ?? 'U');
+    return _buildInitialsFallback(initials);
+  }
+
+  /// Build initials fallback avatar
+  Widget _buildInitialsFallback(String initials) {
     return CircleAvatar(
       radius: 20,
       backgroundColor: NovaColors.dividerLight,

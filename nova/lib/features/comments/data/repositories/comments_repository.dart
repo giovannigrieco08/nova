@@ -237,9 +237,10 @@ class CommentsRepository implements CommentsRepositoryInterface {
     required String commentId,
   }) async {
     try {
-      return await _remoteDataSource.likeComment(
+      final model = await _remoteDataSource.likeComment(
         commentId: commentId,
       );
+      return model.toEntity();
     } on NetworkException catch (_) {
       // Queue for offline sync
       final tempId = _uuid.v4();
@@ -261,9 +262,10 @@ class CommentsRepository implements CommentsRepositoryInterface {
     required String commentId,
   }) async {
     try {
-      return await _remoteDataSource.unlikeComment(
+      final model = await _remoteDataSource.unlikeComment(
         commentId: commentId,
       );
+      return model.toEntity();
     } on NetworkException catch (_) {
       // Queue for offline sync
       final tempId = _uuid.v4();
@@ -373,14 +375,10 @@ class CommentsRepository implements CommentsRepositoryInterface {
     required String eventId,
     required List<Comment> comments,
   }) async {
-    // Convert entities to models for caching
-    final models = comments
-        .map((entity) => _commentEntityToModel(entity))
-        .toList();
-
+    // Local datasource handles entity-to-model conversion internally
     await _localDataSource.cacheComments(
       eventId: eventId,
-      comments: models,
+      comments: comments,
     );
   }
 
@@ -413,7 +411,7 @@ class CommentsRepository implements CommentsRepositoryInterface {
         await _executeOfflineAction(action);
         await _localDataSource.removeFromQueue(tempId: action.tempId);
         successCount++;
-      } on NetworkException catch (e) {
+      } on NetworkException {
         // Network still unavailable - stop syncing, keep queue
         return OfflineSyncResult(
           successCount: successCount,
@@ -491,35 +489,5 @@ class CommentsRepository implements CommentsRepositoryInterface {
         );
         break;
     }
-  }
-
-  /// Convert Comment entity to CommentModel for caching
-  ///
-  /// Helper to avoid circular imports.
-  dynamic _commentEntityToModel(Comment entity) {
-    // Use dynamic to avoid importing CommentModel here
-    // Alternative: Create a factory method in CommentModel
-    return {
-      'id': entity.id,
-      'event_id': entity.eventId,
-      'user_id': entity.userId,
-      'parent_comment_id': entity.parentCommentId,
-      'text': entity.text,
-      'like_count': entity.likeCount,
-      'reply_count': entity.replyCount,
-      'report_count': entity.reportCount,
-      'deleted_at': entity.deletedAt?.toIso8601String(),
-      'deleted_by_user_id': entity.deletedByUserId,
-      'hidden_at': entity.hiddenAt?.toIso8601String(),
-      'hidden_reason': entity.hiddenReason,
-      'moderator_id': entity.moderatorId,
-      'created_at': entity.createdAt.toIso8601String(),
-      'updated_at': entity.updatedAt?.toIso8601String(),
-      'author_name': entity.authorName,
-      'author_avatar_url': entity.authorAvatarUrl,
-      'author_class': entity.authorClass,
-      'author_role': entity.authorRole,
-      'is_liked_by_current_user': entity.isLikedByCurrentUser,
-    };
   }
 }
