@@ -5,6 +5,7 @@ import 'dart:io' show Platform;
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
+import '../../domain/entities/comment_report.dart';
 import '../../domain/usecases/report_comment.dart';
 
 /// ReportDialog Widget
@@ -79,7 +80,7 @@ class _ReportDialogState extends State<ReportDialog> {
         header: true,
         child: Text(
           'Perché segnali questo commento?',
-          style: NovaTextStyles.h3,
+          style: NovaTypography.headingSmall,
         ),
       ),
       content: SingleChildScrollView(
@@ -92,7 +93,7 @@ class _ReportDialogState extends State<ReportDialog> {
               return RadioListTile<CommentReportReason>(
                 title: Text(
                   reason.displayName,
-                  style: NovaTextStyles.body,
+                  style: NovaTypography.bodyMedium,
                 ),
                 value: reason,
                 groupValue: _selectedReason,
@@ -113,7 +114,7 @@ class _ReportDialogState extends State<ReportDialog> {
                 controller: _detailsController,
                 decoration: InputDecoration(
                   hintText: 'Descrivi il problema (opzionale)',
-                  hintStyle: NovaTextStyles.body.copyWith(
+                  hintStyle: NovaTypography.bodyMedium.copyWith(
                     color: NovaColors.textTertiaryLight,
                   ),
                   border: OutlineInputBorder(
@@ -123,7 +124,7 @@ class _ReportDialogState extends State<ReportDialog> {
                 ),
                 maxLines: 3,
                 maxLength: 500,
-                style: NovaTextStyles.body,
+                style: NovaTypography.bodyMedium,
               ),
             ],
           ],
@@ -134,7 +135,7 @@ class _ReportDialogState extends State<ReportDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
             'Annulla',
-            style: NovaTextStyles.body.copyWith(
+            style: NovaTypography.bodyMedium.copyWith(
               color: NovaColors.textSecondaryLight,
             ),
           ),
@@ -143,9 +144,10 @@ class _ReportDialogState extends State<ReportDialog> {
           onPressed: _selectedReason != null ? _submit : null,
           child: Text(
             'Segnala',
-            style: NovaTextStyles.bodyBold.copyWith(
+            style: NovaTypography.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
               color: _selectedReason != null
-                  ? NovaColors.error
+                  ? NovaColors.errorLight
                   : NovaColors.textTertiaryLight,
             ),
           ),
@@ -160,7 +162,7 @@ class _ReportDialogState extends State<ReportDialog> {
         header: true,
         child: Text(
           'Perché segnali questo commento?',
-          style: NovaTextStyles.h3,
+          style: NovaTypography.headingSmall,
         ),
       ),
       content: Padding(
@@ -202,7 +204,7 @@ class _ReportDialogState extends State<ReportDialog> {
                       SizedBox(width: NovaSpacing.s),
                       Text(
                         reason.displayName,
-                        style: NovaTextStyles.body,
+                        style: NovaTypography.bodyMedium,
                       ),
                     ],
                   ),
@@ -229,7 +231,7 @@ class _ReportDialogState extends State<ReportDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
             'Annulla',
-            style: NovaTextStyles.body.copyWith(
+            style: NovaTypography.bodyMedium.copyWith(
               color: NovaColors.textSecondaryLight,
             ),
           ),
@@ -239,9 +241,10 @@ class _ReportDialogState extends State<ReportDialog> {
           isDestructiveAction: true,
           child: Text(
             'Segnala',
-            style: NovaTextStyles.bodyBold.copyWith(
+            style: NovaTypography.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
               color: _selectedReason != null
-                  ? NovaColors.error
+                  ? NovaColors.errorLight
                   : NovaColors.textTertiaryLight,
             ),
           ),

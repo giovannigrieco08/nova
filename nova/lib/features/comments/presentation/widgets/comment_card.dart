@@ -7,7 +7,10 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/comment.dart';
 import '../providers/reply_mode_notifier.dart';
+import '../providers/report_comment_provider.dart';
 import 'like_button.dart';
+import 'comment_actions_menu.dart';
+import 'report_dialog.dart';
 
 /// CommentCard Widget
 ///
@@ -27,20 +30,37 @@ import 'like_button.dart';
 class CommentCard extends ConsumerWidget {
   final Comment comment;
   final String eventId;
+  final String? currentUserId;
+  final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
 
   const CommentCard({
     super.key,
     required this.comment,
     required this.eventId,
+    this.currentUserId,
+    this.onDelete,
+    this.onEdit,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accessibilityLabel = _buildAccessibilityLabel();
 
-    return Semantics(
-      label: accessibilityLabel,
-      child: Padding(
+    // T064: Wrap with CommentActionsMenu for long-press/swipe actions
+    return CommentActionsMenu(
+      comment: comment,
+      currentUserId: currentUserId,
+      onReply: comment.isTopLevel ? () {
+        ref.read(replyModeNotifierProvider(eventId).notifier).startReply(comment);
+      } : null,
+      onReport: () => _showReportDialog(context, ref),
+      onCopy: () => copyCommentToClipboard(context, comment),
+      onDelete: onDelete,
+      onEdit: onEdit,
+      child: Semantics(
+        label: accessibilityLabel,
+        child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: NovaSpacing.m,
           vertical: NovaSpacing.m,
@@ -174,6 +194,48 @@ class CommentCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+      ),
+    );
+  }
+
+  /// T065: Show report dialog and handle submission
+  Future<void> _showReportDialog(BuildContext context, WidgetRef ref) async {
+    final dialogResult = await showReportDialog(
+      context: context,
+      commentId: comment.id,
+    );
+
+    if (dialogResult != null && context.mounted) {
+      // Submit report via use case
+      final reportNotifier = ref.read(reportCommentNotifierProvider.notifier);
+      final submitResult = await reportNotifier.submitReport(
+        commentId: comment.id,
+        reason: dialogResult.reason,
+        details: dialogResult.additionalDetails,
+      );
+
+      if (context.mounted) {
+        _showReportFeedback(context, submitResult);
+      }
+    }
+  }
+
+  /// Show feedback based on report submission result
+  void _showReportFeedback(BuildContext context, ReportSubmissionResult result) {
+    final (message, backgroundColor) = switch (result) {
+      ReportSubmissionResult.success => ('Segnalazione inviata', NovaColors.successLight),
+      ReportSubmissionResult.duplicate => ('Hai già segnalato questo commento', NovaColors.warningLight),
+      ReportSubmissionResult.validationError => ('I dettagli sono troppo lunghi (max 500 caratteri)', NovaColors.errorLight),
+      ReportSubmissionResult.error => ('Errore durante l\'invio. Riprova più tardi.', NovaColors.errorLight),
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

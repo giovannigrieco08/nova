@@ -1,6 +1,6 @@
 /// Notification channel types for Nova platform
 ///
-/// Represents the 6 notification channels that students can opt in/out of.
+/// Represents the 7 notification channels that students can opt in/out of.
 /// Each channel corresponds to a specific user action or system event.
 enum NotificationChannel {
   /// Event moderation status updates (approved/rejected)
@@ -19,7 +19,10 @@ enum NotificationChannel {
   eventParticipation('event_participation'),
 
   /// Co-organizer event updates
-  coorganizerUpdate('coorganizer_update');
+  coorganizerUpdate('coorganizer_update'),
+
+  /// Moderator alerts (auto-hidden comments, reported content)
+  moderatorAlert('moderator_alert');
 
   /// Database representation of the notification channel
   final String value;
@@ -49,6 +52,8 @@ enum NotificationChannel {
         return 'Nuove partecipazioni';
       case NotificationChannel.coorganizerUpdate:
         return 'Aggiornamenti co-organizer';
+      case NotificationChannel.moderatorAlert:
+        return 'Avvisi moderatori';
     }
   }
 
@@ -67,6 +72,8 @@ enum NotificationChannel {
         return 'Ricevi notifiche quando qualcuno partecipa ai tuoi eventi';
       case NotificationChannel.coorganizerUpdate:
         return 'Ricevi notifiche quando un evento che co-organizzi viene modificato';
+      case NotificationChannel.moderatorAlert:
+        return 'Ricevi notifiche quando un commento viene auto-nascosto per segnalazioni';
     }
   }
 }

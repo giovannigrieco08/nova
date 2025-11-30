@@ -117,12 +117,12 @@ class CommentActionsMenu extends StatelessWidget {
               return ListTile(
                 leading: Icon(
                   action.icon,
-                  color: action.isDestructive ? NovaColors.error : null,
+                  color: action.isDestructive ? NovaColors.error(context) : null,
                 ),
                 title: Text(
                   action.label,
-                  style: NovaTextStyles.body.copyWith(
-                    color: action.isDestructive ? NovaColors.error : null,
+                  style: NovaTypography.bodyMedium.copyWith(
+                    color: action.isDestructive ? NovaColors.error(context) : null,
                   ),
                 ),
                 onTap: () {
@@ -253,7 +253,7 @@ Future<void> copyCommentToClipboard(BuildContext context, Comment comment) async
         SnackBar(
           content: Text(
             'Testo copiato',
-            style: NovaTextStyles.body.copyWith(color: Colors.white),
+            style: NovaTypography.bodyMedium.copyWith(color: Colors.white),
           ),
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
