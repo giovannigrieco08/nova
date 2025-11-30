@@ -16,49 +16,64 @@ import '../../domain/entities/comment.dart';
 /// - Android: Long-press to show menu
 /// - iOS: Swipe-left to reveal actions or long-press
 ///
-/// Actions:
+/// Actions (Students):
 /// - 💬 Rispondi (top-level comments only)
 /// - 🚩 Segnala
 /// - 📋 Copia testo
 /// - 🗑️ Elimina (own comments only)
 /// - ✏️ Modifica (own comments within 5min)
 ///
+/// Actions (Moderators):
+/// - 🛡️ Rimuovi commento (any comment)
+/// - ↩️ Ripristina commento (hidden comments only)
+///
 /// **T063**: Create CommentActionsMenu widget
+/// **T077**: Add moderator-only actions
 /// **FR-033**: Students can report comments
 /// **FR-036**: Students can delete own comments
+/// **FR-030**: Moderators can remove comments
 ///
 /// Usage:
 /// ```dart
 /// CommentActionsMenu(
 ///   comment: comment,
 ///   currentUserId: currentUserId,
+///   isModerator: userRole.isModerator,
 ///   onReply: () => startReply(comment),
 ///   onReport: () => showReportDialog(),
 ///   onCopy: () => copyToClipboard(),
 ///   onDelete: () => deleteComment(),
 ///   onEdit: () => editComment(),
+///   onModeratorRemove: () => moderatorRemove(),
+///   onModeratorRestore: () => moderatorRestore(),
 ///   child: CommentCard(comment: comment),
 /// )
 /// ```
 class CommentActionsMenu extends StatelessWidget {
   final Comment comment;
   final String? currentUserId;
+  final bool isModerator;
   final VoidCallback? onReply;
   final VoidCallback? onReport;
   final VoidCallback? onCopy;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
+  final VoidCallback? onModeratorRemove;
+  final VoidCallback? onModeratorRestore;
   final Widget child;
 
   const CommentActionsMenu({
     super.key,
     required this.comment,
     this.currentUserId,
+    this.isModerator = false,
     this.onReply,
     this.onReport,
     this.onCopy,
     this.onDelete,
     this.onEdit,
+    this.onModeratorRemove,
+    this.onModeratorRestore,
     required this.child,
   });
 
@@ -68,6 +83,8 @@ class CommentActionsMenu extends StatelessWidget {
   bool get _canReply => comment.isTopLevel && !comment.isDeleted;
   bool get _canReport => !_isOwnComment && !comment.isDeleted;
   bool get _canCopy => !comment.isDeleted;
+  bool get _canModeratorRemove => isModerator && !comment.isDeleted && !comment.isHidden;
+  bool get _canModeratorRestore => isModerator && comment.isHidden;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +235,24 @@ class CommentActionsMenu extends StatelessWidget {
         label: '🗑️ Elimina',
         onTap: onDelete!,
         isDestructive: true,
+      ));
+    }
+
+    // Moderator-only actions (T077)
+    if (_canModeratorRemove && onModeratorRemove != null) {
+      actions.add(_CommentAction(
+        icon: Icons.shield_outlined,
+        label: '🛡️ Rimuovi commento',
+        onTap: onModeratorRemove!,
+        isDestructive: true,
+      ));
+    }
+
+    if (_canModeratorRestore && onModeratorRestore != null) {
+      actions.add(_CommentAction(
+        icon: Icons.restore,
+        label: '↩️ Ripristina commento',
+        onTap: onModeratorRestore!,
       ));
     }
 
