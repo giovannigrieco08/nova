@@ -8,9 +8,11 @@ import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/comment.dart';
 import '../providers/reply_mode_notifier.dart';
 import '../providers/report_comment_provider.dart';
+import '../providers/mention_navigation_provider.dart';
 import 'like_button.dart';
 import 'comment_actions_menu.dart';
 import 'report_dialog.dart';
+import 'mention_text.dart';
 
 /// CommentCard Widget
 ///
@@ -101,17 +103,31 @@ class CommentCard extends ConsumerWidget {
 
                   SizedBox(height: NovaSpacing.xs),
 
-                  // Comment text
-                  Text(
-                    comment.displayText,
-                    style: NovaTextStyles.body.copyWith(
-                      color: comment.isDeleted
-                          ? NovaColors.textTertiaryLight
-                          : NovaColors.textPrimaryLight,
-                      fontStyle:
-                          comment.isDeleted ? FontStyle.italic : FontStyle.normal,
-                    ),
-                  ),
+                  // Comment text with @mention support
+                  // T112: Render @mentions as tappable RichText
+                  // T113-T115: Tap handler navigates to profile
+                  comment.isDeleted
+                      ? Text(
+                          comment.displayText,
+                          style: NovaTextStyles.body.copyWith(
+                            color: NovaColors.textTertiaryLight,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        )
+                      : MentionText(
+                          text: comment.displayText,
+                          style: NovaTextStyles.body.copyWith(
+                            color: NovaColors.textPrimaryLight,
+                          ),
+                          onMentionTap: (username) async {
+                            final result = await ref
+                                .read(mentionNavigationProvider.notifier)
+                                .navigateToProfile(context, username);
+                            if (context.mounted) {
+                              showMentionNavigationFeedback(context, result);
+                            }
+                          },
+                        ),
 
                   // Like button and Reply button (Phase 4-5)
                   if (!comment.isDeleted) ...[
