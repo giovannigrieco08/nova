@@ -13,6 +13,7 @@ import '../providers/reply_mode_notifier.dart';
 import '../providers/delete_comment_provider.dart';
 import '../widgets/comment_card.dart';
 import '../widgets/comment_input_field.dart';
+import '../widgets/comment_sort_toggle.dart';
 import '../widgets/empty_comments_state.dart';
 import '../widgets/delete_confirmation_dialog.dart';
 
@@ -245,6 +246,14 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
         // Reply mode header (purple banner when replying to a comment)
         if (replyModeState.isReplyMode) _buildReplyModeHeader(context, ref, replyModeState),
 
+        // T101: Sort toggle below title (only show when we have comments)
+        commentsAsync.maybeWhen(
+          data: (state) => state.comments.isNotEmpty
+              ? _buildSortToggle(context, ref, state)
+              : const SizedBox.shrink(),
+          orElse: () => const SizedBox.shrink(),
+        ),
+
         // Comments list (expanded to fill available space)
         Expanded(
           child: commentsAsync.when(
@@ -464,6 +473,37 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
 
     // Has more but not loading - show nothing (will trigger on scroll)
     return const SizedBox.shrink();
+  }
+
+  /// T101: Build sort toggle with platform-adaptive controls
+  Widget _buildSortToggle(
+    BuildContext context,
+    WidgetRef ref,
+    CommentsState state,
+  ) {
+    return Column(
+      children: [
+        CommentSortToggle(
+          currentSort: state.sortOrder,
+          onSortChanged: (newSort) {
+            // T102: Reset scroll position when sort changes
+            if (_scrollController.hasClients) {
+              _scrollController.jumpTo(0);
+            }
+            ref
+                .read(commentsNotifierProvider(widget.eventId).notifier)
+                .changeSortOrder(newSort);
+          },
+          isLoading: state.isSorting,
+        ),
+        // Divider below sort toggle
+        Divider(
+          height: 1,
+          thickness: 1,
+          color: NovaColors.dividerLight,
+        ),
+      ],
+    );
   }
 
   /// Builds reply mode header with purple background and close button

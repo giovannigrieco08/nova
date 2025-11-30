@@ -33,12 +33,15 @@ final commentsNotifierProvider = AsyncNotifierProvider.family<
 /// Paginated comments state
 ///
 /// **T094**: Pagination state management with hasMore, nextCursor, loading indicator
+/// **T099**: Sort state management with sortOrder enum
 class CommentsState {
   final List<Comment> comments;
   final bool hasMore;
   final DateTime? nextCursor;
   final bool isLoadingMore;
   final bool isRefreshing;
+  final CommentSortOrder sortOrder;
+  final bool isSorting; // T103: Loading indicator during re-sort
 
   const CommentsState({
     required this.comments,
@@ -46,6 +49,8 @@ class CommentsState {
     this.nextCursor,
     this.isLoadingMore = false,
     this.isRefreshing = false,
+    this.sortOrder = CommentSortOrder.recent,
+    this.isSorting = false,
   });
 
   CommentsState copyWith({
@@ -55,6 +60,8 @@ class CommentsState {
     bool clearNextCursor = false,
     bool? isLoadingMore,
     bool? isRefreshing,
+    CommentSortOrder? sortOrder,
+    bool? isSorting,
   }) {
     return CommentsState(
       comments: comments ?? this.comments,
@@ -62,6 +69,8 @@ class CommentsState {
       nextCursor: clearNextCursor ? null : (nextCursor ?? this.nextCursor),
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       isRefreshing: isRefreshing ?? this.isRefreshing,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isSorting: isSorting ?? this.isSorting,
     );
   }
 
@@ -84,6 +93,9 @@ class CommentsState {
 /// **T094**: Pagination state management (hasMore, nextCursor, isLoadingMore)
 /// **T095**: Handle end-of-list (hasMore == false)
 /// **T096**: Pull-to-refresh with cache clearing
+/// **T099**: Sort state management
+/// **T100**: Sort order parameter for queries
+/// **T102**: Sort toggle handler
 ///
 /// Features:
 /// - Initial load with pagination support (20 per page)
@@ -92,9 +104,13 @@ class CommentsState {
 /// - Pull-to-refresh support
 /// - Offline cache fallback
 /// - Infinite scroll with cursor-based pagination
+/// - Toggle between "Recenti" and "Popolari" sorting
 class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
   late final CommentsRepositoryInterface _repository;
   late final String _eventId;
+
+  /// Current sort order (persisted across refreshes)
+  CommentSortOrder _sortOrder = CommentSortOrder.recent;
 
   /// Page size for pagination
   static const int _pageSize = 20;
@@ -111,11 +127,12 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
   /// Load initial page of comments
   ///
   /// Tries remote first, falls back to cache on network error.
+  /// **T100**: Uses current sortOrder for query
   Future<CommentsState> _loadInitialComments() async {
     try {
       final result = await _repository.getCommentsForEvent(
         eventId: _eventId,
-        sortOrder: CommentSortOrder.recent,
+        sortOrder: _sortOrder,
         limit: _pageSize,
       );
 
@@ -131,6 +148,7 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
         comments: result.comments,
         hasMore: result.hasMore,
         nextCursor: result.nextCursor,
+        sortOrder: _sortOrder,
       );
     } catch (e) {
       // On error, try to load from cache
@@ -143,6 +161,7 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
           comments: cachedComments,
           hasMore: false, // Can't paginate offline
           nextCursor: null,
+          sortOrder: _sortOrder,
         );
       }
 
@@ -155,6 +174,7 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
   /// **T092**: Implements cursor-based pagination
   /// **T093**: Called when scroll reaches 80% threshold
   /// **T095**: Stops when hasMore == false
+  /// **T100**: Uses current sortOrder
   Future<void> loadMore() async {
     final currentState = state.valueOrNull;
     if (currentState == null) return;
@@ -168,7 +188,7 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
     try {
       final result = await _repository.getCommentsForEvent(
         eventId: _eventId,
-        sortOrder: CommentSortOrder.recent,
+        sortOrder: _sortOrder,
         limit: _pageSize,
         cursorCreatedAt: currentState.nextCursor,
       );
@@ -187,10 +207,59 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
         hasMore: result.hasMore,
         nextCursor: result.nextCursor,
         isLoadingMore: false,
+        sortOrder: _sortOrder,
       ));
     } catch (e) {
       // Reset loading state on error, keep existing comments
       state = AsyncValue.data(currentState.copyWith(isLoadingMore: false));
+    }
+  }
+
+  /// Change sort order and reload comments
+  ///
+  /// **T102**: Sort toggle handler
+  /// - Updates sortOrder state
+  /// - Re-fetches comments with new order
+  /// - Resets scroll position via state change
+  /// **T103**: Shows loading indicator during re-sort
+  Future<void> changeSortOrder(CommentSortOrder newOrder) async {
+    final currentState = state.valueOrNull;
+    if (currentState == null) return;
+
+    // Don't reload if same order
+    if (newOrder == _sortOrder) return;
+
+    // Update internal sort order
+    _sortOrder = newOrder;
+
+    // T103: Show sorting loading indicator
+    state = AsyncValue.data(currentState.copyWith(
+      isSorting: true,
+      sortOrder: newOrder,
+    ));
+
+    try {
+      // Reload first page with new sort order
+      final result = await _repository.getCommentsForEvent(
+        eventId: _eventId,
+        sortOrder: _sortOrder,
+        limit: _pageSize,
+      );
+
+      state = AsyncValue.data(CommentsState(
+        comments: result.comments,
+        hasMore: result.hasMore,
+        nextCursor: result.nextCursor,
+        sortOrder: _sortOrder,
+        isSorting: false,
+      ));
+    } catch (e) {
+      // Revert sort order on error
+      _sortOrder = currentState.sortOrder;
+      state = AsyncValue.data(currentState.copyWith(
+        isSorting: false,
+        sortOrder: currentState.sortOrder,
+      ));
     }
   }
 
