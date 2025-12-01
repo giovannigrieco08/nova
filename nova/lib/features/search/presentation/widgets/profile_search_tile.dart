@@ -9,6 +9,7 @@ import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import '../../domain/entities/search_results.dart';
+import '../utils/text_highlight.dart';
 
 /// Compact tile for profile search results
 class ProfileSearchTile extends StatelessWidget {
@@ -49,16 +50,27 @@ class ProfileSearchTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Name
-                  Text(
-                    profile.fullName,
-                    style: NovaTextStyles.body.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: NovaColors.textPrimaryStatic,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  // Name with highlighting
+                  highlightQuery != null && highlightQuery!.isNotEmpty
+                      ? HighlightedText(
+                          text: profile.fullName,
+                          query: highlightQuery!,
+                          style: NovaTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: NovaColors.textPrimaryStatic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : Text(
+                          profile.fullName,
+                          style: NovaTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: NovaColors.textPrimaryStatic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                   if (profile.className != null) ...[
                     const SizedBox(height: NovaSpacing.xxs),
                     // Class

@@ -10,6 +10,7 @@ import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/search_results.dart';
+import '../utils/text_highlight.dart';
 
 /// Compact tile for event search results
 class EventSearchTile extends StatelessWidget {
@@ -50,16 +51,27 @@ class EventSearchTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Title
-                  Text(
-                    event.title,
-                    style: NovaTextStyles.body.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: NovaColors.textPrimaryStatic,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  // Title with highlighting
+                  highlightQuery != null && highlightQuery!.isNotEmpty
+                      ? HighlightedText(
+                          text: event.title,
+                          query: highlightQuery!,
+                          style: NovaTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: NovaColors.textPrimaryStatic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : Text(
+                          event.title,
+                          style: NovaTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: NovaColors.textPrimaryStatic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                   const SizedBox(height: NovaSpacing.xxs),
                   // Date and location row
                   Row(

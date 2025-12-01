@@ -1,7 +1,7 @@
 /// Search screen
 ///
 /// Main search screen with adaptive search bar and results sections.
-/// Supports live search with 500ms debouncing.
+/// Supports live search with 500ms debouncing, search history, and highlighting.
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -13,10 +13,14 @@ import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/features/events/presentation/screens/event_detail_screen.dart';
 import 'package:nova/features/profile/presentation/screens/other_profile_screen.dart';
 import '../providers/search_provider.dart';
+import '../providers/search_history_provider.dart';
 import '../widgets/adaptive_search_bar.dart';
 import '../widgets/event_search_tile.dart';
 import '../widgets/profile_search_tile.dart';
 import '../widgets/search_results_section.dart';
+import '../widgets/recent_searches_widget.dart';
+import '../widgets/search_empty_state.dart';
+import '../widgets/search_loading_skeleton.dart';
 
 /// Main search screen
 class SearchScreen extends ConsumerStatefulWidget {
@@ -75,7 +79,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               notifier.updateQuery(query);
             },
             onSubmitted: (query) {
-              notifier.searchNow(query);
+              _onSearchSubmitted(query, notifier);
             },
             onClear: () {
               notifier.clear();
@@ -89,19 +93,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: searchState.results.when(
             data: (results) {
               if (searchState.query.trim().length < 2) {
-                return _buildInitialState();
+                return _buildInitialState(notifier);
               }
               if (!results.hasResults) {
-                return _buildNoResultsState(searchState.query);
+                return SearchEmptyState.noResults(
+                  searchQuery: searchState.query,
+                );
               }
               return _buildResults(results, searchState.query);
             },
-            loading: () => _buildLoadingState(),
+            loading: () => const SearchLoadingSkeleton(),
             error: (error, stack) => _buildErrorState(error.toString()),
           ),
         ),
       ],
     );
+  }
+
+  void _onSearchSubmitted(String query, SearchNotifier notifier) {
+    notifier.searchNow(query);
+    // Save to history
+    if (query.trim().length >= 2) {
+      ref.read(searchHistoryProvider.notifier).addQuery(query);
+    }
   }
 
   Widget _buildOfflineBanner() {
@@ -131,68 +145,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildInitialState() {
-    return Center(
+  Widget _buildInitialState(SearchNotifier notifier) {
+    return SingleChildScrollView(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search,
-            size: 64,
-            color: NovaColors.textTertiaryStatic,
+          // Recent searches
+          RecentSearchesWidget(
+            onQuerySelected: (query) {
+              notifier.searchNow(query);
+              ref.read(searchHistoryProvider.notifier).addQuery(query);
+            },
+            onClearAll: () {},
           ),
-          const SizedBox(height: NovaSpacing.l),
-          Text(
-            'Cerca eventi e persone',
-            style: NovaTextStyles.bodyLarge.copyWith(
-              color: NovaColors.textSecondaryStatic,
-            ),
-          ),
-          const SizedBox(height: NovaSpacing.xs),
-          Text(
-            'Digita almeno 2 caratteri per iniziare',
-            style: NovaTextStyles.caption.copyWith(
-              color: NovaColors.textTertiaryStatic,
-            ),
-          ),
+          // Empty state
+          const SearchEmptyState.initial(),
         ],
       ),
-    );
-  }
-
-  Widget _buildNoResultsState(String query) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: NovaColors.textTertiaryStatic,
-          ),
-          const SizedBox(height: NovaSpacing.l),
-          Text(
-            'Nessun risultato',
-            style: NovaTextStyles.bodyLarge.copyWith(
-              color: NovaColors.textSecondaryStatic,
-            ),
-          ),
-          const SizedBox(height: NovaSpacing.xs),
-          Text(
-            'Nessun risultato per "$query"',
-            style: NovaTextStyles.caption.copyWith(
-              color: NovaColors.textTertiaryStatic,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return const Center(
-      child: CircularProgressIndicator(),
     );
   }
 
@@ -233,6 +201,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     dynamic results,
     String query,
   ) {
+    // Save successful search to history
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (results.hasResults && query.trim().length >= 2) {
+        ref.read(searchHistoryProvider.notifier).addQuery(query);
+      }
+    });
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
