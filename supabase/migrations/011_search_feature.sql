@@ -30,7 +30,7 @@ ADD COLUMN IF NOT EXISTS search_vector tsvector
 GENERATED ALWAYS AS (
   setweight(to_tsvector('italian', coalesce(full_name, '')), 'A') ||
   setweight(to_tsvector('italian', coalesce(bio, '')), 'B') ||
-  setweight(to_tsvector('italian', coalesce(class_name, '')), 'C')
+  setweight(to_tsvector('italian', coalesce(class, '')), 'C')
 ) STORED;
 
 -- Create GIN index for fast FTS queries on profiles
@@ -101,7 +101,7 @@ BEGIN
     p.id,
     p.full_name,
     p.bio,
-    p.class_name,
+    p.class AS class_name,
     p.avatar_url,
     ts_rank(p.search_vector, websearch_to_tsquery('italian', search_query)) as rank
   FROM profiles p
@@ -126,6 +126,6 @@ GRANT EXECUTE ON FUNCTION search_profiles(text, int) TO authenticated;
 -- ============================================================================
 
 COMMENT ON COLUMN events.search_vector IS 'Full-text search vector for events (Italian language). Weights: A=title, B=description, C=location';
-COMMENT ON COLUMN profiles.search_vector IS 'Full-text search vector for profiles (Italian language). Weights: A=full_name, B=bio, C=class_name';
+COMMENT ON COLUMN profiles.search_vector IS 'Full-text search vector for profiles (Italian language). Weights: A=full_name, B=bio, C=class';
 COMMENT ON FUNCTION search_events IS 'Search approved events using PostgreSQL FTS with Italian stemming. Returns max 20 results ranked by relevance.';
 COMMENT ON FUNCTION search_profiles IS 'Search visible profiles using PostgreSQL FTS with Italian stemming. Returns max 20 results ranked by relevance.';
