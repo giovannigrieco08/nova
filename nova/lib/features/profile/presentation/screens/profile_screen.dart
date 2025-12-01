@@ -116,8 +116,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
                 child: AdaptiveButton(
+                  type: AdaptiveButtonType.secondary,
                   onPressed: () => _navigateToEditProfile(profile),
-                  backgroundColor: NovaColors.backgroundSecondary(context),
                   child: Text(
                     'Modifica Profilo',
                     style: NovaTypography.bodyMedium.copyWith(
@@ -312,10 +312,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               SizedBox(height: NovaSpacing.large),
               AdaptiveButton(
+                type: AdaptiveButtonType.primary,
                 onPressed: () {
                   ref.invalidate(currentProfileProvider);
                 },
-                backgroundColor: NovaColors.brandViolet,
                 child: Text(
                   'Riprova',
                   style: NovaTypography.bodyMedium.copyWith(

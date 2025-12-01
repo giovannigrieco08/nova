@@ -307,7 +307,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     children: [
                       Text(
                         'Notifiche disattivate',
-                        style: NovaTextStyles.caption.copyWith(
+                        style: NovaTypography.caption.copyWith(
                           fontWeight: FontWeight.w600,
                           color: NovaColors.warning(context),
                         ),
@@ -315,7 +315,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       SizedBox(height: 2),
                       Text(
                         'Tocca per abilitarle nelle impostazioni',
-                        style: NovaTextStyles.caption.copyWith(
+                        style: NovaTypography.caption.copyWith(
                           color: NovaColors.textSecondary(context),
                         ),
                       ),
@@ -599,7 +599,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _toggleProfileVisibility(Profile profile, bool value) async {
     try {
       final updateProfile = ref.read(updateProfileUseCaseProvider);
-      await updateProfile(profile.id, {'profile_visible': value});
+      await updateProfile(profile.userId, {'profile_visible': value});
 
       // Invalidate profile to refresh UI
       ref.invalidate(currentProfileProvider);
@@ -623,7 +623,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _showLoadingDialog('Generazione dati in corso...');
 
       // Trigger export
-      await exportNotifier.exportUserData(profile.id);
+      await exportNotifier.exportUserData(profile.userId);
 
       if (!mounted) return;
 
@@ -704,7 +704,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _softDeleteAccount(Profile profile) async {
     try {
       final deleteNotifier = ref.read(accountDeletionProvider.notifier);
-      await deleteNotifier.softDeleteAccount(profile.id);
+      await deleteNotifier.softDeleteAccount(profile.userId);
 
       final deleteState = ref.read(accountDeletionProvider);
 

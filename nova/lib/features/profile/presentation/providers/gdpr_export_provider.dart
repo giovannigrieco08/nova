@@ -4,6 +4,13 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Export metadata containing download URL
+class GDPRExportMetadata {
+  final String downloadUrl;
+
+  const GDPRExportMetadata({required this.downloadUrl});
+}
+
 /// State class for GDPR export status
 class GDPRExportState {
   final bool isExporting;
@@ -27,6 +34,12 @@ class GDPRExportState {
       error: error ?? this.error,
     );
   }
+
+  /// Convenience getters for settings_screen.dart API compatibility
+  bool get isSuccess => downloadUrl != null && error == null && !isExporting;
+  bool get isError => error != null;
+  String? get errorMessage => error;
+  GDPRExportMetadata? get metadata => downloadUrl != null ? GDPRExportMetadata(downloadUrl: downloadUrl!) : null;
 }
 
 /// GDPR Export Notifier
@@ -34,6 +47,9 @@ class GDPRExportNotifier extends StateNotifier<GDPRExportState> {
   GDPRExportNotifier() : super(const GDPRExportState());
 
   /// Request data export for user
+  /// Alias: exportUserData for settings_screen.dart compatibility
+  Future<void> exportUserData(String userId) => requestExport(userId);
+
   Future<void> requestExport(String userId) async {
     state = state.copyWith(isExporting: true, error: null);
 
@@ -92,6 +108,9 @@ class AccountDeletionState {
       error: error ?? this.error,
     );
   }
+
+  /// Convenience getter for settings_screen.dart API compatibility
+  String? get errorMessage => error;
 }
 
 /// Account Deletion Notifier
@@ -99,6 +118,9 @@ class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
   AccountDeletionNotifier() : super(const AccountDeletionState());
 
   /// Soft delete user account
+  /// Alias: softDeleteAccount for settings_screen.dart compatibility
+  Future<void> softDeleteAccount(String userId) => deleteAccount(userId);
+
   Future<void> deleteAccount(String userId) async {
     state = state.copyWith(isDeleting: true, error: null);
 

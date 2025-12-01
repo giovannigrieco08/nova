@@ -80,7 +80,10 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
   }
 
   /// Build profile view with data
-  Widget _buildProfileView(Profile profile, AsyncValue<ProfileStats> statsAsync) {
+  Widget _buildProfileView(Profile? profile, AsyncValue<ProfileStats?> statsAsync) {
+    if (profile == null) {
+      return _buildErrorView(Exception('Profile not found'));
+    }
     return AdaptiveScaffold(
       appBar: _buildAppBar(profile),
       body: RefreshIndicator(
@@ -102,7 +105,9 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
             // Profile stats
             SliverToBoxAdapter(
               child: statsAsync.when(
-                data: (stats) => widgets.UserProfileStats(stats: stats),
+                data: (stats) => stats != null
+                    ? widgets.UserProfileStats(stats: stats)
+                    : const SizedBox.shrink(),
                 loading: () => Padding(
                   padding: EdgeInsets.all(NovaSpacing.medium),
                   child: const AdaptiveLoadingIndicator(),
@@ -121,8 +126,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
                 child: AdaptiveButton(
+                  type: AdaptiveButtonType.secondary,
                   onPressed: () => _shareProfile(profile),
-                  backgroundColor: NovaColors.backgroundSecondary(context),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -168,7 +173,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
 
   /// Build app bar with profile name
   PreferredSizeWidget _buildAppBar(Profile profile) {
-    final displayName = profile.fullName ?? profile.username;
+    final displayName = profile.fullName.isNotEmpty ? profile.fullName : profile.username;
 
     if (Platform.isIOS) {
       return CupertinoNavigationBar(
@@ -191,7 +196,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
   }
 
   /// Build events grid (created events only)
-  Widget _buildEventsGrid(Profile profile, AsyncValue<ProfileStats> statsAsync) {
+  Widget _buildEventsGrid(Profile profile, AsyncValue<ProfileStats?> statsAsync) {
     // TODO(T037): Replace with actual event queries
     // For now, show placeholder empty state
 
@@ -230,7 +235,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
         return TutorProfileSection(
           profile: tutorProfile,
           isOwnProfile: false, // T046: External profile view
-          authorName: profile.fullName ?? profile.username, // For ContactTutorSheet
+          authorName: profile.fullName.isNotEmpty ? profile.fullName : profile.username, // For ContactTutorSheet
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -320,10 +325,10 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
             SizedBox(height: NovaSpacing.large),
             if (!isPrivacyError)
               AdaptiveButton(
+                type: AdaptiveButtonType.primary,
                 onPressed: () {
                   ref.invalidate(otherProfileProvider(widget.userId));
                 },
-                backgroundColor: NovaColors.brandViolet,
                 child: Text(
                   'Riprova',
                   style: NovaTypography.bodyMedium.copyWith(
@@ -334,8 +339,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
               ),
             if (isPrivacyError)
               AdaptiveButton(
+                type: AdaptiveButtonType.secondary,
                 onPressed: () => Navigator.pop(context),
-                backgroundColor: NovaColors.backgroundSecondary(context),
                 child: Text(
                   'Torna indietro',
                   style: NovaTypography.bodyMedium.copyWith(

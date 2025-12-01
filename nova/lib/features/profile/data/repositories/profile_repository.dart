@@ -4,9 +4,13 @@
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../domain/entities/profile.dart';
+import '../../domain/entities/profile_stats.dart';
 import '../datasources/profile_local_datasource.dart';
 import '../datasources/profile_remote_datasource.dart';
 import '../models/profile_model.dart';
+
+// Re-export ProfileStats for convenience
+export '../../domain/entities/profile_stats.dart';
 
 /// Repository for profile operations with offline-first strategy
 class ProfileRepository {
@@ -277,10 +281,6 @@ class ProfileRepository {
     }
   }
 }
-
-// ProfileStats is defined in domain/entities/profile_stats.dart
-// Re-export for convenience
-export '../../domain/entities/profile_stats.dart';
 
 /// Custom exceptions
 
