@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nova/core/theme/nova_colors.dart';
+import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/utils/platform_utils.dart';
@@ -356,7 +357,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: NovaColors.primaryLight,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: NovaRadius.circularXs,
                 ),
                 child: Text(
                   count.toString(),

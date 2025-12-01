@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:nova/core/theme/nova_colors.dart';
+import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 
@@ -54,7 +55,7 @@ class SearchResultsSection extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: NovaColors.dividerLight,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: NovaRadius.circularS,
                 ),
                 child: Text(
                   count.toString(),

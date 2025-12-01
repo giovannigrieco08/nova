@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nova/core/theme/nova_colors.dart';
+import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import '../providers/search_history_provider.dart';
@@ -107,10 +108,10 @@ class _SearchChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: NovaColors.surfaceLight,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: NovaRadius.circularM,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: NovaRadius.circularM,
         child: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: NovaSpacing.m,
@@ -121,7 +122,7 @@ class _SearchChip extends StatelessWidget {
               color: NovaColors.borderLight,
               width: 1,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: NovaRadius.circularM,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
