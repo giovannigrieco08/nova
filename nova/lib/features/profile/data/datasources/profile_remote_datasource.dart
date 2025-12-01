@@ -4,6 +4,7 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile_model.dart';
+import '../../domain/entities/profile_stats.dart';
 
 /// Remote data source for profile operations using Supabase
 class ProfileRemoteDataSource {
@@ -124,6 +125,26 @@ class ProfileRemoteDataSource {
     );
 
     return result as String?;
+  }
+
+  /// Get profile statistics (events created, participations)
+  /// Uses Supabase RPC function
+  Future<ProfileStats> getProfileStats(String userId) async {
+    try {
+      final result = await _supabase.rpc(
+        'get_profile_stats',
+        params: {'p_user_id': userId},
+      );
+
+      if (result == null || (result as List).isEmpty) {
+        return ProfileStats.empty();
+      }
+
+      return ProfileStats.fromJson(result[0] as Map<String, dynamic>);
+    } catch (e) {
+      // Return empty stats on error
+      return ProfileStats.empty();
+    }
   }
 }
 

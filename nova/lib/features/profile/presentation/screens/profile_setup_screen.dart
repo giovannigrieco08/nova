@@ -195,10 +195,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       }
 
       // Create profile
+      final email = supabase.auth.currentUser?.email ?? '';
       await createProfileUseCase(
         userId: userId,
+        email: email,
         fullName: _nameController.text.trim(),
-        classValue: _selectedClass!,
+        classYear: _selectedClass!,
         avatarUrl: _avatarUrl, // Include avatar URL if uploaded
       );
 
@@ -242,12 +244,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       }
 
       // Create incomplete profile (class = null)
+      final email = supabase.auth.currentUser?.email ?? '';
       await createProfileUseCase(
         userId: userId,
+        email: email,
         fullName: _nameController.text.trim().isNotEmpty
             ? _nameController.text.trim()
             : 'Utente Nova',
-        classValue: null, // Incomplete profile
+        classYear: null, // Incomplete profile
       );
 
       if (mounted) {
