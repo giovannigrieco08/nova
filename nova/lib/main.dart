@@ -37,6 +37,8 @@ import 'package:nova/features/events/data/models/like_model.dart';
 import 'package:nova/features/events/data/models/participation_model.dart';
 import 'package:nova/features/events/data/models/report_model.dart';
 import 'package:nova/features/events/domain/entities/offline_action.dart';
+// Search feature imports (Feature 010)
+import 'package:nova/features/search/data/models/search_results_cache.dart';
 
 /// Firebase Cloud Messaging background message handler
 /// Must be top-level function (not inside a class)
@@ -136,6 +138,31 @@ Future<void> main() async {
     }
   } catch (e) {
     debugPrint('OfflineActionAdapter already registered: $e');
+  }
+
+  // Search feature adapters (Feature 010: Search)
+  try {
+    if (!Hive.isAdapterRegistered(8)) {
+      Hive.registerAdapter(SearchResultsCacheAdapter());
+    }
+  } catch (e) {
+    debugPrint('SearchResultsCacheAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(9)) {
+      Hive.registerAdapter(CachedEventResultAdapter());
+    }
+  } catch (e) {
+    debugPrint('CachedEventResultAdapter already registered: $e');
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(10)) {
+      Hive.registerAdapter(CachedProfileResultAdapter());
+    }
+  } catch (e) {
+    debugPrint('CachedProfileResultAdapter already registered: $e');
   }
 
   await Hive.openBox<ProfileModel>('profiles');

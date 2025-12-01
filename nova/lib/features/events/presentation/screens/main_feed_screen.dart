@@ -22,6 +22,10 @@ import '../../../moderation/presentation/providers/pending_count_provider.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import 'events_feed_screen.dart';
 import 'event_creation_screen.dart';
+import '../../../notifications/presentation/widgets/notification_badge.dart';
+import '../../../notifications/presentation/screens/notification_list_screen.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
+import '../../../search/presentation/screens/search_screen.dart';
 
 /// Main feed screen with tab navigation (Eventi/Bacheche)
 ///
@@ -64,13 +68,34 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     final route = navRoutes[index];
     switch (route) {
       case 'home':
+        setState(() {
+          _currentSection = 'Eventi';
+        });
         _tabController.animateTo(0);
         break;
-      case 'friends':
-        _showComingSoonDialog('Amici');
+      case 'cerca':
+        Navigator.push(
+          context,
+          context.isIOS
+              ? CupertinoPageRoute(
+                  builder: (context) => const SearchScreen(),
+                )
+              : MaterialPageRoute(
+                  builder: (context) => const SearchScreen(),
+                ),
+        );
         break;
       case 'chat':
-        _showComingSoonDialog('Chat');
+        Navigator.push(
+          context,
+          context.isIOS
+              ? CupertinoPageRoute(
+                  builder: (context) => const ChatScreen(),
+                )
+              : MaterialPageRoute(
+                  builder: (context) => const ChatScreen(),
+                ),
+        );
         break;
       case 'moderation':
         Navigator.push(
@@ -112,9 +137,9 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
         label: 'Home',
       ),
       const NavItem(
-        sfSymbol: 'person.2.fill',
-        materialIcon: Icons.people,
-        label: 'Amici',
+        sfSymbol: 'magnifyingglass',
+        materialIcon: Icons.search,
+        label: 'Cerca',
       ),
       const NavItem(
         sfSymbol: 'message.fill',
@@ -154,7 +179,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
 
   /// Get route identifiers for navigation items based on user role
   List<String> _getNavRoutes(UserRole userRole) {
-    final routes = <String>['home', 'friends', 'chat'];
+    final routes = <String>['home', 'cerca', 'chat'];
 
     if (userRole == UserRole.moderator || userRole == UserRole.admin) {
       routes.add('moderation');
@@ -290,8 +315,16 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
 
   /// Handle notifications icon tap
   void _onNotificationsTap() {
-    // TODO(notifications/future): Navigate to NotificationsScreen when implemented
-    _showComingSoonDialog('Notifiche');
+    Navigator.push(
+      context,
+      context.isIOS
+          ? CupertinoPageRoute(
+              builder: (context) => const NotificationListScreen(),
+            )
+          : MaterialPageRoute(
+              builder: (context) => const NotificationListScreen(),
+            ),
+    );
   }
 
   @override
@@ -379,12 +412,14 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
                             ),
                           ),
 
-                          // Notifiche destra
+                          // Notifiche destra con badge
                           IconButton(
-                            icon: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.black,
-                              size: 26,
+                            icon: NotificationBadge(
+                              child: const Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.black,
+                                size: 26,
+                              ),
                             ),
                             onPressed: _onNotificationsTap,
                             padding: const EdgeInsets.only(right: 8),
