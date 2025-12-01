@@ -17,10 +17,10 @@ import '../providers/search_history_provider.dart';
 import '../widgets/adaptive_search_bar.dart';
 import '../widgets/event_search_tile.dart';
 import '../widgets/profile_search_tile.dart';
-import '../widgets/search_results_section.dart';
 import '../widgets/recent_searches_widget.dart';
 import '../widgets/search_empty_state.dart';
 import '../widgets/search_loading_skeleton.dart';
+import '../widgets/animated_search_result.dart';
 
 /// Main search screen
 class SearchScreen extends ConsumerStatefulWidget {
@@ -208,52 +208,176 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       }
     });
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Events section
-          SearchResultsSection(
-            title: 'Eventi',
-            count: results.events.length,
-            showDivider: results.profiles.isNotEmpty,
-            children: results.events.map<Widget>((event) {
-              return EventSearchTile(
-                event: event,
-                highlightQuery: query,
-                onTap: () => _navigateToEvent(event.id),
-              );
-            }).toList(),
+    // Build flat list of items for ListView.builder (60fps optimization)
+    final items = <_SearchResultItem>[];
+    int animationIndex = 0;
+
+    // Add events section header
+    if (results.events.isNotEmpty) {
+      items.add(_SearchResultItem(
+        type: _ItemType.sectionHeader,
+        title: 'Eventi',
+        count: results.events.length,
+        showDivider: results.profiles.isNotEmpty,
+        animationIndex: animationIndex++,
+      ));
+      // Add event tiles
+      for (final event in results.events) {
+        items.add(_SearchResultItem(
+          type: _ItemType.event,
+          event: event,
+          query: query,
+          animationIndex: animationIndex++,
+        ));
+      }
+    }
+
+    // Add profiles section header
+    if (results.profiles.isNotEmpty) {
+      items.add(_SearchResultItem(
+        type: _ItemType.sectionHeader,
+        title: 'Utenti',
+        count: results.profiles.length,
+        showDivider: false,
+        animationIndex: animationIndex++,
+      ));
+      // Add profile tiles
+      for (final profile in results.profiles) {
+        items.add(_SearchResultItem(
+          type: _ItemType.profile,
+          profile: profile,
+          query: query,
+          animationIndex: animationIndex++,
+        ));
+      }
+    }
+
+    // Add cache indicator
+    if (results.isFromCache) {
+      items.add(_SearchResultItem(
+        type: _ItemType.cacheIndicator,
+        animationIndex: animationIndex++,
+      ));
+    }
+
+    // Use ListView.builder for 60fps performance
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: items.length,
+      // Optimize scroll performance
+      addAutomaticKeepAlives: false,
+      addRepaintBoundaries: true,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return AnimatedSearchResult(
+          index: item.animationIndex,
+          child: _buildResultItem(item),
+        );
+      },
+    );
+  }
+
+  Widget _buildResultItem(_SearchResultItem item) {
+    switch (item.type) {
+      case _ItemType.sectionHeader:
+        return _buildSectionHeader(
+          title: item.title!,
+          count: item.count!,
+          showDivider: item.showDivider!,
+        );
+      case _ItemType.event:
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: NovaSpacing.l,
+            vertical: NovaSpacing.xs,
           ),
-          // Profiles section
-          SearchResultsSection(
-            title: 'Utenti',
-            count: results.profiles.length,
-            showDivider: false,
-            children: results.profiles.map<Widget>((profile) {
-              return ProfileSearchTile(
-                profile: profile,
-                highlightQuery: query,
-                onTap: () => _navigateToProfile(profile.id),
-              );
-            }).toList(),
+          child: EventSearchTile(
+            event: item.event!,
+            highlightQuery: item.query,
+            onTap: () => _navigateToEvent(item.event!.id),
           ),
-          // From cache indicator
-          if (results.isFromCache)
-            Padding(
-              padding: const EdgeInsets.all(NovaSpacing.l),
-              child: Center(
+        );
+      case _ItemType.profile:
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: NovaSpacing.l,
+            vertical: NovaSpacing.xs,
+          ),
+          child: ProfileSearchTile(
+            profile: item.profile!,
+            highlightQuery: item.query,
+            onTap: () => _navigateToProfile(item.profile!.id),
+          ),
+        );
+      case _ItemType.cacheIndicator:
+        return Padding(
+          padding: const EdgeInsets.all(NovaSpacing.l),
+          child: Center(
+            child: Text(
+              'Risultati dalla cache',
+              style: NovaTextStyles.caption.copyWith(
+                color: NovaColors.textTertiaryStatic,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        );
+    }
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required int count,
+    required bool showDivider,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            NovaSpacing.l,
+            NovaSpacing.m,
+            NovaSpacing.l,
+            NovaSpacing.s,
+          ),
+          child: Row(
+            children: [
+              Text(
+                title,
+                style: NovaTextStyles.h3.copyWith(
+                  color: NovaColors.textPrimaryStatic,
+                ),
+              ),
+              const SizedBox(width: NovaSpacing.xs),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: NovaSpacing.xs,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: NovaColors.primaryLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Text(
-                  'Risultati dalla cache',
+                  count.toString(),
                   style: NovaTextStyles.caption.copyWith(
-                    color: NovaColors.textTertiaryStatic,
-                    fontStyle: FontStyle.italic,
+                    color: NovaColors.primaryStatic,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Padding(
+            padding: const EdgeInsets.only(bottom: NovaSpacing.m),
+            child: Divider(
+              height: 1,
+              color: NovaColors.dividerLight,
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
@@ -288,4 +412,39 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
   }
+}
+
+// ============================================================================
+// HELPER CLASSES FOR LISTVIEW.BUILDER
+// ============================================================================
+
+/// Item types for flat list
+enum _ItemType {
+  sectionHeader,
+  event,
+  profile,
+  cacheIndicator,
+}
+
+/// Wrapper for search result items in flat list
+class _SearchResultItem {
+  final _ItemType type;
+  final String? title;
+  final int? count;
+  final bool? showDivider;
+  final dynamic event;
+  final dynamic profile;
+  final String? query;
+  final int animationIndex;
+
+  const _SearchResultItem({
+    required this.type,
+    this.title,
+    this.count,
+    this.showDivider,
+    this.event,
+    this.profile,
+    this.query,
+    required this.animationIndex,
+  });
 }
