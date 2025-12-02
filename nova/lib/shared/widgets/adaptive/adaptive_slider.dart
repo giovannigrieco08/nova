@@ -51,7 +51,7 @@ class AdaptiveSlider extends StatelessWidget {
         value: value,
         min: min,
         max: max,
-        onChanged: onChanged,
+        onChanged: onChanged ?? (_) {},
       );
     }
 

@@ -1,0 +1,423 @@
+openapi: 3.0.3
+info:
+  title: Global Chat API
+  description: Supabase REST API contracts for Nova Global Chat feature
+  version: 1.0.0
+
+servers:
+  - url: https://{project-ref}.supabase.co/rest/v1
+    description: Supabase REST API
+
+paths:
+  /chat_messages:
+    get:
+      operationId: getChatMessages
+      summary: Get paginated chat messages
+      description: Retrieves chat messages with author profiles, reactions, and media info
+      parameters:
+        - name: select
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "*,profiles!user_id(user_id,full_name,avatar_url,class),chat_reactions(emoji,user_id),chat_media(id,media_type,is_viewed)"
+        - name: order
+          in: query
+          schema:
+            type: string
+            example: created_at.desc
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of chat messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessageWithRelations'
+        '401':
+          description: Unauthorized - user not authenticated
+
+    post:
+      operationId: sendChatMessage
+      summary: Send a new chat message
+      description: Creates a new message in the global chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Message created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+        '400':
+          description: Invalid request (empty message, profanity, etc.)
+        '429':
+          description: Rate limit exceeded (10 messages/minute)
+
+  /chat_reactions:
+    post:
+      operationId: addReaction
+      summary: Add reaction to a message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddReactionRequest'
+      responses:
+        '201':
+          description: Reaction added
+        '409':
+          description: Reaction already exists
+
+    delete:
+      operationId: removeReaction
+      summary: Remove own reaction from a message
+      parameters:
+        - name: message_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: emoji
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Reaction removed
+
+  /chat_reports:
+    post:
+      operationId: reportMessage
+      summary: Report an inappropriate message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportMessageRequest'
+      responses:
+        '201':
+          description: Report submitted
+        '409':
+          description: Already reported this message
+
+  /chat_media:
+    patch:
+      operationId: markMediaViewed
+      summary: Mark view-once media as viewed
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_viewed:
+                  type: boolean
+                  example: true
+                viewed_at:
+                  type: string
+                  format: date-time
+                viewed_by_user_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Media marked as viewed
+        '403':
+          description: Cannot view own media or already viewed
+
+  /rpc/autocomplete_users:
+    post:
+      operationId: autocompleteUsers
+      summary: Autocomplete usernames for @mentions
+      description: Returns users matching the search query for mention autocomplete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                search_query:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  example: "mar"
+                limit_count:
+                  type: integer
+                  default: 5
+      responses:
+        '200':
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserAutocomplete'
+
+components:
+  schemas:
+    ChatMessage:
+      type: object
+      required:
+        - id
+        - user_id
+        - content
+        - mentions
+        - reaction_count
+        - reply_count
+        - report_count
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        reply_to_id:
+          type: string
+          format: uuid
+          nullable: true
+        content:
+          type: string
+          minLength: 1
+          maxLength: 500
+        mentions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MentionInfo'
+        reaction_count:
+          type: integer
+          minimum: 0
+        reply_count:
+          type: integer
+          minimum: 0
+        report_count:
+          type: integer
+          minimum: 0
+        hidden_at:
+          type: string
+          format: date-time
+          nullable: true
+        hidden_reason:
+          type: string
+          nullable: true
+          enum: [auto_hide_reports, moderator_removed]
+        created_at:
+          type: string
+          format: date-time
+
+    ChatMessageWithRelations:
+      allOf:
+        - $ref: '#/components/schemas/ChatMessage'
+        - type: object
+          properties:
+            profiles:
+              $ref: '#/components/schemas/AuthorProfile'
+            chat_reactions:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChatReaction'
+            chat_media:
+              $ref: '#/components/schemas/ChatMedia'
+              nullable: true
+
+    AuthorProfile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        class:
+          type: string
+          example: "3A"
+
+    MentionInfo:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        start_index:
+          type: integer
+        end_index:
+          type: integer
+
+    ChatReaction:
+      type: object
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        emoji:
+          type: string
+          enum: ["❤️", "👍", "😂", "😮", "😢", "🔥"]
+        created_at:
+          type: string
+          format: date-time
+
+    ChatMedia:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        message_id:
+          type: string
+          format: uuid
+        media_type:
+          type: string
+          enum: [image, video]
+        is_viewed:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+
+    ChatReport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        message_id:
+          type: string
+          format: uuid
+        reporter_user_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [spam, inappropriate, bullying, off_topic]
+        status:
+          type: string
+          enum: [pending, reviewed, dismissed]
+        created_at:
+          type: string
+          format: date-time
+
+    SendMessageRequest:
+      type: object
+      required:
+        - user_id
+        - content
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+          minLength: 1
+          maxLength: 500
+        reply_to_id:
+          type: string
+          format: uuid
+          nullable: true
+        mentions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MentionInfo'
+          default: []
+
+    AddReactionRequest:
+      type: object
+      required:
+        - message_id
+        - user_id
+        - emoji
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        emoji:
+          type: string
+          enum: ["❤️", "👍", "😂", "😮", "😢", "🔥"]
+
+    ReportMessageRequest:
+      type: object
+      required:
+        - message_id
+        - reporter_user_id
+        - reason
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        reporter_user_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [spam, inappropriate, bullying, off_topic]
+
+    UserAutocomplete:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        class:
+          type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

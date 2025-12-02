@@ -4,9 +4,13 @@
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../domain/entities/profile.dart';
+import '../../domain/entities/profile_stats.dart';
 import '../datasources/profile_local_datasource.dart';
 import '../datasources/profile_remote_datasource.dart';
 import '../models/profile_model.dart';
+
+// Re-export ProfileStats for convenience
+export '../../domain/entities/profile_stats.dart';
 
 /// Repository for profile operations with offline-first strategy
 class ProfileRepository {
@@ -218,8 +222,8 @@ class ProfileRepository {
       final localProfile = _localDataSource.getProfile(userId);
 
       if (localProfile != null) {
-        return localProfile.classValue != null &&
-            localProfile.classValue!.isNotEmpty;
+        return localProfile.classYear != null &&
+            localProfile.classYear!.isNotEmpty;
       }
 
       return false;
@@ -238,18 +242,43 @@ class ProfileRepository {
   ) {
     return ProfileModel(
       userId: current.userId,
+      email: current.email,
       fullName: updates['full_name'] as String? ?? current.fullName,
-      classValue: updates['class'] as String? ?? current.classValue,
-      pronouns: updates.containsKey('pronouns')
-          ? updates['pronouns'] as String?
-          : current.pronouns,
+      username: current.username,
+      classYear: updates['class'] as String? ?? current.classYear,
       avatarUrl: updates.containsKey('avatar_url')
           ? updates['avatar_url'] as String?
           : current.avatarUrl,
       bio: updates.containsKey('bio') ? updates['bio'] as String? : current.bio,
+      role: current.role,
+      profileVisible: updates['profile_visible'] as bool? ?? current.profileVisible,
       createdAt: current.createdAt,
       updatedAt: DateTime.now(), // Update timestamp
+      deletedAt: current.deletedAt,
     );
+  }
+
+  /// Get profile statistics (events created, participations)
+  Future<ProfileStats> getProfileStats(String userId) async {
+    try {
+      return await _remoteDataSource.getProfileStats(userId);
+    } catch (e) {
+      // Return empty stats on error
+      return ProfileStats.empty();
+    }
+  }
+
+  /// Get public profile by userId (for other users)
+  Future<Profile?> getPublicProfile(String userId) async {
+    try {
+      final model = await _remoteDataSource.getProfileById(userId);
+      if (model != null && model.profileVisible) {
+        return model.toEntity();
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 }
 

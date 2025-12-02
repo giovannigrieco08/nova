@@ -181,16 +181,16 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
             updatedProfile = profile.copyWith(fullName: value as String);
             break;
           case 'class':
-            updatedProfile = profile.copyWith(classValue: value as String);
-            break;
-          case 'pronouns':
-            updatedProfile = profile.copyWith(pronouns: value as String?);
+            updatedProfile = profile.copyWith(classYear: value as String);
             break;
           case 'avatar_url':
             updatedProfile = profile.copyWith(avatarUrl: value as String?);
             break;
           case 'bio':
             updatedProfile = profile.copyWith(bio: value as String?);
+            break;
+          case 'profile_visible':
+            updatedProfile = profile.copyWith(profileVisible: value as bool);
             break;
           default:
             throw Exception('Unknown field: $fieldName');
@@ -236,3 +236,37 @@ final profileNotifierProvider =
 
   return ProfileNotifier(repository, userId);
 });
+
+/// Current user's profile stats provider
+///
+/// Loads profile statistics (events created, participations count)
+/// Usage:
+/// ```dart
+/// final statsAsync = ref.watch(currentProfileStatsProvider);
+/// statsAsync.when(
+///   data: (stats) => Text('${stats.eventsCreatedCount} eventi'),
+///   loading: () => CircularProgressIndicator(),
+///   error: (err, stack) => Text('Error'),
+/// );
+/// ```
+final currentProfileStatsProvider = FutureProvider<ProfileStats>((ref) async {
+  final repository = ref.watch(profileRepositoryProvider);
+  final supabase = ref.watch(supabaseClientProvider);
+
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) {
+    throw Exception('User not authenticated');
+  }
+
+  return await repository.getProfileStats(userId);
+});
+
+/// Update profile use case provider
+///
+/// Wraps ProfileRepository.updateProfile for use in screens
+final updateProfileUseCaseProvider = Provider<Future<void> Function(String, Map<String, dynamic>)>((ref) {
+  final repository = ref.watch(profileRepositoryProvider);
+  return (userId, updates) => repository.updateProfile(userId, updates);
+});
+
+// ProfileStats is exported from profile_repository.dart

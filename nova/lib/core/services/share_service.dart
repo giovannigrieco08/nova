@@ -1,24 +1,27 @@
 // Core Service: ShareService
 // Feature: 004-event-creation-moderation (US4 - Event Sharing)
-// Purpose: Share events via native share sheet with deep links
+// Extended: 006-user-profile (US4 - Profile Sharing)
+// Purpose: Share events and profiles via native share sheet with deep links
 //
-// Deep Link Format: nova://events/{event_id}
-// Share Message Format:
-// "Guarda questo evento su Nova: {event.title}
-//  nova://events/{event_id}"
+// Event Deep Link Format: nova://events/{event_id}
+// Profile Deep Link Format: nova://profiles/{user_id}
 //
 // Usage:
 // ```dart
 // await ShareService.shareEvent(event);
+// final service = ShareService();
+// await service.copyProfileLink(profile);
 // ```
 
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../features/events/domain/entities/event.dart';
+import '../../features/profile/domain/entities/profile.dart';
 
 /// Service for sharing Nova content via native share sheet
 class ShareService {
-  // Prevent instantiation - static utility class
-  ShareService._();
+  /// Default constructor for instance usage (profile sharing)
+  ShareService();
 
   /// Share event via native share sheet
   ///
@@ -132,6 +135,54 @@ $deepLink
     } catch (e) {
       throw ShareException('Failed to share with files: $e');
     }
+  }
+
+  // =========================================================================
+  // PROFILE SHARING (006-user-profile US4)
+  // =========================================================================
+
+  /// Copy profile deep link to clipboard
+  ///
+  /// Deep link format: nova://profiles/{user_id}
+  Future<void> copyProfileLink(Profile profile) async {
+    final deepLink = _generateProfileDeepLink(profile.userId);
+    await Clipboard.setData(ClipboardData(text: deepLink));
+  }
+
+  /// Share profile in chat with pre-filled message
+  ///
+  /// Generates share message and navigates to chat via callback
+  void shareProfileInChat(
+    Profile profile, {
+    required void Function(String message) onNavigateToChat,
+  }) {
+    final deepLink = _generateProfileDeepLink(profile.userId);
+    final displayName = profile.fullName.isNotEmpty ? profile.fullName : profile.username;
+    final message = 'Dai un\'occhiata al profilo di $displayName su Nova!\n$deepLink';
+    onNavigateToChat(message);
+  }
+
+  /// Share profile via native share sheet
+  Future<void> shareProfile(Profile profile) async {
+    final deepLink = _generateProfileDeepLink(profile.userId);
+    final displayName = profile.fullName.isNotEmpty ? profile.fullName : profile.username;
+    final message = 'Dai un\'occhiata al profilo di $displayName su Nova!\n$deepLink';
+
+    try {
+      await Share.share(
+        message,
+        subject: 'Profilo Nova: $displayName',
+      );
+    } catch (e) {
+      throw ShareException('Failed to share profile: $e');
+    }
+  }
+
+  /// Generate deep link for profile
+  ///
+  /// Format: nova://profiles/{user_id}
+  static String _generateProfileDeepLink(String userId) {
+    return 'nova://profiles/$userId';
   }
 }
 

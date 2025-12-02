@@ -44,4 +44,26 @@ class NovaSpacing {
   /// Quadruple extra large spacing (48px)
   /// Usage: Empty states, splash screens, major hero spacing
   static const double xxxxl = 48;
+
+  // ============================================
+  // LEGACY ALIASES (backward compatibility)
+  // ============================================
+
+  /// @deprecated Use [xs] instead
+  static const double xsmall = xs;
+
+  /// @deprecated Use [s] instead
+  static const double small = s;
+
+  /// @deprecated Use [m] instead
+  static const double medium = m;
+
+  /// @deprecated Use [l] instead
+  static const double large = l;
+
+  /// @deprecated Use [xl] instead
+  static const double xlarge = xl;
+
+  /// @deprecated Use [xxl] instead
+  static const double xxlarge = xxl;
 }

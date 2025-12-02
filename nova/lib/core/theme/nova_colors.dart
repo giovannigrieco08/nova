@@ -107,6 +107,34 @@ class NovaColors {
   static const Color infoDark = Color(0xFF60A5FA);
 
   // ============================================
+  // ON-COLOR CONTRASTS (text/icons on colored backgrounds)
+  // ============================================
+
+  /// White - text/icons on primary color
+  static const Color onPrimaryLight = Color(0xFFFFFFFF);
+
+  /// White - text/icons on primary color (dark mode)
+  static const Color onPrimaryDark = Color(0xFFFFFFFF);
+
+  /// White - text/icons on error color
+  static const Color onErrorLight = Color(0xFFFFFFFF);
+
+  /// White - text/icons on error color (dark mode)
+  static const Color onErrorDark = Color(0xFFFFFFFF);
+
+  /// White - text/icons on success color
+  static const Color onSuccessLight = Color(0xFFFFFFFF);
+
+  /// White - text/icons on success color (dark mode)
+  static const Color onSuccessDark = Color(0xFFFFFFFF);
+
+  /// Black - text/icons on warning color (yellow needs dark text)
+  static const Color onWarningLight = Color(0xFF111827);
+
+  /// Black - text/icons on warning color (dark mode)
+  static const Color onWarningDark = Color(0xFF111827);
+
+  // ============================================
   // GLASS TINT COLORS (for liquid glass effect)
   // ============================================
 
@@ -206,4 +234,49 @@ class NovaColors {
   static Color info(BuildContext context) {
     return isDark(context) ? infoDark : infoLight;
   }
+
+  /// On-primary color (context-aware) - for text/icons on primary background
+  static Color onPrimary(BuildContext context) {
+    return isDark(context) ? onPrimaryDark : onPrimaryLight;
+  }
+
+  /// On-error color (context-aware) - for text/icons on error background
+  static Color onError(BuildContext context) {
+    return isDark(context) ? onErrorDark : onErrorLight;
+  }
+
+  /// On-success color (context-aware) - for text/icons on success background
+  static Color onSuccess(BuildContext context) {
+    return isDark(context) ? onSuccessDark : onSuccessLight;
+  }
+
+  /// On-warning color (context-aware) - for text/icons on warning background
+  static Color onWarning(BuildContext context) {
+    return isDark(context) ? onWarningDark : onWarningLight;
+  }
+
+  // ============================================
+  // LEGACY ALIASES (backward compatibility)
+  // ============================================
+
+  /// @deprecated Use [primary] instead
+  static const Color brandViolet = primaryLight;
+
+  /// @deprecated Use gradient with primary colors instead
+  static const Color brandPink = Color(0xFFEC4899); // Pink-500
+
+  /// @deprecated Use [error] instead
+  static const Color instagramRed = Color(0xFFE1306C); // Instagram brand red
+
+  /// @deprecated Use [background] instead
+  static Color backgroundPrimary(BuildContext context) => background(context);
+
+  /// @deprecated Use [surface] instead
+  static Color backgroundSecondary(BuildContext context) => surface(context);
+
+  /// @deprecated Use [card] instead
+  static Color backgroundTertiary(BuildContext context) => card(context);
+
+  /// @deprecated Use [border] instead
+  static Color borderPrimary(BuildContext context) => border(context);
 }

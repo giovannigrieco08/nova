@@ -9,7 +9,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:nova/core/models/auth_state.dart';
+import 'package:nova/core/services/push_notification_service.dart';
 import 'package:nova/features/auth/data/repositories/auth_repository.dart';
+import 'package:nova/features/notifications/domain/entities/notification_permission_state.dart';
+import 'package:nova/features/notifications/presentation/providers/push_providers.dart';
 
 // =====================================================================
 // Provider: Auth Repository Instance
@@ -73,10 +76,16 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Auth repository instance (from provider)
   late final AuthRepository _authRepository;
 
+  /// Push notification service for FCM token management
+  late final PushNotificationService _pushService;
+
   @override
   Future<AuthState> build() async {
     // Get auth repository from provider
     _authRepository = ref.read(authRepositoryProvider);
+
+    // Get push notification service from provider
+    _pushService = ref.read(pushNotificationServiceProvider);
 
     // Debug logging
     assert(() {
@@ -136,6 +145,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
               return true;
             }());
             state = AsyncData(AuthStateAuthenticated(authState.session!.user));
+
+            // Register FCM token for push notifications
+            _registerFcmTokenAfterLogin();
           }
           break;
 
@@ -333,6 +345,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         return true;
       }());
 
+      // Remove FCM token before signing out (to stop push notifications)
+      await _removeFcmTokenBeforeLogout();
+
       // Sign out via repository
       await _authRepository.signOut();
 
@@ -365,6 +380,77 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       state = AsyncError(e, stackTrace);
       return false;
+    }
+  }
+
+  // ===========================================================================
+  // Push Notification Token Management
+  // ===========================================================================
+
+  /// Register FCM token after successful login
+  ///
+  /// Called automatically when user signs in.
+  /// Requests notification permission if not already granted.
+  void _registerFcmTokenAfterLogin() {
+    // Run async without awaiting (fire-and-forget)
+    // This prevents blocking the auth flow
+    Future(() async {
+      try {
+        assert(() {
+          debugPrint('📱 AuthNotifier: Registering FCM token...');
+          return true;
+        }());
+
+        // Initialize push notifications service
+        await _pushService.initialize();
+
+        // Request permission and register token
+        final permission = await _pushService.requestPermission();
+        if (permission == NotificationPermissionState.granted) {
+          await _pushService.registerToken();
+          assert(() {
+            debugPrint('✅ AuthNotifier: FCM token registered successfully');
+            return true;
+          }());
+        } else {
+          assert(() {
+            debugPrint('⚠️ AuthNotifier: Push permission denied, skipping token registration');
+            return true;
+          }());
+        }
+      } catch (e) {
+        // Log error but don't fail auth flow
+        assert(() {
+          debugPrint('⚠️ AuthNotifier: FCM token registration failed - $e');
+          return true;
+        }());
+      }
+    });
+  }
+
+  /// Remove FCM token before logout
+  ///
+  /// Called before sign out to stop push notifications.
+  Future<void> _removeFcmTokenBeforeLogout() async {
+    try {
+      assert(() {
+        debugPrint('📱 AuthNotifier: Removing FCM token...');
+        return true;
+      }());
+
+      // Remove token from Supabase
+      await _pushService.removeToken();
+
+      assert(() {
+        debugPrint('✅ AuthNotifier: FCM token removed successfully');
+        return true;
+      }());
+    } catch (e) {
+      // Log error but don't fail logout flow
+      assert(() {
+        debugPrint('⚠️ AuthNotifier: FCM token removal failed - $e');
+        return true;
+      }());
     }
   }
 }

@@ -1,0 +1,482 @@
+// Screen: BecomeTutorScreen
+// Feature: 012-tutoring-system (Sistema Ripetizioni)
+// Purpose: Form for creating a new tutor profile
+
+import 'dart:io' show Platform;
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_spacing.dart';
+import '../../domain/entities/subject.dart';
+import '../providers/tutor_providers.dart';
+
+/// BecomeTutorScreen - Form for creating a tutor profile
+///
+/// FR-011 to FR-017: Form fields for bio, subjects, price, availability, contacts
+/// Validation: bio ≤200 chars, 1-5 subjects, at least one contact method
+class BecomeTutorScreen extends ConsumerStatefulWidget {
+  const BecomeTutorScreen({super.key});
+
+  @override
+  ConsumerState<BecomeTutorScreen> createState() => _BecomeTutorScreenState();
+}
+
+class _BecomeTutorScreenState extends ConsumerState<BecomeTutorScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _bioController = TextEditingController();
+  final _priceController = TextEditingController(text: '0');
+  final _timeSlotController = TextEditingController();
+  final _whatsappController = TextEditingController();
+  final _instagramController = TextEditingController();
+
+  Set<Subject> _selectedSubjects = {};
+  Set<AvailabilityDay> _selectedDays = {};
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _bioController.dispose();
+    _priceController.dispose();
+    _timeSlotController.dispose();
+    _whatsappController.dispose();
+    _instagramController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Platform.isIOS
+        ? _buildCupertinoScreen(context)
+        : _buildMaterialScreen(context);
+  }
+
+  Widget _buildCupertinoScreen(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Diventa Tutor'),
+        backgroundColor: NovaColors.surface(context),
+        border: null,
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: _isSubmitting ? null : _submitForm,
+          child: _isSubmitting
+              ? const CupertinoActivityIndicator()
+              : Text(
+                  'Pubblica',
+                  style: TextStyle(
+                    color: NovaColors.primary(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        ),
+      ),
+      backgroundColor: NovaColors.background(context),
+      child: SafeArea(
+        child: _buildForm(context),
+      ),
+    );
+  }
+
+  Widget _buildMaterialScreen(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Diventa Tutor'),
+        backgroundColor: NovaColors.surface(context),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        actions: [
+          _isSubmitting
+              ? const Padding(
+                  padding: EdgeInsets.all(NovaSpacing.l),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : TextButton(
+                  onPressed: _submitForm,
+                  child: const Text('Pubblica'),
+                ),
+        ],
+      ),
+      backgroundColor: NovaColors.background(context),
+      body: SafeArea(
+        child: _buildForm(context),
+      ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.all(NovaSpacing.l),
+        children: [
+          // Bio section
+          _buildSectionTitle(context, 'Presentati'),
+          const SizedBox(height: NovaSpacing.s),
+          _buildBioField(context),
+          const SizedBox(height: NovaSpacing.xl),
+
+          // Subjects section
+          _buildSectionTitle(context, 'Materie (max 5)'),
+          const SizedBox(height: NovaSpacing.s),
+          _buildSubjectsSelector(context),
+          const SizedBox(height: NovaSpacing.xl),
+
+          // Price section
+          _buildSectionTitle(context, 'Prezzo'),
+          const SizedBox(height: NovaSpacing.s),
+          _buildPriceField(context),
+          const SizedBox(height: NovaSpacing.xl),
+
+          // Availability section
+          _buildSectionTitle(context, 'Disponibilità'),
+          const SizedBox(height: NovaSpacing.s),
+          _buildAvailabilitySelector(context),
+          const SizedBox(height: NovaSpacing.s),
+          _buildTimeSlotField(context),
+          const SizedBox(height: NovaSpacing.xl),
+
+          // Contact section
+          _buildSectionTitle(context, 'Contatti (almeno uno)'),
+          const SizedBox(height: NovaSpacing.s),
+          _buildWhatsAppField(context),
+          const SizedBox(height: NovaSpacing.m),
+          _buildInstagramField(context),
+          const SizedBox(height: NovaSpacing.xxxl),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: NovaColors.textPrimary(context),
+      ),
+    );
+  }
+
+  Widget _buildBioField(BuildContext context) {
+    return TextFormField(
+      controller: _bioController,
+      maxLength: 200,
+      maxLines: 3,
+      decoration: InputDecoration(
+        hintText: 'Descrivi la tua esperienza e come puoi aiutare...',
+        filled: true,
+        fillColor: NovaColors.card(context),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.border(context)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.border(context)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+        ),
+      ),
+      validator: (value) {
+        if (value != null && value.length > 200) {
+          return 'La bio non può superare 200 caratteri';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildSubjectsSelector(BuildContext context) {
+    return Wrap(
+      spacing: NovaSpacing.s,
+      runSpacing: NovaSpacing.s,
+      children: Subject.values.map((subject) {
+        final isSelected = _selectedSubjects.contains(subject);
+        final canSelect = _selectedSubjects.length < 5 || isSelected;
+
+        return FilterChip(
+          label: Text(subject.displayName),
+          selected: isSelected,
+          onSelected: canSelect
+              ? (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedSubjects.add(subject);
+                    } else {
+                      _selectedSubjects.remove(subject);
+                    }
+                  });
+                }
+              : null,
+          selectedColor: NovaColors.primary(context),
+          backgroundColor: NovaColors.card(context),
+          labelStyle: TextStyle(
+            color: isSelected ? Colors.white : NovaColors.textPrimary(context),
+          ),
+          checkmarkColor: Colors.white,
+          side: isSelected
+              ? BorderSide.none
+              : BorderSide(color: NovaColors.border(context)),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildPriceField(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: _priceController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              prefixText: '€ ',
+              suffixText: '/ora',
+              hintText: '0',
+              filled: true,
+              fillColor: NovaColors.card(context),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: NovaColors.border(context)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: NovaColors.border(context)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+              ),
+            ),
+            validator: (value) {
+              if (value != null && value.isNotEmpty) {
+                final price = double.tryParse(value);
+                if (price == null || price < 0) {
+                  return 'Prezzo non valido';
+                }
+              }
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(width: NovaSpacing.m),
+        // Quick "Gratis" button
+        OutlinedButton(
+          onPressed: () {
+            _priceController.text = '0';
+          },
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: NovaColors.success(context)),
+          ),
+          child: Text(
+            'Gratis',
+            style: TextStyle(color: NovaColors.success(context)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvailabilitySelector(BuildContext context) {
+    return Wrap(
+      spacing: NovaSpacing.s,
+      runSpacing: NovaSpacing.s,
+      children: AvailabilityDay.values.map((day) {
+        final isSelected = _selectedDays.contains(day);
+
+        return FilterChip(
+          label: Text(day.displayName),
+          selected: isSelected,
+          onSelected: (selected) {
+            setState(() {
+              if (selected) {
+                _selectedDays.add(day);
+              } else {
+                _selectedDays.remove(day);
+              }
+            });
+          },
+          selectedColor: NovaColors.primary(context),
+          backgroundColor: NovaColors.card(context),
+          labelStyle: TextStyle(
+            color: isSelected ? Colors.white : NovaColors.textPrimary(context),
+          ),
+          checkmarkColor: Colors.white,
+          side: isSelected
+              ? BorderSide.none
+              : BorderSide(color: NovaColors.border(context)),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTimeSlotField(BuildContext context) {
+    return TextFormField(
+      controller: _timeSlotController,
+      decoration: InputDecoration(
+        hintText: 'Es: 15:00-18:00',
+        labelText: 'Fascia oraria (opzionale)',
+        filled: true,
+        fillColor: NovaColors.card(context),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.border(context)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.border(context)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWhatsAppField(BuildContext context) {
+    return TextFormField(
+      controller: _whatsappController,
+      keyboardType: TextInputType.phone,
+      decoration: InputDecoration(
+        hintText: '393201234567',
+        labelText: 'WhatsApp',
+        prefixIcon: const Icon(Icons.chat_rounded, color: Color(0xFF25D366)),
+        helperText: 'Numero con prefisso internazionale (es: 393201234567)',
+        filled: true,
+        fillColor: NovaColors.card(context),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.border(context)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.border(context)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInstagramField(BuildContext context) {
+    return TextFormField(
+      controller: _instagramController,
+      decoration: InputDecoration(
+        hintText: 'username',
+        labelText: 'Instagram',
+        prefixText: '@',
+        prefixIcon: const Icon(Icons.camera_alt_rounded, color: Color(0xFFE4405F)),
+        helperText: 'Username senza @',
+        filled: true,
+        fillColor: NovaColors.card(context),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.border(context)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.border(context)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitForm() async {
+    // Validate form
+    if (!_formKey.currentState!.validate()) return;
+
+    // Validate subjects
+    if (_selectedSubjects.isEmpty) {
+      _showError('Seleziona almeno una materia');
+      return;
+    }
+
+    // Validate contacts
+    final whatsapp = _whatsappController.text.trim();
+    final instagram = _instagramController.text.trim();
+    if (whatsapp.isEmpty && instagram.isEmpty) {
+      _showError('Inserisci almeno un contatto (WhatsApp o Instagram)');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final notifier = ref.read(createTutorProfileProvider.notifier);
+      final result = await notifier.create(
+        bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
+        subjects: _selectedSubjects.toList(),
+        pricePerHour: double.tryParse(_priceController.text) ?? 0.0,
+        availabilityDays: _selectedDays.toList(),
+        timeSlot: _timeSlotController.text.trim().isEmpty ? null : _timeSlotController.text.trim(),
+        whatsappPhone: whatsapp.isEmpty ? null : whatsapp,
+        instagramUsername: instagram.isEmpty ? null : instagram,
+      );
+
+      if (!mounted) return;
+
+      if (result.isSuccess) {
+        _showSuccess('Profilo tutor creato!');
+        Navigator.of(context).pop();
+      } else {
+        _showError(result.error ?? 'Errore durante la creazione');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text('Errore'),
+          content: Text(message),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: NovaColors.error(context),
+        ),
+      );
+    }
+  }
+
+  void _showSuccess(String message) {
+    if (!Platform.isIOS) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: NovaColors.success(context),
+        ),
+      );
+    }
+  }
+}

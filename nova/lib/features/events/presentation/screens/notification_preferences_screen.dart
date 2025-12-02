@@ -111,7 +111,7 @@ class _NotificationPreferencesScreenState
                 ),
 
                 // Moderation notifications (only if moderator)
-                isModerator Async.when(
+                isModeratorAsync.when(
                   data: (isModerator) {
                     if (!isModerator) return const SizedBox();
                     return Column(

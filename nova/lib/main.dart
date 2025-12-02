@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:firebase_core/firebase_core.dart'; // Temporarily disabled for testing
-// import 'package:firebase_messaging/firebase_messaging.dart'; // Temporarily disabled for testing
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
 import 'package:nova/core/theme/cupertino_theme.dart';
@@ -37,36 +37,34 @@ import 'package:nova/features/events/data/models/participation_model.dart';
 import 'package:nova/features/events/data/models/report_model.dart';
 import 'package:nova/features/events/domain/entities/offline_action.dart';
 
-// Temporarily disabled for testing
-// /// Firebase Cloud Messaging background message handler
-// /// Must be top-level function (not inside a class)
-// @pragma('vm:entry-point')
-// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-//   // Initialize Firebase if not already initialized
-//   await Firebase.initializeApp();
-//
-//   // Handle background notification
-//   assert(() {
-//     debugPrint('🔔 Handling background FCM message: ${message.messageId}');
-//     debugPrint('   Title: ${message.notification?.title}');
-//     debugPrint('   Body: ${message.notification?.body}');
-//     return true;
-//   }());
-//
-//   // Background message handling logic will be added in Phase 4 (US2)
-//   // For now, just log the message
-// }
+/// Firebase Cloud Messaging background message handler
+/// Must be top-level function (not inside a class)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Initialize Firebase if not already initialized
+  await Firebase.initializeApp();
+
+  // Handle background notification
+  assert(() {
+    debugPrint('🔔 Handling background FCM message: ${message.messageId}');
+    debugPrint('   Title: ${message.notification?.title}');
+    debugPrint('   Body: ${message.notification?.body}');
+    return true;
+  }());
+
+  // Background message handling logic will be added in Phase 4 (US2)
+  // For now, just log the message
+}
 
 Future<void> main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Temporarily disabled for testing
-  // // Initialize Firebase (for FCM push notifications)
-  // await Firebase.initializeApp();
-  //
-  // // Configure FCM background message handler
-  // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Initialize Firebase (for FCM push notifications)
+  await Firebase.initializeApp();
+
+  // Configure FCM background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Initialize Supabase BEFORE runApp
   await SupabaseConfig.initialize();
@@ -82,14 +80,18 @@ Future<void> main() async {
     await Hive.deleteBoxFromDisk('profiles');
     await Hive.deleteBoxFromDisk('event_drafts');
     await Hive.deleteBoxFromDisk('offline_actions_queue');
+    await Hive.deleteBoxFromDisk('chat_pending_messages');
     debugPrint('✅ Cleared Hive boxes due to typeId migration');
   } catch (e) {
     debugPrint('ℹ️ Hive box cleanup: $e');
   }
 
   // Register adapters (with error handling for hot reload/restart)
+  // TypeIds must match @HiveType(typeId: X) in each model:
+  // ProfileModel=1, EventModel=2, OfflineAction=3, CommentModel=4,
+  // LikeModel=5, ParticipationModel=6, ReportModel=7, EventDraft=8
   try {
-    if (!Hive.isAdapterRegistered(0)) {
+    if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(ProfileModelAdapter());
     }
   } catch (e) {
@@ -97,7 +99,7 @@ Future<void> main() async {
   }
 
   try {
-    if (!Hive.isAdapterRegistered(1)) {
+    if (!Hive.isAdapterRegistered(2)) {
       Hive.registerAdapter(EventModelAdapter());
     }
   } catch (e) {
@@ -105,15 +107,15 @@ Future<void> main() async {
   }
 
   try {
-    if (!Hive.isAdapterRegistered(2)) {
-      Hive.registerAdapter(EventDraftAdapter()); // Feature 004: Event drafts
+    if (!Hive.isAdapterRegistered(3)) {
+      Hive.registerAdapter(OfflineActionAdapter());
     }
   } catch (e) {
-    debugPrint('EventDraftAdapter already registered: $e');
+    debugPrint('OfflineActionAdapter already registered: $e');
   }
 
   try {
-    if (!Hive.isAdapterRegistered(3)) {
+    if (!Hive.isAdapterRegistered(4)) {
       Hive.registerAdapter(CommentModelAdapter());
     }
   } catch (e) {
@@ -121,7 +123,7 @@ Future<void> main() async {
   }
 
   try {
-    if (!Hive.isAdapterRegistered(4)) {
+    if (!Hive.isAdapterRegistered(5)) {
       Hive.registerAdapter(LikeModelAdapter());
     }
   } catch (e) {
@@ -129,7 +131,7 @@ Future<void> main() async {
   }
 
   try {
-    if (!Hive.isAdapterRegistered(5)) {
+    if (!Hive.isAdapterRegistered(6)) {
       Hive.registerAdapter(ParticipationModelAdapter());
     }
   } catch (e) {
@@ -137,7 +139,7 @@ Future<void> main() async {
   }
 
   try {
-    if (!Hive.isAdapterRegistered(6)) {
+    if (!Hive.isAdapterRegistered(7)) {
       Hive.registerAdapter(ReportModelAdapter());
     }
   } catch (e) {
@@ -145,17 +147,18 @@ Future<void> main() async {
   }
 
   try {
-    if (!Hive.isAdapterRegistered(7)) {
-      Hive.registerAdapter(OfflineActionAdapter());
+    if (!Hive.isAdapterRegistered(8)) {
+      Hive.registerAdapter(EventDraftAdapter()); // Feature 004: Event drafts
     }
   } catch (e) {
-    debugPrint('OfflineActionAdapter already registered: $e');
+    debugPrint('EventDraftAdapter already registered: $e');
   }
 
   await Hive.openBox<ProfileModel>('profiles');
   await Hive.openBox<EventModel>('events_cache');
   await Hive.openBox<EventDraft>('event_drafts'); // Feature 004: Event creation drafts
   await Hive.openBox<OfflineAction>('offline_actions_queue');
+  await Hive.openBox<Map<dynamic, dynamic>>('chat_pending_messages'); // Feature 011: Chat offline queue
 
   // Initialize SharedPreferences for banner dismissal state
   final prefs = await SharedPreferences.getInstance();
@@ -170,6 +173,8 @@ Future<void> main() async {
         ),
         // Override SharedPreferences provider with instance
         sharedPreferencesProvider.overrideWithValue(prefs),
+        // Note: pendingMessagesBoxProvider now uses Hive.box() directly
+        // which works because the box is opened above before runApp()
       ],
       child: const NovaApp(),
     ),

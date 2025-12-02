@@ -1,0 +1,355 @@
+openapi: 3.0.3
+info:
+  title: Nova Profiles API
+  description: Supabase REST API contracts for Profile management
+  version: 1.0.0
+  contact:
+    name: Nova Development Team
+
+servers:
+  - url: https://{project_id}.supabase.co/rest/v1
+    description: Supabase REST API
+    variables:
+      project_id:
+        default: your-project-id
+
+security:
+  - BearerAuth: []
+
+paths:
+  /profiles:
+    get:
+      summary: Get profiles (filtered by RLS)
+      description: Retrieve profiles. RLS filters to visible profiles (profile_visible=true, deleted_at=null) unless own profile.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - $ref: '#/components/parameters/filter_username'
+        - $ref: '#/components/parameters/filter_id'
+      responses:
+        '200':
+          description: List of profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /profiles/{id}:
+    get:
+      summary: Get profile by ID
+      description: Retrieve single profile. RLS checks visibility.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/select'
+      responses:
+        '200':
+          description: Profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '404':
+          description: Profile not found or not visible
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      summary: Update own profile
+      description: Update profile fields. RLS restricts to own profile (auth.uid() = id). Cannot modify username, email, role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          description: Validation error (bio too long, invalid class, etc.)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Cannot update other user's profile
+
+  /rpc/get_profile_stats:
+    post:
+      summary: Get profile statistics
+      description: Retrieve eventi_creati_count and partecipazioni_count for a user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              required:
+                - user_id
+      responses:
+        '200':
+          description: Profile stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /rpc/export_user_data:
+    post:
+      summary: Generate GDPR export (async)
+      description: Trigger async GDPR export generation. Returns job ID, actual file ready in <10s.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              required:
+                - user_id
+      responses:
+        '202':
+          description: Export job started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [pending]
+                  estimated_completion:
+                    type: string
+                    description: ISO 8601 timestamp (NOW() + 10s)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Can only export own data
+
+  /rpc/soft_delete_account:
+    post:
+      summary: Soft delete account (set deleted_at)
+      description: Mark account for deletion (30-day grace period). User can reactivate within 30 days.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              required:
+                - user_id
+      responses:
+        '200':
+          description: Account marked for deletion
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted_at:
+                    type: string
+                    format: date-time
+                  grace_period_ends:
+                    type: string
+                    format: date-time
+                    description: deleted_at + 30 days
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Can only delete own account
+
+  /rpc/reactivate_account:
+    post:
+      summary: Reactivate soft-deleted account
+      description: Clear deleted_at if within grace period (30 days). After 30 days, account hard-deleted (cannot reactivate).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              required:
+                - user_id
+      responses:
+        '200':
+          description: Account reactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          description: Grace period expired or account not deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Can only reactivate own account
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth JWT token
+
+  parameters:
+    select:
+      name: select
+      in: query
+      description: Columns to select (comma-separated). Default "*"
+      schema:
+        type: string
+        example: "id,full_name,username,avatar_url"
+
+    filter_username:
+      name: username
+      in: query
+      description: Filter by exact username match
+      schema:
+        type: string
+        example: "eq.marco.rossi"
+
+    filter_id:
+      name: id
+      in: query
+      description: Filter by user ID
+      schema:
+        type: string
+        example: "eq.abc123-def456-..."
+
+  schemas:
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User ID (matches auth.users)
+        email:
+          type: string
+          format: email
+          description: School email @galileimoro.edu.it
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: "Marco Rossi"
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-z0-9.-]+$'
+          example: "marco.rossi"
+        class:
+          type: string
+          nullable: true
+          pattern: '^[1-5][A-Z]$|^Altro$'
+          example: "5A"
+        bio:
+          type: string
+          nullable: true
+          maxLength: 150
+          example: "Appassionato di basket 🏀 | Capitano squadra"
+        avatar_url:
+          type: string
+          nullable: true
+          format: uri
+          example: "https://[project-id].supabase.co/storage/v1/object/public/avatars/abc123/avatar.jpg"
+        role:
+          type: string
+          enum: [student, moderator, admin]
+          default: student
+        profile_visible:
+          type: boolean
+          default: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ProfileUpdate:
+      type: object
+      description: Fields allowed for profile update (username, email, role NOT modifiable)
+      properties:
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        class:
+          type: string
+          pattern: '^[1-5][A-Z]$|^Altro$'
+        bio:
+          type: string
+          maxLength: 150
+        avatar_url:
+          type: string
+          format: uri
+        profile_visible:
+          type: boolean
+
+    ProfileStats:
+      type: object
+      properties:
+        events_created_count:
+          type: integer
+          minimum: 0
+          description: Count of approved events created by user
+        participations_count:
+          type: integer
+          minimum: 0
+          description: Count of event participations
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "JWT expired or invalid"

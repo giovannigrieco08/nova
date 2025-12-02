@@ -1,0 +1,316 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Nova GDPR Export Schema",
+  "description": "JSON schema for GDPR Right to Access (Art. 15) export data",
+  "type": "object",
+  "required": [
+    "export_version",
+    "export_date",
+    "user_id",
+    "profile",
+    "events_created",
+    "participations",
+    "comments",
+    "chat_messages"
+  ],
+  "properties": {
+    "export_version": {
+      "type": "string",
+      "description": "Schema version for compatibility (semantic versioning)",
+      "example": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "export_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when export was generated",
+      "example": "2025-01-22T14:30:00Z"
+    },
+    "user_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Supabase auth.users ID",
+      "example": "abc123-def456-ghi789-..."
+    },
+    "profile": {
+      "type": "object",
+      "description": "Complete profile data from profiles table",
+      "required": [
+        "id",
+        "email",
+        "full_name",
+        "username",
+        "role",
+        "profile_visible",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "School email @galileimoro.edu.it"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string",
+          "pattern": "^[a-z0-9.-]+$"
+        },
+        "class": {
+          "type": ["string", "null"],
+          "pattern": "^[1-5][A-Z]$|^Altro$"
+        },
+        "bio": {
+          "type": ["string", "null"],
+          "maxLength": 150
+        },
+        "avatar_url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "description": "Public URL to avatar (valid 24h like export link)"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "moderator", "admin"]
+        },
+        "profile_visible": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "deleted_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "If non-null, account in grace period (soft deleted)"
+        }
+      }
+    },
+    "events_created": {
+      "type": "array",
+      "description": "All events created by user (approved + rejected + pending)",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "emoji",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "emoji": {
+            "type": "string",
+            "description": "Single emoji character"
+          },
+          "description": {
+            "type": ["string", "null"]
+          },
+          "location": {
+            "type": ["string", "null"]
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["sport", "cultura", "volontariato", "svago", "studio"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "approved", "rejected"],
+            "description": "Moderation status"
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "description": "If status=rejected, reason from moderator"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "participations": {
+      "type": "array",
+      "description": "Events where user clicked 'Partecipo'",
+      "items": {
+        "type": "object",
+        "required": [
+          "event_id",
+          "event_title",
+          "participated_at"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_title": {
+            "type": "string",
+            "description": "Event title at time of participation"
+          },
+          "event_emoji": {
+            "type": "string"
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When event happened/will happen"
+          },
+          "participated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When user clicked 'Partecipo'"
+          }
+        }
+      }
+    },
+    "comments": {
+      "type": "array",
+      "description": "All comments made by user on events",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "content",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Event where comment was made"
+          },
+          "event_title": {
+            "type": "string",
+            "description": "Event title for context"
+          },
+          "content": {
+            "type": "string",
+            "description": "Comment text (max 500 char)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "chat_messages": {
+      "type": "array",
+      "description": "Global chat messages sent by user in last 24h (ephemeral design)",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "content",
+          "sent_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "content": {
+            "type": "string",
+            "description": "Message text"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string",
+            "const": "Chat messages auto-delete after 24h - only recent messages included",
+            "description": "Reminder about ephemeral chat design"
+          }
+        }
+      }
+    }
+  },
+  "example": {
+    "export_version": "1.0.0",
+    "export_date": "2025-01-22T14:30:00Z",
+    "user_id": "abc123-def456-ghi789-...",
+    "profile": {
+      "id": "abc123-def456-ghi789-...",
+      "email": "marco.rossi@galileimoro.edu.it",
+      "full_name": "Marco Rossi",
+      "username": "marco.rossi",
+      "class": "5A",
+      "bio": "Appassionato di basket 🏀 | Capitano squadra",
+      "avatar_url": "https://[project-id].supabase.co/storage/v1/object/public/avatars/abc123/avatar.jpg",
+      "role": "student",
+      "profile_visible": true,
+      "created_at": "2024-09-15T10:00:00Z",
+      "updated_at": "2025-01-20T16:45:00Z",
+      "deleted_at": null
+    },
+    "events_created": [
+      {
+        "id": "event1-uuid",
+        "title": "Torneo Basket 3v3",
+        "emoji": "🏀",
+        "description": "Torneo interno basket 3 contro 3, tutti possono partecipare!",
+        "location": "Palestra Galilei",
+        "date": "2024-10-15T15:00:00Z",
+        "category": "sport",
+        "status": "approved",
+        "rejection_reason": null,
+        "created_at": "2024-10-01T12:00:00Z"
+      }
+    ],
+    "participations": [
+      {
+        "event_id": "event2-uuid",
+        "event_title": "Gara Coding Regionale",
+        "event_emoji": "💻",
+        "event_date": "2024-11-20T09:00:00Z",
+        "participated_at": "2024-10-15T09:00:00Z"
+      }
+    ],
+    "comments": [
+      {
+        "id": "comment1-uuid",
+        "event_id": "event3-uuid",
+        "event_title": "Pulizia Parco Galilei",
+        "content": "Ci sono! Porterò anche guanti extra 🧤",
+        "created_at": "2024-11-01T14:00:00Z"
+      }
+    ],
+    "chat_messages": [
+      {
+        "id": "msg1-uuid",
+        "content": "Chi viene al torneo basket domani?",
+        "sent_at": "2025-01-22T13:00:00Z",
+        "note": "Chat messages auto-delete after 24h - only recent messages included"
+      }
+    ]
+  }
+}

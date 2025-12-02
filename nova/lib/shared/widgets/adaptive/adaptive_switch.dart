@@ -39,7 +39,7 @@ class AdaptiveSwitch extends StatelessWidget {
       // iOS: Native CNSwitch from cupertino_native
       return CNSwitch(
         value: value,
-        onChanged: onChanged,
+        onChanged: onChanged ?? (_) {},
       );
     }
 

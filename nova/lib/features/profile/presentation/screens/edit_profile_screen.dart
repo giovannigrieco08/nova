@@ -42,7 +42,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _bioController = TextEditingController();
 
   String? _selectedClass;
-  String? _selectedPronouns;
   String? _avatarUrl;
   File? _selectedAvatarFile;
   bool _isLoading = true;
@@ -157,8 +156,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           if (mounted) {
             setState(() {
               _nameController.text = profile.fullName;
-              _selectedClass = profile.classValue;
-              _selectedPronouns = profile.pronouns;
+              _selectedClass = profile.classYear;
               _avatarUrl = profile.avatarUrl;
               _bioController.text = profile.bio ?? '';
               _bioCharCount = profile.bio?.length ?? 0;
@@ -214,7 +212,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       await repository.updateProfile(userId, {
         'full_name': _nameController.text.trim(),
         'class': _selectedClass,
-        'pronouns': _selectedPronouns,
         'avatar_url': _avatarUrl,
         'bio': _bioController.text.trim().isNotEmpty
             ? _bioController.text.trim()
@@ -478,25 +475,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       enabled: !_isSaving,
                     ),
 
-                    SizedBox(height: NovaSpacing.l),
-
-                    // Pronouns field
-                    TextFormField(
-                      initialValue: _selectedPronouns,
-                      decoration: InputDecoration(
-                        labelText: 'Pronomi (opzionale)',
-                        hintText: 'lui/lei/loro',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(NovaRadius.m),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedPronouns = value.trim().isEmpty ? null : value.trim();
-                        });
-                      },
-                      enabled: !_isSaving,
-                    ),
                   ],
                 ),
               ),

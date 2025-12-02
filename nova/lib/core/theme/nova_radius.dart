@@ -67,4 +67,17 @@ class NovaRadius {
   static BorderRadius get topXl => BorderRadius.vertical(
         top: Radius.circular(xl),
       );
+
+  // ============================================
+  // LEGACY ALIASES (backward compatibility)
+  // ============================================
+
+  /// @deprecated Use [s] instead
+  static const double small = s;
+
+  /// @deprecated Use [m] instead
+  static const double medium = m;
+
+  /// @deprecated Use [l] instead
+  static const double large = l;
 }
