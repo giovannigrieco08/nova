@@ -1,0 +1,379 @@
+openapi: 3.0.3
+info:
+  title: Ephemeral Media Storage API
+  description: Supabase Storage contracts for view-once media in Global Chat
+  version: 1.0.0
+
+servers:
+  - url: https://{project-ref}.supabase.co/storage/v1
+    description: Supabase Storage API
+
+paths:
+  /object/ephemeral-media/{user_id}/{filename}:
+    post:
+      operationId: uploadEphemeralMedia
+      summary: Upload view-once image or video
+      description: |
+        Uploads a view-once media file to the user's folder.
+        Files are automatically deleted after 24 hours or when viewed.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "media_1234567890.webp"
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+          video/mp4:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          description: Invalid file type or size exceeded
+        '401':
+          description: Unauthorized
+        '413':
+          description: File too large (max 10MB)
+
+    delete:
+      operationId: deleteEphemeralMedia
+      summary: Delete view-once media after viewing
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File deleted
+        '404':
+          description: File not found
+
+  /object/sign/ephemeral-media/{path}:
+    post:
+      operationId: createSignedUrl
+      summary: Create signed URL for viewing media
+      description: |
+        Creates a time-limited signed URL (60 seconds) for viewing media.
+        Used when user taps on view-once message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expiresIn:
+                  type: integer
+                  default: 60
+                  description: URL expiration in seconds
+      responses:
+        '200':
+          description: Signed URL created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedUrlResponse'
+
+components:
+  schemas:
+    UploadResponse:
+      type: object
+      properties:
+        Key:
+          type: string
+          description: Full storage path
+          example: "ephemeral-media/user-uuid/media_1234567890.webp"
+        Id:
+          type: string
+          format: uuid
+          description: Storage object ID
+
+    SignedUrlResponse:
+      type: object
+      properties:
+        signedUrl:
+          type: string
+          format: uri
+          description: Time-limited URL for accessing the file
+
+    BucketConfig:
+      type: object
+      description: Configuration for ephemeral-media bucket
+      properties:
+        id:
+          type: string
+          example: "ephemeral-media"
+        name:
+          type: string
+          example: "ephemeral-media"
+        public:
+          type: boolean
+          example: false
+          description: Private bucket, signed URLs required
+        file_size_limit:
+          type: integer
+          example: 10485760
+          description: Maximum file size in bytes (10MB)
+        allowed_mime_types:
+          type: array
+          items:
+            type: string
+          example:
+            - "image/jpeg"
+            - "image/png"
+            - "image/webp"
+            - "video/mp4"
+
+---
+# Storage Bucket Configuration
+
+## Bucket: `ephemeral-media`
+
+### Properties
+- **Public**: `false` (private bucket)
+- **File Size Limit**: 10MB (10,485,760 bytes)
+- **Allowed MIME Types**:
+  - `image/jpeg`
+  - `image/png`
+  - `image/webp`
+  - `video/mp4`
+
+### Folder Structure
+```
+ephemeral-media/
+├── {user_id_1}/
+│   ├── media_1234567890.webp
+│   └── media_1234567891.mp4
+├── {user_id_2}/
+│   └── media_1234567892.webp
+└── ...
+```
+
+### File Naming Convention
+```
+media_{timestamp_ms}.{extension}
+```
+Example: `media_1705312200000.webp`
+
+---
+# RLS Policies for Storage
+
+## Upload Policy
+```sql
+CREATE POLICY "Users upload own ephemeral media"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'ephemeral-media'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+```
+
+## Read Policy
+```sql
+CREATE POLICY "Users read visible ephemeral media"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (
+    bucket_id = 'ephemeral-media'
+    AND EXISTS (
+      SELECT 1 FROM chat_media cm
+      JOIN chat_messages m ON cm.message_id = m.id
+      WHERE cm.storage_path = name
+        AND m.hidden_at IS NULL
+        AND (
+          cm.is_viewed = FALSE
+          OR cm.uploader_user_id = auth.uid()
+        )
+    )
+  );
+```
+
+## Delete Policy
+```sql
+-- Only system (service role) can delete
+-- Deletion happens via Edge Function or pg_cron
+
+CREATE POLICY "Service role deletes ephemeral media"
+  ON storage.objects FOR DELETE
+  TO service_role
+  USING (bucket_id = 'ephemeral-media');
+```
+
+---
+# Client-Side Implementation
+
+## Upload Flow (Flutter)
+
+```dart
+Future<String> uploadViewOnceMedia(File file, ChatMediaType type) async {
+  // 1. Compress media
+  final compressedFile = await _compressMedia(file, type);
+
+  // 2. Generate filename
+  final filename = 'media_${DateTime.now().millisecondsSinceEpoch}.${_getExtension(type)}';
+  final path = '${currentUserId}/$filename';
+
+  // 3. Upload to storage
+  await supabase.storage
+    .from('ephemeral-media')
+    .upload(path, compressedFile);
+
+  return path;
+}
+```
+
+## View Flow (Flutter)
+
+```dart
+Future<String> getViewOnceMediaUrl(String storagePath) async {
+  // Create signed URL (60s expiry)
+  final response = await supabase.storage
+    .from('ephemeral-media')
+    .createSignedUrl(storagePath, 60);
+
+  return response;
+}
+```
+
+## Cleanup Flow (Edge Function)
+
+```typescript
+// supabase/functions/cleanup-viewed-media/index.ts
+import { createClient } from '@supabase/supabase-js'
+
+Deno.serve(async () => {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  )
+
+  // Find viewed or expired media
+  const { data: mediaToDelete } = await supabase
+    .from('chat_media')
+    .select('storage_path')
+    .or('is_viewed.eq.true,expires_at.lt.now()')
+
+  if (mediaToDelete) {
+    const paths = mediaToDelete.map(m => m.storage_path)
+
+    // Delete from storage
+    await supabase.storage
+      .from('ephemeral-media')
+      .remove(paths)
+
+    // Delete from chat_media table
+    await supabase
+      .from('chat_media')
+      .delete()
+      .or('is_viewed.eq.true,expires_at.lt.now()')
+  }
+
+  return new Response('Cleanup complete')
+})
+```
+
+---
+# Compression Requirements
+
+## Images
+- **Format**: WebP (preferred) or JPEG
+- **Max Dimensions**: 1280x1280 pixels
+- **Quality**: 80%
+- **Max File Size**: 10MB (after compression)
+
+## Videos
+- **Format**: MP4 (H.264)
+- **Max Duration**: 30 seconds
+- **Resolution**: 720p (1280x720)
+- **Bitrate**: ~2.5 Mbps
+- **Max File Size**: 10MB (after compression)
+
+```dart
+// Image compression (flutter_image_compress)
+final compressedImage = await FlutterImageCompress.compressWithFile(
+  file.path,
+  minWidth: 1280,
+  minHeight: 1280,
+  quality: 80,
+  format: CompressFormat.webp,
+);
+
+// Video compression (video_compress)
+final info = await VideoCompress.compressVideo(
+  file.path,
+  quality: VideoQuality.MediumQuality,
+  deleteOrigin: false,
+  includeAudio: true,
+);
+```
+
+---
+# Daily Limit Enforcement
+
+Users are limited to 5 view-once media per day.
+
+```sql
+-- Check daily limit before upload
+CREATE OR REPLACE FUNCTION check_media_daily_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+  daily_count INT;
+BEGIN
+  SELECT COUNT(*) INTO daily_count
+  FROM chat_media
+  WHERE uploader_user_id = NEW.uploader_user_id
+    AND created_at > NOW() - INTERVAL '24 hours';
+
+  IF daily_count >= 5 THEN
+    RAISE EXCEPTION 'Daily media limit exceeded: max 5 view-once media per day'
+      USING ERRCODE = 'P0003';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_media_limit_trigger
+  BEFORE INSERT ON chat_media
+  FOR EACH ROW
+  EXECUTE FUNCTION check_media_daily_limit();
+```
+
+---
+**Status**: Contract Complete

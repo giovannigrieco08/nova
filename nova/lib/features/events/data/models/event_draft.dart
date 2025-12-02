@@ -15,7 +15,7 @@ part 'event_draft.g.dart';
 ///
 /// Stores work-in-progress event data to prevent data loss.
 /// Used by EventCreationScreen for offline-first UX.
-@HiveType(typeId: 3) // TypeId 3 (TypeId 2 is used by EventModel)
+@HiveType(typeId: 8) // TypeId 8 (TypeId 3 is used by OfflineAction)
 class EventDraft extends HiveObject {
   /// Event title (5-100 characters)
   @HiveField(0)

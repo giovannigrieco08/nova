@@ -85,7 +85,12 @@
       "Bash(.gradlew:*)",
       "Bash(gradlew.bat --stop)",
       "Bash(cmd /c \"gradlew.bat assembleDebug --info\")",
-      "Bash(Select-String -Pattern \"error|fail|BUILD\")"
+      "Bash(Select-String -Pattern \"error|fail|BUILD\")",
+      "Bash(git stash push:*)",
+      "Bash(git -C \"C:\\Users\\grigi\\nova_def\" check-ignore nova/.env)",
+      "Bash(\"C:\\Users\\grigi\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe\" kill-server)",
+      "Bash(\"C:\\Users\\grigi\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe\" start-server)",
+      "Bash(dart run build_runner build:*)"
     ],
     "deny": [],
     "ask": []

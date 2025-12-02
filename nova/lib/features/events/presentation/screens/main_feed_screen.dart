@@ -15,7 +15,10 @@ import '../../../../shared/widgets/adaptive/adaptive_app_bar.dart';
 import '../../../../shared/widgets/nova_bottom_nav_bar.dart';
 import '../../../../shared/widgets/adaptive/adaptive_dialog.dart';
 import '../../../bacheche/presentation/screens/bacheche_screen.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
 import 'events_feed_screen.dart';
+import 'event_creation_screen.dart';
 
 /// Main feed screen with tab navigation (Eventi/Bacheche)
 ///
@@ -60,19 +63,25 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
         break;
       case 1: // Amici
         _showComingSoonDialog('Amici');
+        // Reset to Home after showing dialog
+        setState(() => _currentNavIndex = 0);
         break;
       case 2: // Chat
-        _showComingSoonDialog('Chat');
+        // ChatScreen is now shown via IndexedStack
         break;
       case 3: // Profilo
-        _showComingSoonDialog('Profilo');
+        // ProfileScreen is now shown via IndexedStack
         break;
     }
   }
 
-  /// Handle camera FAB tap
+  /// Handle camera FAB tap - navigate to create event
   void _onCameraTap() {
-    _showComingSoonDialog('Camera');
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const EventCreationScreen(),
+      ),
+    );
   }
 
   /// Show "Coming Soon" dialog for unimplemented features
@@ -96,43 +105,87 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     _showComingSoonDialog('Notifiche');
   }
 
+  /// Get IndexedStack index from nav index
+  int _getStackIndex() {
+    switch (_currentNavIndex) {
+      case 0: return 0; // Home
+      case 2: return 1; // Chat
+      case 3: return 2; // Profilo
+      default: return 0;
+    }
+  }
+
+  /// Check if current screen has its own app bar
+  bool _screenHasOwnAppBar() {
+    return _currentNavIndex == 2 || _currentNavIndex == 3; // Chat and Profile
+  }
+
   @override
   Widget build(BuildContext context) {
     return AdaptiveScaffold(
       backgroundColor: NovaColors.background(context),
-      appBar: AdaptiveAppBar(
-        title: const Text('Nova'),
-        actions: [
-          IconButton(
-            icon: NovaIcons.notifications(context),
-            onPressed: _onNotificationsTap,
-          ),
-        ],
-      ),
+      appBar: _screenHasOwnAppBar()
+          ? null // Chat and Profile screens have their own AppBar
+          : AdaptiveAppBar(
+              title: const Text('Nova'),
+              actions: [
+                IconButton(
+                  icon: NovaIcons.notifications(context),
+                  onPressed: _onNotificationsTap,
+                ),
+              ],
+            ),
       body: Stack(
         children: [
-          // Main content
-          Column(
+          // Main content using IndexedStack to preserve state
+          IndexedStack(
+            index: _getStackIndex(),
             children: [
-              // Tab bar (Eventi / Bacheche)
-              NovaTabs(
-                controller: _tabController,
-                tab1Label: 'Eventi',
-                tab2Label: 'Bacheche',
+              // Index 0: Home feed (Eventi/Bacheche tabs)
+              Column(
+                children: [
+                  // Tab bar (Eventi / Bacheche)
+                  NovaTabs(
+                    controller: _tabController,
+                    tab1Label: 'Eventi',
+                    tab2Label: 'Bacheche',
+                  ),
+
+                  // Tab content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: const [
+                        // Eventi tab
+                        EventsFeedScreen(showAppBar: false),
+
+                        // Bacheche tab
+                        BachecheScreen(),
+                      ],
+                    ),
+                  ),
+
+                  // Bottom padding for nav bar
+                  const SizedBox(height: 100),
+                ],
               ),
 
-              // Tab content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: const [
-                    // Eventi tab
-                    EventsFeedScreen(showAppBar: false),
+              // Index 1: Chat screen
+              const Column(
+                children: [
+                  Expanded(child: ChatScreen()),
+                  // Bottom padding for nav bar
+                  SizedBox(height: 100),
+                ],
+              ),
 
-                    // Bacheche tab
-                    BachecheScreen(),
-                  ],
-                ),
+              // Index 2: Profile screen
+              const Column(
+                children: [
+                  Expanded(child: ProfileScreen()),
+                  // Bottom padding for nav bar
+                  SizedBox(height: 100),
+                ],
               ),
             ],
           ),

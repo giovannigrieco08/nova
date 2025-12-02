@@ -54,6 +54,18 @@ dependencies:
   share_plus: ^7.2.0                 # Native share sheet for deep links
   # Removed uni_links: ^0.5.1 (deprecated, replaced by app_links ^6.3.2 above)
 
+  # Push Notification Feature Dependencies (008-realtime-notifications)
+  flutter_local_notifications: ^17.2.1  # Local notification display
+  # flutter_app_badger: ^1.5.0          # REMOVED: incompatible with AGP 8.0+ (namespace issue)
+  uuid: ^4.4.0                          # UUID generation
+
+  # Additional UI/Navigation Dependencies
+  go_router: ^14.2.0                    # Declarative routing
+  flutter_slidable: ^3.1.0              # Swipe actions for list items
+  image_cropper: ^7.0.5                 # Image cropping for avatars
+  timeago: ^3.6.0                       # Relative time formatting
+  app_settings: ^5.1.1                  # Open device settings
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

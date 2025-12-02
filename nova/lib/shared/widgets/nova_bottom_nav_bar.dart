@@ -178,7 +178,7 @@ class NovaBottomNavBar extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD32F2F), // Material Red 700
+                          color: NovaColors.error(context),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         constraints: const BoxConstraints(
@@ -188,9 +188,8 @@ class NovaBottomNavBar extends StatelessWidget {
                         child: Center(
                           child: Text(
                             badgeCount! > 99 ? '99+' : badgeCount.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
+                            style: NovaTypography.labelSmall.copyWith(
+                              color: NovaColors.onError(context),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -239,7 +238,7 @@ class NovaBottomNavBar extends StatelessWidget {
           child: Center(
             child: Icon(
               context.isIOS ? CupertinoIcons.plus : Icons.add,
-              color: Colors.white,
+              color: NovaColors.onPrimary(context),
               size: 32,
             ),
           ),

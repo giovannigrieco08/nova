@@ -208,7 +208,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       context: context,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: NovaRadius.l,
+          top: Radius.circular(NovaRadius.l),
         ),
       ),
       builder: (context) => SafeArea(

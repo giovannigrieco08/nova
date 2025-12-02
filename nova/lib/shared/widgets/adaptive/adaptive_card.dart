@@ -53,12 +53,19 @@ class AdaptiveCard extends StatelessWidget {
 
     if (context.isIOS) {
       // iOS: Glassmorphism effect
-      return GlassContainer(
-        borderRadius: BorderRadius.circular(radius),
+      final glassChild = GlassContainer(
+        borderRadius: radius,
         padding: cardPadding,
-        onTap: onTap,
         child: child,
       );
+
+      if (onTap != null) {
+        return GestureDetector(
+          onTap: onTap,
+          child: glassChild,
+        );
+      }
+      return glassChild;
     }
 
     // Android: Material Surface with elevation
