@@ -1,0 +1,275 @@
+openapi: 3.0.3
+info:
+  title: Supabase Realtime Subscription Schema
+  description: |
+    Schema for Supabase Realtime Postgres CDC subscriptions for notifications.
+    This describes the WebSocket subscription pattern, not REST API.
+  version: 1.0.0
+  contact:
+    name: Nova Platform
+    email: dev@galileimoro.edu.it
+
+servers:
+  - url: wss://jhnxscorszeslkhnxtif.supabase.co/realtime/v1
+    description: Supabase Realtime WebSocket
+
+paths: {}  # No REST paths - this is WebSocket-only
+
+components:
+  schemas:
+    RealtimeSubscriptionRequest:
+      type: object
+      description: |
+        Subscription request sent from client to Supabase Realtime server.
+        Uses Postgres CDC (Change Data Capture) to listen for table changes.
+      properties:
+        event:
+          type: string
+          enum:
+            - phx_join
+          description: Phoenix channel event type
+        topic:
+          type: string
+          example: "realtime:notifications:recipient_id=eq.550e8400-e29b-41d4-a716-446655440000"
+          description: |
+            Channel topic with filter.
+            Format: realtime:{table}:{filter_clause}
+            Filter respects RLS policies automatically.
+        payload:
+          type: object
+          properties:
+            config:
+              type: object
+              properties:
+                broadcast:
+                  type: object
+                  properties:
+                    self:
+                      type: boolean
+                      default: false
+                presence:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                      default: ""
+                postgres_changes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      event:
+                        type: string
+                        enum:
+                          - INSERT
+                          - UPDATE
+                          - DELETE
+                          - "*"
+                        description: Listen for specific change types or all (*)
+                      schema:
+                        type: string
+                        example: "public"
+                      table:
+                        type: string
+                        example: "notifications"
+                      filter:
+                        type: string
+                        example: "recipient_id=eq.550e8400-e29b-41d4-a716-446655440000"
+                        description: PostgREST filter syntax
+      example:
+        event: "phx_join"
+        topic: "realtime:notifications:recipient_id=eq.550e8400-e29b-41d4-a716-446655440000"
+        payload:
+          config:
+            postgres_changes:
+              - event: "*"
+                schema: "public"
+                table: "notifications"
+                filter: "recipient_id=eq.550e8400-e29b-41d4-a716-446655440000"
+
+    RealtimeChangePayload:
+      type: object
+      description: |
+        Payload received when a database change occurs.
+        Sent from Supabase Realtime server to subscribed clients.
+      properties:
+        commit_timestamp:
+          type: string
+          format: date-time
+          description: When the database transaction was committed
+        eventType:
+          type: string
+          enum:
+            - INSERT
+            - UPDATE
+            - DELETE
+          description: Type of database operation
+        schema:
+          type: string
+          example: "public"
+        table:
+          type: string
+          example: "notifications"
+        new:
+          type: object
+          description: |
+            New row data (present for INSERT and UPDATE).
+            Full notification object after change.
+          properties:
+            id:
+              type: string
+              format: uuid
+            recipient_id:
+              type: string
+              format: uuid
+            sender_id:
+              type: string
+              format: uuid
+              nullable: true
+            type:
+              type: string
+            title:
+              type: string
+            description:
+              type: string
+            target_type:
+              type: string
+            target_id:
+              type: string
+              format: uuid
+            metadata:
+              type: object
+            is_read:
+              type: boolean
+            created_at:
+              type: string
+              format: date-time
+        old:
+          type: object
+          description: |
+            Old row data (present for UPDATE and DELETE).
+            For UPDATE: data before change.
+            For DELETE: deleted row data.
+          properties:
+            id:
+              type: string
+              format: uuid
+            is_read:
+              type: boolean
+      example:
+        commit_timestamp: "2025-11-23T14:30:00.123Z"
+        eventType: "INSERT"
+        schema: "public"
+        table: "notifications"
+        new:
+          id: "550e8400-e29b-41d4-a716-446655440000"
+          recipient_id: "660e8400-e29b-41d4-a716-446655440001"
+          sender_id: "770e8400-e29b-41d4-a716-446655440002"
+          type: "new_comment"
+          title: "Marco ha commentato sul tuo evento"
+          description: "Ciao! Posso partecipare?"
+          target_type: "event"
+          target_id: "880e8400-e29b-41d4-a716-446655440003"
+          metadata: {"comment_id": "990e8400-e29b-41d4-a716-446655440004"}
+          is_read: false
+          created_at: "2025-11-23T14:30:00Z"
+        old: null
+
+  examples:
+    InsertNotificationChange:
+      value:
+        commit_timestamp: "2025-11-23T14:30:00.123Z"
+        eventType: "INSERT"
+        schema: "public"
+        table: "notifications"
+        new:
+          id: "550e8400-e29b-41d4-a716-446655440000"
+          recipient_id: "660e8400-e29b-41d4-a716-446655440001"
+          sender_id: "770e8400-e29b-41d4-a716-446655440002"
+          type: "event_like"
+          title: "Sara ha messo like al tuo evento"
+          description: ""
+          target_type: "event"
+          target_id: "880e8400-e29b-41d4-a716-446655440003"
+          metadata: {}
+          is_read: false
+          created_at: "2025-11-23T14:30:00Z"
+        old: null
+
+    UpdateNotificationChange:
+      value:
+        commit_timestamp: "2025-11-23T14:35:00.456Z"
+        eventType: "UPDATE"
+        schema: "public"
+        table: "notifications"
+        new:
+          id: "550e8400-e29b-41d4-a716-446655440000"
+          is_read: true
+          # ... other fields ...
+        old:
+          id: "550e8400-e29b-41d4-a716-446655440000"
+          is_read: false
+          # ... other fields ...
+
+    DeleteNotificationChange:
+      value:
+        commit_timestamp: "2025-11-23T14:40:00.789Z"
+        eventType: "DELETE"
+        schema: "public"
+        table: "notifications"
+        new: null
+        old:
+          id: "550e8400-e29b-41d4-a716-446655440000"
+          # ... full row data before deletion ...
+
+# Dart Client Implementation Reference
+x-dart-client-implementation: |
+  ```dart
+  // In notification_realtime_datasource.dart
+  class NotificationRealtimeDatasource {
+    final SupabaseClient _supabase;
+
+    Stream<List<Notification>> watchNotifications(String userId) {
+      return _supabase
+          .from('notifications')
+          .stream(primaryKey: ['id'])
+          .eq('recipient_id', userId)
+          .order('created_at', ascending: false)
+          .map((data) => data.map((json) => Notification.fromJson(json)).toList());
+    }
+
+    // Alternative: Manual channel subscription (more control)
+    Stream<RealtimeChangePayload> watchNotificationChanges(String userId) {
+      final channel = _supabase.channel('notifications:$userId');
+
+      return channel
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'notifications',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'recipient_id',
+              value: userId,
+            ),
+          )
+          .subscribe();
+    }
+  }
+  ```
+
+# Performance Notes
+x-performance-notes: |
+  - Realtime CDC uses Postgres logical replication (sub-second latency)
+  - Filter at subscription level reduces bandwidth (only matching rows sent)
+  - RLS policies applied automatically (security + performance)
+  - Max 100 concurrent subscriptions per client (Supabase limit)
+  - Automatic reconnection with exponential backoff built into supabase_flutter
+
+# Security Notes
+x-security-notes: |
+  - JWT token required for subscription authentication
+  - RLS policies enforce recipient_id filtering (double security layer)
+  - No direct WebSocket access - must use Supabase client library
+  - Subscription inherits authenticated user's permissions
+  - Filters must match RLS policies to receive data

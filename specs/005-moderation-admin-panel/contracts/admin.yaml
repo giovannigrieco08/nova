@@ -1,0 +1,934 @@
+openapi: 3.0.0
+info:
+  title: Admin Panel API Contract
+  description: API contract for admin panel functionality. Defines Supabase RPC functions for moderator management, user search, and role administration.
+  version: 1.0.0
+  contact:
+    name: Nova Development Team
+
+servers:
+  - url: https://<project-ref>.supabase.co/rest/v1
+    description: Supabase REST API (auto-generated from PostgreSQL schema)
+  - url: https://<project-ref>.supabase.co/realtime/v1
+    description: Supabase Realtime WebSocket API
+
+tags:
+  - name: Moderator Management
+    description: Promote and remove moderator roles
+  - name: User Search
+    description: Search for students to promote
+  - name: Activity Log
+    description: Admin activity audit trail
+  - name: Realtime
+    description: Real-time subscription endpoints
+
+paths:
+  /rpc/promote_to_moderator:
+    post:
+      tags:
+        - Moderator Management
+      summary: Promote a student to moderator role
+      description: |
+        Promotes a student user to moderator role. This operation:
+        - Inserts new role 'moderator' in user_roles table
+        - Creates audit log entry in admin_log table
+        - Creates role history entry in role_history table
+        - Restores archived moderator statistics if user was previously a moderator (Assumption #9)
+        - Sends push notification to promoted user (FR-038)
+        - Initializes moderator_stats record (all counters at 0)
+
+        **RLS Policy**: Only admins can execute this function
+
+        **Business Rules**:
+        - Target user must exist
+        - Target user cannot already be moderator or admin
+        - Admin must have confirmed promotion via dialog (UI responsibility)
+
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - p_target_user_id
+                - p_admin_id
+              properties:
+                p_target_user_id:
+                  type: string
+                  format: uuid
+                  description: UUID of the user to promote to moderator
+                  example: "user-uuid-to-promote"
+                p_admin_id:
+                  type: string
+                  format: uuid
+                  description: UUID of the admin performing the promotion (usually auth.uid())
+                  example: "admin-uuid-123"
+            examples:
+              promote_student:
+                summary: Promote student Luca Verdi (3A) to moderator
+                value:
+                  p_target_user_id: "luca-verdi-uuid-456"
+                  p_admin_id: "admin-uuid-123"
+      responses:
+        '204':
+          description: User successfully promoted to moderator. No content returned.
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                already_moderator:
+                  summary: User already has moderator or admin role
+                  value:
+                    code: "P0001"
+                    message: "User is already a moderator or admin"
+                    hint: "Cannot promote a user who already has elevated privileges"
+        '403':
+          description: Forbidden - User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_admin:
+                  summary: Current user is not an admin
+                  value:
+                    code: "42501"
+                    message: "permission denied for function promote_to_moderator"
+                    hint: "Only admins can promote users to moderator"
+        '404':
+          description: Target user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                user_not_found:
+                  summary: Target user UUID does not exist
+                  value:
+                    code: "P0001"
+                    message: "User not found"
+                    hint: "Check that target user_id is valid"
+
+  /rpc/remove_moderator_role:
+    post:
+      tags:
+        - Moderator Management
+      summary: Remove moderator role from a user
+      description: |
+        Removes moderator role from a user, demoting them back to student. This operation:
+        - Archives current moderator_stats to moderator_stats_archive table (JSONB snapshot)
+        - Deletes moderator_stats record
+        - Deletes 'moderator' role from user_roles table
+        - Inserts 'student' role into user_roles table (default role)
+        - Creates audit log entry in admin_log table
+        - Creates role history entry in role_history table
+        - Sends push notification to demoted user (FR-040)
+
+        **RLS Policy**: Only admins can execute this function
+
+        **Business Rules**:
+        - Target user must currently be a moderator or admin
+        - Cannot remove the last admin from the system (at least one admin must exist)
+        - Admin must have confirmed removal via dialog (UI responsibility)
+        - If user has app open, Moderazione tab disappears via Realtime update (FR-043)
+
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - p_target_user_id
+                - p_admin_id
+              properties:
+                p_target_user_id:
+                  type: string
+                  format: uuid
+                  description: UUID of the moderator to demote
+                  example: "moderator-uuid-to-demote"
+                p_admin_id:
+                  type: string
+                  format: uuid
+                  description: UUID of the admin performing the removal (usually auth.uid())
+                  example: "admin-uuid-123"
+            examples:
+              remove_inactive_moderator:
+                summary: Remove moderator role from inactive user Anna Ferrari
+                value:
+                  p_target_user_id: "anna-ferrari-uuid-789"
+                  p_admin_id: "admin-uuid-123"
+      responses:
+        '204':
+          description: Moderator role successfully removed. No content returned.
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_moderator:
+                  summary: User is not a moderator or admin
+                  value:
+                    code: "P0001"
+                    message: "User is not a moderator or admin"
+                    hint: "Target user must have 'moderator' or 'admin' role"
+                last_admin:
+                  summary: Cannot remove the last admin
+                  value:
+                    code: "P0001"
+                    message: "Cannot remove the last admin"
+                    hint: "System requires at least one admin. Promote another user to admin first."
+        '403':
+          description: Forbidden - User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_admin:
+                  summary: Current user is not an admin
+                  value:
+                    code: "42501"
+                    message: "permission denied for function remove_moderator_role"
+                    hint: "Only admins can remove moderator roles"
+
+  /profiles:
+    get:
+      tags:
+        - User Search
+      summary: Search users by name, email, or class
+      description: |
+        Search for users (students, moderators, admins) by name, email, or class.
+        Used in Admin Panel to find users for promotion or to view moderator list.
+
+        **RLS Policy**: Admins can view all user profiles
+
+        **Search Strategy**:
+        - Use `ilike` for case-insensitive partial matching
+        - Search across full_name, email, and class fields
+        - Combine with user_roles join to filter by role
+
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: full_name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by full name (case-insensitive partial match)
+          example: "ilike.*Luca*"
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by email (case-insensitive partial match)
+          example: "ilike.*verdi*@galileimoro.edu.it"
+        - name: class
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by class (exact match or partial match)
+          example: "eq.3A"
+        - name: select
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Columns to select. Include role information via join.
+            Default: id,full_name,class,email,created_at,user_roles(role,assigned_at,assigned_by)
+          example: "id,full_name,class,email,created_at,user_roles(role,assigned_at,assigned_by)"
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Order results (default by full_name ascending)
+          example: "full_name.asc"
+      responses:
+        '200':
+          description: List of matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfile'
+              examples:
+                search_students:
+                  summary: Search results for "Luca"
+                  value:
+                    - id: "luca-verdi-uuid-456"
+                      full_name: "Luca Verdi"
+                      class: "3A"
+                      email: "luca.verdi@galileimoro.edu.it"
+                      created_at: "2025-09-01T08:00:00Z"
+                      user_roles:
+                        - role: "student"
+                          assigned_at: "2025-09-01T08:00:00Z"
+                          assigned_by: null
+                    - id: "luca-bianchi-uuid-789"
+                      full_name: "Luca Bianchi"
+                      class: "2C"
+                      email: "luca.bianchi@galileimoro.edu.it"
+                      created_at: "2025-09-01T08:05:00Z"
+                      user_roles:
+                        - role: "student"
+                          assigned_at: "2025-09-01T08:05:00Z"
+                          assigned_by: null
+        '403':
+          description: Forbidden - User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user_roles:
+    get:
+      tags:
+        - Moderator Management
+      summary: Get all users with moderator or admin roles
+      description: |
+        Retrieves all users who have moderator or admin roles.
+        Used in Admin Panel to display moderator list with statistics.
+
+        **RLS Policy**: Admins can view all role assignments
+
+        **Common Usage**: Join with profiles and moderator_stats for complete moderator cards
+
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by role (use `in.(moderator,admin)` for both)
+          example: "in.(moderator,admin)"
+        - name: select
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Columns to select with embedded profile and stats.
+            Example: user_id,role,assigned_at,assigned_by,profile:profiles(full_name,class,email),stats:moderator_stats(total_reviews,approval_rate_percent,last_review_at)
+          example: "user_id,role,assigned_at,assigned_by,profile:profiles(*),stats:moderator_stats(*)"
+      responses:
+        '200':
+          description: List of moderators/admins with details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModeratorRole'
+              examples:
+                all_moderators:
+                  summary: Two active moderators
+                  value:
+                    - user_id: "sofia-rossi-uuid-111"
+                      role: "moderator"
+                      assigned_at: "2025-10-01T10:00:00Z"
+                      assigned_by: "admin-uuid-123"
+                      profile:
+                        full_name: "Sofia Rossi"
+                        class: "4A"
+                        email: "sofia.rossi@galileimoro.edu.it"
+                      stats:
+                        total_reviews: 47
+                        approval_count: 38
+                        rejection_count: 9
+                        approval_rate_percent: 80.85
+                        reviews_this_week: 18
+                        last_review_at: "2025-11-13T14:22:00Z"
+                    - user_id: "marco-neri-uuid-222"
+                      role: "moderator"
+                      assigned_at: "2025-10-15T12:00:00Z"
+                      assigned_by: "admin-uuid-123"
+                      profile:
+                        full_name: "Marco Neri"
+                        class: "5B"
+                        email: "marco.neri@galileimoro.edu.it"
+                      stats:
+                        total_reviews: 23
+                        approval_count: 20
+                        rejection_count: 3
+                        approval_rate_percent: 86.96
+                        reviews_this_week: 5
+                        last_review_at: "2025-11-06T09:15:00Z"
+        '403':
+          description: Forbidden - User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin_log:
+    get:
+      tags:
+        - Activity Log
+      summary: Get admin activity log
+      description: |
+        Retrieves audit trail of administrative actions (promotions and removals).
+        Used in Admin Panel to display real-time activity stream.
+
+        **RLS Policy**: Admins can view all admin logs
+
+        **Real-time Updates**: New entries appear within 2 seconds via Realtime subscription (FR-053)
+
+        **Immutability**: Admin logs cannot be modified or deleted (FR-061)
+
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [promoted, removed]
+          description: Filter by action type
+          example: "eq.promoted"
+        - name: select
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Columns to select with embedded profiles.
+            Default: id,action,created_at,admin:profiles!admin_id(full_name),target:profiles!target_user_id(full_name,class)
+          example: "id,action,old_role,new_role,created_at,admin:profiles!admin_id(full_name),target:profiles!target_user_id(full_name,class)"
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Order by created_at descending (newest first)
+          example: "created_at.desc"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Limit number of results (default 50)
+          example: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Pagination offset
+          example: 0
+      responses:
+        '200':
+          description: List of admin log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminLogEntry'
+              examples:
+                recent_actions:
+                  summary: Recent admin actions
+                  value:
+                    - id: "log-entry-uuid-1"
+                      action: "promoted"
+                      old_role: "student"
+                      new_role: "moderator"
+                      created_at: "2025-11-13T15:30:00Z"
+                      admin:
+                        full_name: "Admin Principal"
+                      target:
+                        full_name: "Luca Verdi"
+                        class: "3A"
+                    - id: "log-entry-uuid-2"
+                      action: "removed"
+                      old_role: "moderator"
+                      new_role: "student"
+                      created_at: "2025-11-13T14:00:00Z"
+                      admin:
+                        full_name: "Admin Principal"
+                      target:
+                        full_name: "Anna Ferrari"
+                        class: "4B"
+        '403':
+          description: Forbidden - User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token obtained from auth.session
+
+  schemas:
+    UserProfile:
+      type: object
+      description: User profile information
+      required:
+        - id
+        - full_name
+        - class
+        - email
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User UUID
+        full_name:
+          type: string
+          description: Full name of user
+          example: "Luca Verdi"
+        class:
+          type: string
+          description: Class/grade (e.g., "3A", "4B")
+          example: "3A"
+        email:
+          type: string
+          format: email
+          description: School email address (@galileimoro.edu.it)
+          example: "luca.verdi@galileimoro.edu.it"
+        created_at:
+          type: string
+          format: date-time
+          description: Account registration date (ISO 8601 format)
+        user_roles:
+          type: array
+          description: User's role assignments (embedded via join)
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum: [student, moderator, admin]
+              assigned_at:
+                type: string
+                format: date-time
+              assigned_by:
+                type: string
+                format: uuid
+                nullable: true
+
+    ModeratorRole:
+      type: object
+      description: Moderator role assignment with profile and statistics
+      required:
+        - user_id
+        - role
+        - assigned_at
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: User UUID
+        role:
+          type: string
+          enum: [moderator, admin]
+          description: Role type
+        assigned_at:
+          type: string
+          format: date-time
+          description: When role was assigned
+        assigned_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: Admin who assigned the role (null for initial admin)
+        profile:
+          type: object
+          description: Embedded user profile
+          properties:
+            full_name:
+              type: string
+            class:
+              type: string
+            email:
+              type: string
+              format: email
+        stats:
+          type: object
+          description: Embedded moderator statistics
+          properties:
+            total_reviews:
+              type: integer
+              minimum: 0
+            approval_count:
+              type: integer
+              minimum: 0
+            rejection_count:
+              type: integer
+              minimum: 0
+            approval_rate_percent:
+              type: number
+              format: float
+            reviews_this_week:
+              type: integer
+              minimum: 0
+            last_review_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    AdminLogEntry:
+      type: object
+      description: Audit log entry for admin actions
+      required:
+        - id
+        - action
+        - new_role
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Log entry UUID
+        action:
+          type: string
+          enum: [promoted, removed]
+          description: Type of admin action
+        old_role:
+          type: string
+          enum: [student, moderator, admin]
+          nullable: true
+          description: Role before change (null for initial assignment)
+        new_role:
+          type: string
+          enum: [student, moderator, admin]
+          description: Role after change
+        created_at:
+          type: string
+          format: date-time
+          description: When action occurred (ISO 8601 format)
+        admin:
+          type: object
+          description: Admin who performed the action (embedded profile)
+          properties:
+            full_name:
+              type: string
+              description: Admin's full name
+        target:
+          type: object
+          description: User who was promoted/removed (embedded profile)
+          properties:
+            full_name:
+              type: string
+              description: Target user's full name
+            class:
+              type: string
+              description: Target user's class
+
+    Error:
+      type: object
+      description: PostgreSQL error response
+      properties:
+        code:
+          type: string
+          description: PostgreSQL error code (SQLSTATE)
+        message:
+          type: string
+          description: Human-readable error message
+        hint:
+          type: string
+          nullable: true
+          description: Optional hint for resolving the error
+        details:
+          type: string
+          nullable: true
+          description: Additional error details
+
+realtime:
+  channels:
+    - channel: realtime:public:user_roles
+      description: Real-time updates to user role assignments
+      subscriptions:
+        - event: INSERT
+          description: |
+            Notifies when user is promoted to moderator/admin.
+            Used to update moderator list in Admin Panel.
+            If user has app open, Moderazione tab appears immediately (FR-043).
+          payload:
+            type: object
+            properties:
+              record:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  role:
+                    type: string
+                    enum: [moderator, admin]
+                  assigned_at:
+                    type: string
+                    format: date-time
+          example:
+            record:
+              user_id: "newly-promoted-uuid"
+              role: "moderator"
+              assigned_at: "2025-11-13T15:30:00Z"
+
+        - event: DELETE
+          description: |
+            Notifies when moderator role is removed.
+            Used to update moderator list in Admin Panel.
+            If user has app open, Moderazione tab disappears immediately (FR-043).
+          payload:
+            type: object
+            properties:
+              old_record:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  role:
+                    type: string
+                    enum: [moderator, admin]
+          example:
+            old_record:
+              user_id: "demoted-user-uuid"
+              role: "moderator"
+
+    - channel: realtime:public:admin_log
+      description: Real-time updates to admin activity log
+      subscriptions:
+        - event: INSERT
+          description: |
+            Notifies when new admin action is logged.
+            Used to update activity stream in Admin Panel (FR-053).
+            **Latency requirement**: Updates must appear within 2 seconds.
+          payload:
+            type: object
+            properties:
+              record:
+                $ref: '#/components/schemas/AdminLogEntry'
+          example:
+            record:
+              id: "new-log-entry-uuid"
+              action: "promoted"
+              old_role: "student"
+              new_role: "moderator"
+              created_at: "2025-11-13T15:30:00Z"
+
+    - channel: realtime:public:moderator_stats
+      description: Real-time updates to all moderator statistics
+      subscriptions:
+        - event: UPDATE
+          description: |
+            Notifies when any moderator's statistics update.
+            Used in Admin Panel to update moderator list cards in real-time.
+            Shows which moderators are actively reviewing events.
+          payload:
+            type: object
+            properties:
+              record:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  total_reviews:
+                    type: integer
+                  last_review_at:
+                    type: string
+                    format: date-time
+          example:
+            record:
+              user_id: "active-moderator-uuid"
+              total_reviews: 48
+              last_review_at: "2025-11-13T15:35:00Z"
+
+exampleCode:
+  dart:
+    promote_to_moderator: |
+      // Promote user to moderator
+      final supabase = Supabase.instance.client;
+      final adminId = supabase.auth.currentUser!.id;
+
+      try {
+        await supabase.rpc('promote_to_moderator', params: {
+          'p_target_user_id': 'luca-verdi-uuid-456',
+          'p_admin_id': adminId,
+        });
+
+        // Success - user promoted
+        print('User promoted to moderator successfully');
+        // Notification automatically sent to user
+        // Admin log entry automatically created
+        // Moderator stats initialized
+      } on PostgrestException catch (e) {
+        if (e.message.contains('already a moderator')) {
+          showError('User is already a moderator');
+        } else if (e.message.contains('User not found')) {
+          showError('User does not exist');
+        } else {
+          showError('Failed to promote user: ${e.message}');
+        }
+      }
+
+    remove_moderator_role: |
+      // Remove moderator role from user
+      final supabase = Supabase.instance.client;
+      final adminId = supabase.auth.currentUser!.id;
+
+      try {
+        await supabase.rpc('remove_moderator_role', params: {
+          'p_target_user_id': 'anna-ferrari-uuid-789',
+          'p_admin_id': adminId,
+        });
+
+        // Success - moderator role removed
+        print('Moderator role removed successfully');
+        // Stats archived automatically
+        // Notification sent to user
+        // Admin log entry created
+      } on PostgrestException catch (e) {
+        if (e.message.contains('not a moderator')) {
+          showError('User is not a moderator');
+        } else if (e.message.contains('Cannot remove the last admin')) {
+          showError('Cannot remove the last admin. Promote another user first.');
+        } else {
+          showError('Failed to remove role: ${e.message}');
+        }
+      }
+
+    search_users: |
+      // Search for users by name
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase
+        .from('profiles')
+        .select('id, full_name, class, email, created_at, user_roles(role, assigned_at)')
+        .ilike('full_name', '%Luca%')
+        .order('full_name', ascending: true);
+
+      final users = response as List<dynamic>;
+      print('Found ${users.length} users');
+
+    get_all_moderators: |
+      // Get all moderators with statistics
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase
+        .from('user_roles')
+        .select('''
+          user_id,
+          role,
+          assigned_at,
+          assigned_by,
+          profile:profiles!user_id(full_name, class, email),
+          stats:moderator_stats!user_id(total_reviews, approval_rate_percent, reviews_this_week, last_review_at)
+        ''')
+        .in_('role', ['moderator', 'admin']);
+
+      final moderators = response as List<dynamic>;
+      print('Total moderators: ${moderators.length}');
+
+      // Check for inactive moderators (>7 days)
+      for (var mod in moderators) {
+        final lastReview = mod['stats']?['last_review_at'];
+        if (lastReview != null) {
+          final lastReviewDate = DateTime.parse(lastReview);
+          final daysSinceReview = DateTime.now().difference(lastReviewDate).inDays;
+          if (daysSinceReview > 7) {
+            print('Inactive moderator: ${mod['profile']['full_name']} ($daysSinceReview days)');
+          }
+        }
+      }
+
+    get_activity_log: |
+      // Get recent admin activity log
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase
+        .from('admin_log')
+        .select('''
+          id,
+          action,
+          old_role,
+          new_role,
+          created_at,
+          admin:profiles!admin_id(full_name),
+          target:profiles!target_user_id(full_name, class)
+        ''')
+        .order('created_at', ascending: false)
+        .limit(50);
+
+      final logEntries = response as List<dynamic>;
+      print('Recent activity: ${logEntries.length} entries');
+
+    subscribe_admin_log: |
+      // Subscribe to real-time admin log updates
+      final supabase = Supabase.instance.client;
+
+      final subscription = supabase
+        .from('admin_log')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .limit(50)
+        .listen((List<Map<String, dynamic>> logs) {
+          // Update activity stream UI
+          updateActivityStream(logs);
+        });
+
+      // Unsubscribe when widget disposed
+      subscription.cancel();
+
+    subscribe_role_changes: |
+      // Subscribe to role changes for current user (detect promotion/demotion)
+      final supabase = Supabase.instance.client;
+      final userId = supabase.auth.currentUser!.id;
+
+      final subscription = supabase
+        .from('user_roles')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .listen((List<Map<String, dynamic>> roles) {
+          // Check if user has moderator/admin role
+          final hasModerationRole = roles.any(
+            (r) => r['role'] == 'moderator' || r['role'] == 'admin'
+          );
+
+          if (hasModerationRole) {
+            // Show Moderazione tab
+            showModerationTab();
+          } else {
+            // Hide Moderazione tab
+            hideModerationTab();
+          }
+        });
+
+      // Unsubscribe when app closed
+      subscription.cancel();
+
+notes:
+  - All promotion/removal actions create immutable audit log entries
+  - Statistics are archived (not deleted) when moderator role removed (Assumption #9)
+  - At least one admin must exist in the system at all times
+  - Confirmation dialogs required before promotion/removal (UI responsibility, not enforced at API level)
+  - Role changes propagate via Realtime within 2 seconds (FR-043)
+  - Inactive moderators highlighted when last_review_at > 7 days (FR-042)
+  - Search supports case-insensitive partial matching via `ilike` operator
+  - All timestamps use UTC timezone

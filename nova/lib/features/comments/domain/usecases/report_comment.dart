@@ -1,0 +1,103 @@
+import '../entities/comment_report.dart';
+import '../repositories/comments_repository_interface.dart';
+
+/// ReportComment Use Case
+///
+/// Submits a report for an inappropriate comment.
+/// Prevents duplicate reports from same user.
+///
+/// Business Rules:
+/// - User can only report a comment once
+/// - Reports with valid reasons are logged for moderation
+/// - 3+ reports trigger auto-hide and moderator notification
+/// - Server-side validation ensures user exists and comment exists
+///
+/// **FR-033**: Students can report comments for moderation
+/// **FR-034**: 3+ reports trigger auto-hide
+/// **FR-035**: Moderators are notified of auto-hidden comments
+///
+/// Usage:
+/// ```dart
+/// final reportComment = ref.read(reportCommentProvider);
+/// try {
+///   await reportComment(
+///     commentId: '123',
+///     reason: CommentReportReason.inappropriate,
+///     additionalDetails: 'Contains offensive language',
+///   );
+///   // Show success: "Segnalazione inviata"
+/// } on ConflictException catch (e) {
+///   // Show: "Hai già segnalato questo commento"
+/// }
+/// ```
+class ReportComment {
+  final CommentsRepositoryInterface _repository;
+
+  ReportComment(this._repository);
+
+  /// Execute use case
+  ///
+  /// Parameters:
+  /// - [commentId]: ID of comment to report
+  /// - [reason]: Reason for reporting (enum)
+  /// - [additionalDetails]: Optional text for "Altro" reason
+  ///
+  /// Throws:
+  /// - [ConflictException]: User already reported this comment
+  /// - [NotFoundException]: Comment does not exist
+  /// - [ValidationException]: Invalid reason or details too long
+  /// - [NetworkException]: Network error
+  Future<void> call({
+    required String commentId,
+    required CommentReportReason reason,
+    String? additionalDetails,
+  }) async {
+    // Validate additional details length
+    if (additionalDetails != null && additionalDetails.length > 500) {
+      throw ValidationException(
+        message: 'I dettagli aggiuntivi non possono superare 500 caratteri',
+      );
+    }
+
+    // Submit report to repository
+    await _repository.reportComment(
+      commentId: commentId,
+      reason: reason,
+      additionalDetails: additionalDetails,
+    );
+  }
+}
+
+/// Report reason enum
+///
+/// Matches database enum: comment_report_reason
+enum CommentReportReason {
+  spam('spam', 'Spam'),
+  inappropriate('inappropriate', 'Contenuto inappropriato'),
+  bullying('bullying', 'Bullismo/molestie'),
+  offTopic('off_topic', 'Off-topic'),
+  other('other', 'Altro');
+
+  final String value;
+  final String displayName;
+
+  const CommentReportReason(this.value, this.displayName);
+
+  static CommentReportReason fromValue(String value) {
+    return CommentReportReason.values.firstWhere(
+      (r) => r.value == value,
+      orElse: () => CommentReportReason.other,
+    );
+  }
+}
+
+/// Validation exception for report errors
+class ValidationException implements Exception {
+  final String message;
+  final StackTrace? stackTrace;
+
+  ValidationException({required this.message, this.stackTrace});
+
+  @override
+  String toString() => 'ValidationException: $message';
+}

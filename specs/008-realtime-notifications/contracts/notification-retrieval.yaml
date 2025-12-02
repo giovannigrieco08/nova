@@ -1,0 +1,237 @@
+openapi: 3.0.3
+info:
+  title: Notification Retrieval API
+  description: API for fetching, marking as read, and deleting notifications
+  version: 1.0.0
+  contact:
+    name: Nova Platform
+    email: dev@galileimoro.edu.it
+
+servers:
+  - url: https://jhnxscorszeslkhnxtif.supabase.co
+    description: Supabase Production
+
+paths:
+  /rest/v1/notifications:
+    get:
+      summary: Fetch user's notifications
+      description: |
+        Retrieves all notifications for the authenticated user, sorted by creation time (newest first).
+        Automatically filtered by recipient_id via RLS policies.
+      operationId: getNotifications
+      tags:
+        - Notifications
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+            example: Bearer eyJhbGc...
+          description: Supabase JWT token from auth.session()
+        - name: select
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "id,sender_id,type,title,description,target_type,target_id,metadata,is_read,created_at,profiles:sender_id(name,avatar_url)"
+          description: PostgREST select parameter for fields and joins
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "created_at.desc"
+          description: Sort order (default: created_at descending)
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 100
+          description: Maximum number of notifications to return
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+              example:
+                - id: "550e8400-e29b-41d4-a716-446655440000"
+                  sender_id: "660e8400-e29b-41d4-a716-446655440001"
+                  type: "new_comment"
+                  title: "Marco ha commentato sul tuo evento"
+                  description: "Ciao! Posso partecipare?"
+                  target_type: "event"
+                  target_id: "770e8400-e29b-41d4-a716-446655440002"
+                  metadata: {"comment_id": "880e8400-e29b-41d4-a716-446655440003"}
+                  is_read: false
+                  created_at: "2025-11-23T14:30:00Z"
+                  profiles:
+                    name: "Marco Rossi"
+                    avatar_url: "https://example.com/avatar.jpg"
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "JWT expired"
+                code: "PGRST301"
+
+  /rest/v1/notifications/{notificationId}:
+    patch:
+      summary: Mark notification as read
+      description: Updates the is_read field to true for a specific notification
+      operationId: markNotificationAsRead
+      tags:
+        - Notifications
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_read:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '404':
+          description: Notification not found or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete notification
+      description: Permanently deletes a notification (swipe-to-delete action)
+      operationId: deleteNotification
+      tags:
+        - Notifications
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Notification successfully deleted
+        '404':
+          description: Notification not found or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique notification identifier
+        recipient_id:
+          type: string
+          format: uuid
+          description: User receiving the notification
+        sender_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: User who triggered the notification (null for system notifications)
+        type:
+          type: string
+          enum:
+            - event_moderation
+            - new_comment
+            - comment_reply
+            - event_like
+            - event_participation
+            - coorganizer_update
+          description: Notification channel type
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Bold notification title
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Notification body text
+        target_type:
+          type: string
+          enum:
+            - event
+            - comment
+          description: Type of entity this notification links to
+        target_id:
+          type: string
+          format: uuid
+          description: ID of the target entity
+        metadata:
+          type: object
+          description: Extensible metadata field (comment_id, reply_to_id, etc.)
+          additionalProperties: true
+        is_read:
+          type: boolean
+          description: Read status
+        created_at:
+          type: string
+          format: date-time
+          description: When notification was created
+        profiles:
+          type: object
+          description: Joined sender profile data (when using select with join)
+          properties:
+            name:
+              type: string
+            avatar_url:
+              type: string
+              format: uri
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: string
+          description: Detailed error information

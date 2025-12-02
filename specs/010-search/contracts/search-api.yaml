@@ -1,0 +1,215 @@
+# Search API Contract
+# Note: This is a Supabase-based implementation, not REST API
+# Contract documents the database queries and expected responses
+
+openapi: 3.0.3
+info:
+  title: Nova Search API Contract
+  description: |
+    Search functionality for Nova app.
+    Uses Supabase Full-Text Search with PostgreSQL GIN indexes.
+    All queries go through Supabase client SDK, not custom REST endpoints.
+  version: 1.0.0
+
+# Supabase Query Contracts (not REST endpoints)
+paths:
+  /events-search:
+    description: |
+      Supabase query for searching events via FTS.
+
+      ```dart
+      final response = await supabase
+          .from('events')
+          .select('id, title, description, location, event_date, image_url, creator_id, category')
+          .textSearch('fts', query, config: 'italian', type: TextSearchType.websearch)
+          .eq('status', 'approved')
+          .gte('event_date', DateTime.now().toIso8601String())
+          .order('created_at', ascending: false)
+          .limit(20);
+      ```
+    get:
+      summary: Search events with full-text search
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+          description: Search query (Italian language supported)
+      responses:
+        '200':
+          description: List of matching events
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 20
+                items:
+                  $ref: '#/components/schemas/EventSearchResult'
+
+  /profiles-search:
+    description: |
+      Supabase query for searching profiles via FTS.
+
+      ```dart
+      final response = await supabase
+          .from('profiles')
+          .select('id, full_name, username, class, avatar_url')
+          .textSearch('fts', query, config: 'italian', type: TextSearchType.websearch)
+          .eq('profile_visible', true)
+          .isFilter('deleted_at', null)
+          .order('full_name', ascending: true)
+          .limit(20);
+      ```
+    get:
+      summary: Search profiles with full-text search
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+          description: Search query (Italian language supported)
+      responses:
+        '200':
+          description: List of matching profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 20
+                items:
+                  $ref: '#/components/schemas/ProfileSearchResult'
+
+components:
+  schemas:
+    EventSearchResult:
+      type: object
+      required:
+        - id
+        - title
+        - event_date
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Event unique identifier
+        title:
+          type: string
+          description: Event title
+        description:
+          type: string
+          description: Event description
+        location:
+          type: string
+          nullable: true
+          description: Event location
+        event_date:
+          type: string
+          format: date-time
+          description: When the event occurs
+        image_url:
+          type: string
+          nullable: true
+          description: Event cover image URL
+        creator_id:
+          type: string
+          format: uuid
+          description: User ID of event creator
+        category:
+          type: string
+          enum: [academic, sport, social, cultural]
+          description: Event category
+
+    ProfileSearchResult:
+      type: object
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Profile/user unique identifier
+        full_name:
+          type: string
+          nullable: true
+          description: User's full name
+        username:
+          type: string
+          description: Unique username
+        class:
+          type: string
+          nullable: true
+          description: School class (e.g., "4A", "5B")
+        avatar_url:
+          type: string
+          nullable: true
+          description: Avatar image URL
+
+    SearchResults:
+      type: object
+      description: Combined search results
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSearchResult'
+          maxItems: 20
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileSearchResult'
+          maxItems: 20
+        query:
+          type: string
+          description: Original search query
+        is_offline:
+          type: boolean
+          default: false
+          description: True if results from local cache
+        timestamp:
+          type: string
+          format: date-time
+          description: When results were fetched
+
+# Database Migration Contract
+x-database-migration:
+  file: 011_search_feature.sql
+  tables:
+    events:
+      add_columns:
+        - name: fts
+          type: tsvector
+          generated: true
+          expression: |
+            to_tsvector('italian',
+              COALESCE(title, '') || ' ' ||
+              COALESCE(description, '') || ' ' ||
+              COALESCE(location, '')
+            )
+      add_indexes:
+        - name: idx_events_fts
+          type: gin
+          column: fts
+          where: "status = 'approved'"
+    profiles:
+      add_columns:
+        - name: fts
+          type: tsvector
+          generated: true
+          expression: |
+            to_tsvector('italian',
+              COALESCE(full_name, '') || ' ' ||
+              COALESCE(username, '') || ' ' ||
+              COALESCE(class, '')
+            )
+      add_indexes:
+        - name: idx_profiles_fts
+          type: gin
+          column: fts
+          where: "deleted_at IS NULL AND profile_visible = TRUE"

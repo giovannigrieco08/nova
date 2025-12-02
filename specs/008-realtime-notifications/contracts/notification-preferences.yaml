@@ -1,0 +1,173 @@
+openapi: 3.0.3
+info:
+  title: Notification Preferences API
+  description: API for managing user notification preferences (Settings → Notifiche)
+  version: 1.0.0
+  contact:
+    name: Nova Platform
+    email: dev@galileimoro.edu.it
+
+servers:
+  - url: https://jhnxscorszeslkhnxtif.supabase.co
+    description: Supabase Production
+
+paths:
+  /rest/v1/profiles:
+    get:
+      summary: Get user's notification preferences
+      description: |
+        Retrieves the authenticated user's notification preferences.
+        Only returns the 6 notification preference fields from the profiles table.
+      operationId: getNotificationPreferences
+      tags:
+        - Preferences
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+            example: Bearer eyJhbGc...
+        - name: select
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "eventi_moderati_enabled,nuovi_commenti_enabled,risposte_commenti_enabled,like_eventi_enabled,nuove_partecipazioni_enabled,coorganizer_updates_enabled"
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Filter by user ID (eq.{userId})
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationPreferences'
+                minItems: 1
+                maxItems: 1
+              example:
+                - eventi_moderati_enabled: true
+                  nuovi_commenti_enabled: true
+                  risposte_commenti_enabled: false
+                  like_eventi_enabled: false
+                  nuove_partecipazioni_enabled: true
+                  coorganizer_updates_enabled: true
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+
+    patch:
+      summary: Update notification preferences
+      description: |
+        Updates one or more notification preference fields for the authenticated user.
+        Changes are immediately reflected in notification generation logic.
+      operationId: updateNotificationPreferences
+      tags:
+        - Preferences
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Filter by user ID (eq.{userId})
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferencesUpdate'
+            example:
+              like_eventi_enabled: false
+              nuove_partecipazioni_enabled: false
+      responses:
+        '200':
+          description: Preferences successfully updated
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationPreferences'
+        '400':
+          description: Invalid preference value (must be boolean)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User profile not found
+
+components:
+  schemas:
+    NotificationPreferences:
+      type: object
+      required:
+        - eventi_moderati_enabled
+        - nuovi_commenti_enabled
+        - risposte_commenti_enabled
+        - like_eventi_enabled
+        - nuove_partecipazioni_enabled
+        - coorganizer_updates_enabled
+      properties:
+        eventi_moderati_enabled:
+          type: boolean
+          description: Event moderation notifications (approved/rejected)
+          default: true
+        nuovi_commenti_enabled:
+          type: boolean
+          description: New comment notifications on user's events
+          default: true
+        risposte_commenti_enabled:
+          type: boolean
+          description: Reply notifications on user's comments
+          default: true
+        like_eventi_enabled:
+          type: boolean
+          description: Like notifications on user's events
+          default: true
+        nuove_partecipazioni_enabled:
+          type: boolean
+          description: Participation notifications on user's events
+          default: true
+        coorganizer_updates_enabled:
+          type: boolean
+          description: Co-organizer update notifications
+          default: true
+
+    NotificationPreferencesUpdate:
+      type: object
+      description: Partial update object (can include any subset of preference fields)
+      properties:
+        eventi_moderati_enabled:
+          type: boolean
+        nuovi_commenti_enabled:
+          type: boolean
+        risposte_commenti_enabled:
+          type: boolean
+        like_eventi_enabled:
+          type: boolean
+        nuove_partecipazioni_enabled:
+          type: boolean
+        coorganizer_updates_enabled:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        details:
+          type: string
