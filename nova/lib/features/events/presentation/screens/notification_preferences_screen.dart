@@ -60,7 +60,7 @@ class _NotificationPreferencesScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isModerator Async = ref.watch(isModeratorProvider);
+    final isModeratorAsync = ref.watch(isModeratorProvider);
 
     return Scaffold(
       appBar: AppBar(
