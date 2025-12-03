@@ -20,6 +20,7 @@ import 'moderation_queue_screen.dart';
 import '../../../admin/presentation/screens/admin_panel_screen.dart';
 import '../../../moderation/presentation/providers/pending_count_provider.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
 import 'events_feed_screen.dart';
 import 'event_creation_screen.dart';
 
@@ -70,7 +71,16 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
         _showComingSoonDialog('Amici');
         break;
       case 'chat':
-        _showComingSoonDialog('Chat');
+        Navigator.push(
+          context,
+          context.isIOS
+              ? CupertinoPageRoute(
+                  builder: (context) => const ChatScreen(),
+                )
+              : MaterialPageRoute(
+                  builder: (context) => const ChatScreen(),
+                ),
+        );
         break;
       case 'moderation':
         Navigator.push(
