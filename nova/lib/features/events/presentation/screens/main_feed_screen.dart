@@ -21,6 +21,7 @@ import '../../../admin/presentation/screens/admin_panel_screen.dart';
 import '../../../moderation/presentation/providers/pending_count_provider.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
+import '../../../search/presentation/screens/search_screen.dart';
 import 'events_feed_screen.dart';
 import 'event_creation_screen.dart';
 
@@ -67,8 +68,17 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
       case 'home':
         _tabController.animateTo(0);
         break;
-      case 'friends':
-        _showComingSoonDialog('Amici');
+      case 'search':
+        Navigator.push(
+          context,
+          context.isIOS
+              ? CupertinoPageRoute(
+                  builder: (context) => const SearchScreen(),
+                )
+              : MaterialPageRoute(
+                  builder: (context) => const SearchScreen(),
+                ),
+        );
         break;
       case 'chat':
         Navigator.push(
@@ -122,9 +132,9 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
         label: 'Home',
       ),
       const NavItem(
-        sfSymbol: 'person.2.fill',
-        materialIcon: Icons.people,
-        label: 'Amici',
+        sfSymbol: 'magnifyingglass',
+        materialIcon: Icons.search,
+        label: 'Cerca',
       ),
       const NavItem(
         sfSymbol: 'message.fill',
@@ -164,7 +174,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
 
   /// Get route identifiers for navigation items based on user role
   List<String> _getNavRoutes(UserRole userRole) {
-    final routes = <String>['home', 'friends', 'chat'];
+    final routes = <String>['home', 'search', 'chat'];
 
     if (userRole == UserRole.moderator || userRole == UserRole.admin) {
       routes.add('moderation');
