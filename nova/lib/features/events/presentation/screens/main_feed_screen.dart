@@ -6,16 +6,19 @@
 // =====================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/nova_colors.dart';
-import '../../../../core/theme/nova_icons.dart';
-import '../../../../shared/widgets/nova_tabs.dart';
-import '../../../../shared/widgets/adaptive/adaptive_scaffold.dart';
-import '../../../../shared/widgets/adaptive/adaptive_app_bar.dart';
+import '../../../../core/utils/platform_utils.dart';
+import '../../../../core/enums/user_role.dart';
 import '../../../../shared/widgets/nova_bottom_nav_bar.dart';
 import '../../../../shared/widgets/adaptive/adaptive_dialog.dart';
 import '../../../bacheche/presentation/screens/bacheche_screen.dart';
-import '../../../chat/presentation/screens/chat_screen.dart';
+import '../../../auth/providers/user_role_provider.dart';
+import 'moderation_queue_screen.dart';
+import '../../../admin/presentation/screens/admin_panel_screen.dart';
+import '../../../moderation/presentation/providers/pending_count_provider.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import 'events_feed_screen.dart';
 import 'event_creation_screen.dart';
@@ -38,6 +41,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _currentNavIndex = 0; // Bottom nav index
+  String _currentSection = 'Eventi'; // Current section: 'Eventi' or 'Bacheche'
 
   @override
   void initState() {
@@ -52,36 +56,221 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
   }
 
   /// Handle bottom navigation item selection
-  void _onNavItemSelected(int index) {
+  void _onNavItemSelected(int index, List<String> navRoutes) {
     setState(() {
       _currentNavIndex = index;
     });
 
-    switch (index) {
-      case 0: // Home
+    final route = navRoutes[index];
+    switch (route) {
+      case 'home':
         _tabController.animateTo(0);
         break;
-      case 1: // Amici
+      case 'friends':
         _showComingSoonDialog('Amici');
-        // Reset to Home after showing dialog
-        setState(() => _currentNavIndex = 0);
         break;
-      case 2: // Chat
-        // ChatScreen is now shown via IndexedStack
+      case 'chat':
+        _showComingSoonDialog('Chat');
         break;
-      case 3: // Profilo
-        // ProfileScreen is now shown via IndexedStack
+      case 'moderation':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ModerationQueueScreen(),
+          ),
+        );
+        break;
+      case 'admin':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AdminPanelScreen(),
+          ),
+        );
+        break;
+      case 'profile':
+        Navigator.push(
+          context,
+          context.isIOS
+              ? CupertinoPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                )
+              : MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+        );
         break;
     }
   }
 
-  /// Handle camera FAB tap - navigate to create event
+  /// Build navigation items based on user role
+  List<NavItem> _buildNavItems(UserRole userRole, int? pendingCount) {
+    final items = <NavItem>[
+      const NavItem(
+        sfSymbol: 'house.fill',
+        materialIcon: Icons.home,
+        label: 'Home',
+      ),
+      const NavItem(
+        sfSymbol: 'person.2.fill',
+        materialIcon: Icons.people,
+        label: 'Amici',
+      ),
+      const NavItem(
+        sfSymbol: 'message.fill',
+        materialIcon: Icons.chat_bubble,
+        label: 'Chat',
+      ),
+    ];
+
+    // Add Moderation tab for moderators and admins
+    if (userRole == UserRole.moderator || userRole == UserRole.admin) {
+      items.add(NavItem(
+        sfSymbol: 'gavel',
+        materialIcon: Icons.gavel,
+        label: 'Moderazione',
+        badgeCount: pendingCount,
+      ));
+    }
+
+    // Add Admin tab for admins only
+    if (userRole == UserRole.admin) {
+      items.add(const NavItem(
+        sfSymbol: 'person.badge.shield.checkmark.fill',
+        materialIcon: Icons.admin_panel_settings,
+        label: 'Admin',
+      ));
+    }
+
+    // Always add Profile last
+    items.add(const NavItem(
+      sfSymbol: 'person.circle.fill',
+      materialIcon: Icons.person,
+      label: 'Profilo',
+    ));
+
+    return items;
+  }
+
+  /// Get route identifiers for navigation items based on user role
+  List<String> _getNavRoutes(UserRole userRole) {
+    final routes = <String>['home', 'friends', 'chat'];
+
+    if (userRole == UserRole.moderator || userRole == UserRole.admin) {
+      routes.add('moderation');
+    }
+
+    if (userRole == UserRole.admin) {
+      routes.add('admin');
+    }
+
+    routes.add('profile');
+
+    return routes;
+  }
+
+  /// Handle camera FAB tap - Open event creation screen
   void _onCameraTap() {
-    Navigator.of(context).push(
+    Navigator.push(
+      context,
       MaterialPageRoute(
         builder: (context) => const EventCreationScreen(),
       ),
     );
+  }
+
+  /// Show section selector (Eventi/Bacheche)
+  void _showSectionSelector() {
+    if (context.isIOS) {
+      // iOS: Native CupertinoActionSheet
+      showCupertinoModalPopup(
+        context: context,
+        builder: (context) => CupertinoActionSheet(
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  _currentSection = 'Eventi';
+                  _tabController.animateTo(0);
+                });
+              },
+              isDefaultAction: _currentSection == 'Eventi',
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.event, size: 20),
+                  SizedBox(width: 8),
+                  Text('Eventi'),
+                ],
+              ),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  _currentSection = 'Bacheche';
+                  _tabController.animateTo(1);
+                });
+              },
+              isDefaultAction: _currentSection == 'Bacheche',
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.dashboard, size: 20),
+                  SizedBox(width: 8),
+                  Text('Bacheche'),
+                ],
+              ),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+        ),
+      );
+    } else {
+      // Android: Material Design dropdown menu
+      showMenu(
+        context: context,
+        position: RelativeRect.fromLTRB(
+          MediaQuery.of(context).size.width / 2 - 100,
+          kToolbarHeight,
+          MediaQuery.of(context).size.width / 2 + 100,
+          0,
+        ),
+        items: [
+          PopupMenuItem(
+            value: 'Eventi',
+            child: Row(
+              children: const [
+                Icon(Icons.event, size: 20),
+                SizedBox(width: 8),
+                Text('Eventi'),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'Bacheche',
+            child: Row(
+              children: const [
+                Icon(Icons.dashboard, size: 20),
+                SizedBox(width: 8),
+                Text('Bacheche'),
+              ],
+            ),
+          ),
+        ],
+      ).then((value) {
+        if (value != null) {
+          setState(() {
+            _currentSection = value;
+            _tabController.animateTo(value == 'Eventi' ? 0 : 1);
+          });
+        }
+      });
+    }
   }
 
   /// Show "Coming Soon" dialog for unimplemented features
@@ -101,93 +290,120 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
 
   /// Handle notifications icon tap
   void _onNotificationsTap() {
-    // TODO: Open notifications screen
+    // TODO(notifications/future): Navigate to NotificationsScreen when implemented
     _showComingSoonDialog('Notifiche');
-  }
-
-  /// Get IndexedStack index from nav index
-  int _getStackIndex() {
-    switch (_currentNavIndex) {
-      case 0: return 0; // Home
-      case 2: return 1; // Chat
-      case 3: return 2; // Profilo
-      default: return 0;
-    }
-  }
-
-  /// Check if current screen has its own app bar
-  bool _screenHasOwnAppBar() {
-    return _currentNavIndex == 2 || _currentNavIndex == 3; // Chat and Profile
   }
 
   @override
   Widget build(BuildContext context) {
-    return AdaptiveScaffold(
+    // Watch user role for dynamic navigation
+    final userRoleAsync = ref.watch(userRoleProvider);
+    final pendingCountAsync = ref.watch(pendingCountProvider);
+
+    // Get current role (default to student if loading/error)
+    final userRole = userRoleAsync.valueOrNull ?? UserRole.student;
+    final pendingCount = pendingCountAsync.valueOrNull;
+
+    // Build dynamic nav items based on role
+    final navItems = _buildNavItems(userRole, pendingCount);
+    final navRoutes = _getNavRoutes(userRole);
+
+    // Reset current index if it exceeds available items
+    if (_currentNavIndex >= navItems.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _currentNavIndex = 0;
+        });
+      });
+    }
+
+    return Scaffold(
       backgroundColor: NovaColors.background(context),
-      appBar: _screenHasOwnAppBar()
-          ? null // Chat and Profile screens have their own AppBar
-          : AdaptiveAppBar(
-              title: const Text('Nova'),
-              actions: [
-                IconButton(
-                  icon: NovaIcons.notifications(context),
-                  onPressed: _onNotificationsTap,
-                ),
-              ],
-            ),
       body: Stack(
         children: [
-          // Main content using IndexedStack to preserve state
-          IndexedStack(
-            index: _getStackIndex(),
-            children: [
-              // Index 0: Home feed (Eventi/Bacheche tabs)
-              Column(
-                children: [
-                  // Tab bar (Eventi / Bacheche)
-                  NovaTabs(
-                    controller: _tabController,
-                    tab1Label: 'Eventi',
-                    tab2Label: 'Bacheche',
-                  ),
+          // Main content with SliverAppBar (Instagram-style hide on scroll)
+          NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverAppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  floating: false, // Instagram: navbar NON riappare finché non torni in cima
+                  pinned: false,   // Navbar scompare completamente scrollando (Instagram behavior)
+                  expandedHeight: 56, // Altezza espansa per permettere collapse
+                  collapsedHeight: 56, // Stessa altezza per uniformità
+                  toolbarHeight: 56, // Aumentato per centrare meglio gli elementi
+                  titleSpacing: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: true,
+                    titlePadding: EdgeInsets.zero,
+                    title: Container(
+                      height: 56,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Padding per abbassare elementi
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Logo sinistra
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: SvgPicture.asset(
+                              'assets/logos/nova_logo.svg',
+                              width: 28,
+                              height: 28,
+                            ),
+                          ),
 
-                  // Tab content
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: const [
-                        // Eventi tab
-                        EventsFeedScreen(showAppBar: false),
+                          // Titolo centro con dropdown
+                          GestureDetector(
+                            onTap: _showSectionSelector,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _currentSection,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.keyboard_arrow_down,
+                                  size: 20,
+                                  color: Colors.black,
+                                ),
+                              ],
+                            ),
+                          ),
 
-                        // Bacheche tab
-                        BachecheScreen(),
-                      ],
+                          // Notifiche destra
+                          IconButton(
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.black,
+                              size: 26,
+                            ),
+                            onPressed: _onNotificationsTap,
+                            padding: const EdgeInsets.only(right: 8),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-
-                  // Bottom padding for nav bar
-                  const SizedBox(height: 100),
-                ],
-              ),
-
-              // Index 1: Chat screen
-              const Column(
-                children: [
-                  Expanded(child: ChatScreen()),
-                  // Bottom padding for nav bar
-                  SizedBox(height: 100),
-                ],
-              ),
-
-              // Index 2: Profile screen
-              const Column(
-                children: [
-                  Expanded(child: ProfileScreen()),
-                  // Bottom padding for nav bar
-                  SizedBox(height: 100),
-                ],
-              ),
-            ],
+                ),
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              physics: const NeverScrollableScrollPhysics(), // Disable swipe, only dropdown changes tabs
+              children: const [
+                EventsFeedScreen(showAppBar: false),
+                BachecheScreen(),
+              ],
+            ),
           ),
 
           // Bottom navigation overlay (pill-shaped glassmorphic design)
@@ -198,7 +414,8 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
             child: SafeArea(
               child: NovaBottomNavBar(
                 currentIndex: _currentNavIndex,
-                onTap: _onNavItemSelected,
+                items: navItems,
+                onTap: (index) => _onNavItemSelected(index, navRoutes),
                 onCameraTap: _onCameraTap,
               ),
             ),

@@ -8,46 +8,66 @@ import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/theme/nova_icons.dart';
 
+/// Navigation item configuration
+class NavItem {
+  final String sfSymbol;
+  final IconData materialIcon;
+  final String label;
+  final int? badgeCount;
+
+  const NavItem({
+    required this.sfSymbol,
+    required this.materialIcon,
+    required this.label,
+    this.badgeCount,
+  });
+}
+
 /// Nova custom bottom navigation bar with pill-shaped glassmorphic design.
 ///
 /// Features:
 /// - Pill-shaped container with rounded corners
 /// - Glassmorphism on iOS (blur + semi-transparent)
 /// - Material elevation on Android (subtle shadow)
-/// - 5 items: Home, Friends, + button (center, large), Chat, Profile
+/// - Dynamic items based on role (students: 5 tabs, moderators: 6 tabs, admins: 7 tabs)
 /// - Plus button emphasized: larger, circular, white
-/// - Optional badge support for Profile tab (for moderators with pending events)
+/// - Optional badge support for any tab
+/// - Role-based tab visibility
 ///
 /// Example:
 /// ```dart
 /// NovaBottomNavBar(
 ///   currentIndex: _selectedIndex,
+///   items: [
+///     NavItem(sfSymbol: 'house.fill', materialIcon: Icons.home, label: 'Home'),
+///     NavItem(sfSymbol: 'person.2.fill', materialIcon: Icons.people, label: 'Friends'),
+///     NavItem(sfSymbol: 'message.fill', materialIcon: Icons.chat_bubble, label: 'Chat'),
+///     NavItem(sfSymbol: 'gavel', materialIcon: Icons.gavel, label: 'Moderation', badgeCount: 5),
+///     NavItem(sfSymbol: 'person.circle.fill', materialIcon: Icons.person, label: 'Profile'),
+///   ],
 ///   onTap: (index) => setState(() => _selectedIndex = index),
 ///   onCameraTap: () => _openCamera(),
-///   profileBadgeCount: 3, // Show badge with count
 /// )
 /// ```
 class NovaBottomNavBar extends StatelessWidget {
-  /// Currently selected item index (0-3, camera is not selectable)
+  /// Currently selected item index
   final int currentIndex;
 
-  /// Callback when a nav item is tapped (receives index 0-3)
-  /// Index mapping: 0=Home, 1=Friends, 2=Chat, 3=Profile
+  /// Navigation items to display (dynamically filtered by role)
+  final List<NavItem> items;
+
+  /// Callback when a nav item is tapped
   final ValueChanged<int> onTap;
 
-  /// Callback when camera button is tapped
+  /// Callback when camera button is tapped (center + button)
   final VoidCallback onCameraTap;
-
-  /// Optional badge count for Profile tab (for moderators with pending events)
-  /// If > 0, shows red badge with count. If null or 0, no badge shown.
-  final int? profileBadgeCount;
 
   const NovaBottomNavBar({
     super.key,
     required this.currentIndex,
+    required this.items,
     required this.onTap,
     required this.onCameraTap,
-    this.profileBadgeCount,
   });
 
   @override
@@ -66,7 +86,7 @@ class NovaBottomNavBar extends StatelessWidget {
         right: NovaSpacing.m,
         bottom: NovaSpacing.xxs, // 2px invece di 12px (alzato di 10px)
       ),
-      height: 80,
+      height: 60,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(NovaRadius.full),
       ),
@@ -85,13 +105,7 @@ class NovaBottomNavBar extends StatelessWidget {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(context, 0, 'house.fill', Icons.home, 'Home'),
-                _buildNavItem(context, 1, 'person.2.fill', Icons.people, 'Amici'),
-                _buildPlusButton(context),
-                _buildNavItem(context, 2, 'message.fill', Icons.chat_bubble, 'Chat'),
-                _buildNavItem(context, 3, 'person.circle.fill', Icons.person, 'Profilo', badgeCount: profileBadgeCount),
-              ],
+              children: _buildNavItems(context),
             ),
           ),
         ),
@@ -107,7 +121,7 @@ class NovaBottomNavBar extends StatelessWidget {
         right: NovaSpacing.m,
         bottom: NovaSpacing.xxs, // 2px invece di 12px (alzato di 10px)
       ),
-      height: 80,
+      height: 60,
       decoration: BoxDecoration(
         color: NovaColors.surface(context),
         borderRadius: BorderRadius.circular(NovaRadius.full),
@@ -121,15 +135,36 @@ class NovaBottomNavBar extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(context, 0, 'house.fill', Icons.home, 'Home'),
-          _buildNavItem(context, 1, 'person.2.fill', Icons.people, 'Amici'),
-          _buildPlusButton(context),
-          _buildNavItem(context, 2, 'message.fill', Icons.chat_bubble, 'Chat'),
-          _buildNavItem(context, 3, 'person.circle.fill', Icons.person, 'Profilo', badgeCount: profileBadgeCount),
-        ],
+        children: _buildNavItems(context),
       ),
     );
+  }
+
+  /// Build all navigation items with camera button in the middle
+  List<Widget> _buildNavItems(BuildContext context) {
+    final widgets = <Widget>[];
+
+    // Calculate middle index (where camera button should be)
+    final middleIndex = items.length ~/ 2;
+
+    for (int i = 0; i < items.length; i++) {
+      // Add camera button in the middle
+      if (i == middleIndex) {
+        widgets.add(_buildPlusButton(context));
+      }
+
+      final item = items[i];
+      widgets.add(_buildNavItem(
+        context,
+        i,
+        item.sfSymbol,
+        item.materialIcon,
+        item.label,
+        badgeCount: item.badgeCount,
+      ));
+    }
+
+    return widgets;
   }
 
   /// Build a regular navigation item (Home, Friends, Chat, Profile)
@@ -151,61 +186,47 @@ class NovaBottomNavBar extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onTap(index),
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: NovaSpacing.xs),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
+        child: Center(
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  NovaIcons.adaptive(
-                    context,
-                    sfSymbol: sfSymbol,
-                    materialIcon: materialIcon,
-                    size: 24,
-                    color: color,
-                  ),
-                  // Badge indicator
-                  if (showBadge)
-                    Positioned(
-                      right: -8,
-                      top: -4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: NovaColors.error(context),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 18,
-                          minHeight: 18,
-                        ),
-                        child: Center(
-                          child: Text(
-                            badgeCount! > 99 ? '99+' : badgeCount.toString(),
-                            style: NovaTypography.labelSmall.copyWith(
-                              color: NovaColors.onError(context),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+              NovaIcons.adaptive(
+                context,
+                sfSymbol: sfSymbol,
+                materialIcon: materialIcon,
+                size: 26,
+                color: color,
+              ),
+              // Badge indicator
+              if (showBadge)
+                Positioned(
+                  right: -8,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: NovaColors.errorLight, // Badge notification red
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Center(
+                      child: Text(
+                        badgeCount! > 99 ? '99+' : badgeCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: NovaTextStyles.caption.copyWith(
-                  color: color,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -216,8 +237,8 @@ class NovaBottomNavBar extends StatelessWidget {
   /// Build the center plus button (large, circular, emphasized)
   Widget _buildPlusButton(BuildContext context) {
     return Container(
-      width: 66,
-      height: 66,
+      width: 52,
+      height: 52,
       margin: const EdgeInsets.symmetric(horizontal: NovaSpacing.xs),
       decoration: BoxDecoration(
         color: NovaColors.primary(context),
@@ -238,8 +259,8 @@ class NovaBottomNavBar extends StatelessWidget {
           child: Center(
             child: Icon(
               context.isIOS ? CupertinoIcons.plus : Icons.add,
-              color: NovaColors.onPrimary(context),
-              size: 32,
+              color: Colors.white,
+              size: 28,
             ),
           ),
         ),
