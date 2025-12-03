@@ -5,7 +5,8 @@ enum CommentReportReason {
   spam('spam', 'Spam'),
   inappropriate('inappropriate', 'Contenuto inappropriato'),
   bullying('bullying', 'Bullismo/molestie'),
-  offTopic('off_topic', 'Off-topic');
+  offTopic('off_topic', 'Off-topic'),
+  other('other', 'Altro');
 
   final String value;
   final String displayName;
@@ -15,7 +16,7 @@ enum CommentReportReason {
   static CommentReportReason fromValue(String value) {
     return CommentReportReason.values.firstWhere(
       (reason) => reason.value == value,
-      orElse: () => CommentReportReason.spam,
+      orElse: () => CommentReportReason.other,
     );
   }
 }

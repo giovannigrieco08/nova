@@ -6,7 +6,7 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/comment_report.dart';
-import '../../domain/usecases/report_comment.dart';
+// Note: report_comment.dart import removed to avoid ambiguous CommentReportReason
 
 /// ReportDialog Widget
 ///

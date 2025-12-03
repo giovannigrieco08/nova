@@ -92,7 +92,9 @@
       "Bash(\"C:\\Users\\grigi\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe\" start-server)",
       "Bash(dart run build_runner build:*)",
       "Bash(git ls-tree:*)",
-      "Bash(del /f nul)"
+      "Bash(del /f nul)",
+      "Bash(git -C \"C:\\Users\\grigi\\nova_def\" branch:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

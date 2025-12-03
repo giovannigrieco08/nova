@@ -34,13 +34,8 @@ class NotificationBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCountAsync = ref.watch(unreadCountProvider);
-
-    return unreadCountAsync.when(
-      data: (count) => _buildBadge(context, count),
-      loading: () => child,
-      error: (_, __) => child,
-    );
+    final unreadCount = ref.watch(unreadCountProvider);
+    return _buildBadge(context, unreadCount);
   }
 
   Widget _buildBadge(BuildContext context, int count) {
@@ -109,13 +104,8 @@ class NotificationDot extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCountAsync = ref.watch(unreadCountProvider);
-
-    return unreadCountAsync.when(
-      data: (count) => count > 0 ? _buildDot(context) : child,
-      loading: () => child,
-      error: (_, __) => child,
-    );
+    final unreadCount = ref.watch(unreadCountProvider);
+    return unreadCount > 0 ? _buildDot(context) : child;
   }
 
   Widget _buildDot(BuildContext context) {

@@ -4,6 +4,8 @@ import '../../domain/entities/comment_report.dart';
 import '../../domain/usecases/report_comment.dart';
 import 'comments_notifier.dart';
 
+// Note: ValidationException removed, using generic Exception handling
+
 /// Provider for ReportComment use case
 ///
 /// Usage:
@@ -48,10 +50,12 @@ class ReportCommentNotifier extends StateNotifier<AsyncValue<void>> {
       );
       state = const AsyncValue.data(null);
       return ReportSubmissionResult.success;
-    } on ValidationException catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      return ReportSubmissionResult.validationError;
     } catch (e) {
+      // Check for validation error
+      if (e.toString().contains('500 caratteri')) {
+        state = AsyncValue.error(e, StackTrace.current);
+        return ReportSubmissionResult.validationError;
+      }
       // Check for duplicate report (409 Conflict)
       if (e.toString().contains('duplicate') ||
           e.toString().contains('Conflict') ||

@@ -18,7 +18,7 @@ import '../../domain/entities/notification_channel.dart';
 /// - Relative timestamp (timeago)
 /// - Channel-specific icons
 class NotificationTile extends StatelessWidget {
-  final domain.Notification notification;
+  final domain.AppNotification notification;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
   final VoidCallback? onMarkAsRead;
@@ -54,7 +54,7 @@ class NotificationTile extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          if (notification.isUnread) {
+          if (!notification.isRead) {
             onMarkAsRead?.call();
           }
           onTap?.call();
@@ -62,7 +62,7 @@ class NotificationTile extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.all(NovaSpacing.m),
           decoration: BoxDecoration(
-            color: notification.isUnread
+            color: !notification.isRead
                 ? NovaColors.primary(context).withOpacity(0.05)
                 : NovaColors.card(context),
             border: Border(
@@ -95,9 +95,9 @@ class NotificationTile extends StatelessWidget {
                     ),
                     SizedBox(height: NovaSpacing.xs),
 
-                    // Description
+                    // Description (body)
                     Text(
-                      notification.description,
+                      notification.body,
                       style: NovaTextStyles.body.copyWith(
                         color: NovaColors.textSecondary(context),
                       ),
@@ -118,7 +118,7 @@ class NotificationTile extends StatelessWidget {
               ),
 
               // Unread indicator
-              if (notification.isUnread) ...[
+              if (!notification.isRead) ...[
                 SizedBox(width: NovaSpacing.s),
                 Container(
                   width: 8,
@@ -141,35 +141,28 @@ class NotificationTile extends StatelessWidget {
     final IconData icon;
     final Color iconColor;
 
-    switch (notification.type) {
+    switch (notification.channel) {
       case NotificationChannel.eventModeration:
         icon = Icons.verified_outlined;
         iconColor = NovaColors.success(context);
-        break;
       case NotificationChannel.newComment:
         icon = Icons.chat_bubble_outline;
         iconColor = NovaColors.info(context);
-        break;
       case NotificationChannel.commentReply:
         icon = Icons.reply_outlined;
         iconColor = NovaColors.info(context);
-        break;
       case NotificationChannel.eventLike:
         icon = Icons.favorite_outline;
         iconColor = NovaColors.instagramRed;
-        break;
       case NotificationChannel.eventParticipation:
         icon = Icons.people_outline;
         iconColor = NovaColors.primary(context);
-        break;
       case NotificationChannel.coorganizerUpdate:
         icon = Icons.edit_outlined;
         iconColor = NovaColors.warning(context);
-        break;
       case NotificationChannel.moderatorAlert:
         icon = Icons.admin_panel_settings_outlined;
         iconColor = NovaColors.error(context);
-        break;
     }
 
     return Container(

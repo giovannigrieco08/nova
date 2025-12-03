@@ -40,7 +40,7 @@ class ReportComment {
   /// Parameters:
   /// - [commentId]: ID of comment to report
   /// - [reason]: Reason for reporting (enum)
-  /// - [additionalDetails]: Optional text for "Altro" reason
+  /// - [details]: Optional text for "Altro" reason
   ///
   /// Throws:
   /// - [ConflictException]: User already reported this comment
@@ -50,54 +50,18 @@ class ReportComment {
   Future<void> call({
     required String commentId,
     required CommentReportReason reason,
-    String? additionalDetails,
+    String? details,
   }) async {
-    // Validate additional details length
-    if (additionalDetails != null && additionalDetails.length > 500) {
-      throw ValidationException(
-        message: 'I dettagli aggiuntivi non possono superare 500 caratteri',
-      );
+    // Validate details length
+    if (details != null && details.length > 500) {
+      throw Exception('I dettagli aggiuntivi non possono superare 500 caratteri');
     }
 
     // Submit report to repository
     await _repository.reportComment(
       commentId: commentId,
       reason: reason,
-      additionalDetails: additionalDetails,
+      details: details,
     );
   }
-}
-
-/// Report reason enum
-///
-/// Matches database enum: comment_report_reason
-enum CommentReportReason {
-  spam('spam', 'Spam'),
-  inappropriate('inappropriate', 'Contenuto inappropriato'),
-  bullying('bullying', 'Bullismo/molestie'),
-  offTopic('off_topic', 'Off-topic'),
-  other('other', 'Altro');
-
-  final String value;
-  final String displayName;
-
-  const CommentReportReason(this.value, this.displayName);
-
-  static CommentReportReason fromValue(String value) {
-    return CommentReportReason.values.firstWhere(
-      (r) => r.value == value,
-      orElse: () => CommentReportReason.other,
-    );
-  }
-}
-
-/// Validation exception for report errors
-class ValidationException implements Exception {
-  final String message;
-  final StackTrace? stackTrace;
-
-  ValidationException({required this.message, this.stackTrace});
-
-  @override
-  String toString() => 'ValidationException: $message';
 }

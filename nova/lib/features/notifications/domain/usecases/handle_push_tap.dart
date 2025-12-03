@@ -138,7 +138,7 @@ class HandlePushTap {
   /// Mark notification as read
   Future<void> _markAsRead(String notificationId) async {
     try {
-      await _repository.markAsReadById(notificationId);
+      await _repository.markAsRead(notificationId);
       debugPrint('✅ Notification marked as read: $notificationId');
     } catch (e) {
       // Non-fatal - log but continue with navigation

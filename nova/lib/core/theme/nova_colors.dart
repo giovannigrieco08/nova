@@ -279,4 +279,46 @@ class NovaColors {
 
   /// @deprecated Use [border] instead
   static Color borderPrimary(BuildContext context) => border(context);
+
+  // ============================================
+  // STATIC COLORS (No BuildContext Required)
+  // Use these when BuildContext is not available
+  // (e.g., in animations, builders outside widget tree)
+  // ============================================
+
+  /// Primary color - static light mode version
+  static const Color primaryStatic = primaryLight;
+
+  /// Error color - static light mode version
+  static const Color errorStatic = errorLight;
+
+  /// Warning color - static light mode version
+  static const Color warningStatic = warningLight;
+
+  /// Success color - static light mode version
+  static const Color successStatic = successLight;
+
+  /// Info color - static light mode version
+  static const Color infoStatic = infoLight;
+
+  /// Primary text - static light mode version
+  static const Color textPrimaryStatic = textPrimaryLight;
+
+  /// Secondary text - static light mode version
+  static const Color textSecondaryStatic = textSecondaryLight;
+
+  /// Tertiary text - static light mode version
+  static const Color textTertiaryStatic = textTertiaryLight;
+
+  /// Background - static light mode version
+  static const Color backgroundStatic = backgroundLight;
+
+  /// Surface - static light mode version
+  static const Color surfaceStatic = surfaceLight;
+
+  /// Card - static light mode version
+  static const Color cardStatic = cardLight;
+
+  /// Border - static light mode version
+  static const Color borderStatic = borderLight;
 }

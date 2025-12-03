@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../domain/entities/comment_report.dart';
 import '../../domain/repositories/comments_repository_interface.dart';
 import '../models/comment_model.dart';
 

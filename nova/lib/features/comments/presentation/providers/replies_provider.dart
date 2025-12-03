@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/comment.dart';
 import '../../domain/usecases/get_replies_for_comment.dart';
-import '../../data/repositories/comments_repository.dart';
+import 'comments_notifier.dart';
 
 /// RepliesProvider - Fetches replies for a specific comment
 ///

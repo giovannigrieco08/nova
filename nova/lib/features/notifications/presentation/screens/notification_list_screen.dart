@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
-import '../../domain/entities/notification.dart' as domain;
+import '../../domain/entities/notification.dart';
 import '../providers/notification_providers.dart';
 import '../widgets/notification_tile.dart';
 
@@ -37,7 +37,7 @@ class NotificationListScreen extends ConsumerWidget {
         elevation: 0,
         actions: [
           // Mark all as read
-          if (notificationState.notifications.any((n) => n.isUnread))
+          if (notificationState.notifications.any((n) => !n.isRead))
             IconButton(
               icon: Icon(
                 Icons.done_all,
@@ -174,14 +174,21 @@ class NotificationListScreen extends ConsumerWidget {
   }
 
   /// Navigate to notification target (event or comment)
-  void _navigateToTarget(BuildContext context, domain.Notification notification) {
-    if (notification.targetType == 'event') {
-      context.push('/events/${notification.targetId}');
-    } else if (notification.targetType == 'comment') {
-      // Navigate to event with comment ID in metadata
-      final eventId = notification.metadata['event_id'] as String?;
-      if (eventId != null) {
-        context.push('/events/$eventId?commentId=${notification.targetId}');
+  void _navigateToTarget(BuildContext context, AppNotification notification) {
+    // Navigate based on notification data
+    final data = notification.data;
+    if (data != null) {
+      final targetType = data['target_type'] as String?;
+      final targetId = data['target_id'] as String?;
+
+      if (targetType == 'event' && targetId != null) {
+        context.push('/events/$targetId');
+      } else if (targetType == 'comment' && targetId != null) {
+        // Navigate to event with comment ID in metadata
+        final eventId = data['event_id'] as String?;
+        if (eventId != null) {
+          context.push('/events/$eventId?commentId=$targetId');
+        }
       }
     }
   }
