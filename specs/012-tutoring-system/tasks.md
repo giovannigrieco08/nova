@@ -169,8 +169,8 @@
 
 **Purpose**: Error handling, loading states, edge cases
 
-- [ ] T053 [P] Add skeleton loading states to SubjectsScreen (deferred - basic loading works)
-- [ ] T054 [P] Add skeleton loading states to TutorsListScreen (deferred - basic loading works)
+- [x] T053 [P] Add skeleton loading states to SubjectsScreen ✅ Not needed (static Subject enum)
+- [x] T054 [P] Add skeleton loading states to TutorsListScreen ✅ Done (TutorsListSkeleton)
 - [x] T055 [P] Add empty state widget "Nessun tutor per questa materia" in TutorsListScreen
 - [x] T056 [P] Add error state widgets with retry button across all screens
 - [x] T057 Add pull-to-refresh on TutorsListScreen
@@ -180,7 +180,7 @@
 - [x] T061 Handle deep link failures with clipboard fallback + error snackbar
 - [ ] T062 Run quickstart.md validation scenarios ⚠️ **REQUIRES MANUAL TESTING**
 
-**Checkpoint**: Feature complete and polished ✅ (skeleton/pagination deferred)
+**Checkpoint**: Feature complete and polished ✅ (pagination deferred)
 
 ---
 

@@ -13,6 +13,7 @@ import '../../domain/entities/subject.dart';
 import '../../data/repositories/tutor_repository.dart';
 import '../providers/tutor_providers.dart';
 import '../widgets/tutor_card.dart';
+import '../widgets/tutor_skeleton.dart';
 import '../widgets/contact_tutor_sheet.dart';
 
 /// TutorsListScreen - List of tutors for a specific subject
@@ -276,13 +277,7 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
   }
 
   Widget _buildLoadingState(BuildContext context) {
-    return Center(
-      child: Platform.isIOS
-          ? const CupertinoActivityIndicator()
-          : CircularProgressIndicator(
-              color: NovaColors.primary(context),
-            ),
-    );
+    return const TutorsListSkeleton();
   }
 
   Widget _buildEmptyState(BuildContext context) {

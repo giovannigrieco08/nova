@@ -43,6 +43,8 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
   late TabController _tabController;
   int _currentNavIndex = 0; // Bottom nav index (0=Home, 1=Search, 2=Tutoring, 3=Chat, 4=Profile)
   String _currentSection = 'Eventi'; // Current section: 'Eventi' or 'Bacheche'
+  bool _isNavigatingCreate = false; // For slide animation on + button
+  bool _isNavigatingNotifications = false; // For slide animation on bell
 
   @override
   void initState() {
@@ -119,9 +121,13 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     ];
   }
 
-  /// Handle create button tap - Open event/bacheca creation screen
-  void _onCreateTap() {
-    Navigator.push(
+  /// Handle create button tap - Open event/bacheca creation screen with slide animation
+  void _onCreateTap() async {
+    setState(() => _isNavigatingCreate = true);
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    if (!mounted) return;
+    await Navigator.push(
       context,
       context.isIOS
           ? CupertinoPageRoute(
@@ -131,6 +137,8 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
               builder: (context) => const EventCreationScreen(),
             ),
     );
+
+    if (mounted) setState(() => _isNavigatingCreate = false);
   }
 
   /// Show section selector (Eventi/Bacheche)
@@ -268,14 +276,20 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     );
   }
 
-  /// Handle notifications icon tap
-  void _onNotificationsTap() {
-    Navigator.push(
+  /// Handle notifications icon tap with slide animation
+  void _onNotificationsTap() async {
+    setState(() => _isNavigatingNotifications = true);
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    if (!mounted) return;
+    await Navigator.push(
       context,
       context.isIOS
           ? CupertinoPageRoute(builder: (context) => const NotificationListScreen())
           : MaterialPageRoute(builder: (context) => const NotificationListScreen()),
     );
+
+    if (mounted) setState(() => _isNavigatingNotifications = false);
   }
 
   /// Build the main content based on current nav index
@@ -323,13 +337,22 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Sinistra: Pulsante + (stile Instagram)
-                  GestureDetector(
-                    onTap: _onCreateTap,
-                    child: Icon(
-                      context.isIOS ? CupertinoIcons.plus : Icons.add,
-                      color: NovaColors.textPrimary(context),
-                      size: 24,
+                  // Sinistra: Pulsante + con slide animation verso sinistra
+                  AnimatedSlide(
+                    offset: _isNavigatingCreate ? const Offset(-1.5, 0) : Offset.zero,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    child: AnimatedOpacity(
+                      opacity: _isNavigatingCreate ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 150),
+                      child: GestureDetector(
+                        onTap: _isNavigatingCreate ? null : _onCreateTap,
+                        child: Icon(
+                          context.isIOS ? CupertinoIcons.plus : Icons.add,
+                          color: NovaColors.textPrimary(context),
+                          size: 24,
+                        ),
+                      ),
                     ),
                   ),
 
@@ -356,10 +379,19 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
                     ),
                   ),
 
-                  // Destra: Campanella notifiche con badge (stile Instagram)
-                  GestureDetector(
-                    onTap: _onNotificationsTap,
-                    child: _buildNotificationBell(context),
+                  // Destra: Campanella con slide animation verso destra
+                  AnimatedSlide(
+                    offset: _isNavigatingNotifications ? const Offset(1.5, 0) : Offset.zero,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    child: AnimatedOpacity(
+                      opacity: _isNavigatingNotifications ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 150),
+                      child: GestureDetector(
+                        onTap: _isNavigatingNotifications ? null : _onNotificationsTap,
+                        child: _buildNotificationBell(context),
+                      ),
+                    ),
                   ),
                 ],
               ),
