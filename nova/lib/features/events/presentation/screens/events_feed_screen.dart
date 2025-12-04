@@ -27,36 +27,54 @@ class EventsFeedScreen extends ConsumerStatefulWidget {
 }
 
 class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
-  final ScrollController _scrollController = ScrollController();
+  ScrollController? _scrollController;
   bool _isOffline = false;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
 
-    // Restore scroll position after widget is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final savedPosition = ref.read(eventsFeedScrollPositionProvider);
-      if (savedPosition > 0 && _scrollController.hasClients) {
-        _scrollController.jumpTo(savedPosition);
-      }
-    });
+    // Only create own scroll controller when showing AppBar (standalone mode)
+    // When nested in NestedScrollView, use primary scroll controller
+    if (widget.showAppBar) {
+      _scrollController = ScrollController();
+      _scrollController!.addListener(_onScroll);
+
+      // Restore scroll position after widget is built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final savedPosition = ref.read(eventsFeedScrollPositionProvider);
+        if (savedPosition > 0 && _scrollController!.hasClients) {
+          _scrollController!.jumpTo(savedPosition);
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _scrollController?.removeListener(_onScroll);
+    _scrollController?.dispose();
     super.dispose();
   }
 
   /// Pagination trigger: Load next page when within 3 items of bottom
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 500) {
+    final controller = _scrollController;
+    if (controller != null &&
+        controller.position.pixels >= controller.position.maxScrollExtent - 500) {
       ref.read(eventsFeedProvider.notifier).loadNextPage();
     }
+  }
+
+  /// Handle scroll notifications (for nested scroll mode)
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      final metrics = notification.metrics;
+      if (metrics.pixels >= metrics.maxScrollExtent - 500) {
+        ref.read(eventsFeedProvider.notifier).loadNextPage();
+      }
+    }
+    return false; // Allow notification to continue bubbling
   }
 
   /// Pull-to-refresh handler
@@ -131,33 +149,48 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
       return _buildEmptyState();
     }
 
+    // Calculate item count: events + loading indicator
+    final itemCount = state.events.length + (state.isLoadingMore ? 1 : 0);
+
+    final listView = ListView.builder(
+      // Use own controller only in standalone mode
+      // In nested mode, use primary scroll controller from NestedScrollView
+      controller: widget.showAppBar ? _scrollController : null,
+      primary: !widget.showAppBar, // Use PrimaryScrollController when nested
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 2.0,
+        vertical: NovaSpacing.m,
+      ),
+      itemCount: itemCount,
+      itemBuilder: (context, index) {
+        // Show loading indicator at bottom while paginating
+        if (index == state.events.length) {
+          return _buildPaginationLoader();
+        }
+
+        final event = state.events[index];
+        // EventCard now has internal tap-to-expand, no navigation needed
+        return EventCard(
+          event: event,
+        );
+      },
+    );
+
+    // Wrap with NotificationListener for pagination in nested mode
+    Widget scrollableContent = widget.showAppBar
+        ? listView
+        : NotificationListener<ScrollNotification>(
+            onNotification: _handleScrollNotification,
+            child: listView,
+          );
+
     return RefreshIndicator(
       onRefresh: _onRefresh,
       displacement: 40.0,
-      edgeOffset: 0.0,
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12.0, // Instagram-style horizontal padding
-          vertical: NovaSpacing.m,
-        ),
-        itemCount: state.events.length + (state.isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          // Show loading indicator at bottom while paginating
-          if (index == state.events.length) {
-            return _buildPaginationLoader();
-          }
-
-          final event = state.events[index];
-          // EventCard now has internal tap-to-expand, no navigation needed
-          return EventCard(
-            event: event,
-          );
-        },
-      ),
+      child: scrollableContent,
     );
   }
 

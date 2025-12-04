@@ -8,7 +8,8 @@ class ChatMediaModel {
   final String storagePath;
   final String mediaType;
   final int fileSizeBytes;
-  final bool isViewed;
+  final int maxViews;
+  final int viewCount;
   final DateTime? viewedAt;
   final String? viewedByUserId;
   final DateTime? screenshotDetectedAt;
@@ -23,7 +24,8 @@ class ChatMediaModel {
     required this.storagePath,
     required this.mediaType,
     required this.fileSizeBytes,
-    required this.isViewed,
+    this.maxViews = 1,
+    this.viewCount = 0,
     this.viewedAt,
     this.viewedByUserId,
     this.screenshotDetectedAt,
@@ -41,7 +43,8 @@ class ChatMediaModel {
       storagePath: json['storage_path'] as String,
       mediaType: json['media_type'] as String,
       fileSizeBytes: json['file_size_bytes'] as int,
-      isViewed: json['is_viewed'] as bool? ?? false,
+      maxViews: json['max_views'] as int? ?? 1,
+      viewCount: json['view_count'] as int? ?? 0,
       viewedAt: json['viewed_at'] != null
           ? DateTime.parse(json['viewed_at'] as String)
           : null,
@@ -64,7 +67,8 @@ class ChatMediaModel {
       'storage_path': storagePath,
       'media_type': mediaType,
       'file_size_bytes': fileSizeBytes,
-      'is_viewed': isViewed,
+      'max_views': maxViews,
+      'view_count': viewCount,
       'viewed_at': viewedAt?.toIso8601String(),
       'viewed_by_user_id': viewedByUserId,
       'screenshot_detected_at': screenshotDetectedAt?.toIso8601String(),
@@ -80,6 +84,7 @@ class ChatMediaModel {
     required String storagePath,
     required ChatMediaType mediaType,
     required int fileSizeBytes,
+    int maxViews = 1,
   }) {
     return {
       'message_id': messageId,
@@ -87,6 +92,7 @@ class ChatMediaModel {
       'storage_path': storagePath,
       'media_type': mediaType.value,
       'file_size_bytes': fileSizeBytes,
+      'max_views': maxViews,
     };
   }
 
@@ -99,7 +105,8 @@ class ChatMediaModel {
       storagePath: storagePath,
       mediaType: ChatMediaType.fromValue(mediaType),
       fileSizeBytes: fileSizeBytes,
-      isViewed: isViewed,
+      maxViews: maxViews,
+      viewCount: viewCount,
       viewedAt: viewedAt,
       viewedByUserId: viewedByUserId,
       screenshotDetected: screenshotDetectedAt != null,
@@ -117,7 +124,8 @@ class ChatMediaModel {
       storagePath: entity.storagePath,
       mediaType: entity.mediaType.value,
       fileSizeBytes: entity.fileSizeBytes,
-      isViewed: entity.isViewed,
+      maxViews: entity.maxViews,
+      viewCount: entity.viewCount,
       viewedAt: entity.viewedAt,
       viewedByUserId: entity.viewedByUserId,
       screenshotDetectedAt: null,

@@ -1,6 +1,7 @@
-/// Metadata for view-once ephemeral media attached to chat messages.
+/// Metadata for ephemeral media attached to chat messages.
 ///
-/// Media is stored in Supabase Storage and can only be viewed once.
+/// Media is stored in Supabase Storage and can be viewed a limited number
+/// of times (1 or 2, configurable by sender).
 /// Screenshot protection applied on viewing (FLAG_SECURE on Android,
 /// detection + notification on iOS).
 class ChatMediaInfo {
@@ -10,7 +11,8 @@ class ChatMediaInfo {
   final String storagePath;
   final ChatMediaType mediaType;
   final int fileSizeBytes;
-  final bool isViewed;
+  final int maxViews;        // Maximum views allowed (1 or 2)
+  final int viewCount;       // Current view count
   final DateTime? viewedAt;
   final String? viewedByUserId;
   final bool screenshotDetected;
@@ -24,13 +26,20 @@ class ChatMediaInfo {
     required this.storagePath,
     required this.mediaType,
     required this.fileSizeBytes,
-    required this.isViewed,
+    this.maxViews = 1,
+    this.viewCount = 0,
     this.viewedAt,
     this.viewedByUserId,
     required this.screenshotDetected,
     required this.expiresAt,
     required this.createdAt,
   });
+
+  /// Whether the media has been fully viewed (all views used)
+  bool get isViewed => viewCount >= maxViews;
+
+  /// Remaining views available
+  int get remainingViews => (maxViews - viewCount).clamp(0, maxViews);
 
   /// Whether the media has expired (24h from creation)
   bool get isExpired => DateTime.now().isAfter(expiresAt);
@@ -67,7 +76,8 @@ class ChatMediaInfo {
 /// Type of media attached to a chat message
 enum ChatMediaType {
   image('image'),
-  video('video');
+  video('video'),
+  audio('audio');
 
   /// Database value
   final String value;
@@ -86,4 +96,7 @@ enum ChatMediaType {
 
   /// Whether this is a video type
   bool get isVideo => this == ChatMediaType.video;
+
+  /// Whether this is an audio type (voice message)
+  bool get isAudio => this == ChatMediaType.audio;
 }

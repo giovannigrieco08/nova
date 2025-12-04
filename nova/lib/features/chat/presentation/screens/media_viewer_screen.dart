@@ -34,10 +34,14 @@ class MediaViewerScreen extends ConsumerStatefulWidget {
 class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   bool _hasViewed = false;
   bool _isLoading = true;
+  int _currentViewCount = 0;
+  int _maxViews = 1;
 
   @override
   void initState() {
     super.initState();
+    _maxViews = widget.media.maxViews;
+    _currentViewCount = widget.media.viewCount;
     _setupScreenshotProtection();
     _markAsViewed();
   }
@@ -100,11 +104,25 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   Future<void> _markAsViewed() async {
     try {
       final repository = ref.read(chatRepositoryProvider);
-      await repository.markMediaViewed(widget.media.id);
-      setState(() {
-        _hasViewed = true;
-        _isLoading = false;
-      });
+      final updatedMedia = await repository.markMediaViewed(widget.media.id);
+      if (updatedMedia != null) {
+        setState(() {
+          _currentViewCount = updatedMedia.viewCount;
+          _hasViewed = true;
+          _isLoading = false;
+        });
+      } else {
+        // Max views reached or expired
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Questo media non è più disponibile'),
+              backgroundColor: NovaColors.warning(context),
+            ),
+          );
+        }
+      }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
@@ -183,7 +201,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                       : _buildVideoPlayer(),
                 ),
 
-                // View-once notice
+                // View status notice
                 Positioned(
                   bottom: NovaSpacing.xl,
                   left: NovaSpacing.m,
@@ -204,7 +222,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                         ),
                         SizedBox(width: NovaSpacing.xs),
                         Text(
-                          'Questo media scomparirà dopo la chiusura',
+                          _getViewStatusText(),
                           style: NovaTypography.bodySmall.copyWith(
                             color: Colors.white70,
                           ),
@@ -216,6 +234,17 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
               ],
             ),
     );
+  }
+
+  String _getViewStatusText() {
+    final remaining = _maxViews - _currentViewCount;
+    if (remaining <= 0) {
+      return 'Questo media scomparirà dopo la chiusura';
+    } else if (_maxViews == 1) {
+      return 'Questo media scomparirà dopo la chiusura';
+    } else {
+      return 'Visualizzazione $_currentViewCount di $_maxViews';
+    }
   }
 
   Widget _buildVideoPlayer() {

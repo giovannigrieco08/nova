@@ -100,60 +100,10 @@ CREATE INDEX IF NOT EXISTS idx_events_moderation_queue
   WHERE status = 'pending';
 
 -- =====================================================================
--- PHASE 2: CREATE NOTIFICATIONS TABLE
+-- PHASE 2: NOTIFICATIONS TABLE
 -- =====================================================================
-
-CREATE TABLE IF NOT EXISTS notifications (
-  -- Primary Key
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  -- Recipient
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-
-  -- Notification Content
-  channel TEXT NOT NULL CHECK (channel IN (
-    'event_approved',
-    'event_rejected',
-    'new_pending_event',
-    'added_as_coorganizer',
-    'event_modified'
-  )),
-  title TEXT NOT NULL CHECK (length(trim(title)) > 0),
-  body TEXT NOT NULL CHECK (length(trim(body)) > 0),
-
-  -- Event Reference
-  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-
-  -- Metadata
-  sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  read BOOLEAN NOT NULL DEFAULT false,
-  delivered BOOLEAN NOT NULL DEFAULT false -- FCM delivery confirmation
-);
-
--- Indexes for notifications
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, read) WHERE read = false;
-CREATE INDEX IF NOT EXISTS idx_notifications_sent_at ON notifications(sent_at DESC);
-
--- Enable RLS on notifications
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-
--- RLS Policy: Users can only view their own notifications
-DROP POLICY IF EXISTS "users_view_own_notifications" ON notifications;
-CREATE POLICY "users_view_own_notifications"
-  ON notifications
-  FOR SELECT
-  TO authenticated
-  USING (user_id = (SELECT auth.uid()));
-
--- RLS Policy: Users can mark their own notifications as read
-DROP POLICY IF EXISTS "users_update_own_notifications" ON notifications;
-CREATE POLICY "users_update_own_notifications"
-  ON notifications
-  FOR UPDATE
-  TO authenticated
-  USING (user_id = (SELECT auth.uid()))
-  WITH CHECK (user_id = (SELECT auth.uid()));
+-- NOTE: Notifications table moved to 008_realtime_notifications.sql
+-- with complete schema (recipient_id, sender_id, type, metadata, preferences)
 
 -- =====================================================================
 -- PHASE 3: CREATE USER_ROLES TABLE (FOR MODERATORS)

@@ -1,19 +1,18 @@
 /// Subject enum for tutoring subjects.
 ///
-/// Represents the 12 supported school subjects for tutoring at Liceo Galilei Moro.
+/// Represents the 11 supported school subjects for tutoring at Liceo Galilei Moro.
 enum Subject {
-  matematica('Matematica', 'matematica'),
-  fisica('Fisica', 'fisica'),
-  latino('Latino', 'latino'),
-  greco('Greco', 'greco'),
-  inglese('Inglese', 'inglese'),
-  italiano('Italiano', 'italiano'),
-  informatica('Informatica', 'informatica'),
-  storia('Storia', 'storia'),
-  filosofia('Filosofia', 'filosofia'),
-  scienze('Scienze', 'scienze'),
-  arte('Arte', 'arte'),
-  francese('Francese', 'francese');
+  arte('Arte', 'arte', 'Storia dell\'arte, Tecniche artistiche'),
+  filosofia('Filosofia', 'filosofia', 'Autori, Correnti, Pensiero critico'),
+  fisica('Fisica', 'fisica', 'Meccanica, Termodinamica, Elettromagnetismo'),
+  greco('Greco', 'greco', 'Grammatica, Versioni, Letteratura'),
+  informatica('Informatica', 'informatica', 'Programmazione, Algoritmi, Database'),
+  inglese('Inglese', 'inglese', 'Grammar, Speaking, Writing'),
+  italiano('Italiano', 'italiano', 'Letteratura, Grammatica, Scrittura'),
+  latino('Latino', 'latino', 'Grammatica, Versioni, Letteratura'),
+  matematica('Matematica', 'matematica', 'Algebra, Analisi, Geometria'),
+  scienze('Scienze', 'scienze', 'Biologia, Chimica, Scienze della Terra'),
+  storia('Storia', 'storia', 'Antica, Medievale, Moderna, Contemporanea');
 
   /// Display name for UI (Italian).
   final String displayName;
@@ -21,7 +20,10 @@ enum Subject {
   /// Database value (lowercase).
   final String dbValue;
 
-  const Subject(this.displayName, this.dbValue);
+  /// Description of topics covered.
+  final String description;
+
+  const Subject(this.displayName, this.dbValue, this.description);
 
   /// Parse a database value to Subject enum.
   static Subject? fromDbValue(String value) {

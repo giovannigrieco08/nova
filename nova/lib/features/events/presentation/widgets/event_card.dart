@@ -11,7 +11,21 @@
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/theme/nova_colors.dart';
 import '../../domain/entities/event.dart';
+
+/// Collaborator info for collaborative events
+class EventCollaborator {
+  final String name;
+  final String className;
+  final String? avatarUrl;
+
+  const EventCollaborator({
+    required this.name,
+    required this.className,
+    this.avatarUrl,
+  });
+}
 
 class EventCard extends StatefulWidget {
   final Event event;
@@ -26,6 +40,9 @@ class EventCard extends StatefulWidget {
   final int commentCount;
   final bool isLiked;
 
+  /// List of collaborators for collaborative events
+  final List<EventCollaborator> collaborators;
+
   const EventCard({
     super.key,
     required this.event,
@@ -38,6 +55,7 @@ class EventCard extends StatefulWidget {
     this.likeCount = 0,
     this.commentCount = 0,
     this.isLiked = false,
+    this.collaborators = const [],
   });
 
   @override
@@ -46,7 +64,6 @@ class EventCard extends StatefulWidget {
 
 class _EventCardState extends State<EventCard> {
   bool _isCaptionExpanded = false;  // Caption "altro" expansion
-  bool _isCardExpanded = false;      // Full card expansion (participants/comments)
   late bool _isLiked;
 
   @override
@@ -58,80 +75,83 @@ class _EventCardState extends State<EventCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _toggleCardExpansion,
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 12), // Card separator per specs
-          color: const Color(0xFFFFFFFF), // Pure white background
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              _buildImage(),
-              _buildActions(),
-              _buildCaption(),
-              _buildParticipateButton(),
-              _buildMetaInfo(),
-
-              // EXPANDED SECTIONS (conditional)
-              if (_isCardExpanded) ...[
-                _buildDivider(),
-                _buildParticipantsSection(),
-                _buildDivider(),
-                _buildCommentsPreview(),
-              ],
-
-              _buildTimestamp(),
-            ],
-          ),
+      onTap: widget.onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12), // Card separator per specs
+        color: const Color(0xFFFFFFFF), // Pure white background
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            _buildImage(),
+            _buildActions(),
+            _buildCaption(),
+            _buildParticipateButton(),
+            _buildMetaInfo(),
+            _buildTimestamp(),
+          ],
         ),
       ),
     );
   }
 
-  void _toggleCardExpansion() {
-    setState(() {
-      _isCardExpanded = !_isCardExpanded;
-    });
-  }
-
-  /// Header: Avatar (32px) + Username (14px bold) + Class (12px) + Menu dots
+  /// Header: Avatar(s) + Username(s) + Class + Menu dots
+  /// Supports collaborative events with multiple organizers
   Widget _buildHeader() {
     final organizerName = widget.organizerName ?? 'Organizer';
     final organizerClass = widget.organizerClass ?? '';
+    final hasCollaborators = widget.collaborators.isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       child: Row(
         children: [
-          // Avatar with brand gradient
-          _buildAvatar(organizerName),
+          // Avatar(s) - overlapping if collaborative
+          if (hasCollaborators)
+            _buildCollaboratorAvatars(organizerName)
+          else
+            _buildAvatar(organizerName),
           const SizedBox(width: 10),
-          // Username + Class stacked
+          // Username(s) + Class stacked
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  organizerName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF000000),
-                  ),
-                ),
-                if (organizerClass.isNotEmpty)
+                // Names row
+                if (hasCollaborators)
                   Text(
-                    organizerClass,
+                    _buildCollaboratorNames(organizerName),
                     style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF737373),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF000000),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                else
+                  Text(
+                    organizerName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF000000),
                     ),
                   ),
+                // Class info
+                Text(
+                  hasCollaborators
+                      ? _buildCollaboratorClasses(organizerClass)
+                      : organizerClass.isNotEmpty ? organizerClass : 'Studente',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF737373),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -184,6 +204,92 @@ class _EventCardState extends State<EventCard> {
     if (parts.isEmpty) return '';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  /// Build overlapping avatars for collaborative events
+  Widget _buildCollaboratorAvatars(String mainOrganizerName) {
+    final totalCount = 1 + widget.collaborators.length; // Main + collaborators
+    final maxShow = 3; // Max avatars to show
+    final showCount = totalCount > maxShow ? maxShow : totalCount;
+
+    return SizedBox(
+      width: 32 + (showCount - 1) * 16, // Overlap by 16px
+      height: 32,
+      child: Stack(
+        children: [
+          // Main organizer avatar (always first/back)
+          Positioned(
+            left: 0,
+            child: _buildAvatar(mainOrganizerName),
+          ),
+          // Collaborator avatars (overlapping)
+          for (int i = 0; i < widget.collaborators.length && i < maxShow - 1; i++)
+            Positioned(
+              left: (i + 1) * 16.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: _buildAvatar(widget.collaborators[i].name),
+              ),
+            ),
+          // "+N" indicator if more than maxShow
+          if (totalCount > maxShow)
+            Positioned(
+              left: (maxShow - 1) * 16.0,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE0E0E0),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: Center(
+                  child: Text(
+                    '+${totalCount - maxShow + 1}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF000000),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Build comma-separated names for collaborative events
+  String _buildCollaboratorNames(String mainOrganizerName) {
+    if (widget.collaborators.isEmpty) return mainOrganizerName;
+
+    final names = [mainOrganizerName, ...widget.collaborators.map((c) => c.name)];
+    if (names.length <= 2) {
+      return names.join(' e ');
+    } else {
+      return '${names.first}, ${names[1]} e altri';
+    }
+  }
+
+  /// Build class info for collaborative events
+  String _buildCollaboratorClasses(String mainOrganizerClass) {
+    if (widget.collaborators.isEmpty) {
+      return mainOrganizerClass.isNotEmpty ? mainOrganizerClass : 'Studente';
+    }
+
+    final classes = <String>{};
+    if (mainOrganizerClass.isNotEmpty) classes.add(mainOrganizerClass);
+    for (final c in widget.collaborators) {
+      if (c.className.isNotEmpty) classes.add(c.className);
+    }
+
+    if (classes.isEmpty) return 'Studenti';
+    if (classes.length == 1) return classes.first;
+    return classes.take(2).join(' · ');
   }
 
   /// Image: 1:1 aspect ratio, 6.375px padding, 14px radius
@@ -249,40 +355,49 @@ class _EventCardState extends State<EventCard> {
     );
   }
 
-  /// Actions: Like (24px) + Comment (24px) with 1.5px offset
+  /// Actions: Like + Comment (left) | Share (right)
   Widget _buildActions() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
-          // Like icon with 1.5px offset toward center
-          Padding(
-            padding: const EdgeInsets.only(left: 1.5),
-            child: IconButton(
-              icon: Icon(
-                _isLiked ? Icons.favorite : Icons.favorite_border,
-                size: 24,
-              ),
-              color: _isLiked ? const Color(0xFFed4956) : const Color(0xFF000000),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _handleLike,
+          // Like icon
+          IconButton(
+            icon: Icon(
+              _isLiked ? Icons.favorite : Icons.favorite_border,
+              size: 24,
             ),
+            color: _isLiked ? const Color(0xFFed4956) : const Color(0xFF000000),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: _handleLike,
+          ),
+          const SizedBox(width: 2),
+          // Comment icon
+          IconButton(
+            icon: const Icon(
+              Icons.mode_comment_outlined,
+              size: 24,
+            ),
+            color: const Color(0xFF000000),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: _handleComment,
           ),
           const Spacer(),
-          // Comment icon with 1.5px offset toward center
-          Padding(
-            padding: const EdgeInsets.only(right: 1.5),
-            child: IconButton(
-              icon: const Icon(
-                Icons.mode_comment_outlined,
-                size: 24,
+          // Share icon (right side) - Instagram-style paper plane
+          IconButton(
+            icon: Transform.rotate(
+              angle: -0.4, // ~-23 degrees for Instagram-style tilt
+              child: const Icon(
+                Icons.send_rounded,
+                size: 22,
               ),
-              color: const Color(0xFF000000),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _handleComment,
             ),
+            color: const Color(0xFF000000),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: _handleShare,
           ),
         ],
       ),
@@ -295,7 +410,7 @@ class _EventCardState extends State<EventCard> {
     final description = widget.event.description;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -355,80 +470,129 @@ class _EventCardState extends State<EventCard> {
       ),
       maxLines: 2,
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: MediaQuery.of(context).size.width - 24); // Account for padding
+    )..layout(maxWidth: MediaQuery.of(context).size.width - 16); // Account for padding
 
     return textPainter.didExceedMaxLines;
   }
 
-  /// Button: "Partecipo" full-width, #0095f6, 10px padding
+  /// Button: "Partecipo" with participants indicator
   Widget _buildParticipateButton() {
+    // TODO: Get actual participant count from event data
+    final participantCount = 0;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _handleParticipate,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0095f6), // Instagram blue
-            foregroundColor: const Color(0xFFFFFFFF),
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
+      child: Row(
+        children: [
+          // Partecipo button (expanded)
+          Expanded(
+            child: ElevatedButton(
+              onPressed: _handleParticipate,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NovaColors.brandViolet,
+                foregroundColor: const Color(0xFFFFFFFF),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Partecipo',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
-          child: const Text(
-            'Partecipo',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          const SizedBox(width: 8),
+          // Participants indicator (tappable) - on the right
+          GestureDetector(
+            onTap: _showParticipantsSheet,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.people_outline,
+                    size: 18,
+                    color: Color(0xFF000000),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    participantCount.toString(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF000000),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  /// Meta info: Date + time + location (12px icons/text, #737373)
+  /// Meta info: Date + time + location (vertical layout for prominence)
   Widget _buildMetaInfo() {
-    final formattedDate = widget.event.formattedDateTime; // Use Event's formatted date/time
+    final formattedDate = widget.event.formattedDateTime;
     final location = widget.event.location ?? 'Nessuna posizione';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.calendar_today,
-            size: 12,
-            color: Color(0xFF737373),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            formattedDate,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF737373),
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.location_on,
-            size: 12,
-            color: Color(0xFF737373),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              location,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF737373),
+          // Data
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 16,
+                color: NovaColors.textSecondary(context),
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
+              const SizedBox(width: 6),
+              Text(
+                formattedDate,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: NovaColors.textSecondary(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Luogo
+          Row(
+            children: [
+              Icon(
+                Icons.location_on,
+                size: 16,
+                color: NovaColors.textSecondary(context),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  location,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: NovaColors.textSecondary(context),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -440,7 +604,7 @@ class _EventCardState extends State<EventCard> {
     final timestamp = _formatTimestamp(widget.event.createdAt);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
       child: Text(
         timestamp.toUpperCase(), // UPPERCASE per specs
         style: const TextStyle(
@@ -489,6 +653,187 @@ class _EventCardState extends State<EventCard> {
     // TODO: Show comments bottom sheet
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Comments sheet coming soon')),
+    );
+  }
+
+  void _handleShare() {
+    // TODO: Implement share functionality
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Share coming soon')),
+    );
+  }
+
+  void _handleInvite() {
+    // TODO: Open invite sheet to select users to invite
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Invita coming soon')),
+    );
+  }
+
+  void _showParticipantsSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD0D0D0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Search bar + Invite button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  // Search field
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Cerca',
+                        hintStyle: const TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF8E8E93),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          size: 20,
+                          color: Color(0xFF8E8E93),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 36,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF5F5F5),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF000000),
+                      ),
+                      onChanged: (query) {
+                        // TODO: Filter participants
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Invite button
+                  GestureDetector(
+                    onTap: _handleInvite,
+                    child: const Icon(
+                      Icons.person_add_outlined,
+                      size: 24,
+                      color: Color(0xFF000000),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Participants list or empty state
+            Expanded(
+              child: _buildParticipantsList(scrollController),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build participants list or empty state
+  Widget _buildParticipantsList(ScrollController scrollController) {
+    // TODO: Get actual participants from event data
+    final participants = <Map<String, String>>[]; // Empty for now
+
+    if (participants.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.people_outline,
+              size: 64,
+              color: const Color(0xFFD0D0D0),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Nessun partecipante ancora',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF737373),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Sii il primo a partecipare!',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFFA0A0A0),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: scrollController,
+      itemCount: participants.length,
+      itemBuilder: (context, index) {
+        final participant = participants[index];
+        return ListTile(
+          leading: CircleAvatar(
+            radius: 24,
+            backgroundColor: NovaColors.brandViolet.withOpacity(0.2),
+            child: Text(
+              participant['name']?[0].toUpperCase() ?? '?',
+              style: TextStyle(
+                color: NovaColors.brandViolet,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          title: Text(
+            participant['name'] ?? '',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF000000),
+            ),
+          ),
+          subtitle: Text(
+            participant['class'] ?? '',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF737373),
+            ),
+          ),
+          onTap: () {
+            // TODO: Navigate to profile
+            Navigator.pop(context);
+          },
+        );
+      },
     );
   }
 
@@ -546,132 +891,6 @@ class _EventCardState extends State<EventCard> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // =========================================================================
-  // EXPANDED SECTIONS (shown when card is expanded)
-  // =========================================================================
-
-  /// Divider between sections
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Container(
-        height: 1,
-        color: const Color(0xFFEFEFEF),
-      ),
-    );
-  }
-
-  /// Participants section (compact view with avatars)
-  Widget _buildParticipantsSection() {
-    // TODO: Get participants from event data
-    final participantCount = 0; // widget.event.participantCount
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Participants ($participantCount)',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF000000),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (participantCount > 0)
-            // TODO: Add ParticipantAvatars widget here
-            Text(
-              'Participant avatars will appear here',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF737373),
-              ),
-            )
-          else
-            Text(
-              'Nessun partecipante ancora',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF737373),
-              ),
-            ),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () {
-              // TODO: Show full participants modal
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Participants modal coming soon')),
-              );
-            },
-            child: const Text(
-              'Vedi tutti',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0095f6),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Comments preview section (shows first 2 comments)
-  Widget _buildCommentsPreview() {
-    // TODO: Get comments from event data
-    final commentCount = 0; // widget.commentCount
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Comments ($commentCount)',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF000000),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (commentCount > 0)
-            // TODO: Add comment widgets here
-            Text(
-              'Comment previews will appear here',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF737373),
-              ),
-            )
-          else
-            Text(
-              'Nessun commento ancora',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF737373),
-              ),
-            ),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: _handleComment,
-            child: Text(
-              commentCount > 2 ? 'Vedi tutti i commenti' : 'Aggiungi un commento',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0095f6),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

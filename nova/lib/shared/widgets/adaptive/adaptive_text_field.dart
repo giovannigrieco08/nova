@@ -93,6 +93,9 @@ class AdaptiveTextField extends StatelessWidget {
           CupertinoTextField(
             controller: controller,
             placeholder: placeholder ?? '',
+            placeholderStyle: NovaTextStyles.bodyMedium.copyWith(
+              color: NovaColors.textTertiary(context),
+            ),
             keyboardType: keyboardType ?? TextInputType.text,
             obscureText: obscureText,
             onChanged: onChanged,

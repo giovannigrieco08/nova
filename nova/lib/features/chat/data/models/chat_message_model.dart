@@ -3,6 +3,7 @@ import 'package:nova/features/chat/domain/entities/mention_info.dart';
 import 'package:nova/features/chat/domain/entities/chat_media_info.dart';
 import 'package:nova/features/chat/data/models/chat_media_model.dart';
 import 'package:nova/features/profile/domain/entities/profile.dart';
+import 'package:nova/features/profile/data/models/profile_model.dart';
 
 /// Data model for ChatMessage with JSON serialization.
 ///
@@ -68,8 +69,8 @@ class ChatMessageModel {
       createdAt: DateTime.parse(json['created_at'] as String),
       authorJson: json['profiles'] as Map<String, dynamic>?,
       replyToJson: json['reply_to'] as Map<String, dynamic>?,
-      reactionsJson: json['chat_reactions'] as List<Map<String, dynamic>>?,
-      mediaJson: json['chat_media'] as Map<String, dynamic>?,
+      reactionsJson: _parseReactionsJson(json['chat_reactions']),
+      mediaJson: _parseMediaJson(json['chat_media']),
     );
   }
 
@@ -147,7 +148,8 @@ class ChatMessageModel {
     if (authorJson == null) {
       return _placeholderProfile(userId);
     }
-    return Profile.fromJson(authorJson!);
+    // Use ProfileModel to handle snake_case -> camelCase conversion
+    return ProfileModel.fromJson(authorJson!).toEntity();
   }
 
   static Profile _placeholderProfile(String id) {
@@ -203,9 +205,35 @@ class ChatMessageModel {
   static List<Map<String, dynamic>> _parseMentionsJson(dynamic mentions) {
     if (mentions == null) return [];
     if (mentions is List) {
-      return mentions.cast<Map<String, dynamic>>();
+      return mentions
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
     }
     return [];
+  }
+
+  static List<Map<String, dynamic>>? _parseReactionsJson(dynamic reactions) {
+    if (reactions == null) return null;
+    if (reactions is List) {
+      if (reactions.isEmpty) return [];
+      return reactions
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+    return null;
+  }
+
+  static Map<String, dynamic>? _parseMediaJson(dynamic media) {
+    if (media == null) return null;
+    // chat_media can be a list (from join) or single object
+    if (media is List) {
+      if (media.isEmpty) return null;
+      return Map<String, dynamic>.from(media.first as Map);
+    }
+    if (media is Map) {
+      return Map<String, dynamic>.from(media);
+    }
+    return null;
   }
 }
 

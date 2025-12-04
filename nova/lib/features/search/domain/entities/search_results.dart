@@ -14,7 +14,7 @@ class EventSearchResult {
   final String? location;
   final DateTime? eventDate;
   final String? imageUrl;
-  final String organizerId;
+  final String creatorId;
   final double rank;
 
   const EventSearchResult({
@@ -24,7 +24,7 @@ class EventSearchResult {
     this.location,
     this.eventDate,
     this.imageUrl,
-    required this.organizerId,
+    required this.creatorId,
     required this.rank,
   });
 
@@ -38,7 +38,7 @@ class EventSearchResult {
           ? DateTime.parse(json['event_date'] as String)
           : null,
       imageUrl: json['image_url'] as String?,
-      organizerId: json['organizer_id'] as String,
+      creatorId: json['creator_id'] as String,
       rank: (json['rank'] as num).toDouble(),
     );
   }
@@ -75,7 +75,7 @@ class ProfileSearchResult {
 
   factory ProfileSearchResult.fromJson(Map<String, dynamic> json) {
     return ProfileSearchResult(
-      id: json['id'] as String,
+      id: json['user_id'] as String,
       fullName: json['full_name'] as String,
       bio: json['bio'] as String?,
       className: json['class_name'] as String?,

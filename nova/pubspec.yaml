@@ -16,7 +16,7 @@ dependencies:
 
   # Design System & UI
   cupertino_native: ^0.1.0  # iOS native UIKit components (requires Xcode 26 beta)
-  # Removed google_fonts: ^6.1.0 (using SF Pro/Roboto system fonts - design-system v2.0)
+  google_fonts: ^6.1.0      # Inter font for Android (iOS uses SF Pro system font)
   # Removed liquid_glass_renderer: 0.1.1-dev.10 (using BackdropFilter native - design-system v2.0)
 
   # Supabase Backend
@@ -56,6 +56,10 @@ dependencies:
 
   # Push Notification Feature Dependencies (008-realtime-notifications)
   flutter_local_notifications: ^17.2.1  # Local notification display
+
+  # Chat Media Feature Dependencies (015-global-chat)
+  flutter_sound: ^9.16.0               # Audio recording and playback for voice messages
+  permission_handler: ^11.3.1          # Runtime permissions for camera/mic
   # flutter_app_badger: ^1.5.0          # REMOVED: incompatible with AGP 8.0+ (namespace issue)
   uuid: ^4.4.0                          # UUID generation
 

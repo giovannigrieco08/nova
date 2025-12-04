@@ -12,7 +12,6 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../domain/entities/tutor_profile.dart';
 import '../../data/repositories/tutor_repository.dart';
 import '../providers/tutor_providers.dart';
-import '../screens/edit_tutor_screen.dart';
 import 'contact_tutor_sheet.dart';
 
 /// TutorProfileSection - Displays tutor profile in user profile screens
@@ -23,7 +22,6 @@ import 'contact_tutor_sheet.dart';
 /// - Subjects display with chips
 /// - Price badge (Gratis or €X/h)
 /// - Availability info
-/// - "Modifica" button for own profile
 /// - "Contatta per Ripetizioni" button for other profiles
 /// - Inactive state with "Riattiva" button
 class TutorProfileSection extends ConsumerWidget {
@@ -248,45 +246,9 @@ class TutorProfileSection extends ConsumerWidget {
   }
 
   Widget _buildActionButton(BuildContext context, WidgetRef ref) {
+    // Don't show any button for own profile
     if (isOwnProfile) {
-      // "Modifica" button for own profile
-      return SizedBox(
-        width: double.infinity,
-        child: Platform.isIOS
-            ? CupertinoButton(
-                padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
-                color: NovaColors.backgroundSecondary(context),
-                borderRadius: BorderRadius.circular(12),
-                onPressed: () => _navigateToEdit(context),
-                child: Text(
-                  'Modifica',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: NovaColors.textPrimary(context),
-                  ),
-                ),
-              )
-            : ElevatedButton(
-                onPressed: () => _navigateToEdit(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: NovaColors.backgroundSecondary(context),
-                  foregroundColor: NovaColors.textPrimary(context),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Modifica',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-      );
+      return const SizedBox.shrink();
     } else {
       // "Contatta per Ripetizioni" button for other profiles
       return SizedBox(
@@ -433,15 +395,6 @@ class TutorProfileSection extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  void _navigateToEdit(BuildContext context) {
-    Navigator.push(
-      context,
-      Platform.isIOS
-          ? CupertinoPageRoute(builder: (_) => EditTutorScreen(profile: profile))
-          : MaterialPageRoute(builder: (_) => EditTutorScreen(profile: profile)),
     );
   }
 

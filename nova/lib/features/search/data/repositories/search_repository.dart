@@ -106,7 +106,7 @@ class SearchRepository {
             location: event.location,
             eventDate: event.eventDate,
             imageUrl: event.imageUrl,
-            organizerId: event.organizerId,
+            creatorId: event.creatorId,
             rank: 1.0,
           );
           if (!matchingEvents.contains(result)) {
@@ -207,7 +207,7 @@ class SearchRepository {
                 location: e.location,
                 eventDate: e.eventDate,
                 imageUrl: e.imageUrl,
-                organizerId: e.organizerId,
+                creatorId: e.creatorId,
               ))
           .toList(),
       profiles: results.profiles
@@ -238,7 +238,7 @@ class SearchRepository {
                 location: e.location,
                 eventDate: e.eventDate,
                 imageUrl: e.imageUrl,
-                organizerId: e.organizerId,
+                creatorId: e.creatorId,
                 rank: 1.0,
               ))
           .toList(),

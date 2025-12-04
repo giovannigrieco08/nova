@@ -22,14 +22,15 @@
 -- PART 1: EXTEND PROFILES TABLE WITH NOTIFICATION PREFERENCES
 -- =====================================================================
 
--- Add 6 notification preference columns (opt-out model: all enabled by default)
+-- Add 7 notification preference columns (opt-out model: all enabled by default)
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS eventi_moderati_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS nuovi_commenti_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS risposte_commenti_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS like_eventi_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS nuove_partecipazioni_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-  ADD COLUMN IF NOT EXISTS coorganizer_updates_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+  ADD COLUMN IF NOT EXISTS coorganizer_updates_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS chat_mentions_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Add column comments
 COMMENT ON COLUMN profiles.eventi_moderati_enabled IS 'Receive notifications when events are approved/rejected';
@@ -38,6 +39,7 @@ COMMENT ON COLUMN profiles.risposte_commenti_enabled IS 'Receive notifications w
 COMMENT ON COLUMN profiles.like_eventi_enabled IS 'Receive notifications when someone likes your events';
 COMMENT ON COLUMN profiles.nuove_partecipazioni_enabled IS 'Receive notifications when someone joins your events';
 COMMENT ON COLUMN profiles.coorganizer_updates_enabled IS 'Receive notifications when events you co-organize are edited';
+COMMENT ON COLUMN profiles.chat_mentions_enabled IS 'Receive notifications when someone mentions you in chat';
 
 -- =====================================================================
 -- PART 2: CREATE NOTIFICATIONS TABLE
@@ -52,14 +54,15 @@ CREATE TABLE IF NOT EXISTS notifications (
   -- Sender (who triggered this notification, NULL for system notifications)
   sender_id UUID REFERENCES profiles(user_id) ON DELETE SET NULL,
 
-  -- Notification type (one of 6 channels)
+  -- Notification type (one of 7 channels)
   type TEXT NOT NULL CHECK (type IN (
     'event_moderation',    -- Event approved/rejected
     'new_comment',         -- New comment on your event
     'comment_reply',       -- Reply to your comment
     'event_like',          -- Someone liked your event
     'event_participation', -- Someone joined your event
-    'coorganizer_update'   -- Event you co-organize was edited
+    'coorganizer_update',  -- Event you co-organize was edited
+    'chat_mention'         -- Someone mentioned you in chat
   )),
 
   -- Content
@@ -67,7 +70,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   description TEXT NOT NULL CHECK (LENGTH(description) BETWEEN 1 AND 500),
 
   -- Navigation target
-  target_type TEXT NOT NULL CHECK (target_type IN ('event', 'comment')),
+  target_type TEXT NOT NULL CHECK (target_type IN ('event', 'comment', 'chat_message')),
   target_id UUID NOT NULL,
 
   -- Additional metadata (JSON)
@@ -170,6 +173,7 @@ BEGIN
       WHEN 'event_like' THEN like_eventi_enabled
       WHEN 'event_participation' THEN nuove_partecipazioni_enabled
       WHEN 'coorganizer_update' THEN coorganizer_updates_enabled
+      WHEN 'chat_mention' THEN chat_mentions_enabled
       ELSE TRUE -- Unknown types default to enabled
     END INTO v_preference_enabled
   FROM profiles

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
+import 'package:nova/features/profile/presentation/providers/profile_provider.dart'
+    show currentProfileProvider;
 
 /// Manages typing indicator state via Supabase Presence channel.
 ///
@@ -200,8 +202,12 @@ final typingIndicatorProvider = StateNotifierProvider.autoDispose<
   final supabase = ref.watch(supabaseClientProvider);
   final currentUserId = ref.watch(currentUserIdProvider);
 
-  // TODO: Get current user name from profile provider
-  const currentUserName = 'Utente';
+  // Get current user name from profile provider, fallback to 'Utente' while loading
+  final profileAsync = ref.watch(currentProfileProvider);
+  final currentUserName = profileAsync.maybeWhen(
+    data: (profile) => profile.fullName,
+    orElse: () => 'Utente',
+  );
 
   final notifier = TypingIndicatorNotifier(
     supabase: supabase,

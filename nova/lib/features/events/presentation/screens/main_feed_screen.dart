@@ -8,20 +8,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/utils/platform_utils.dart';
-import '../../../../core/enums/user_role.dart';
 import '../../../../shared/widgets/nova_bottom_nav_bar.dart';
-import '../../../../shared/widgets/adaptive/adaptive_dialog.dart';
+import '../../../../shared/widgets/avatar_widget.dart';
 import '../../../bacheche/presentation/screens/bacheche_screen.dart';
-import '../../../auth/providers/user_role_provider.dart';
-import 'moderation_queue_screen.dart';
-import '../../../admin/presentation/screens/admin_panel_screen.dart';
-import '../../../moderation/presentation/providers/pending_count_provider.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../../search/presentation/screens/search_screen.dart';
+import '../../../tutoring/presentation/screens/subjects_screen.dart';
+import '../../../notifications/presentation/screens/notification_list_screen.dart';
+import '../../../notifications/presentation/providers/notification_providers.dart';
 import 'events_feed_screen.dart';
 import 'event_creation_screen.dart';
 
@@ -42,7 +41,7 @@ class MainFeedScreen extends ConsumerStatefulWidget {
 class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _currentNavIndex = 0; // Bottom nav index
+  int _currentNavIndex = 0; // Bottom nav index (0=Home, 1=Search, 2=Tutoring, 3=Chat, 4=Profile)
   String _currentSection = 'Eventi'; // Current section: 'Eventi' or 'Bacheche'
 
   @override
@@ -58,74 +57,36 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
   }
 
   /// Handle bottom navigation item selection
-  void _onNavItemSelected(int index, List<String> navRoutes) {
+  void _onNavItemSelected(int index) {
+    // Chat (index 3) è l'unica schermata che viene pushata separatamente
+    if (index == 3) {
+      _openChatScreen();
+      return;
+    }
+
+    // Tutte le altre schermate rimangono con la bottom navbar visibile
     setState(() {
       _currentNavIndex = index;
     });
-
-    final route = navRoutes[index];
-    switch (route) {
-      case 'home':
-        _tabController.animateTo(0);
-        break;
-      case 'search':
-        Navigator.push(
-          context,
-          context.isIOS
-              ? CupertinoPageRoute(
-                  builder: (context) => const SearchScreen(),
-                )
-              : MaterialPageRoute(
-                  builder: (context) => const SearchScreen(),
-                ),
-        );
-        break;
-      case 'chat':
-        Navigator.push(
-          context,
-          context.isIOS
-              ? CupertinoPageRoute(
-                  builder: (context) => const ChatScreen(),
-                )
-              : MaterialPageRoute(
-                  builder: (context) => const ChatScreen(),
-                ),
-        );
-        break;
-      case 'moderation':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ModerationQueueScreen(),
-          ),
-        );
-        break;
-      case 'admin':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const AdminPanelScreen(),
-          ),
-        );
-        break;
-      case 'profile':
-        Navigator.push(
-          context,
-          context.isIOS
-              ? CupertinoPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                )
-              : MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
-        );
-        break;
-    }
   }
 
-  /// Build navigation items based on user role
-  List<NavItem> _buildNavItems(UserRole userRole, int? pendingCount) {
-    final items = <NavItem>[
+  /// Apre la Chat come schermata separata (senza bottom navbar)
+  Future<void> _openChatScreen() async {
+    await Navigator.push(
+      context,
+      context.isIOS
+          ? CupertinoPageRoute(builder: (context) => const ChatScreen())
+          : MaterialPageRoute(builder: (context) => const ChatScreen()),
+    );
+  }
+
+  /// Build navigation items (fixed 5 tabs for all users)
+  List<NavItem> _buildNavItems() {
+    // Get current user profile for avatar
+    final profileAsync = ref.watch(currentProfileProvider);
+    final profile = profileAsync.valueOrNull;
+
+    return [
       const NavItem(
         sfSymbol: 'house.fill',
         materialIcon: Icons.home,
@@ -137,65 +98,38 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
         label: 'Cerca',
       ),
       const NavItem(
+        sfSymbol: 'book.fill',
+        materialIcon: Icons.school,
+        label: 'Ripetizioni',
+      ),
+      const NavItem(
         sfSymbol: 'message.fill',
         materialIcon: Icons.chat_bubble,
         label: 'Chat',
       ),
+      // Profile tab with user avatar (Instagram-style)
+      NavItem(
+        label: 'Profilo',
+        customIcon: AvatarWidget(
+          avatarUrl: profile?.avatarUrl,
+          name: profile?.fullName ?? 'U',
+          size: 28,
+        ),
+      ),
     ];
-
-    // Add Moderation tab for moderators and admins
-    if (userRole == UserRole.moderator || userRole == UserRole.admin) {
-      items.add(NavItem(
-        sfSymbol: 'gavel',
-        materialIcon: Icons.gavel,
-        label: 'Moderazione',
-        badgeCount: pendingCount,
-      ));
-    }
-
-    // Add Admin tab for admins only
-    if (userRole == UserRole.admin) {
-      items.add(const NavItem(
-        sfSymbol: 'person.badge.shield.checkmark.fill',
-        materialIcon: Icons.admin_panel_settings,
-        label: 'Admin',
-      ));
-    }
-
-    // Always add Profile last
-    items.add(const NavItem(
-      sfSymbol: 'person.circle.fill',
-      materialIcon: Icons.person,
-      label: 'Profilo',
-    ));
-
-    return items;
   }
 
-  /// Get route identifiers for navigation items based on user role
-  List<String> _getNavRoutes(UserRole userRole) {
-    final routes = <String>['home', 'search', 'chat'];
-
-    if (userRole == UserRole.moderator || userRole == UserRole.admin) {
-      routes.add('moderation');
-    }
-
-    if (userRole == UserRole.admin) {
-      routes.add('admin');
-    }
-
-    routes.add('profile');
-
-    return routes;
-  }
-
-  /// Handle camera FAB tap - Open event creation screen
-  void _onCameraTap() {
+  /// Handle create button tap - Open event/bacheca creation screen
+  void _onCreateTap() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const EventCreationScreen(),
-      ),
+      context.isIOS
+          ? CupertinoPageRoute(
+              builder: (context) => const EventCreationScreen(),
+            )
+          : MaterialPageRoute(
+              builder: (context) => const EventCreationScreen(),
+            ),
     );
   }
 
@@ -293,140 +227,169 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     }
   }
 
-  /// Show "Coming Soon" dialog for unimplemented features
-  void _showComingSoonDialog(String feature) {
-    AdaptiveDialog.show(
-      context: context,
-      title: 'Prossimamente',
-      content: 'La funzionalità "$feature" sarà disponibile presto!',
-      actions: [
-        AdaptiveDialogAction(
-          text: 'OK',
-          onPressed: () {},
+  /// Build notification bell with unread badge
+  Widget _buildNotificationBell(BuildContext context) {
+    final unreadCount = ref.watch(unreadCountProvider);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(
+          context.isIOS ? CupertinoIcons.bell : Icons.notifications_outlined,
+          color: NovaColors.textPrimary(context),
+          size: 24,
         ),
+        if (unreadCount > 0)
+          Positioned(
+            right: -6,
+            top: -4,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: NovaColors.error(context),
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: Text(
+                unreadCount > 9 ? '9+' : unreadCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
       ],
     );
   }
 
   /// Handle notifications icon tap
   void _onNotificationsTap() {
-    // TODO(notifications/future): Navigate to NotificationsScreen when implemented
-    _showComingSoonDialog('Notifiche');
+    Navigator.push(
+      context,
+      context.isIOS
+          ? CupertinoPageRoute(builder: (context) => const NotificationListScreen())
+          : MaterialPageRoute(builder: (context) => const NotificationListScreen()),
+    );
+  }
+
+  /// Build the main content based on current nav index
+  Widget _buildMainContent() {
+    // Index 0: Home (Eventi/Bacheche con top navbar)
+    // Index 1: Search
+    // Index 2: Tutoring
+    // Index 3: Chat (non usato qui, viene pushato separatamente)
+    // Index 4: Profile
+
+    return IndexedStack(
+      index: _currentNavIndex > 3 ? _currentNavIndex - 1 : _currentNavIndex, // Skip Chat index
+      children: [
+        // 0: Home with Eventi/Bacheche tabs
+        _buildHomeScreen(),
+        // 1: Search
+        const SearchScreen(),
+        // 2: Tutoring
+        const SubjectsScreen(),
+        // 3: Profile (index 4 in navbar, but 3 in stack since Chat is skipped)
+        const ProfileScreen(),
+      ],
+    );
+  }
+
+  /// Build the Home screen with Eventi/Bacheche tabs
+  Widget _buildHomeScreen() {
+    return NestedScrollView(
+      floatHeaderSlivers: true,
+      headerSliverBuilder: (context, innerBoxIsScrolled) {
+        return [
+          SliverAppBar(
+            backgroundColor: NovaColors.background(context),
+            elevation: 0,
+            floating: true,
+            snap: true,
+            pinned: false,
+            toolbarHeight: 56,
+            titleSpacing: 0,
+            automaticallyImplyLeading: false,
+            title: Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Sinistra: Pulsante + (stile Instagram)
+                  GestureDetector(
+                    onTap: _onCreateTap,
+                    child: Icon(
+                      context.isIOS ? CupertinoIcons.plus : Icons.add,
+                      color: NovaColors.textPrimary(context),
+                      size: 24,
+                    ),
+                  ),
+
+                  // Centro: Titolo sezione con dropdown (stile Instagram "Per te")
+                  GestureDetector(
+                    onTap: _showSectionSelector,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _currentSection,
+                          style: NovaTypography.headingMedium.copyWith(
+                            color: NovaColors.textPrimary(context),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 20,
+                          color: NovaColors.textPrimary(context),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Destra: Campanella notifiche con badge (stile Instagram)
+                  GestureDetector(
+                    onTap: _onNotificationsTap,
+                    child: _buildNotificationBell(context),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ];
+      },
+      body: TabBarView(
+        controller: _tabController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: const [
+          EventsFeedScreen(showAppBar: false),
+          BachecheScreen(),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Watch user role for dynamic navigation
-    final userRoleAsync = ref.watch(userRoleProvider);
-    final pendingCountAsync = ref.watch(pendingCountProvider);
-
-    // Get current role (default to student if loading/error)
-    final userRole = userRoleAsync.valueOrNull ?? UserRole.student;
-    final pendingCount = pendingCountAsync.valueOrNull;
-
-    // Build dynamic nav items based on role
-    final navItems = _buildNavItems(userRole, pendingCount);
-    final navRoutes = _getNavRoutes(userRole);
-
-    // Reset current index if it exceeds available items
-    if (_currentNavIndex >= navItems.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {
-          _currentNavIndex = 0;
-        });
-      });
-    }
+    final navItems = _buildNavItems();
 
     return Scaffold(
       backgroundColor: NovaColors.background(context),
       body: Stack(
         children: [
-          // Main content with SliverAppBar (Instagram-style hide on scroll)
-          NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SliverAppBar(
-                  backgroundColor: Colors.white,
-                  elevation: 0,
-                  floating: false, // Instagram: navbar NON riappare finché non torni in cima
-                  pinned: false,   // Navbar scompare completamente scrollando (Instagram behavior)
-                  expandedHeight: 56, // Altezza espansa per permettere collapse
-                  collapsedHeight: 56, // Stessa altezza per uniformità
-                  toolbarHeight: 56, // Aumentato per centrare meglio gli elementi
-                  titleSpacing: 0,
-                  flexibleSpace: FlexibleSpaceBar(
-                    centerTitle: true,
-                    titlePadding: EdgeInsets.zero,
-                    title: Container(
-                      height: 56,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Padding per abbassare elementi
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Logo sinistra
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: SvgPicture.asset(
-                              'assets/logos/nova_logo.svg',
-                              width: 28,
-                              height: 28,
-                            ),
-                          ),
+          // Main content (IndexedStack per mantenere lo stato delle schermate)
+          _buildMainContent(),
 
-                          // Titolo centro con dropdown
-                          GestureDetector(
-                            onTap: _showSectionSelector,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  _currentSection,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.keyboard_arrow_down,
-                                  size: 20,
-                                  color: Colors.black,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Notifiche destra
-                          IconButton(
-                            icon: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.black,
-                              size: 26,
-                            ),
-                            onPressed: _onNotificationsTap,
-                            padding: const EdgeInsets.only(right: 8),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ];
-            },
-            body: TabBarView(
-              controller: _tabController,
-              physics: const NeverScrollableScrollPhysics(), // Disable swipe, only dropdown changes tabs
-              children: const [
-                EventsFeedScreen(showAppBar: false),
-                BachecheScreen(),
-              ],
-            ),
-          ),
-
-          // Bottom navigation overlay (pill-shaped glassmorphic design)
+          // Bottom navigation overlay (sempre visibile)
           Positioned(
             left: 0,
             right: 0,
@@ -435,8 +398,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
               child: NovaBottomNavBar(
                 currentIndex: _currentNavIndex,
                 items: navItems,
-                onTap: (index) => _onNavItemSelected(index, navRoutes),
-                onCameraTap: _onCameraTap,
+                onTap: _onNavItemSelected,
               ),
             ),
           ),

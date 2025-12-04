@@ -1,25 +1,25 @@
 import 'dart:ui';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
-import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/theme/nova_icons.dart';
 
 /// Navigation item configuration
 class NavItem {
-  final String sfSymbol;
-  final IconData materialIcon;
+  final String? sfSymbol;
+  final IconData? materialIcon;
   final String label;
   final int? badgeCount;
+  final Widget? customIcon; // For profile avatar
 
   const NavItem({
-    required this.sfSymbol,
-    required this.materialIcon,
+    this.sfSymbol,
+    this.materialIcon,
     required this.label,
     this.badgeCount,
+    this.customIcon,
   });
 }
 
@@ -30,7 +30,7 @@ class NavItem {
 /// - Glassmorphism on iOS (blur + semi-transparent)
 /// - Material elevation on Android (subtle shadow)
 /// - Dynamic items based on role (students: 5 tabs, moderators: 6 tabs, admins: 7 tabs)
-/// - Plus button emphasized: larger, circular, white
+/// - All icons have equal visual weight (no emphasized center button)
 /// - Optional badge support for any tab
 /// - Role-based tab visibility
 ///
@@ -40,13 +40,12 @@ class NavItem {
 ///   currentIndex: _selectedIndex,
 ///   items: [
 ///     NavItem(sfSymbol: 'house.fill', materialIcon: Icons.home, label: 'Home'),
-///     NavItem(sfSymbol: 'person.2.fill', materialIcon: Icons.people, label: 'Friends'),
+///     NavItem(sfSymbol: 'magnifyingglass', materialIcon: Icons.search, label: 'Cerca'),
 ///     NavItem(sfSymbol: 'message.fill', materialIcon: Icons.chat_bubble, label: 'Chat'),
 ///     NavItem(sfSymbol: 'gavel', materialIcon: Icons.gavel, label: 'Moderation', badgeCount: 5),
 ///     NavItem(sfSymbol: 'person.circle.fill', materialIcon: Icons.person, label: 'Profile'),
 ///   ],
 ///   onTap: (index) => setState(() => _selectedIndex = index),
-///   onCameraTap: () => _openCamera(),
 /// )
 /// ```
 class NovaBottomNavBar extends StatelessWidget {
@@ -59,15 +58,11 @@ class NovaBottomNavBar extends StatelessWidget {
   /// Callback when a nav item is tapped
   final ValueChanged<int> onTap;
 
-  /// Callback when camera button is tapped (center + button)
-  final VoidCallback onCameraTap;
-
   const NovaBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.items,
     required this.onTap,
-    required this.onCameraTap,
   });
 
   @override
@@ -140,47 +135,65 @@ class NovaBottomNavBar extends StatelessWidget {
     );
   }
 
-  /// Build all navigation items with camera button in the middle
+  /// Build all navigation items (uniform visual weight)
   List<Widget> _buildNavItems(BuildContext context) {
-    final widgets = <Widget>[];
-
-    // Calculate middle index (where camera button should be)
-    final middleIndex = items.length ~/ 2;
-
-    for (int i = 0; i < items.length; i++) {
-      // Add camera button in the middle
-      if (i == middleIndex) {
-        widgets.add(_buildPlusButton(context));
-      }
-
-      final item = items[i];
-      widgets.add(_buildNavItem(
+    return items.asMap().entries.map((entry) {
+      final i = entry.key;
+      final item = entry.value;
+      return _buildNavItem(
         context,
         i,
-        item.sfSymbol,
-        item.materialIcon,
-        item.label,
-        badgeCount: item.badgeCount,
-      ));
-    }
-
-    return widgets;
+        item,
+      );
+    }).toList();
   }
 
   /// Build a regular navigation item (Home, Friends, Chat, Profile)
   Widget _buildNavItem(
     BuildContext context,
     int index,
-    String sfSymbol,
-    IconData materialIcon,
-    String label, {
-    int? badgeCount,
-  }) {
+    NavItem item,
+  ) {
     final isSelected = currentIndex == index;
     final color = isSelected
         ? NovaColors.primary(context)
         : NovaColors.textSecondary(context);
-    final showBadge = badgeCount != null && badgeCount > 0;
+    final showBadge = item.badgeCount != null && item.badgeCount! > 0;
+
+    // Determine the icon widget to display
+    Widget iconWidget;
+    if (item.customIcon != null) {
+      // Custom icon (e.g., profile avatar)
+      // Add selection border for Instagram-style feedback
+      iconWidget = Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: isSelected
+              ? Border.all(
+                  color: NovaColors.primary(context),
+                  width: 2,
+                )
+              : null,
+        ),
+        child: ClipOval(
+          child: item.customIcon!,
+        ),
+      );
+    } else if (item.sfSymbol != null && item.materialIcon != null) {
+      // Standard icon
+      iconWidget = NovaIcons.adaptive(
+        context,
+        sfSymbol: item.sfSymbol!,
+        materialIcon: item.materialIcon!,
+        size: 26,
+        color: color,
+      );
+    } else {
+      // Fallback placeholder
+      iconWidget = Icon(Icons.circle, size: 26, color: color);
+    }
 
     return Expanded(
       child: GestureDetector(
@@ -190,13 +203,7 @@ class NovaBottomNavBar extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              NovaIcons.adaptive(
-                context,
-                sfSymbol: sfSymbol,
-                materialIcon: materialIcon,
-                size: 26,
-                color: color,
-              ),
+              iconWidget,
               // Badge indicator
               if (showBadge)
                 Positioned(
@@ -217,7 +224,7 @@ class NovaBottomNavBar extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        badgeCount! > 99 ? '99+' : badgeCount.toString(),
+                        item.badgeCount! > 99 ? '99+' : item.badgeCount.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -234,37 +241,4 @@ class NovaBottomNavBar extends StatelessWidget {
     );
   }
 
-  /// Build the center plus button (large, circular, emphasized)
-  Widget _buildPlusButton(BuildContext context) {
-    return Container(
-      width: 52,
-      height: 52,
-      margin: const EdgeInsets.symmetric(horizontal: NovaSpacing.xs),
-      decoration: BoxDecoration(
-        color: NovaColors.primary(context),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onCameraTap,
-          customBorder: const CircleBorder(),
-          child: Center(
-            child: Icon(
-              context.isIOS ? CupertinoIcons.plus : Icons.add,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

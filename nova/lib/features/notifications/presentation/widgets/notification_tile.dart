@@ -163,6 +163,9 @@ class NotificationTile extends StatelessWidget {
       case NotificationChannel.moderatorAlert:
         icon = Icons.admin_panel_settings_outlined;
         iconColor = NovaColors.error(context);
+      case NotificationChannel.chatMention:
+        icon = Icons.alternate_email;
+        iconColor = NovaColors.primary(context);
     }
 
     return Container(

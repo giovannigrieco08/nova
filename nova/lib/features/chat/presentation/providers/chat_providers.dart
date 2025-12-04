@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
+import 'package:nova/features/chat/domain/entities/chat_media_info.dart';
 import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 import 'package:nova/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:nova/features/chat/data/datasources/chat_remote_datasource.dart';
@@ -212,7 +213,13 @@ class ComposeStateNotifier extends StateNotifier<ComposeState> {
     } on ChatProfanityException catch (e) {
       state = state.copyWith(isSending: false, error: e.message);
       return false;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // DEBUG: Stampa errore reale in console
+      print('=== CHAT SEND ERROR ===');
+      print('Error: $e');
+      print('Stack: $stackTrace');
+      print('=======================');
+
       state = state.copyWith(
         isSending: false,
         error: 'Errore nell\'invio del messaggio. Riprova.',
@@ -280,3 +287,68 @@ final hasUserReportedProvider =
   final repository = ref.watch(chatRepositoryProvider);
   return repository.hasUserReported(messageId);
 });
+
+// =============================================================================
+// Media Upload Providers
+// =============================================================================
+
+/// Upload media (image, video, audio) to chat
+///
+/// [maxViews] determines how many times the media can be viewed (1 or 2).
+final uploadMediaProvider = FutureProvider.autoDispose
+    .family<ChatMediaInfo, ({String filePath, ChatMediaType mediaType, int maxViews})>(
+        (ref, params) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.uploadMedia(
+    filePath: params.filePath,
+    mediaType: params.mediaType,
+    maxViews: params.maxViews,
+  );
+});
+
+/// Get a signed URL for viewing media (60 second expiry)
+final signedMediaUrlProvider = FutureProvider.autoDispose
+    .family<String?, String>((ref, mediaId) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.getSignedMediaUrl(mediaId);
+});
+
+/// Mark media as viewed and get updated info
+final markMediaViewedProvider = FutureProvider.autoDispose
+    .family<ChatMediaInfo?, String>((ref, mediaId) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.markMediaViewed(mediaId);
+});
+
+// =============================================================================
+// Reaction Detail Providers
+// =============================================================================
+
+/// Get reactions with user info for a message (for detail sheet)
+final reactionsWithUsersProvider = FutureProvider.autoDispose
+    .family<List<ReactionWithUserInfo>, String>((ref, messageId) async {
+  final dataSource = ref.watch(chatRemoteDataSourceProvider);
+  final reactions = await dataSource.getReactionsWithUsers(messageId);
+
+  return reactions.map((r) => ReactionWithUserInfo(
+    emoji: r.emoji,
+    userId: r.userId,
+    fullName: r.fullName,
+    avatarUrl: r.avatarUrl,
+  )).toList();
+});
+
+/// Reaction with user info for display
+class ReactionWithUserInfo {
+  final String emoji;
+  final String userId;
+  final String fullName;
+  final String? avatarUrl;
+
+  const ReactionWithUserInfo({
+    required this.emoji,
+    required this.userId,
+    required this.fullName,
+    this.avatarUrl,
+  });
+}

@@ -31,6 +31,10 @@ enum NotificationChannel {
   moderatorAlert(
     label: 'Avvisi Moderazione',
     description: 'Notifiche per moderatori su contenuti da revisionare',
+  ),
+  chatMention(
+    label: 'Menzioni in Chat',
+    description: 'Notifiche quando qualcuno ti menziona nella chat globale',
   );
 
   const NotificationChannel({

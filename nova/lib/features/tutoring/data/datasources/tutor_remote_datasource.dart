@@ -56,7 +56,7 @@ class TutorRemoteDataSource {
             profiles:user_id (
               full_name,
               avatar_url,
-              class_year,
+              class,
               username
             )
           ''')
@@ -90,7 +90,7 @@ class TutorRemoteDataSource {
             profiles:user_id (
               full_name,
               avatar_url,
-              class_year,
+              class,
               username
             )
           ''')

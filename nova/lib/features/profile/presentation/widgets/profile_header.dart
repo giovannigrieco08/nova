@@ -1,40 +1,39 @@
 // Widget: ProfileHeader
 // Feature: 006-user-profile (User Story 1 - T033)
-// Purpose: Displays avatar, name, username, class, bio, moderator badge
+// Purpose: Displays avatar + stats (Instagram-style), name, class, bio, moderator badge
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 import '../../domain/entities/profile.dart';
+import '../../domain/entities/profile_stats.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/theme/nova_radius.dart';
 
-/// Profile header widget with avatar, name, username, class, bio
+/// Profile header widget with Instagram-style layout
 ///
-/// **Design**:
-/// - Avatar: 96×96px circle (or gradient with initials if no avatar)
-/// - Name: NovaTypography.headingLarge
-/// - Username: @username in NovaTypography.bodySmall (muted color)
-/// - Class: pill badge (e.g., "3A Scientifico")
-/// - Bio: max 150 chars, emoji support
-/// - Moderator badge: if role=moderator, show "Moderatore 🛡️" badge
+/// **Design (Instagram-style)**:
+/// - Top row: Avatar (80px) on left + Stats (big numbers) on right
+/// - Below: Name (bold), class badge, moderator badge
+/// - Below: Bio (max 3 lines)
 ///
 /// **Usage**:
 /// ```dart
 /// ProfileHeader(
 ///   profile: profile,
+///   stats: stats,
 ///   isOwnProfile: true,
 /// )
 /// ```
 class ProfileHeader extends StatelessWidget {
   final Profile profile;
+  final ProfileStats? stats;
   final bool isOwnProfile;
-  final VoidCallback? onEditTap; // Only shown if isOwnProfile=true
+  final VoidCallback? onEditTap;
 
   const ProfileHeader({
     required this.profile,
+    this.stats,
     required this.isOwnProfile,
     this.onEditTap,
     super.key,
@@ -43,60 +42,78 @@ class ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(NovaSpacing.large),
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.large,
+        vertical: NovaSpacing.medium,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar with optional gradient border for moderators
-          _buildAvatar(context),
-          SizedBox(height: NovaSpacing.medium),
-
-          // Full name
-          if (profile.fullName != null && profile.fullName!.isNotEmpty)
-            Text(
-              profile.fullName!,
-              style: NovaTypography.headingLarge.copyWith(
-                color: NovaColors.textPrimary(context),
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-          SizedBox(height: NovaSpacing.xsmall),
-
-          // Username (@nome.cognome)
-          Text(
-            '@${profile.username}',
-            style: NovaTypography.bodySmall.copyWith(
-              color: NovaColors.textSecondary(context),
-            ),
-          ),
-
-          SizedBox(height: NovaSpacing.small),
-
-          // Class badge and moderator badge
-          Wrap(
-            spacing: NovaSpacing.small,
-            runSpacing: NovaSpacing.xsmall,
-            alignment: WrapAlignment.center,
+          // Row 1: Avatar + Stats (Instagram-style)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Class badge (if class exists)
-              if (profile.classYear != null && profile.classYear!.isNotEmpty)
-                _buildClassBadge(context, profile.classYear!),
-
-              // Moderator badge (if role=moderator or admin)
-              if (profile.isModerator) _buildModeratorBadge(),
+              // Avatar (left)
+              _buildAvatar(context),
+              SizedBox(width: NovaSpacing.large),
+              // Stats (right) - expanded to fill remaining space
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatColumn(
+                      context,
+                      count: stats?.eventsCreatedCount ?? 0,
+                      label: 'eventi',
+                    ),
+                    _buildStatColumn(
+                      context,
+                      count: stats?.participationsCount ?? 0,
+                      label: 'partecipazioni',
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
 
-          // Bio (if exists)
+          SizedBox(height: NovaSpacing.medium),
+
+          // Row 2: Name (bold, left-aligned) - Instagram style
+          if (profile.fullName.isNotEmpty)
+            Text(
+              profile.fullName,
+              style: NovaTypography.labelLarge.copyWith(
+                color: NovaColors.textPrimary(context),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+
+          // Row 3: Class as plain text (not badge) + moderator badge
+          if (profile.classYear != null && profile.classYear!.isNotEmpty) ...[
+            SizedBox(height: 2),
+            Text(
+              profile.classYear!,
+              style: NovaTypography.bodySmall.copyWith(
+                color: NovaColors.textSecondary(context),
+              ),
+            ),
+          ],
+
+          // Moderator badge (if applicable)
+          if (profile.isModerator) ...[
+            SizedBox(height: NovaSpacing.xsmall),
+            _buildModeratorBadge(),
+          ],
+
+          // Row 4: Bio (if exists)
           if (profile.bio != null && profile.bio!.isNotEmpty) ...[
-            SizedBox(height: NovaSpacing.medium),
+            SizedBox(height: NovaSpacing.xsmall),
             Text(
               profile.bio!,
               style: NovaTypography.bodyMedium.copyWith(
                 color: NovaColors.textPrimary(context),
               ),
-              textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -106,9 +123,37 @@ class ProfileHeader extends StatelessWidget {
     );
   }
 
+  /// Build stat column (Instagram-style: compact number + single-line label)
+  Widget _buildStatColumn(BuildContext context, {required int count, required String label}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Compact number (smaller than before)
+        Text(
+          count.toString(),
+          style: NovaTypography.labelLarge.copyWith(
+            color: NovaColors.textPrimary(context),
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        SizedBox(height: 2),
+        // Single-line label
+        Text(
+          label,
+          style: NovaTypography.labelSmall.copyWith(
+            color: NovaColors.textSecondary(context),
+            fontWeight: FontWeight.w400,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
   /// Build avatar with gradient border for moderators
   Widget _buildAvatar(BuildContext context) {
-    final size = 96.0;
+    final size = 80.0; // Instagram-style smaller avatar
 
     // Avatar container with optional gradient border
     Widget avatar = Container(
@@ -181,8 +226,8 @@ class ProfileHeader extends StatelessWidget {
 
   /// Extract initials from full_name or username
   String _getInitials() {
-    if (profile.fullName != null && profile.fullName!.isNotEmpty) {
-      final words = profile.fullName!.trim().split(RegExp(r'\s+'));
+    if (profile.fullName.isNotEmpty) {
+      final words = profile.fullName.trim().split(RegExp(r'\s+'));
       if (words.length >= 2) {
         return '${words[0][0]}${words[1][0]}'.toUpperCase();
       } else if (words.isNotEmpty) {

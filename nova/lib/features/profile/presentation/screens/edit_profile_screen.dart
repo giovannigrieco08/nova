@@ -218,6 +218,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             : null,
       });
 
+      // Invalidate profile provider to refresh data on profile screen
+      ref.invalidate(currentProfileProvider);
+
       if (mounted) {
         NovaToast.showSuccess(context, 'Profilo aggiornato ✓');
         Navigator.of(context).pop(); // Navigate back

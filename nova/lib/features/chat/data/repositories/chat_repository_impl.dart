@@ -186,6 +186,7 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<ChatMediaInfo> uploadMedia({
     required String filePath,
     required ChatMediaType mediaType,
+    int maxViews = 1,
   }) async {
     // Check daily limit
     final todayCount = await _remoteDataSource.getTodayMediaCount(_currentUserId);
@@ -194,8 +195,9 @@ class ChatRepositoryImpl implements ChatRepository {
           'Hai raggiunto il limite giornaliero di 5 media.');
     }
 
-    // First send a placeholder message
-    final message = await sendMessage(content: '📷');
+    // Create a message for the media (content will be hidden when media is attached)
+    // Use a single space as placeholder - will be replaced by ChatMediaBubble
+    final message = await sendMessage(content: ' ');
 
     // Upload media
     final model = await _remoteDataSource.uploadMedia(
@@ -203,6 +205,7 @@ class ChatRepositoryImpl implements ChatRepository {
       userId: _currentUserId,
       filePath: filePath,
       mediaType: mediaType,
+      maxViews: maxViews,
     );
 
     return model.toEntity();
@@ -210,25 +213,30 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<String?> getSignedMediaUrl(String mediaId) async {
-    // Get media record to get storage path
+    // Get media record to check if it can still be viewed
     final response = await _supabase
         .from('chat_media')
-        .select('storage_path, is_viewed')
+        .select('storage_path, max_views, view_count')
         .eq('id', mediaId)
         .maybeSingle();
 
     if (response == null) return null;
-    if (response['is_viewed'] == true) return null;
+
+    // Check if max views exceeded
+    final maxViews = response['max_views'] as int? ?? 1;
+    final viewCount = response['view_count'] as int? ?? 0;
+    if (viewCount >= maxViews) return null;
 
     return _remoteDataSource.getSignedMediaUrl(response['storage_path']);
   }
 
   @override
-  Future<void> markMediaViewed(String mediaId) async {
-    await _remoteDataSource.markMediaViewed(
+  Future<ChatMediaInfo?> markMediaViewed(String mediaId) async {
+    final model = await _remoteDataSource.markMediaViewed(
       mediaId: mediaId,
       viewerUserId: _currentUserId,
     );
+    return model?.toEntity();
   }
 
   @override

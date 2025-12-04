@@ -39,14 +39,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     if (PlatformUtils.isIOS) {
       return CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
-          middle: const Text('Cerca'),
-          leading: CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Icon(CupertinoIcons.back),
-          ),
-        ),
+        backgroundColor: NovaColors.background(context),
         child: SafeArea(
           child: _buildContent(searchState, notifier),
         ),
@@ -54,13 +47,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cerca'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
+      backgroundColor: NovaColors.background(context),
       body: SafeArea(
         child: _buildContent(searchState, notifier),
       ),

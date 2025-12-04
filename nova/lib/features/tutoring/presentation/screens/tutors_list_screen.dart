@@ -34,6 +34,7 @@ class TutorsListScreen extends ConsumerStatefulWidget {
 
 class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
   String? _priceFilter;
+  String? _classFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -72,20 +73,22 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
   }
 
   Widget _buildContent(BuildContext context) {
-    // Watch tutors for this subject with optional filter
-    final tutorsAsync = _priceFilter == null
+    // Watch tutors for this subject with optional filters
+    final hasFilters = _priceFilter != null || _classFilter != null;
+    final tutorsAsync = !hasFilters
         ? ref.watch(tutorsBySubjectProvider(widget.subject))
         : ref.watch(filteredTutorsProvider(
             TutorFilterParams(
               subject: widget.subject,
               priceFilter: _priceFilter,
+              classFilter: _classFilter,
             ),
           ));
 
     return Column(
       children: [
-        // Filter chips row
-        _buildFilterChips(context),
+        // Filter chips rows (price + class)
+        _buildFilterSection(context),
         // Tutors list
         Expanded(
           child: tutorsAsync.when(
@@ -100,7 +103,19 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
     );
   }
 
-  Widget _buildFilterChips(BuildContext context) {
+  Widget _buildFilterSection(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Price filter row
+        _buildPriceFilterChips(context),
+        // Class filter row
+        _buildClassFilterChips(context),
+      ],
+    );
+  }
+
+  Widget _buildPriceFilterChips(BuildContext context) {
     final filters = [
       ('Tutti', null),
       ('Gratis', 'free'),
@@ -109,8 +124,8 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
     ];
 
     return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(vertical: NovaSpacing.s),
+      height: 48,
+      padding: const EdgeInsets.only(top: NovaSpacing.s),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: NovaSpacing.l),
@@ -126,6 +141,40 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
                 })
               : _buildMaterialChip(context, label, isSelected, () {
                   setState(() => _priceFilter = value);
+                });
+        },
+      ),
+    );
+  }
+
+  Widget _buildClassFilterChips(BuildContext context) {
+    final classFilters = [
+      ('Tutte', null),
+      ('1°', '1'),
+      ('2°', '2'),
+      ('3°', '3'),
+      ('4°', '4'),
+      ('5°', '5'),
+    ];
+
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.only(bottom: NovaSpacing.s),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: NovaSpacing.l),
+        itemCount: classFilters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: NovaSpacing.s),
+        itemBuilder: (context, index) {
+          final (label, value) = classFilters[index];
+          final isSelected = _classFilter == value;
+
+          return Platform.isIOS
+              ? _buildCupertinoChip(context, label, isSelected, () {
+                  setState(() => _classFilter = value);
+                })
+              : _buildMaterialChip(context, label, isSelected, () {
+                  setState(() => _classFilter = value);
                 });
         },
       ),
@@ -198,13 +247,15 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
     return RefreshIndicator(
       onRefresh: () async {
         // Invalidate provider to refresh
-        if (_priceFilter == null) {
+        final hasFilters = _priceFilter != null || _classFilter != null;
+        if (!hasFilters) {
           ref.invalidate(tutorsBySubjectProvider(widget.subject));
         } else {
           ref.invalidate(filteredTutorsProvider(
             TutorFilterParams(
               subject: widget.subject,
               priceFilter: _priceFilter,
+              classFilter: _classFilter,
             ),
           ));
         }

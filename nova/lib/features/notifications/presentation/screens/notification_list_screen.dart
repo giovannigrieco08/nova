@@ -6,8 +6,10 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/notification.dart';
+import '../../domain/entities/notification_channel.dart';
 import '../providers/notification_providers.dart';
 import '../widgets/notification_tile.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
 
 /// Notification list screen
 ///
@@ -173,8 +175,17 @@ class NotificationListScreen extends ConsumerWidget {
     );
   }
 
-  /// Navigate to notification target (event or comment)
+  /// Navigate to notification target (event, comment, or chat)
   void _navigateToTarget(BuildContext context, AppNotification notification) {
+    // Handle chat mentions specially (navigate to chat screen)
+    if (notification.channel == NotificationChannel.chatMention) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ChatScreen()),
+      );
+      return;
+    }
+
     // Navigate based on notification data
     final data = notification.data;
     if (data != null) {
@@ -189,6 +200,12 @@ class NotificationListScreen extends ConsumerWidget {
         if (eventId != null) {
           context.push('/events/$eventId?commentId=$targetId');
         }
+      } else if (targetType == 'chat' || targetType == 'chat_mention') {
+        // Navigate to chat screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ChatScreen()),
+        );
       }
     }
   }

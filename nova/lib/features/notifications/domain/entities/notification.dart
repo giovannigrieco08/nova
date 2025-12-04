@@ -27,16 +27,40 @@ class AppNotification {
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
+    // Map database type to NotificationChannel
+    final dbType = json['type'] as String? ?? 'event_moderation';
+    final channelMap = {
+      'event_moderation': NotificationChannel.eventModeration,
+      'event_approved': NotificationChannel.eventModeration,
+      'event_rejected': NotificationChannel.eventModeration,
+      'new_pending_event': NotificationChannel.moderatorAlert,
+      'added_as_coorganizer': NotificationChannel.coorganizerUpdate,
+      'event_modified': NotificationChannel.coorganizerUpdate,
+      'new_comment': NotificationChannel.newComment,
+      'comment_reply': NotificationChannel.commentReply,
+      'event_like': NotificationChannel.eventLike,
+      'event_participation': NotificationChannel.eventParticipation,
+      'coorganizer_update': NotificationChannel.coorganizerUpdate,
+      'chat_mention': NotificationChannel.chatMention,
+    };
+
+    // Build data map from target info and metadata
+    Map<String, dynamic>? dataMap;
+    if (json['target_type'] != null || json['metadata'] != null) {
+      dataMap = {
+        if (json['target_type'] != null) 'target_type': json['target_type'],
+        if (json['target_id'] != null) 'target_id': json['target_id'],
+        ...(json['metadata'] as Map<String, dynamic>? ?? {}),
+      };
+    }
+
     return AppNotification(
       id: json['id'] as String,
-      userId: json['user_id'] as String,
-      channel: NotificationChannel.values.firstWhere(
-        (c) => c.name == json['channel'],
-        orElse: () => NotificationChannel.eventModeration,
-      ),
+      userId: json['recipient_id'] as String,
+      channel: channelMap[dbType] ?? NotificationChannel.eventModeration,
       title: json['title'] as String? ?? '',
-      body: json['body'] as String? ?? '',
-      data: json['data'] as Map<String, dynamic>?,
+      body: json['description'] as String? ?? '',
+      data: dataMap,
       isRead: json['is_read'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
     );

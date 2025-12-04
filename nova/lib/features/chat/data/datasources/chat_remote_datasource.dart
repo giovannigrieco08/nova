@@ -48,10 +48,10 @@ class ChatRemoteDataSource {
         .from('chat_messages')
         .select('''
           *,
-          profiles:user_id(id, full_name, username, avatar_url, class_year),
+          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
           reply_to:reply_to_id(
             id, user_id, content, created_at,
-            profiles:user_id(id, full_name, username, avatar_url)
+            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)
@@ -78,10 +78,10 @@ class ChatRemoteDataSource {
         .from('chat_messages')
         .select('''
           *,
-          profiles:user_id(id, full_name, username, avatar_url, class_year),
+          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
           reply_to:reply_to_id(
             id, user_id, content, created_at,
-            profiles:user_id(id, full_name, username, avatar_url)
+            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)
@@ -113,7 +113,7 @@ class ChatRemoteDataSource {
         ))
         .select('''
           *,
-          profiles:user_id(id, full_name, username, avatar_url, class_year)
+          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
         ''')
         .single();
 
@@ -166,6 +166,29 @@ class ChatRemoteDataSource {
     return (response as List)
         .map((json) => ChatReactionModel.fromJson(json as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Get all reactions for a message with user profile info.
+  ///
+  /// Returns list of (emoji, userId, fullName, avatarUrl) tuples.
+  Future<List<ReactionWithUser>> getReactionsWithUsers(
+      String messageId) async {
+    final response = await _supabase
+        .from('chat_reactions')
+        .select('emoji, user_id, created_at, profiles:user_id(full_name, avatar_url)')
+        .eq('message_id', messageId)
+        .order('created_at');
+
+    return (response as List).map((json) {
+      final profiles = json['profiles'] as Map<String, dynamic>?;
+      return ReactionWithUser(
+        emoji: json['emoji'] as String,
+        userId: json['user_id'] as String,
+        fullName: profiles?['full_name'] as String? ?? 'Utente',
+        avatarUrl: profiles?['avatar_url'] as String?,
+        createdAt: DateTime.parse(json['created_at'] as String),
+      );
+    }).toList();
   }
 
   // =========================================================================
@@ -242,11 +265,14 @@ class ChatRemoteDataSource {
   // =========================================================================
 
   /// Upload media to ephemeral-media bucket.
+  ///
+  /// [maxViews] determines how many times the media can be viewed (1 or 2).
   Future<ChatMediaModel> uploadMedia({
     required String messageId,
     required String userId,
     required String filePath,
     required ChatMediaType mediaType,
+    int maxViews = 1,
   }) async {
     final file = File(filePath);
     final fileBytes = await file.readAsBytes();
@@ -268,6 +294,7 @@ class ChatRemoteDataSource {
           storagePath: storagePath,
           mediaType: mediaType,
           fileSizeBytes: fileBytes.length,
+          maxViews: maxViews,
         ))
         .select()
         .single();
@@ -287,20 +314,24 @@ class ChatRemoteDataSource {
     }
   }
 
-  /// Mark media as viewed.
-  Future<void> markMediaViewed({
+  /// Mark media as viewed (increments view_count).
+  ///
+  /// Returns the updated media record, or null if max views exceeded.
+  Future<ChatMediaModel?> markMediaViewed({
     required String mediaId,
     required String viewerUserId,
   }) async {
-    await _supabase
-        .from('chat_media')
-        .update({
-          'is_viewed': true,
-          'viewed_at': DateTime.now().toIso8601String(),
-          'viewed_by_user_id': viewerUserId,
-        })
-        .eq('id', mediaId)
-        .eq('is_viewed', false);
+    // Use RPC to atomically increment view_count and check max_views
+    final response = await _supabase.rpc(
+      'increment_media_view_count',
+      params: {
+        'p_media_id': mediaId,
+        'p_viewer_user_id': viewerUserId,
+      },
+    );
+
+    if (response == null) return null;
+    return ChatMediaModel.fromJson(response as Map<String, dynamic>);
   }
 
   /// Report a screenshot was detected.
@@ -330,6 +361,27 @@ class ChatRemoteDataSource {
         return 'webp';
       case ChatMediaType.video:
         return 'mp4';
+      case ChatMediaType.audio:
+        return 'aac';
     }
   }
+}
+
+/// Reaction with user profile information.
+///
+/// Used for displaying who reacted to a message.
+class ReactionWithUser {
+  final String emoji;
+  final String userId;
+  final String fullName;
+  final String? avatarUrl;
+  final DateTime createdAt;
+
+  const ReactionWithUser({
+    required this.emoji,
+    required this.userId,
+    required this.fullName,
+    this.avatarUrl,
+    required this.createdAt,
+  });
 }

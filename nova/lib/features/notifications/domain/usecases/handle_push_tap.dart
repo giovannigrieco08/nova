@@ -21,6 +21,9 @@ enum PushNavigationType {
   /// Navigate to profile screen
   profile,
 
+  /// Navigate to global chat screen
+  chat,
+
   /// Unknown target type - show error
   unknown,
 }
@@ -39,6 +42,9 @@ class PushNavigationResult {
   /// User ID for profile navigation
   final String? userId;
 
+  /// Message ID for chat navigation (scroll to specific message)
+  final String? messageId;
+
   /// Notification ID (for marking as read)
   final String? notificationId;
 
@@ -50,6 +56,7 @@ class PushNavigationResult {
     this.eventId,
     this.commentId,
     this.userId,
+    this.messageId,
     this.notificationId,
     this.error,
   });
@@ -125,6 +132,15 @@ class HandlePushTap {
         return PushNavigationResult(
           type: PushNavigationType.profile,
           userId: payload.targetId,
+          notificationId: payload.notificationId,
+        );
+
+      case 'chat':
+      case 'chat_mention':
+        // Navigate to chat screen, optionally scroll to message
+        return PushNavigationResult(
+          type: PushNavigationType.chat,
+          messageId: payload.targetId.isNotEmpty ? payload.targetId : null,
           notificationId: payload.notificationId,
         );
 

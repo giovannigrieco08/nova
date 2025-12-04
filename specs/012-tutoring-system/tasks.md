@@ -63,7 +63,7 @@
 - [x] T013 [P] [US1] Create TutorCard widget in `features/tutoring/presentation/widgets/tutor_card.dart`
 - [x] T014 [US1] Create SubjectsScreen in `features/tutoring/presentation/screens/subjects_screen.dart` with 12-subject grid
 - [x] T015 [US1] Create TutorsListScreen in `features/tutoring/presentation/screens/tutors_list_screen.dart` with pagination
-- [ ] T016 [US1] Add navigation routes for SubjectsScreen and TutorsListScreen ⚠️ **MANUAL: Add to GoRouter**
+- [x] T016 [US1] Add navigation routes for SubjectsScreen and TutorsListScreen ✅ Done (uses Navigator.push, not GoRouter)
 
 ### Implementation for US2 (Contattare Tutor)
 

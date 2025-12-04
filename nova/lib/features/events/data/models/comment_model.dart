@@ -20,11 +20,11 @@ class CommentModel {
   final String eventId;
 
   @HiveField(2)
-  @JsonKey(name: 'author_id')
+  @JsonKey(name: 'user_id')
   final String authorId;
 
   @HiveField(3)
-  @JsonKey(name: 'content') // Changed from 'text' to 'content' to match DB schema
+  @JsonKey(name: 'text') // Migration 007 uses 'text' column
   final String content; // Max 500 characters
 
   @HiveField(4)

@@ -53,7 +53,7 @@ RETURNS TABLE (
   location text,
   event_date timestamptz,
   image_url text,
-  organizer_id uuid,
+  creator_id uuid,
   rank real
 )
 LANGUAGE plpgsql
@@ -68,7 +68,7 @@ BEGIN
     e.location,
     e.event_date,
     e.image_url,
-    e.organizer_id,
+    e.creator_id,
     ts_rank(e.search_vector, websearch_to_tsquery('italian', search_query)) as rank
   FROM events e
   WHERE
@@ -85,7 +85,7 @@ CREATE OR REPLACE FUNCTION search_profiles(
   result_limit int DEFAULT 20
 )
 RETURNS TABLE (
-  id uuid,
+  user_id uuid,
   full_name text,
   bio text,
   class_name text,
@@ -98,7 +98,7 @@ AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    p.id,
+    p.user_id,
     p.full_name,
     p.bio,
     p.class AS class_name,
@@ -106,7 +106,7 @@ BEGIN
     ts_rank(p.search_vector, websearch_to_tsquery('italian', search_query)) as rank
   FROM profiles p
   WHERE
-    p.profile_visible = true
+    p.class IS NOT NULL  -- Profile is complete (has class)
     AND p.search_vector @@ websearch_to_tsquery('italian', search_query)
   ORDER BY rank DESC, p.full_name ASC
   LIMIT result_limit;

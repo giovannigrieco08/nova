@@ -151,19 +151,53 @@ final notificationPreferencesNotifierProvider =
 );
 
 // ============================================================================
-// NOTIFICATION LIST PROVIDERS (stub implementations)
+// NOTIFICATION LIST PROVIDERS
 // ============================================================================
 
 /// Notification list state notifier
 class NotificationNotifier extends StateNotifier<NotificationState> {
-  NotificationNotifier() : super(const NotificationState());
+  final SupabaseClient _supabase;
 
-  /// Load notifications
+  NotificationNotifier(this._supabase) : super(const NotificationState()) {
+    // Load notifications on initialization
+    loadNotifications();
+  }
+
+  /// Load notifications from Supabase
   Future<void> loadNotifications() async {
-    state = state.copyWith(isLoading: true);
-    // TODO: Implement actual notification loading
-    await Future.delayed(const Duration(milliseconds: 500));
-    state = state.copyWith(isLoading: false, notifications: []);
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        state = state.copyWith(isLoading: false, notifications: []);
+        return;
+      }
+
+      final response = await _supabase
+          .from('notifications')
+          .select()
+          .eq('recipient_id', userId)
+          .order('created_at', ascending: false)
+          .limit(50);
+
+      final notifications = (response as List)
+          .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      state = state.copyWith(isLoading: false, notifications: notifications);
+    } catch (e) {
+      // If table doesn't exist yet (migration not applied), show empty state
+      final errorStr = e.toString();
+      if (errorStr.contains('does not exist') || errorStr.contains('42P01') || errorStr.contains('42703')) {
+        state = state.copyWith(isLoading: false, notifications: []);
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Errore nel caricamento delle notifiche: ${e.toString()}',
+      );
+    }
   }
 
   /// Refresh notifications
@@ -173,6 +207,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   /// Mark notification as read
   Future<void> markAsRead(String notificationId) async {
+    // Optimistic update
     final updated = state.notifications.map((n) {
       if (n.id == notificationId) {
         return n.copyWith(isRead: true);
@@ -180,25 +215,61 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       return n;
     }).toList();
     state = state.copyWith(notifications: updated);
+
+    try {
+      await _supabase
+          .from('notifications')
+          .update({'is_read': true})
+          .eq('id', notificationId);
+    } catch (e) {
+      // Revert on error
+      await loadNotifications();
+    }
   }
 
   /// Mark all as read
   Future<void> markAllAsRead() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    // Optimistic update
     final updated = state.notifications.map((n) => n.copyWith(isRead: true)).toList();
     state = state.copyWith(notifications: updated);
+
+    try {
+      await _supabase
+          .from('notifications')
+          .update({'is_read': true})
+          .eq('recipient_id', userId)
+          .eq('is_read', false);
+    } catch (e) {
+      // Revert on error
+      await loadNotifications();
+    }
   }
 
   /// Delete notification
   Future<void> deleteNotification(String notificationId) async {
+    // Optimistic update
     final updated = state.notifications.where((n) => n.id != notificationId).toList();
     state = state.copyWith(notifications: updated);
+
+    try {
+      await _supabase
+          .from('notifications')
+          .delete()
+          .eq('id', notificationId);
+    } catch (e) {
+      // Revert on error
+      await loadNotifications();
+    }
   }
 }
 
 /// Provider for notification list
 final notificationNotifierProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>(
-  (ref) => NotificationNotifier(),
+  (ref) => NotificationNotifier(Supabase.instance.client),
 );
 
 /// Provider for unread notification count

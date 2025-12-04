@@ -71,7 +71,11 @@ class EventRepositoryImpl implements EventRepository {
   // =========================================================================
 
   @override
-  Future<Event> createEvent(Event event, {File? imageFile}) async {
+  Future<Event> createEvent(
+    Event event, {
+    File? imageFile,
+    List<String> pendingInvites = const [],
+  }) async {
     try {
       // Step 1: Upload image if provided
       String? imageUrl;
@@ -87,12 +91,44 @@ class EventRepositoryImpl implements EventRepository {
       // Step 3: Insert into Supabase
       final createdModel = await _remoteDataSource.createEvent(eventModel);
 
-      // Step 4: Delete draft on success
+      // Step 4: Send collaboration invites to pending users
+      for (final inviteeId in pendingInvites) {
+        await _sendCollaborationInvite(
+          eventId: createdModel.id,
+          inviteeId: inviteeId,
+          inviterId: event.creatorId,
+        );
+      }
+
+      // Step 5: Delete draft on success
       await _localDataSource.deleteDraft();
 
       return createdModel.toEntity();
     } catch (e) {
       throw EventRepositoryException('Failed to create event: $e');
+    }
+  }
+
+  /// Send collaboration invite to a user
+  Future<void> _sendCollaborationInvite({
+    required String eventId,
+    required String inviteeId,
+    required String inviterId,
+  }) async {
+    try {
+      await _supabase.from('collaboration_invites').insert({
+        'event_id': eventId,
+        'inviter_id': inviterId,
+        'invitee_id': inviteeId,
+        'status': 'pending',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      // Log but don't fail the event creation
+      assert(() {
+        debugPrint('⚠️ Failed to send collaboration invite to $inviteeId: $e');
+        return true;
+      }());
     }
   }
 

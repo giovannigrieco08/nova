@@ -33,12 +33,17 @@ class EventFormState {
   final String? location;
   final File? imageFile;
   final String? imagePath; // Path for display (before upload)
-  final List<String> coOrganizers;
+
+  /// Pending collaboration invites (user IDs who haven't accepted yet)
+  /// These users will receive an invite when the event is created.
+  /// They must accept before appearing as co-organizers.
+  final List<String> pendingInvites;
 
   // Validation errors (null if valid)
   final String? titleError;
   final String? descriptionError;
   final String? eventDateError;
+  final String? imageError;
 
   // UI state
   final bool isSubmitting;
@@ -51,10 +56,11 @@ class EventFormState {
     this.location,
     this.imageFile,
     this.imagePath,
-    this.coOrganizers = const [],
+    this.pendingInvites = const [],
     this.titleError,
     this.descriptionError,
     this.eventDateError,
+    this.imageError,
     this.isSubmitting = false,
     this.submitError,
   });
@@ -67,11 +73,16 @@ class EventFormState {
         description.trim().length <= 500 &&
         eventDate != null &&
         eventDate!.isAfter(DateTime.now()) &&
-        coOrganizers.length <= 3 &&
+        (imageFile != null || imagePath != null) && // Image is required
+        pendingInvites.length <= 3 &&
         titleError == null &&
         descriptionError == null &&
-        eventDateError == null;
+        eventDateError == null &&
+        imageError == null;
   }
+
+  /// Check if image is selected
+  bool get hasImage => imageFile != null || imagePath != null;
 
   /// Character count for title (with limit)
   String get titleCharCount => '${title.length}/100';
@@ -87,16 +98,18 @@ class EventFormState {
     String? location,
     File? imageFile,
     String? imagePath,
-    List<String>? coOrganizers,
+    List<String>? pendingInvites,
     String? titleError,
     String? descriptionError,
     String? eventDateError,
+    String? imageError,
     bool? isSubmitting,
     String? submitError,
     bool clearEventDate = false,
     bool clearLocation = false,
     bool clearImageFile = false,
     bool clearImagePath = false,
+    bool clearImageError = false,
     bool clearSubmitError = false,
   }) {
     return EventFormState(
@@ -106,10 +119,11 @@ class EventFormState {
       location: clearLocation ? null : (location ?? this.location),
       imageFile: clearImageFile ? null : (imageFile ?? this.imageFile),
       imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
-      coOrganizers: coOrganizers ?? this.coOrganizers,
+      pendingInvites: pendingInvites ?? this.pendingInvites,
       titleError: titleError,
       descriptionError: descriptionError,
       eventDateError: eventDateError,
+      imageError: clearImageError ? null : imageError,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       submitError: clearSubmitError ? null : (submitError ?? this.submitError),
     );
@@ -124,7 +138,7 @@ class EventFormState {
       location: location,
       imagePath: imagePath,
       lastSaved: DateTime.now(),
-      coOrganizers: coOrganizers,
+      pendingInvites: pendingInvites,
     );
   }
 
@@ -136,7 +150,7 @@ class EventFormState {
       eventDate: draft.eventDate,
       location: draft.location,
       imagePath: draft.imagePath,
-      coOrganizers: draft.coOrganizers,
+      pendingInvites: draft.pendingInvites,
     );
   }
 }
@@ -226,6 +240,7 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
     state = state.copyWith(
       imageFile: imageFile,
       imagePath: imageFile.path,
+      clearImageError: true,
     );
     _saveDraftDebounced();
   }
@@ -235,25 +250,27 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
     state = state.copyWith(
       clearImageFile: true,
       clearImagePath: true,
+      imageError: 'L\'immagine è obbligatoria',
     );
     _saveDraftDebounced();
   }
 
-  /// Add co-organizer (max 3)
-  void addCoOrganizer(String userId) {
-    if (state.coOrganizers.length >= 3) return;
-    if (state.coOrganizers.contains(userId)) return;
+  /// Add pending invite (max 3)
+  /// The invited user must accept before becoming a co-organizer
+  void addPendingInvite(String userId) {
+    if (state.pendingInvites.length >= 3) return;
+    if (state.pendingInvites.contains(userId)) return;
 
     state = state.copyWith(
-      coOrganizers: [...state.coOrganizers, userId],
+      pendingInvites: [...state.pendingInvites, userId],
     );
     _saveDraftDebounced();
   }
 
-  /// Remove co-organizer
-  void removeCoOrganizer(String userId) {
+  /// Remove pending invite
+  void removePendingInvite(String userId) {
     state = state.copyWith(
-      coOrganizers: state.coOrganizers.where((id) => id != userId).toList(),
+      pendingInvites: state.pendingInvites.where((id) => id != userId).toList(),
     );
     _saveDraftDebounced();
   }
@@ -263,8 +280,51 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
     _localDataSource.saveDraftDebounced(state.toDraft());
   }
 
+  /// Validate all fields and show errors
+  void validateForm() {
+    String? titleError;
+    String? descriptionError;
+    String? eventDateError;
+    String? imageError;
+
+    if (state.title.trim().length < 5) {
+      titleError = 'Minimo 5 caratteri';
+    } else if (state.title.trim().length > 100) {
+      titleError = 'Massimo 100 caratteri';
+    }
+
+    if (state.description.trim().length < 20) {
+      descriptionError = 'Minimo 20 caratteri';
+    } else if (state.description.trim().length > 500) {
+      descriptionError = 'Massimo 500 caratteri';
+    }
+
+    if (state.eventDate == null) {
+      eventDateError = 'Seleziona una data';
+    } else if (state.eventDate!.isBefore(DateTime.now())) {
+      eventDateError = 'La data deve essere futura';
+    }
+
+    if (!state.hasImage) {
+      imageError = 'L\'immagine è obbligatoria';
+    }
+
+    state = state.copyWith(
+      titleError: titleError,
+      descriptionError: descriptionError,
+      eventDateError: eventDateError,
+      imageError: imageError,
+    );
+  }
+
   /// Create event (submit form)
+  ///
+  /// Creates the event with empty coOrganizers list.
+  /// Pending invites are sent separately - invited users must accept
+  /// before appearing as co-organizers on the event.
   Future<Event?> createEvent() async {
+    // Validate form before submission
+    validateForm();
     if (!state.isValid) return null;
 
     state = state.copyWith(isSubmitting: true, clearSubmitError: true);
@@ -273,7 +333,7 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
       // Generate event ID
       final eventId = const Uuid().v4();
 
-      // Create event entity
+      // Create event entity (coOrganizers starts empty - will be populated as invites are accepted)
       final event = Event(
         id: eventId,
         title: state.title.trim(),
@@ -282,7 +342,7 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
         location: state.location?.trim(),
         imageUrl: null, // Will be set by repository after upload
         creatorId: _currentUserId,
-        coOrganizers: state.coOrganizers,
+        coOrganizers: const [], // Empty until invites are accepted
         status: EventStatus.pending,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -292,6 +352,7 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
       final createdEvent = await _repository.createEvent(
         event,
         imageFile: state.imageFile,
+        pendingInvites: state.pendingInvites, // Send invites to these users
       );
 
       // Clear form on success

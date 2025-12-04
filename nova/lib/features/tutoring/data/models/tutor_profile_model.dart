@@ -83,7 +83,7 @@ class TutorProfileModel {
       // Profile data from JOIN (nested object 'profiles')
       authorName: _extractProfileField(json, 'full_name'),
       authorAvatarUrl: _extractProfileField(json, 'avatar_url'),
-      authorClass: _extractProfileField(json, 'class_year'),
+      authorClass: _extractProfileField(json, 'class'),
       authorUsername: _extractProfileField(json, 'username'),
     );
   }

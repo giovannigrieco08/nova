@@ -9,6 +9,7 @@ import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
 import 'package:nova/features/chat/presentation/providers/chat_realtime_provider.dart';
 import 'package:nova/features/chat/presentation/providers/typing_indicator_provider.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_message_list.dart';
+import 'package:nova/features/chat/presentation/widgets/chat_message_skeleton.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_compose_bar.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_typing_indicator.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_report_dialog.dart';
@@ -45,9 +46,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       backgroundColor: NovaColors.background(context),
       appBar: AppBar(
-        backgroundColor: NovaColors.surface(context),
+        backgroundColor: NovaColors.background(context),
         foregroundColor: NovaColors.textPrimary(context),
         elevation: 0,
+        scrolledUnderElevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -121,11 +123,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 onReport: _showReportDialog,
                 onReact: _toggleReaction,
               ),
-              loading: () => Center(
-                child: CircularProgressIndicator(
-                  color: NovaColors.primary(context),
-                ),
-              ),
+              loading: () => const ChatMessageListSkeleton(),
               error: (error, stack) => _buildErrorState(context, error.toString()),
             ),
           ),

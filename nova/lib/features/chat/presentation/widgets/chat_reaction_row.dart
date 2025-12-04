@@ -10,16 +10,21 @@ import 'package:nova/core/theme/nova_typography.dart';
 /// Displays emoji reactions with counts.
 /// Highlights reactions from the current user.
 /// Tappable to toggle reactions.
+/// Long-press to see who reacted.
 class ChatReactionRow extends StatelessWidget {
+  final String messageId;
   final Map<String, int> reactionCounts;
   final Set<String> currentUserReactions;
   final void Function(String emoji)? onTap;
+  final VoidCallback? onLongPress;
 
   const ChatReactionRow({
     super.key,
+    required this.messageId,
     required this.reactionCounts,
     required this.currentUserReactions,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -41,6 +46,7 @@ class ChatReactionRow extends StatelessWidget {
           count: count,
           isSelected: isSelected,
           onTap: onTap != null ? () => onTap!(emoji) : null,
+          onLongPress: onLongPress,
         );
       }).toList(),
     );
@@ -52,18 +58,21 @@ class _ReactionChip extends StatelessWidget {
   final int count;
   final bool isSelected;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const _ReactionChip({
     required this.emoji,
     required this.count,
     required this.isSelected,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: NovaSpacing.xs,

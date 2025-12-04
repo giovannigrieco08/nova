@@ -244,12 +244,12 @@ COMMENT ON INDEX idx_user_roles_role IS 'Optimize moderator/admin count queries 
 
 -- Events indexes: Speed up status filtering and moderation queue queries
 CREATE INDEX IF NOT EXISTS idx_events_status_created_at ON events(status, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_events_created_by ON events(created_by);
+CREATE INDEX IF NOT EXISTS idx_events_creator_id ON events(creator_id);
 CREATE INDEX IF NOT EXISTS idx_events_status_pending ON events(created_at DESC) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS idx_events_moderated_at ON events(moderated_at DESC) WHERE moderated_at IS NOT NULL;
 
 COMMENT ON INDEX idx_events_status_created_at IS 'Optimize moderation queue queries (oldest pending first per FR-019)';
-COMMENT ON INDEX idx_events_created_by IS 'Optimize RLS policy self-moderation check (FR-062)';
+COMMENT ON INDEX idx_events_creator_id IS 'Optimize RLS policy self-moderation check (FR-062)';
 COMMENT ON INDEX idx_events_status_pending IS 'Partial index for pending events queue (smaller, faster)';
 COMMENT ON INDEX idx_events_moderated_at IS 'Optimize average review time calculation (rolling 7-day window)';
 
@@ -352,7 +352,7 @@ BEGIN
   END IF;
 
   -- Check if moderator is not the creator (prevent self-moderation)
-  IF v_event_record.created_by = v_moderator_id THEN
+  IF v_event_record.creator_id = v_moderator_id THEN
     RAISE EXCEPTION 'Cannot moderate your own event';
   END IF;
 
@@ -544,12 +544,16 @@ BEGIN
     ON CONFLICT (user_id) DO NOTHING;
   END IF;
 
-  -- Create notification
-  INSERT INTO notifications (recipient_id, title, body, data)
+  -- Create notification (using migration 008 schema)
+  INSERT INTO notifications (recipient_id, sender_id, type, title, description, target_type, target_id, metadata)
   VALUES (
     p_target_user_id,
+    p_admin_id,
+    'event_moderation',  -- Reusing existing type for role changes
     '🛡️ Sei stato nominato moderatore Nova!',
     'Ora puoi approvare e rifiutare eventi nella scheda Moderazione.',
+    'event',  -- Placeholder target
+    p_target_user_id,  -- Using user_id as target
     jsonb_build_object('type', 'role_change', 'new_role', 'moderator')
   );
 END;
@@ -624,12 +628,16 @@ BEGIN
   INSERT INTO role_history (user_id, old_role, new_role, changed_by)
   VALUES (p_target_user_id, v_current_role, 'student', p_admin_id);
 
-  -- Create notification
-  INSERT INTO notifications (recipient_id, title, body, data)
+  -- Create notification (using migration 008 schema)
+  INSERT INTO notifications (recipient_id, sender_id, type, title, description, target_type, target_id, metadata)
   VALUES (
     p_target_user_id,
+    p_admin_id,
+    'event_moderation',  -- Reusing existing type for role changes
     'Il tuo ruolo moderatore è stato rimosso',
     'Non hai più accesso alla dashboard di moderazione.',
+    'event',  -- Placeholder target
+    p_target_user_id,  -- Using user_id as target
     jsonb_build_object('type', 'role_change', 'new_role', 'student')
   );
 END;
@@ -688,9 +696,14 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Only notify when event moves from pending to approved/rejected
   IF OLD.status = 'pending' AND NEW.status IN ('approved', 'rejected') THEN
-    INSERT INTO notifications (recipient_id, title, body, data)
+    INSERT INTO notifications (
+      recipient_id, sender_id, type, title, description,
+      target_type, target_id, metadata, created_at
+    )
     VALUES (
-      NEW.created_by,
+      NEW.creator_id,
+      NULL, -- system notification
+      'system',
       CASE
         WHEN NEW.status = 'approved' THEN '✅ Il tuo evento è stato approvato!'
         WHEN NEW.status = 'rejected' THEN '❌ Il tuo evento è stato rifiutato'
@@ -699,11 +712,13 @@ BEGIN
         WHEN NEW.status = 'approved' THEN 'Il tuo evento "' || NEW.title || '" è stato approvato e ora è visibile a tutti.'
         WHEN NEW.status = 'rejected' THEN 'Il tuo evento "' || NEW.title || '" è stato rifiutato. Motivo: ' || COALESCE(NEW.rejection_reason, 'Non specificato')
       END,
+      'event',
+      NEW.id,
       jsonb_build_object(
-        'type', 'event_moderation',
-        'event_id', NEW.id,
-        'status', NEW.status
-      )
+        'moderation_status', NEW.status,
+        'rejection_reason', NEW.rejection_reason
+      ),
+      NOW()
     );
   END IF;
 
@@ -803,7 +818,7 @@ ON events FOR SELECT
 TO authenticated
 USING (
   status = 'approved'
-  OR created_by = auth.uid()  -- Can see own events regardless of status
+  OR creator_id = auth.uid()  -- Can see own events regardless of status
 );
 
 DROP POLICY IF EXISTS "Moderators see all events" ON events;
@@ -822,7 +837,7 @@ CREATE POLICY "Students can create events"
 ON events FOR INSERT
 TO authenticated
 WITH CHECK (
-  created_by = auth.uid()
+  creator_id = auth.uid()
   AND status = 'pending'  -- Force new events to pending
 );
 
@@ -831,11 +846,11 @@ CREATE POLICY "Creators can update rejected events"
 ON events FOR UPDATE
 TO authenticated
 USING (
-  created_by = auth.uid()
+  creator_id = auth.uid()
   AND status = 'rejected'
 )
 WITH CHECK (
-  created_by = auth.uid()
+  creator_id = auth.uid()
   AND status = 'pending'  -- After edit, must reset to pending
   AND rejection_reason IS NULL  -- Clear previous rejection reason
 );
@@ -849,7 +864,7 @@ USING (
     SELECT 1 FROM user_roles
     WHERE user_id = auth.uid() AND role IN ('moderator', 'admin')
   )
-  AND created_by != auth.uid()  -- Prevent self-moderation
+  AND creator_id != auth.uid()  -- Prevent self-moderation
   AND status = 'pending'  -- Can only moderate pending events
 )
 WITH CHECK (
@@ -857,7 +872,7 @@ WITH CHECK (
     SELECT 1 FROM user_roles
     WHERE user_id = auth.uid() AND role IN ('moderator', 'admin')
   )
-  AND created_by != auth.uid()
+  AND creator_id != auth.uid()
   AND status IN ('approved', 'rejected')  -- Can only change to approved or rejected
 );
 

@@ -18,58 +18,62 @@ class NovaTypography {
   // HEADING STYLES
   // ============================================
 
-  /// Display text style (32px, bold, -0.02em tracking)
+  /// Display text style (34px, black, -0.03em tracking)
   /// Usage: Hero headlines, splash screen titles
   static const TextStyle display = TextStyle(
-    fontSize: 32,
-    fontWeight: FontWeight.w700,
-    height: 1.2,
-    letterSpacing: -0.64, // -0.02em = -0.64px at 32px
+    fontSize: 34,
+    fontWeight: FontWeight.w800, // Extra-bold for impact
+    height: 1.0,
+    letterSpacing: -1.02, // -0.03em for Framer-style impact
   );
 
-  /// Heading Large / H1 text style (24px, bold, -0.01em tracking)
+  /// Heading Large / H1 text style (28px, extra-bold, -0.03em tracking)
   /// Usage: Screen titles
   static const TextStyle headingLarge = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w700,
-    height: 1.25,
-    letterSpacing: -0.24, // -0.01em = -0.24px at 24px
+    fontSize: 28,
+    fontWeight: FontWeight.w800, // Extra-bold for more impact
+    height: 1.1,
+    letterSpacing: -0.84, // -0.03em for Framer-style impact
   );
 
-  /// Heading Medium / H2 text style (20px, semibold)
+  /// Heading Medium / H2 text style (22px, bold, -0.03em)
   /// Usage: Section headers
   static const TextStyle headingMedium = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    height: 1.3,
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    height: 1.15,
+    letterSpacing: -0.66, // -0.03em for Framer-style impact
   );
 
-  /// Heading Small / H3 text style (18px, semibold)
+  /// Heading Small / H3 text style (18px, bold, -0.03em)
   /// Usage: Subsection headers, card titles
   static const TextStyle headingSmall = TextStyle(
     fontSize: 18,
-    fontWeight: FontWeight.w600,
-    height: 1.3,
+    fontWeight: FontWeight.w700,
+    height: 1.2,
+    letterSpacing: -0.54, // -0.03em for Framer-style impact
   );
 
   // ============================================
   // BODY STYLES
   // ============================================
 
-  /// Body Large text style (16px, regular)
+  /// Body Large text style (16px, medium)
   /// Usage: Emphasized paragraphs
   static const TextStyle bodyLarge = TextStyle(
     fontSize: 16,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w500, // Medium for more presence
     height: 1.5,
+    letterSpacing: -0.32, // -0.02em for better readability
   );
 
-  /// Body Medium text style (15px, regular) - Instagram size
+  /// Body Medium text style (15px, medium) - Instagram size
   /// Usage: Primary body text, descriptions, comments, chat
   static const TextStyle bodyMedium = TextStyle(
     fontSize: 15,
     fontWeight: FontWeight.w400,
     height: 1.4,
+    letterSpacing: -0.3, // -0.02em for better readability
   );
 
   /// Body Small text style (13px, regular)
@@ -78,42 +82,47 @@ class NovaTypography {
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.4,
+    letterSpacing: -0.26, // -0.02em for better readability
   );
 
   // ============================================
   // UTILITY STYLES
   // ============================================
 
-  /// Label Large text style (15px, semibold)
+  /// Label Large text style (15px, bold)
   /// Usage: Usernames, inline emphasis
   static const TextStyle labelLarge = TextStyle(
     fontSize: 15,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700, // Bold for emphasis
     height: 1.4,
+    letterSpacing: -0.3, // -0.02em for Inter
   );
 
-  /// Label Medium text style (13px, semibold)
+  /// Label Medium text style (14px, semibold)
   /// Usage: Buttons, chips, badges
   static const TextStyle labelMedium = TextStyle(
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.4,
+    letterSpacing: -0.28, // -0.02em for Inter
   );
 
-  /// Label Small text style (11px, medium)
+  /// Label Small text style (12px, semibold)
   /// Usage: Legal text, micro labels (use sparingly)
   static const TextStyle labelSmall = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
+    fontSize: 12,
+    fontWeight: FontWeight.w600, // Semibold for readability at small size
     height: 1.3,
+    letterSpacing: -0.24, // -0.02em for Inter
   );
 
-  /// Button text style (15px, semibold, tight line height)
+  /// Button text style (15px, bold, tight line height)
   /// Usage: All buttons and CTAs
   static const TextStyle button = TextStyle(
     fontSize: 15,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700, // Bold for buttons
     height: 1.0, // Tight for vertical centering
+    letterSpacing: -0.3, // -0.02em for Inter
   );
 
   /// Overline text style (10px, semibold, uppercase, tracked)

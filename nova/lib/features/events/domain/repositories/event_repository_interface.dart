@@ -57,10 +57,18 @@ abstract class EventRepository {
   /// 1. Compress image (via ImageCompressor)
   /// 2. Upload compressed image to Supabase Storage bucket 'event-images'
   /// 3. Create event record in database with image_url
-  /// 4. Delete draft from Hive (if exists)
+  /// 4. Send collaboration invites to pendingInvites users
+  /// 5. Delete draft from Hive (if exists)
+  ///
+  /// [pendingInvites] - User IDs to send collaboration invites to.
+  /// These users must accept before being added as co-organizers.
   ///
   /// Returns created event with generated ID
-  Future<Event> createEvent(Event event, {File? imageFile});
+  Future<Event> createEvent(
+    Event event, {
+    File? imageFile,
+    List<String> pendingInvites = const [],
+  });
 
   /// Update existing event (triggers re-moderation if approved)
   ///

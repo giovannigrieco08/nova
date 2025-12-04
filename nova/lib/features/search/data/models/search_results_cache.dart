@@ -58,7 +58,7 @@ class CachedEventResult extends HiveObject {
   final String? imageUrl;
 
   @HiveField(6)
-  final String organizerId;
+  final String creatorId;
 
   CachedEventResult({
     required this.id,
@@ -67,7 +67,7 @@ class CachedEventResult extends HiveObject {
     this.location,
     this.eventDate,
     this.imageUrl,
-    required this.organizerId,
+    required this.creatorId,
   });
 }
 

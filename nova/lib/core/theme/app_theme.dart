@@ -1,6 +1,8 @@
 // lib/core/theme/app_theme.dart
 
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/theme/nova_radius.dart';
@@ -14,6 +16,23 @@ class AppTheme {
   // Private cache variables for lazy initialization
   static ThemeData? _cachedLightTheme;
   static ThemeData? _cachedDarkTheme;
+
+  /// Check if running on Android (for font selection)
+  static bool get _isAndroid {
+    try {
+      return Platform.isAndroid;
+    } catch (_) {
+      return false; // Web or other platforms use default
+    }
+  }
+
+  /// Get text theme with Inter font on Android, system font on iOS
+  static TextTheme _getTextTheme(TextTheme baseTheme) {
+    if (_isAndroid) {
+      return GoogleFonts.interTextTheme(baseTheme);
+    }
+    return baseTheme; // iOS uses SF Pro system font
+  }
 
   /// Light theme configuration (lazy-initialized and cached)
   static ThemeData get lightTheme {
@@ -37,8 +56,8 @@ class AppTheme {
       primaryColor: NovaColors.primaryLight,
       scaffoldBackgroundColor: NovaColors.backgroundLight,
 
-      // Text theme
-      textTheme: TextTheme(
+      // Text theme (Inter on Android, SF Pro on iOS)
+      textTheme: _getTextTheme(TextTheme(
         displayLarge: NovaTextStyles.display,
         headlineLarge: NovaTextStyles.h1,
         headlineMedium: NovaTextStyles.h2,
@@ -48,7 +67,7 @@ class AppTheme {
         bodySmall: NovaTextStyles.caption,
         labelLarge: NovaTextStyles.button,
         labelSmall: NovaTextStyles.overline,
-      ),
+      )),
 
       // App bar theme
       appBarTheme: AppBarTheme(
@@ -82,6 +101,9 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: NovaColors.surfaceLight,
+        hintStyle: NovaTextStyles.bodyMedium.copyWith(
+          color: NovaColors.textTertiaryLight,
+        ),
         border: OutlineInputBorder(
           borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.borderLight),
@@ -177,8 +199,8 @@ class AppTheme {
       primaryColor: NovaColors.primaryDark,
       scaffoldBackgroundColor: NovaColors.backgroundDark,
 
-      // Text theme
-      textTheme: TextTheme(
+      // Text theme (Inter on Android, SF Pro on iOS)
+      textTheme: _getTextTheme(TextTheme(
         displayLarge: NovaTextStyles.display.copyWith(
           color: NovaColors.textPrimaryDark,
         ),
@@ -206,7 +228,7 @@ class AppTheme {
         labelSmall: NovaTextStyles.overline.copyWith(
           color: NovaColors.textSecondaryDark,
         ),
-      ),
+      )),
 
       // App bar theme
       appBarTheme: AppBarTheme(
@@ -240,6 +262,9 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: NovaColors.surfaceDark,
+        hintStyle: NovaTextStyles.bodyMedium.copyWith(
+          color: NovaColors.textTertiaryDark,
+        ),
         border: OutlineInputBorder(
           borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.borderDark),

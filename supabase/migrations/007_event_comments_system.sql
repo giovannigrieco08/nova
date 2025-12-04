@@ -20,7 +20,7 @@ CREATE TABLE comments (
 
   -- Relationships
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
   parent_comment_id UUID REFERENCES comments(id) ON DELETE CASCADE,
 
   -- Content
@@ -33,12 +33,12 @@ CREATE TABLE comments (
 
   -- Soft delete (GDPR Right to Erasure)
   deleted_at TIMESTAMPTZ,
-  deleted_by_user_id UUID REFERENCES profiles(id),
+  deleted_by_user_id UUID REFERENCES profiles(user_id),
 
   -- Moderation
   hidden_at TIMESTAMPTZ, -- Auto-hidden at 3+ reports
   hidden_reason TEXT, -- "auto_hide_reports" or "moderator_removed"
-  moderator_id UUID REFERENCES profiles(id), -- Who removed it (if moderator action)
+  moderator_id UUID REFERENCES profiles(user_id), -- Who removed it (if moderator action)
 
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -89,7 +89,7 @@ CREATE INDEX idx_comments_pending_hard_delete
 CREATE TABLE comment_likes (
   -- Composite primary key (prevents duplicate likes)
   comment_id UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
 
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -123,7 +123,7 @@ CREATE TABLE comment_reports (
 
   -- Relationships
   comment_id UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-  reporter_user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  reporter_user_id UUID NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
 
   -- Report details
   reason TEXT NOT NULL CHECK (reason IN ('spam', 'inappropriate', 'bullying', 'off_topic')),
@@ -131,7 +131,7 @@ CREATE TABLE comment_reports (
 
   -- Moderation workflow
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'dismissed')),
-  reviewed_by_moderator_id UUID REFERENCES profiles(id),
+  reviewed_by_moderator_id UUID REFERENCES profiles(user_id),
   reviewed_at TIMESTAMPTZ,
   moderator_notes TEXT,
 
@@ -464,7 +464,7 @@ CREATE POLICY "Moderators view all comments"
   TO authenticated
   USING (
     auth.uid() IN (
-      SELECT id FROM profiles WHERE role = 'moderator'
+      SELECT user_id FROM profiles WHERE role = 'moderator'
     )
   );
 
@@ -496,12 +496,12 @@ CREATE POLICY "Moderators remove comments"
   TO authenticated
   USING (
     auth.uid() IN (
-      SELECT id FROM profiles WHERE role = 'moderator'
+      SELECT user_id FROM profiles WHERE role = 'moderator'
     )
   )
   WITH CHECK (
     auth.uid() IN (
-      SELECT id FROM profiles WHERE role = 'moderator'
+      SELECT user_id FROM profiles WHERE role = 'moderator'
     )
   );
 
@@ -567,7 +567,7 @@ CREATE POLICY "Moderators view all reports"
   TO authenticated
   USING (
     auth.uid() IN (
-      SELECT id FROM profiles WHERE role = 'moderator'
+      SELECT user_id FROM profiles WHERE role = 'moderator'
     )
   );
 
@@ -586,12 +586,12 @@ CREATE POLICY "Moderators review reports"
   TO authenticated
   USING (
     auth.uid() IN (
-      SELECT id FROM profiles WHERE role = 'moderator'
+      SELECT user_id FROM profiles WHERE role = 'moderator'
     )
   )
   WITH CHECK (
     auth.uid() IN (
-      SELECT id FROM profiles WHERE role = 'moderator'
+      SELECT user_id FROM profiles WHERE role = 'moderator'
     )
   );
 

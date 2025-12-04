@@ -44,9 +44,10 @@ class EventDraft extends HiveObject {
   @HiveField(5)
   DateTime lastSaved;
 
-  /// Co-organizers user IDs (max 3)
+  /// Pending collaboration invites (user IDs who will be invited, max 3)
+  /// These users must accept before becoming co-organizers
   @HiveField(6)
-  List<String> coOrganizers;
+  List<String> pendingInvites;
 
   EventDraft({
     required this.title,
@@ -55,7 +56,7 @@ class EventDraft extends HiveObject {
     this.location,
     this.imagePath,
     required this.lastSaved,
-    this.coOrganizers = const [],
+    this.pendingInvites = const [],
   });
 
   /// Check if draft is valid for submission
@@ -66,7 +67,7 @@ class EventDraft extends HiveObject {
         description.trim().length <= 500 &&
         eventDate != null &&
         eventDate!.isAfter(DateTime.now()) &&
-        coOrganizers.length <= 3;
+        pendingInvites.length <= 3;
   }
 
   /// Check if draft is empty (no user input yet)
@@ -76,7 +77,7 @@ class EventDraft extends HiveObject {
         eventDate == null &&
         location == null &&
         imagePath == null &&
-        coOrganizers.isEmpty;
+        pendingInvites.isEmpty;
   }
 
   /// Create a copy with updated fields
@@ -87,7 +88,7 @@ class EventDraft extends HiveObject {
     String? location,
     String? imagePath,
     DateTime? lastSaved,
-    List<String>? coOrganizers,
+    List<String>? pendingInvites,
   }) {
     return EventDraft(
       title: title ?? this.title,
@@ -96,7 +97,7 @@ class EventDraft extends HiveObject {
       location: location ?? this.location,
       imagePath: imagePath ?? this.imagePath,
       lastSaved: lastSaved ?? this.lastSaved,
-      coOrganizers: coOrganizers ?? this.coOrganizers,
+      pendingInvites: pendingInvites ?? this.pendingInvites,
     );
   }
 

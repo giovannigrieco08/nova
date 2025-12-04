@@ -54,7 +54,7 @@ class ModerationEvent with _$ModerationEvent {
     required DateTime createdAt,
 
     /// Creator user ID (UUID)
-    required String createdBy,
+    required String creatorId,
 
     /// Moderation status (always 'pending' in queue, but included for completeness)
     @Default(EventStatus.pending) EventStatus status,

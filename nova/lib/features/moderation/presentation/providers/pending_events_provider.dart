@@ -43,7 +43,7 @@ final pendingEventsProvider =
             'location': json['location'],
             'organizerName': json['organizer_name'],
             'createdAt': json['created_at'],
-            'createdBy': json['created_by'],
+            'creatorId': json['creator_id'],
             'status': json['status'],
             'moderatedBy': json['moderated_by'],
             'moderatedAt': json['moderated_at'],

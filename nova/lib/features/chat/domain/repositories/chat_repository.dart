@@ -108,24 +108,26 @@ abstract class ChatRepository {
   // Media (P3)
   // =========================================================================
 
-  /// Upload view-once media and attach to a message.
+  /// Upload ephemeral media and attach to a message.
   ///
+  /// [maxViews] determines how many times the media can be viewed (1 or 2).
   /// Returns the media info on success.
   /// Throws [ChatMediaLimitException] if daily limit exceeded (5/day).
   Future<ChatMediaInfo> uploadMedia({
     required String filePath,
     required ChatMediaType mediaType,
+    int maxViews = 1,
   });
 
   /// Get a signed URL for viewing media (expires in 60 seconds).
   ///
-  /// Returns null if media is already viewed or expired.
+  /// Returns null if media has used all views or expired.
   Future<String?> getSignedMediaUrl(String mediaId);
 
-  /// Mark media as viewed.
+  /// Mark media as viewed (increments view count).
   ///
-  /// Can only be called once, by a user other than the uploader.
-  Future<void> markMediaViewed(String mediaId);
+  /// Returns updated media info, or null if max views exceeded.
+  Future<ChatMediaInfo?> markMediaViewed(String mediaId);
 
   /// Report a screenshot was detected on iOS.
   Future<void> reportScreenshot(String mediaId);

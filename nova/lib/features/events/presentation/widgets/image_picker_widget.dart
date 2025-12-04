@@ -23,6 +23,7 @@ class ImagePickerWidget extends StatefulWidget {
   final String? imagePath;
   final Function(File) onImagePicked;
   final VoidCallback? onImageRemoved;
+  final String? errorText;
 
   const ImagePickerWidget({
     super.key,
@@ -30,6 +31,7 @@ class ImagePickerWidget extends StatefulWidget {
     this.imagePath,
     required this.onImagePicked,
     this.onImageRemoved,
+    this.errorText,
   });
 
   @override
@@ -49,8 +51,8 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       children: [
         // Label
         Text(
-          'Immagine Evento (Opzionale)',
-          style: NovaTextStyles.body,
+          'Immagine Evento',
+          style: NovaTextStyles.labelLarge,
         ),
         SizedBox(height: NovaSpacing.s),
 
@@ -64,8 +66,10 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                 color: NovaColors.surface(context),
                 borderRadius: NovaRadius.circularL,
                 border: Border.all(
-                  color: NovaColors.border(context),
-                  width: 1,
+                  color: widget.errorText != null
+                      ? NovaColors.error(context)
+                      : NovaColors.border(context),
+                  width: widget.errorText != null ? 2 : 1,
                 ),
               ),
               child: _isLoading
@@ -76,6 +80,17 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             ),
           ),
         ),
+
+        // Error text
+        if (widget.errorText != null) ...[
+          SizedBox(height: NovaSpacing.xs),
+          Text(
+            widget.errorText!,
+            style: NovaTextStyles.caption.copyWith(
+              color: NovaColors.error(context),
+            ),
+          ),
+        ],
         SizedBox(height: NovaSpacing.s),
 
         // Action buttons (only show if no image)

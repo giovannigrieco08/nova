@@ -56,7 +56,12 @@ class EventForm extends ConsumerWidget {
             imagePath: state.imagePath,
             onImagePicked: (file) => notifier.pickImage(file),
             onImageRemoved: () => notifier.removeImage(),
+            errorText: state.imageError,
           ),
+          SizedBox(height: NovaSpacing.l),
+
+          // Collaborators picker
+          _buildCollaboratorsPicker(context, ref, state, notifier),
           SizedBox(height: NovaSpacing.l),
 
           // Info text
@@ -79,8 +84,8 @@ class EventForm extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Titolo *',
-              style: NovaTextStyles.body,
+              'Titolo',
+              style: NovaTextStyles.labelLarge,
             ),
             Text(
               state.titleCharCount,
@@ -136,8 +141,8 @@ class EventForm extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Descrizione *',
-              style: NovaTextStyles.body,
+              'Descrizione',
+              style: NovaTextStyles.labelLarge,
             ),
             Text(
               state.descriptionCharCount,
@@ -196,8 +201,8 @@ class EventForm extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Data e Ora *',
-          style: NovaTextStyles.body,
+          'Data e Ora',
+          style: NovaTextStyles.labelLarge,
         ),
         SizedBox(height: NovaSpacing.s),
         InkWell(
@@ -259,8 +264,8 @@ class EventForm extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Luogo (Opzionale)',
-          style: NovaTextStyles.body,
+          'Luogo',
+          style: NovaTextStyles.labelLarge,
         ),
         SizedBox(height: NovaSpacing.s),
         TextField(
@@ -290,6 +295,224 @@ class EventForm extends ConsumerWidget {
     );
   }
 
+  /// Collaborators picker (max 3)
+  /// Shows pending invites - users must accept before becoming co-organizers
+  Widget _buildCollaboratorsPicker(
+    BuildContext context,
+    WidgetRef ref,
+    EventFormState state,
+    EventCreationNotifier notifier,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Collaboratori',
+              style: NovaTextStyles.labelLarge,
+            ),
+            Text(
+              '${state.pendingInvites.length}/3',
+              style: NovaTextStyles.caption.copyWith(
+                color: NovaColors.textSecondary(context),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: NovaSpacing.xs),
+        Text(
+          'Invita altri studenti come co-organizzatori',
+          style: NovaTextStyles.caption.copyWith(
+            color: NovaColors.textSecondary(context),
+          ),
+        ),
+        SizedBox(height: NovaSpacing.s),
+        // Pending invites chips + add button
+        Wrap(
+          spacing: NovaSpacing.s,
+          runSpacing: NovaSpacing.s,
+          children: [
+            // Pending invite chips
+            ...state.pendingInvites.map((userId) => _buildPendingInviteChip(
+                  context,
+                  userId,
+                  () => notifier.removePendingInvite(userId),
+                )),
+            // Add button (if less than 3)
+            if (state.pendingInvites.length < 3)
+              InkWell(
+                onTap: () => _showCollaboratorPicker(context, ref, state, notifier),
+                borderRadius: NovaRadius.circularM,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: NovaSpacing.m,
+                    vertical: NovaSpacing.s,
+                  ),
+                  decoration: BoxDecoration(
+                    color: NovaColors.surface(context),
+                    borderRadius: NovaRadius.circularM,
+                    border: Border.all(
+                      color: NovaColors.border(context),
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.person_add_outlined,
+                        size: 18,
+                        color: NovaColors.primary(context),
+                      ),
+                      SizedBox(width: NovaSpacing.xs),
+                      Text(
+                        'Invita',
+                        style: NovaTextStyles.caption.copyWith(
+                          color: NovaColors.primary(context),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Build a chip for pending invite (shows "In attesa" indicator)
+  Widget _buildPendingInviteChip(
+    BuildContext context,
+    String userId,
+    VoidCallback onRemove,
+  ) {
+    // TODO: Get actual user info from profile provider
+    // For now, show userId truncated
+    final displayName = userId.length > 8 ? '${userId.substring(0, 8)}...' : userId;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.s,
+        vertical: NovaSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: NovaColors.warning(context).withOpacity(0.1),
+        borderRadius: NovaRadius.circularM,
+        border: Border.all(
+          color: NovaColors.warning(context).withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Avatar with clock indicator
+          Stack(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: NovaColors.warning(context),
+                ),
+                child: Center(
+                  child: Text(
+                    displayName[0].toUpperCase(),
+                    style: NovaTextStyles.caption.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              // Small clock badge
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
+                  child: Icon(
+                    Icons.schedule,
+                    size: 10,
+                    color: NovaColors.warning(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(width: NovaSpacing.xs),
+          // Name + pending label
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                displayName,
+                style: NovaTextStyles.caption.copyWith(
+                  color: NovaColors.textPrimary(context),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                'In attesa',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: NovaColors.warning(context),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(width: NovaSpacing.xs),
+          // Remove button
+          GestureDetector(
+            onTap: onRemove,
+            child: Icon(
+              Icons.close,
+              size: 16,
+              color: NovaColors.textSecondary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show bottom sheet to pick collaborators
+  void _showCollaboratorPicker(
+    BuildContext context,
+    WidgetRef ref,
+    EventFormState state,
+    EventCreationNotifier notifier,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => _CollaboratorPickerSheet(
+        selectedIds: state.pendingInvites,
+        onSelect: (userId) {
+          notifier.addPendingInvite(userId);
+          Navigator.pop(sheetContext);
+        },
+        maxSelections: 3,
+      ),
+    );
+  }
+
   /// Info text at bottom
   Widget _buildInfoText(BuildContext context) {
     return Container(
@@ -310,6 +533,7 @@ class EventForm extends ConsumerWidget {
           Expanded(
             child: Text(
               'Il tuo evento sarà visibile dopo l\'approvazione del moderatore. '
+              'I collaboratori invitati dovranno accettare prima di essere aggiunti. '
               'La bozza viene salvata automaticamente.',
               style: NovaTextStyles.caption.copyWith(
                 color: NovaColors.textSecondary(context),
@@ -378,5 +602,222 @@ class EventForm extends ConsumerWidget {
     );
 
     notifier.updateEventDate(dateTime);
+  }
+}
+
+// =============================================================================
+// COLLABORATOR PICKER SHEET
+// =============================================================================
+
+/// Bottom sheet for selecting collaborators
+class _CollaboratorPickerSheet extends StatefulWidget {
+  final List<String> selectedIds;
+  final void Function(String userId) onSelect;
+  final int maxSelections;
+
+  const _CollaboratorPickerSheet({
+    required this.selectedIds,
+    required this.onSelect,
+    required this.maxSelections,
+  });
+
+  @override
+  State<_CollaboratorPickerSheet> createState() => _CollaboratorPickerSheetState();
+}
+
+class _CollaboratorPickerSheetState extends State<_CollaboratorPickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  // TODO: Replace with actual users from profile search provider
+  // Mock data for now
+  final List<Map<String, String>> _mockUsers = [
+    {'id': 'user1', 'name': 'Marco Rossi', 'class': '3A'},
+    {'id': 'user2', 'name': 'Luigi Verdi', 'class': '4B'},
+    {'id': 'user3', 'name': 'Anna Bianchi', 'class': '3A'},
+    {'id': 'user4', 'name': 'Sofia Romano', 'class': '5C'},
+    {'id': 'user5', 'name': 'Alessandro Conti', 'class': '2D'},
+    {'id': 'user6', 'name': 'Giulia Esposito', 'class': '4A'},
+    {'id': 'user7', 'name': 'Francesco Marino', 'class': '3B'},
+    {'id': 'user8', 'name': 'Elena Ferrari', 'class': '5A'},
+  ];
+
+  List<Map<String, String>> get _filteredUsers {
+    if (_searchQuery.isEmpty) return _mockUsers;
+    return _mockUsers.where((user) {
+      final name = user['name']!.toLowerCase();
+      final className = user['class']!.toLowerCase();
+      final query = _searchQuery.toLowerCase();
+      return name.contains(query) || className.contains(query);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) => Column(
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD0D0D0),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Title
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.l),
+            child: Row(
+              children: [
+                Text(
+                  'Invita collaboratore',
+                  style: NovaTextStyles.h3.copyWith(
+                    color: NovaColors.textPrimary(context),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${widget.selectedIds.length}/${widget.maxSelections}',
+                  style: NovaTextStyles.caption.copyWith(
+                    color: NovaColors.textSecondary(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: NovaSpacing.m),
+          // Search bar
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.l),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                hintText: 'Cerca studente...',
+                hintStyle: NovaTextStyles.body.copyWith(
+                  color: NovaColors.textSecondary(context),
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  size: 20,
+                  color: NovaColors.textSecondary(context),
+                ),
+                filled: true,
+                fillColor: NovaColors.surface(context),
+                border: OutlineInputBorder(
+                  borderRadius: NovaRadius.circularM,
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: NovaSpacing.m,
+                  vertical: NovaSpacing.s,
+                ),
+              ),
+              style: NovaTextStyles.body,
+            ),
+          ),
+          SizedBox(height: NovaSpacing.m),
+          // Users list
+          Expanded(
+            child: _filteredUsers.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 48,
+                          color: NovaColors.textSecondary(context),
+                        ),
+                        SizedBox(height: NovaSpacing.m),
+                        Text(
+                          'Nessun risultato',
+                          style: NovaTextStyles.body.copyWith(
+                            color: NovaColors.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    controller: scrollController,
+                    itemCount: _filteredUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = _filteredUsers[index];
+                      final userId = user['id']!;
+                      final isSelected = widget.selectedIds.contains(userId);
+                      final canSelect = !isSelected &&
+                          widget.selectedIds.length < widget.maxSelections;
+
+                      return ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected
+                                ? NovaColors.primary(context)
+                                : NovaColors.primary(context).withOpacity(0.2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              user['name']![0].toUpperCase(),
+                              style: NovaTextStyles.body.copyWith(
+                                color: isSelected
+                                    ? Colors.white
+                                    : NovaColors.primary(context),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          user['name']!,
+                          style: NovaTextStyles.body.copyWith(
+                            color: NovaColors.textPrimary(context),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: Text(
+                          user['class']!,
+                          style: NovaTextStyles.caption.copyWith(
+                            color: NovaColors.textSecondary(context),
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? Icon(
+                                Icons.check_circle,
+                                color: NovaColors.primary(context),
+                              )
+                            : canSelect
+                                ? Icon(
+                                    Icons.add_circle_outline,
+                                    color: NovaColors.textSecondary(context),
+                                  )
+                                : null,
+                        onTap: canSelect
+                            ? () => widget.onSelect(userId)
+                            : null,
+                        enabled: canSelect,
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }

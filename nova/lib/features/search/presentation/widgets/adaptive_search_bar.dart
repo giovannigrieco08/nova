@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_radius.dart';
+import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 
 /// Platform-adaptive search bar
@@ -76,10 +77,10 @@ class _AdaptiveSearchBarState extends State<AdaptiveSearchBar> {
       ),
       prefixInsets: const EdgeInsets.only(left: NovaSpacing.s),
       suffixInsets: const EdgeInsets.only(right: NovaSpacing.s),
-      style: TextStyle(
+      style: NovaTypography.bodyMedium.copyWith(
         color: NovaColors.textPrimaryStatic,
       ),
-      placeholderStyle: TextStyle(
+      placeholderStyle: NovaTypography.bodyMedium.copyWith(
         color: NovaColors.textTertiaryStatic,
       ),
     );
@@ -101,12 +102,12 @@ class _AdaptiveSearchBarState extends State<AdaptiveSearchBar> {
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
         textInputAction: TextInputAction.search,
-        style: TextStyle(
+        style: NovaTypography.bodyMedium.copyWith(
           color: NovaColors.textPrimaryStatic,
         ),
         decoration: InputDecoration(
           hintText: widget.placeholder,
-          hintStyle: TextStyle(
+          hintStyle: NovaTypography.bodyMedium.copyWith(
             color: NovaColors.textTertiaryStatic,
           ),
           prefixIcon: Icon(

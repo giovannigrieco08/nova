@@ -10,12 +10,12 @@ import '../../domain/entities/profile.dart';
 import '../../domain/entities/profile_stats.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/profile_header.dart';
-import '../widgets/profile_stats.dart' as widgets;
 import '../widgets/profile_tabs.dart';
 import '../widgets/events_grid.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../shared/widgets/adaptive/adaptive_scaffold.dart';
@@ -76,8 +76,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   /// Build profile view with data
   Widget _buildProfileView(Profile profile, AsyncValue<ProfileStats> statsAsync) {
+    final stats = statsAsync.valueOrNull;
+
     return AdaptiveScaffold(
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(profile),
       body: RefreshIndicator(
         onRefresh: () async {
           // Refresh profile and stats
@@ -86,23 +88,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         },
         child: CustomScrollView(
           slivers: [
-            // Profile header
+            // Profile header with integrated stats (Instagram-style)
             SliverToBoxAdapter(
               child: ProfileHeader(
                 profile: profile,
+                stats: stats,
                 isOwnProfile: true,
-              ),
-            ),
-
-            // Profile stats
-            SliverToBoxAdapter(
-              child: statsAsync.when(
-                data: (stats) => widgets.UserProfileStats(stats: stats),
-                loading: () => Padding(
-                  padding: EdgeInsets.all(NovaSpacing.medium),
-                  child: const AdaptiveLoadingIndicator(),
-                ),
-                error: (error, stack) => const SizedBox.shrink(),
               ),
             ),
 
@@ -111,18 +102,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: _buildTutorSection(),
             ),
 
-            // Edit Profile button
+            // Edit Profile button (Instagram-style: gray background)
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
-                child: AdaptiveButton(
-                  type: AdaptiveButtonType.secondary,
-                  onPressed: () => _navigateToEditProfile(profile),
-                  child: Text(
-                    'Modifica Profilo',
-                    style: NovaTypography.bodyMedium.copyWith(
-                      color: NovaColors.textPrimary(context),
-                      fontWeight: FontWeight.w600,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 36,
+                  child: TextButton(
+                    onPressed: () => _navigateToEditProfile(profile),
+                    style: TextButton.styleFrom(
+                      backgroundColor: NovaColors.surface(context),
+                      foregroundColor: NovaColors.textPrimary(context),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: NovaRadius.circularXs,
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
+                    ),
+                    child: Text(
+                      'Modifica profilo',
+                      style: NovaTypography.bodyMedium.copyWith(
+                        color: NovaColors.textPrimary(context),
+                      ),
                     ),
                   ),
                 ),
@@ -150,32 +151,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  /// Build app bar with settings icon
-  PreferredSizeWidget _buildAppBar() {
+  /// Build app bar with username (Instagram-style) and settings icon
+  PreferredSizeWidget _buildAppBar([Profile? profile]) {
+    final username = profile?.username ?? 'Profilo';
+
     if (Platform.isIOS) {
       return CupertinoNavigationBar(
-        middle: Text(
-          'Profilo',
-          style: NovaTypography.headingMedium,
+        middle: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '@$username',
+              style: NovaTypography.headingSmall,
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              CupertinoIcons.chevron_down,
+              size: 14,
+            ),
+          ],
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _navigateToSettings,
           child: const Icon(
-            CupertinoIcons.settings,
+            CupertinoIcons.line_horizontal_3,
             size: 24,
           ),
         ),
       );
     } else {
       return AppBar(
-        title: Text(
-          'Profilo',
-          style: NovaTypography.headingMedium,
+        centerTitle: true,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '@$username',
+              style: NovaTypography.headingSmall.copyWith(
+                color: NovaColors.textPrimary(context),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 20,
+              color: NovaColors.textPrimary(context),
+            ),
+          ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_rounded, size: 24),
+            icon: const Icon(Icons.menu_rounded, size: 24),
             onPressed: _navigateToSettings,
           ),
         ],

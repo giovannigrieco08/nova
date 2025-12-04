@@ -124,21 +124,23 @@ final tutorsBySubjectProvider =
   return await repository.getTutorsBySubject(subject);
 });
 
-/// Filtered tutors provider (subject + price filter)
+/// Filtered tutors provider (subject + price + class filter)
 ///
 /// Usage:
 /// ```dart
 /// final tutorsAsync = ref.watch(filteredTutorsProvider(
-///   TutorFilterParams(subject: Subject.matematica, priceFilter: 'free'),
+///   TutorFilterParams(subject: Subject.matematica, priceFilter: 'free', classFilter: '3A'),
 /// ));
 /// ```
 class TutorFilterParams {
   final Subject subject;
   final String? priceFilter;
+  final String? classFilter;
 
   const TutorFilterParams({
     required this.subject,
     this.priceFilter,
+    this.classFilter,
   });
 
   @override
@@ -147,20 +149,32 @@ class TutorFilterParams {
       other is TutorFilterParams &&
           runtimeType == other.runtimeType &&
           subject == other.subject &&
-          priceFilter == other.priceFilter;
+          priceFilter == other.priceFilter &&
+          classFilter == other.classFilter;
 
   @override
-  int get hashCode => subject.hashCode ^ priceFilter.hashCode;
+  int get hashCode => subject.hashCode ^ priceFilter.hashCode ^ classFilter.hashCode;
 }
 
 final filteredTutorsProvider =
     FutureProvider.family<List<TutorProfileWithAuthorData>, TutorFilterParams>(
         (ref, params) async {
   final repository = ref.watch(tutorRepositoryProvider);
-  return await repository.getTutorsFiltered(
+  var tutors = await repository.getTutorsFiltered(
     params.subject,
     priceFilter: params.priceFilter,
   );
+
+  // Client-side class filter (year prefix: 1, 2, 3, 4, 5)
+  if (params.classFilter != null && params.classFilter!.isNotEmpty) {
+    tutors = tutors.where((t) {
+      final tutorClass = t.authorClass;
+      if (tutorClass == null || tutorClass.isEmpty) return false;
+      return tutorClass.startsWith(params.classFilter!);
+    }).toList();
+  }
+
+  return tutors;
 });
 
 // ============================================================================

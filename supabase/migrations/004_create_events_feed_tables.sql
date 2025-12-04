@@ -50,17 +50,10 @@ CREATE TABLE IF NOT EXISTS participations (
   PRIMARY KEY (user_id, event_id)
 );
 
--- Table 4: Comments (event comments with 500 char limit)
--- Renamed 'text' column to 'content' to avoid confusion with TEXT type
-CREATE TABLE IF NOT EXISTS comments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  content VARCHAR(500) NOT NULL CHECK (length(trim(content)) > 0 AND length(content) <= 500),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- NOTE: Comments table removed from 004 - created in 007_event_comments_system.sql
+-- with complete schema (threading, soft-delete, moderation support)
 
--- Table 5: Reports (event reports for moderation)
+-- Table 4: Reports (event reports for moderation)
 CREATE TABLE IF NOT EXISTS reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -88,9 +81,7 @@ CREATE INDEX IF NOT EXISTS idx_likes_user_id ON likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_participations_event_id ON participations(event_id);
 CREATE INDEX IF NOT EXISTS idx_participations_user_id ON participations(user_id);
 
--- Comments indexes
-CREATE INDEX IF NOT EXISTS idx_comments_event_id ON comments(event_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
+-- NOTE: Comments indexes moved to 007_event_comments_system.sql
 
 -- Reports indexes
 CREATE INDEX IF NOT EXISTS idx_reports_event_id ON reports(event_id);
@@ -114,7 +105,7 @@ EXECUTE FUNCTION update_updated_at_column();
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE participations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+-- NOTE: Comments RLS enabled in 007_event_comments_system.sql
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================================
@@ -237,48 +228,7 @@ CREATE POLICY "users_unparticipate_own"
   TO authenticated
   USING (user_id = (SELECT auth.uid()));
 
--- =====================================================================
--- COMMENTS TABLE POLICIES
--- =====================================================================
-
--- Policy 11: Users can view comments on approved events (FR-027)
-DROP POLICY IF EXISTS "users_view_comments_approved_events" ON comments;
-CREATE POLICY "users_view_comments_approved_events"
-  ON comments
-  FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM events
-      WHERE events.id = comments.event_id
-        AND events.status = 'approved'
-    )
-  );
-
--- Policy 12: Users can post comments on approved events (FR-029)
-DROP POLICY IF EXISTS "users_post_comments_approved_events" ON comments;
-CREATE POLICY "users_post_comments_approved_events"
-  ON comments
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM events
-      WHERE events.id = event_id
-        AND events.status = 'approved'
-    )
-    AND author_id = (SELECT auth.uid())
-    AND length(trim(content)) > 0
-    AND length(content) <= 500
-  );
-
--- Policy 13: Users can delete their own comments only
-DROP POLICY IF EXISTS "users_delete_own_comments" ON comments;
-CREATE POLICY "users_delete_own_comments"
-  ON comments
-  FOR DELETE
-  TO authenticated
-  USING (author_id = (SELECT auth.uid()));
+-- NOTE: Comments policies moved to 007_event_comments_system.sql
 
 -- =====================================================================
 -- REPORTS TABLE POLICIES
@@ -384,14 +334,7 @@ BEGIN
       EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.events';
     END IF;
 
-    -- Check if comments table is already in publication
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_publication_tables
-      WHERE pubname = 'supabase_realtime'
-      AND tablename = 'comments'
-    ) THEN
-      EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.comments';
-    END IF;
+    -- NOTE: Comments realtime subscription moved to 007_event_comments_system.sql
   END IF;
 END;
 $$;
