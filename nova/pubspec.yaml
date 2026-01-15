@@ -49,8 +49,8 @@ dependencies:
   intl: ^0.19.0                       # Date/time formatting for event details
 
   # Event Creation & Moderation Feature Dependencies (004-event-creation-moderation)
-  firebase_core: ^2.24.0             # Firebase initialization
-  firebase_messaging: ^14.7.0        # FCM push notifications
+  firebase_core: ^3.8.0              # Firebase initialization (upgraded for Xcode 26 compatibility)
+  firebase_messaging: ^15.1.0        # FCM push notifications (upgraded for Xcode 26 compatibility)
   flutter_image_compress: ^2.4.0     # Client-side image compression (WebP/JPEG)
   share_plus: ^7.2.0                 # Native share sheet for deep links
   # Removed uni_links: ^0.5.1 (deprecated, replaced by app_links ^6.3.2 above)
