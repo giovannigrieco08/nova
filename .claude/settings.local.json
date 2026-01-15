@@ -39,7 +39,10 @@
       "Bash(flutter clean:*)",
       "Bash(tree -d:*)",
       "Bash(flutter test:*)",
-      "Bash(del \"c:\\\\Users\\\\grigi\\\\nova_def\\\\nova\\\\lib\\\\core\\\\providers\\\\supabase_provider.dart\")"
+      "Bash(del \"c:\\\\Users\\\\grigi\\\\nova_def\\\\nova\\\\lib\\\\core\\\\providers\\\\supabase_provider.dart\")",
+      "Bash(grep:*)",
+      "Bash(pod update:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
