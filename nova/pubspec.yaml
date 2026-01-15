@@ -51,7 +51,7 @@ dependencies:
   # Event Creation & Moderation Feature Dependencies (004-event-creation-moderation)
   firebase_core: ^2.24.0             # Firebase initialization
   firebase_messaging: ^14.7.0        # FCM push notifications
-  flutter_image_compress: ^2.1.0     # Client-side image compression (WebP/JPEG)
+  flutter_image_compress: ^2.4.0     # Client-side image compression (WebP/JPEG)
   share_plus: ^7.2.0                 # Native share sheet for deep links
   # Removed uni_links: ^0.5.1 (deprecated, replaced by app_links ^6.3.2 above)
 
@@ -71,7 +71,7 @@ dependencies:
   # Additional UI/Navigation Dependencies
   go_router: ^14.2.0                    # Declarative routing
   flutter_slidable: ^3.1.0              # Swipe actions for list items
-  image_cropper: ^7.0.5                 # Image cropping for avatars
+  image_cropper: ^11.0.0                # Image cropping for avatars
   timeago: ^3.6.0                       # Relative time formatting
   app_settings: ^5.1.1                  # Open device settings
 
@@ -107,6 +107,15 @@ dev_dependencies:
 
   # App Icon Generation
   flutter_launcher_icons: ^0.14.2    # Generate app icons for iOS and Android
+
+# iOS 26 Fix: Override flutter_image_compress_common with PR #343 fix (ALAsset → PHAsset)
+# Remove this override when official release includes the fix
+dependency_overrides:
+  flutter_image_compress_common:
+    git:
+      url: https://github.com/fluttercandies/flutter_image_compress.git
+      ref: b69a5cb932e9c577bf3d8cf912e38cbec8eeaced
+      path: packages/flutter_image_compress_common
 
 # App Icon Configuration
 flutter_launcher_icons:
