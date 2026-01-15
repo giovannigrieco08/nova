@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'dart:io' show Platform;
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/comment_report.dart';
@@ -47,7 +48,7 @@ class ReportDialog extends StatefulWidget {
 class _ReportDialogState extends State<ReportDialog> {
   CommentReportReason? _selectedReason;
   final TextEditingController _detailsController = TextEditingController();
-  bool _isSubmitting = false;
+  final bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -118,7 +119,7 @@ class _ReportDialogState extends State<ReportDialog> {
                     color: NovaColors.textTertiaryLight,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: NovaRadius.circularXs,
                   ),
                   contentPadding: EdgeInsets.all(NovaSpacing.s),
                 ),
@@ -186,9 +187,9 @@ class _ReportDialogState extends State<ReportDialog> {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? NovaColors.primaryLight.withOpacity(0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
+                        ? NovaColors.primaryLight.withValues(alpha: 0.1)
+                        : const Color(0x00000000),
+                    borderRadius: NovaRadius.circularXs,
                   ),
                   child: Row(
                     children: [

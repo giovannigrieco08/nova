@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cupertino_native/cupertino_native.dart';
 import 'package:nova/core/utils/platform_utils.dart';

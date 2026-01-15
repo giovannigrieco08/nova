@@ -97,7 +97,7 @@ class SystemStatisticsWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(NovaSpacing.m),
               decoration: BoxDecoration(
-                color: NovaColors.error(context).withOpacity(0.1),
+                color: NovaColors.error(context).withValues(alpha: 0.1),
                 borderRadius: NovaRadius.circularM,
                 border: Border.all(
                   color: NovaColors.error(context),

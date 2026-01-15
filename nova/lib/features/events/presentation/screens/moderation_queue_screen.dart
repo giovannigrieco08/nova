@@ -17,9 +17,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
+import '../../../../core/animations/page_transitions.dart';
 import '../providers/moderation_queue_provider.dart';
 import '../widgets/moderation_card.dart';
 import '../widgets/rejection_dialog.dart';
+import 'moderator_stats_screen.dart';
 
 /// Moderation queue screen for reviewing pending events
 class ModerationQueueScreen extends ConsumerStatefulWidget {
@@ -49,10 +51,13 @@ class _ModerationQueueScreenState
           // Stats button (navigate to ModeratorStatsScreen)
           IconButton(
             icon: const Icon(Icons.analytics_outlined),
-            tooltip: 'Statistiche',
             onPressed: () {
-              Navigator.pushNamed(context, '/moderator-stats');
+              Navigator.push(
+                context,
+                NovaPageRoute.swipeBack(page: const ModeratorStatsScreen()),
+              );
             },
+            tooltip: 'Statistiche',
           ),
         ],
       ),
@@ -64,7 +69,7 @@ class _ModerationQueueScreenState
 
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(moderationQueueProvider);
+              await ref.read(moderationQueueProvider.notifier).refresh();
             },
             child: ListView.separated(
               padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
@@ -167,7 +172,7 @@ class _ModerationQueueScreenState
             SizedBox(height: NovaSpacing.l),
             ElevatedButton.icon(
               onPressed: () {
-                ref.invalidate(moderationQueueProvider);
+                ref.read(moderationQueueProvider.notifier).refresh();
               },
               icon: const Icon(Icons.refresh),
               label: const Text('Riprova'),
@@ -203,7 +208,7 @@ class _ModerationQueueScreenState
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50), // Material Green 500
+              backgroundColor: NovaColors.approveGreen,
             ),
             child: const Text('Approva'),
           ),
@@ -217,14 +222,13 @@ class _ModerationQueueScreenState
     setState(() => _processingEventId = eventId);
 
     try {
-      final moderationNotifier = ref.read(moderationNotifierProvider.notifier);
-      await moderationNotifier.approveEvent(eventId);
+      await ref.read(moderationQueueProvider.notifier).approveEvent(eventId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Evento approvato con successo'),
-            backgroundColor: Color(0xFF4CAF50),
+            backgroundColor: NovaColors.approveGreen,
           ),
         );
       }
@@ -258,8 +262,7 @@ class _ModerationQueueScreenState
     setState(() => _processingEventId = eventId);
 
     try {
-      final moderationNotifier = ref.read(moderationNotifierProvider.notifier);
-      await moderationNotifier.rejectEvent(eventId, rejectionReason);
+      await ref.read(moderationQueueProvider.notifier).rejectEvent(eventId, rejectionReason);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

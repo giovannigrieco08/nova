@@ -205,6 +205,111 @@ class CommentInputNotifier extends StateNotifier<CommentInputState> {
     }
   }
 
+  /// Post reply to an existing comment
+  ///
+  /// Similar to postComment but includes parent_comment_id.
+  /// Called when user is in reply mode.
+  Future<void> postReply(String parentCommentId) async {
+    final text = state.text.trim();
+
+    // Validate
+    if (text.isEmpty) {
+      state = state.copyWith(error: 'La risposta non può essere vuota');
+      return;
+    }
+
+    if (text.length > 500) {
+      state = state.copyWith(error: 'La risposta non può superare i 500 caratteri');
+      return;
+    }
+
+    // Set posting state
+    state = state.copyWith(isPosting: true, error: null);
+
+    // Generate temp ID for optimistic reply
+    final tempId = 'temp_${_uuid.v4()}';
+
+    // Create optimistic reply
+    final optimisticReply = Comment(
+      id: tempId,
+      eventId: _eventId,
+      userId: 'current_user',
+      parentCommentId: parentCommentId,
+      text: text,
+      createdAt: DateTime.now(),
+      likeCount: 0,
+      replyCount: 0,
+      reportCount: 0,
+      isLikedByCurrentUser: false,
+      authorName: 'You',
+    );
+
+    // Add optimistic reply to list
+    _ref
+        .read(commentsNotifierProvider(_eventId).notifier)
+        .addOptimisticComment(optimisticReply);
+
+    try {
+      // Post reply to server
+      await _repository.replyToComment(
+        commentId: parentCommentId,
+        text: text,
+      );
+
+      // Replace optimistic reply with server response
+      _ref
+          .read(commentsNotifierProvider(_eventId).notifier)
+          .removeOptimisticComment(tempId);
+
+      // Refresh comments to get the reply in proper threaded position
+      await _ref
+          .read(commentsNotifierProvider(_eventId).notifier)
+          .refresh();
+
+      // Clear input
+      textController.clear();
+      state = const CommentInputState();
+    } on ValidationException catch (e) {
+      _ref
+          .read(commentsNotifierProvider(_eventId).notifier)
+          .removeOptimisticComment(tempId);
+
+      state = state.copyWith(
+        isPosting: false,
+        error: e.message.contains('inappropriate')
+            ? 'La risposta contiene linguaggio inappropriato'
+            : e.message,
+      );
+    } on RateLimitException catch (e) {
+      _ref
+          .read(commentsNotifierProvider(_eventId).notifier)
+          .removeOptimisticComment(tempId);
+
+      final minutes = e.retryAfter.inMinutes;
+      state = state.copyWith(
+        isPosting: false,
+        error: 'Hai raggiunto il limite. Riprova tra $minutes minuti',
+      );
+    } on NetworkException catch (_) {
+      state = state.copyWith(
+        isPosting: false,
+        error: 'Nessuna connessione. La risposta sarà inviata quando torni online.',
+      );
+
+      textController.clear();
+      state = const CommentInputState();
+    } catch (e) {
+      _ref
+          .read(commentsNotifierProvider(_eventId).notifier)
+          .removeOptimisticComment(tempId);
+
+      state = state.copyWith(
+        isPosting: false,
+        error: 'Errore durante l\'invio della risposta. Riprova.',
+      );
+    }
+  }
+
   /// Clear error
   void clearError() {
     state = state.copyWith(error: null);

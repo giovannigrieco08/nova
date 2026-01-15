@@ -150,6 +150,12 @@ class AdaptiveTextField extends StatelessWidget {
       focusNode: focusNode,
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: NovaTextStyles.bodyMedium.copyWith(
+          color: NovaColors.textSecondary(context),
+        ),
+        floatingLabelStyle: NovaTextStyles.caption.copyWith(
+          color: NovaColors.textSecondary(context),
+        ),
         hintText: placeholder,
         errorText: errorText,
         prefixIcon: prefix,

@@ -225,6 +225,37 @@ class EventsRepository {
     );
   }
 
+  /// Get participants list for event
+  /// FR-013: Display participants
+  Future<List<Map<String, dynamic>>> getParticipants(String eventId) async {
+    return await _remoteDataSource.getParticipants(eventId);
+  }
+
+  // ========================================================================
+  // USER-SPECIFIC EVENTS
+  // ========================================================================
+
+  /// Get events created by user
+  /// Used for profile "Eventi" tab
+  Future<List<Event>> getEventsByCreator(String userId) async {
+    final events = await _remoteDataSource.fetchEventsByCreator(userId);
+    return events.map((model) => model.toEntity()).toList();
+  }
+
+  /// Get pending events created by user
+  /// Used for showing pending events banner at top of feed
+  Future<List<Event>> getUserPendingEvents(String userId) async {
+    final events = await _remoteDataSource.fetchUserPendingEvents(userId);
+    return events.map((model) => model.toEntity()).toList();
+  }
+
+  /// Get events user is participating in
+  /// Used for profile "Partecipazioni" tab
+  Future<List<Event>> getEventsParticipating(String userId) async {
+    final events = await _remoteDataSource.fetchEventsParticipating(userId);
+    return events.map((model) => model.toEntity()).toList();
+  }
+
   // ========================================================================
   // COMMENTS OPERATIONS
   // ========================================================================
@@ -232,19 +263,22 @@ class EventsRepository {
   /// Fetch comments for event
   /// FR-027: Load comments
   Future<List<dynamic>> getEventComments(String eventId) async {
-    // TODO: Implement comment fetching (US5)
-    throw UnimplementedError('Comments will be implemented in US5');
+    final comments = await _remoteDataSource.fetchComments(eventId);
+    return comments;
   }
 
   /// Post comment on event
   /// FR-029: Post comment
-  Future<void> postComment({
+  Future<dynamic> postComment({
     required String eventId,
     required String userId,
     required String content,
   }) async {
-    // TODO: Implement comment posting (US5)
-    throw UnimplementedError('Comments will be implemented in US5');
+    return await _remoteDataSource.postComment(
+      eventId: eventId,
+      authorId: userId,
+      text: content,
+    );
   }
 
   // ========================================================================
@@ -257,9 +291,180 @@ class EventsRepository {
     required String eventId,
     required String userId,
     required String reason,
-    required String explanation,
+    String? description,
   }) async {
-    // TODO: Implement reporting (US8)
-    throw UnimplementedError('Reporting will be implemented in US8');
+    await _remoteDataSource.reportEvent(
+      eventId: eventId,
+      reporterId: userId,
+      reason: reason,
+      description: description,
+    );
+  }
+
+  /// Check if user has already reported an event
+  Future<bool> hasUserReportedEvent({
+    required String eventId,
+    required String userId,
+  }) async {
+    return await _remoteDataSource.hasUserReportedEvent(
+      eventId: eventId,
+      userId: userId,
+    );
+  }
+
+  // ========================================================================
+  // EVENT INVITATIONS
+  // ========================================================================
+
+  /// Search users to invite to an event
+  Future<List<Map<String, dynamic>>> searchUsersToInvite({
+    required String eventId,
+    required String currentUserId,
+    required String query,
+  }) async {
+    return await _remoteDataSource.searchUsersToInvite(
+      eventId: eventId,
+      currentUserId: currentUserId,
+      query: query,
+    );
+  }
+
+  /// Send invitation to a user
+  Future<Map<String, dynamic>> inviteUser({
+    required String eventId,
+    required String inviterId,
+    required String inviteeId,
+  }) async {
+    return await _remoteDataSource.inviteUser(
+      eventId: eventId,
+      inviterId: inviterId,
+      inviteeId: inviteeId,
+    );
+  }
+
+  /// Get invitations for an event
+  Future<List<Map<String, dynamic>>> getEventInvitations(String eventId) async {
+    return await _remoteDataSource.getEventInvitations(eventId);
+  }
+
+  /// Get invitations received by user
+  Future<List<Map<String, dynamic>>> getReceivedInvitations(String userId) async {
+    return await _remoteDataSource.getReceivedInvitations(userId);
+  }
+
+  /// Respond to invitation
+  Future<void> respondToInvitation({
+    required String invitationId,
+    required String status,
+  }) async {
+    await _remoteDataSource.respondToInvitation(
+      invitationId: invitationId,
+      status: status,
+    );
+  }
+
+  /// Cancel invitation
+  Future<void> cancelInvitation(String invitationId) async {
+    await _remoteDataSource.cancelInvitation(invitationId);
+  }
+
+  // ========================================================================
+  // HELP REQUESTS OPERATIONS
+  // ========================================================================
+
+  /// Get help requests for an event
+  Future<List<Map<String, dynamic>>> getHelpRequests(String eventId) async {
+    return await _remoteDataSource.fetchHelpRequests(eventId);
+  }
+
+  /// Create a help request for an event
+  Future<Map<String, dynamic>> createHelpRequest({
+    required String eventId,
+    required String description,
+  }) async {
+    return await _remoteDataSource.createHelpRequest(
+      eventId: eventId,
+      description: description,
+    );
+  }
+
+  /// Update a help request
+  Future<Map<String, dynamic>> updateHelpRequest({
+    required String requestId,
+    required Map<String, dynamic> updates,
+  }) async {
+    return await _remoteDataSource.updateHelpRequest(
+      requestId: requestId,
+      updates: updates,
+    );
+  }
+
+  /// Mark a help request as fulfilled
+  Future<Map<String, dynamic>> fulfillHelpRequest({
+    required String requestId,
+    required String fulfilledBy,
+  }) async {
+    return await _remoteDataSource.updateHelpRequest(
+      requestId: requestId,
+      updates: {
+        'is_fulfilled': true,
+        'fulfilled_by': fulfilledBy,
+      },
+    );
+  }
+
+  /// Delete a help request
+  Future<void> deleteHelpRequest(String requestId) async {
+    await _remoteDataSource.deleteHelpRequest(requestId);
+  }
+
+  /// Get offers for a help request
+  Future<List<Map<String, dynamic>>> getHelpOffers(String requestId) async {
+    return await _remoteDataSource.fetchHelpOffers(requestId);
+  }
+
+  /// Create an offer to help
+  Future<Map<String, dynamic>> createHelpOffer({
+    required String requestId,
+    required String userId,
+    String? message,
+  }) async {
+    return await _remoteDataSource.createHelpOffer(
+      requestId: requestId,
+      userId: userId,
+      message: message,
+    );
+  }
+
+  /// Accept a help offer
+  Future<Map<String, dynamic>> acceptHelpOffer(String offerId) async {
+    return await _remoteDataSource.updateHelpOfferStatus(
+      offerId: offerId,
+      status: 'accepted',
+    );
+  }
+
+  /// Decline a help offer
+  Future<Map<String, dynamic>> declineHelpOffer(String offerId) async {
+    return await _remoteDataSource.updateHelpOfferStatus(
+      offerId: offerId,
+      status: 'declined',
+    );
+  }
+
+  /// Withdraw an offer
+  Future<void> withdrawHelpOffer(String offerId) async {
+    await _remoteDataSource.deleteHelpOffer(offerId);
+  }
+
+  /// Check if user has already offered to help
+  Future<bool> hasUserOfferedHelp({
+    required String requestId,
+    required String userId,
+  }) async {
+    return await _remoteDataSource.hasUserOfferedHelp(
+      requestId: requestId,
+      userId: userId,
+    );
   }
 }

@@ -2,6 +2,7 @@
 ///
 /// Business logic layer for search operations.
 /// Combines remote and local data sources with caching and offline support.
+library;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../domain/entities/search_results.dart';

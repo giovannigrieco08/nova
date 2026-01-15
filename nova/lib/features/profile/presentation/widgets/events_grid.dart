@@ -3,9 +3,10 @@
 // Purpose: 3-column grid of events with lazy loading
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../events/domain/entities/event.dart';
-import '../../../events/presentation/widgets/event_card.dart';
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 
@@ -40,12 +41,15 @@ class EventsGrid extends StatelessWidget {
   final Function(Event) onEventTap;
   final String emptyMessage;
   final bool isLoading;
+  /// When true, the grid won't scroll independently (for embedding in CustomScrollView)
+  final bool shrinkWrap;
 
   const EventsGrid({
     required this.events,
     required this.onEventTap,
     this.emptyMessage = 'Nessun evento',
     this.isLoading = false,
+    this.shrinkWrap = false,
     super.key,
   });
 
@@ -75,8 +79,11 @@ class EventsGrid extends StatelessWidget {
         final event = events[index];
         return _buildEventGridItem(context, event);
       },
+      // When shrinkWrap is true, disable independent scrolling
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       // Performance optimization: cache extent for smooth scrolling
-      cacheExtent: 1000,
+      cacheExtent: shrinkWrap ? null : 1000,
     );
   }
 
@@ -86,7 +93,7 @@ class EventsGrid extends StatelessWidget {
       onTap: () => onEventTap(event),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: NovaRadius.circularXs,
           color: NovaColors.backgroundSecondary(context),
         ),
         clipBehavior: Clip.antiAlias,
@@ -94,17 +101,15 @@ class EventsGrid extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // Event image (cover image or placeholder)
+            // Use CachedNetworkImage for efficient caching and smooth scrolling
             if (event.imageUrl != null && event.imageUrl!.isNotEmpty)
-              Image.network(
-                event.imageUrl!,
+              CachedNetworkImage(
+                imageUrl: event.imageUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (ctx, error, stackTrace) {
-                  return _buildPlaceholder(event);
-                },
-                loadingBuilder: (ctx, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return _buildPlaceholder(event);
-                },
+                placeholder: (ctx, url) => _buildPlaceholder(event),
+                errorWidget: (ctx, url, error) => _buildPlaceholder(event),
+                fadeInDuration: const Duration(milliseconds: 150),
+                fadeOutDuration: const Duration(milliseconds: 150),
               )
             else
               _buildPlaceholder(event),
@@ -117,7 +122,7 @@ class EventsGrid extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.6),
+                    Colors.black.withValues(alpha: 0.6),
                   ],
                 ),
               ),
@@ -184,16 +189,18 @@ class EventsGrid extends StatelessWidget {
         childAspectRatio: 1.0,
       ),
       itemCount: 9, // Show 9 placeholder cards
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       itemBuilder: (ctx, index) {
         return Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: NovaRadius.circularXs,
             color: NovaColors.backgroundSecondary(context),
           ),
           child: Center(
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: NovaColors.brandViolet.withOpacity(0.3),
+              color: NovaColors.brandViolet.withValues(alpha: 0.3),
             ),
           ),
         );

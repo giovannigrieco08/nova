@@ -3,31 +3,15 @@
 // Purpose: Generate colored initials for avatars using Material Design 500 colors
 
 import 'package:flutter/material.dart';
+import '../theme/nova_colors.dart';
 
 /// Generates initials and deterministic colors for avatar backgrounds
 /// Uses Material Design 500 color palette with A-Z mapping
 class AvatarInitialsGenerator {
   /// Material Design 500 color palette (17 colors)
   /// Cycle through alphabet: A-Q use colors 0-16, R-Z wrap around
-  static const List<Color> materialColors500 = [
-    Color(0xFFF44336), // Red 500
-    Color(0xFFE91E63), // Pink 500
-    Color(0xFF9C27B0), // Purple 500
-    Color(0xFF673AB7), // Deep Purple 500
-    Color(0xFF3F51B5), // Indigo 500
-    Color(0xFF2196F3), // Blue 500
-    Color(0xFF03A9F4), // Light Blue 500
-    Color(0xFF00BCD4), // Cyan 500
-    Color(0xFF009688), // Teal 500
-    Color(0xFF4CAF50), // Green 500
-    Color(0xFF8BC34A), // Light Green 500
-    Color(0xFFCDDC39), // Lime 500
-    Color(0xFFFFC107), // Amber 500
-    Color(0xFFFF9800), // Orange 500
-    Color(0xFFFF5722), // Deep Orange 500
-    Color(0xFF795548), // Brown 500
-    Color(0xFF607D8B), // Blue Grey 500
-  ];
+  /// Uses NovaColors.avatarColors for design system compliance
+  static List<Color> get materialColors500 => NovaColors.avatarColors;
 
   /// Extracts initials from full name
   /// Examples:

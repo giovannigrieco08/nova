@@ -6,6 +6,7 @@
 ///
 /// Feature: 012-tutoring-system
 /// Branch: 012-tutoring-system
+library;
 
 // Domain - Entities
 export 'domain/entities/subject.dart';

@@ -5,7 +5,6 @@
 // Architecture: Singleton pattern with PKCE flow for security
 // =====================================================================
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -81,16 +80,7 @@ class SupabaseConfig {
           authFlowType: AuthFlowType.pkce,
         ),
       );
-
-      // Debug mode only logging
-      assert(() {
-        debugPrint('✅ Supabase initialized successfully');
-        debugPrint('   URL: $supabaseUrl');
-        debugPrint('   Auth flow: PKCE');
-        return true;
-      }());
     } catch (e) {
-      debugPrint('❌ Supabase initialization failed: $e');
       rethrow;
     }
   }

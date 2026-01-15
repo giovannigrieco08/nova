@@ -3,6 +3,7 @@
 // Purpose: Green checkmark badge indicating user participation
 
 import 'package:flutter/material.dart';
+import '../../core/theme/nova_colors.dart';
 
 class ParticipantBadge extends StatelessWidget {
   final double size;
@@ -13,8 +14,8 @@ class ParticipantBadge extends StatelessWidget {
   const ParticipantBadge({
     super.key,
     this.size = 20.0,
-    this.backgroundColor = const Color(0xFF4CAF50), // Green
-    this.iconColor = Colors.white,
+    this.backgroundColor = NovaColors.successLight, // Green
+    this.iconColor = NovaColors.onPrimaryLight,
     this.showBorder = true,
   });
 
@@ -28,13 +29,13 @@ class ParticipantBadge extends StatelessWidget {
         shape: BoxShape.circle,
         border: showBorder
             ? Border.all(
-                color: Colors.white,
+                color: NovaColors.backgroundLight,
                 width: 2,
               )
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: NovaColors.backgroundDark.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

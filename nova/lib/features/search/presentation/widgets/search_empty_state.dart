@@ -1,6 +1,7 @@
 /// Search empty state widget
 ///
 /// Shows initial state (before search) or no results state.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:nova/core/theme/nova_colors.dart';

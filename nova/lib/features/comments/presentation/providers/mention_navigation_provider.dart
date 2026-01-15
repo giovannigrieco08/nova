@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../profile/presentation/screens/other_profile_screen.dart';
+import '../../../../core/animations/page_transitions.dart';
 
 /// MentionNavigationProvider
 ///
@@ -50,10 +52,9 @@ class MentionNavigationNotifier extends StateNotifier<MentionNavigationState> {
 
       // Navigate to profile
       if (context.mounted) {
-        Navigator.pushNamed(
+        Navigator.push(
           context,
-          '/profile/$userId',
-          arguments: {'userId': userId},
+          NovaPageRoute.swipeBack(page: OtherProfileScreen(userId: userId)),
         );
       }
 

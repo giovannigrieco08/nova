@@ -1,30 +1,23 @@
 // =====================================================================
-// Nova - Splash Screen
+// Nova - Splash Screen (Minimal Instagram/BeReal Style)
 // =====================================================================
-// Purpose: Branded splash screen with logo → circle → expansion animation
-// Architecture: StatefulWidget with implicit animations
-// Inspiration: red_dot_splash_animation (adapted for Nova design system)
-// Animation: Logo appears → morphs to white circle → circle expands to fill screen
+// Purpose: Ultra-minimal splash with simple fade-in animation
+// Architecture: StatefulWidget with AnimationController
+// Duration: ~1 second total (400ms fade-in + 300ms transition)
 // =====================================================================
 
 import 'package:flutter/material.dart';
-import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/widgets/nova_logo.dart';
 import 'package:nova/main.dart'; // For AuthGuard
 
-// Custom elastic curve from red_dot_splash_animation
-// Creates smooth "spring" effect during expansion
-const Curve _elasticCurve = Cubic(0.58, -0.30, 0.365, 1);
-
-/// Nova splash screen with logo → circle expansion animation
+/// Nova splash screen - minimal Instagram/BeReal style
 ///
 /// Animation sequence:
-/// 1. Logo fades in (400ms)
-/// 2. Logo → Circle crossfade (300ms)
-/// 3. Circle expands 10x with elastic curve (600ms)
-/// 4. Navigate to AuthGuard with fade transition
+/// 1. Logo fades in (400ms, easeOut)
+/// 2. Hold (600ms)
+/// 3. Navigate to AuthGuard with fade transition (300ms)
 ///
-/// Total duration: ~1.7 seconds
+/// Total duration: ~1 second
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -32,68 +25,54 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  // Animation state flags
-  bool _showLogo = false;      // Phase 1: Logo fade-in
-  bool _showCircle = false;    // Phase 2: Logo→Circle morph
-  bool _expandCircle = false;  // Phase 3: Circle expansion
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _startAnimation();
+
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
+    // Start fade-in animation
+    _controller.forward();
+
+    // Navigate after 1000ms total (visible splash screen)
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        _navigateToAuth();
+      }
+    });
   }
 
-  /// Start splash animation sequence
-  Future<void> _startAnimation() async {
-    // Wait for initial frame to render
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    // Phase 1: Show logo (fade-in)
-    if (mounted) {
-      setState(() {
-        _showLogo = true;
-      });
-    }
-
-    // Phase 2: Logo → Circle morph (after logo is visible)
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (mounted) {
-      setState(() {
-        _showCircle = true;
-      });
-    }
-
-    // Phase 3: Expand circle (after morph crossfade completes)
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (mounted) {
-      setState(() {
-        _expandCircle = true;
-      });
-    }
-
-    // Phase 4: Navigate to AuthGuard (after expansion completes + buffer)
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (mounted) {
-      _navigateToApp();
-    }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   /// Navigate to AuthGuard with fade transition
-  void _navigateToApp() {
+  void _navigateToAuth() {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const AuthGuard(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeIn,
-            ),
-            child: child,
-          );
+        pageBuilder: (_, __, ___) => const AuthGuard(),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: const Duration(milliseconds: 300),
+        transitionDuration: const Duration(milliseconds: 200),
       ),
     );
   }
@@ -101,41 +80,13 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NovaColors.backgroundDark, // Pure black background
+      backgroundColor: Colors.black, // Pure black - Instagram/BeReal style
       body: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Layer 1: Nova Logo (visible until circle appears, then fades out)
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 300),
-              opacity: !_showCircle ? 1.0 : 0.0,
-              curve: Curves.easeOut,
-              child: const NovaLogo.extraLarge(
-                color: NovaColors.textPrimaryDark, // White logo
-              ),
-            ),
-
-            // Layer 2: White Circle (fades in, then expands)
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 300),
-              opacity: _showCircle ? 1.0 : 0.0,
-              curve: Curves.easeIn,
-              child: AnimatedScale(
-                duration: const Duration(milliseconds: 600),
-                scale: _expandCircle ? 10.0 : 1.0,
-                curve: _elasticCurve, // Red dot elastic curve for smooth expansion
-                child: Container(
-                  width: 120, // Match NovaLogo.extraLarge size
-                  height: 120,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: NovaColors.textPrimaryDark, // White circle
-                  ),
-                ),
-              ),
-            ),
-          ],
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: const NovaLogo.extraLarge(
+            color: Colors.white, // White logo on black
+          ),
         ),
       ),
     );

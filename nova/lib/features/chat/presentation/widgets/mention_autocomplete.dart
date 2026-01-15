@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:nova/core/theme/nova_colors.dart';
+import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
@@ -34,21 +35,21 @@ class MentionAutocomplete extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: NovaColors.surface(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: NovaRadius.circularS,
         border: Border.all(
           color: NovaColors.border(context),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: NovaColors.textPrimaryLight.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: NovaRadius.circularS,
         child: ListView.separated(
           shrinkWrap: true,
           padding: EdgeInsets.symmetric(vertical: NovaSpacing.xs),

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 import 'package:nova/features/chat/domain/entities/chat_media_info.dart';
 import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
@@ -9,19 +9,10 @@ import 'package:nova/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:nova/features/chat/data/datasources/chat_remote_datasource.dart';
 
 // =============================================================================
-// Core Providers
+// Core Providers (imported from core_providers.dart)
 // =============================================================================
-
-/// Supabase client provider
-final supabaseClientProvider = Provider<SupabaseClient>((ref) {
-  return Supabase.instance.client;
-});
-
-/// Current user ID provider
-final currentUserIdProvider = Provider<String>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return supabase.auth.currentUser?.id ?? '';
-});
+// supabaseClientProvider - from core_providers.dart
+// currentUserIdProvider - from core_providers.dart
 
 /// Hive box for pending messages (offline queue)
 /// Note: Box is opened in main.dart before runApp(), so it's guaranteed to be available
@@ -57,11 +48,33 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
 // Message Providers
 // =============================================================================
 
-/// Stream of chat messages (real-time)
+/// Stream of chat messages with full joins (profiles, media, reactions).
+///
+/// Uses a hybrid approach:
+/// - Listen to real-time stream for change detection
+/// - Re-fetch with full joins when changes occur
+/// This ensures media and other joined data are always included.
 final chatMessagesStreamProvider =
-    StreamProvider.autoDispose<List<ChatMessage>>((ref) {
+    StreamProvider.autoDispose<List<ChatMessage>>((ref) async* {
   final repository = ref.watch(chatRepositoryProvider);
-  return repository.watchMessages(limit: 50);
+  final dataSource = ref.watch(chatRemoteDataSourceProvider);
+
+  // Initial fetch with full joins
+  final initialMessages = await dataSource.getMessages(limit: 50);
+  final currentUserId = ref.read(currentUserIdProvider);
+
+  yield initialMessages
+      .map((m) => m.toEntity(currentUserId: currentUserId))
+      .toList();
+
+  // Listen to real-time changes and re-fetch with joins
+  await for (final _ in repository.watchMessages(limit: 50)) {
+    // Re-fetch with full joins when any change is detected
+    final updatedMessages = await dataSource.getMessages(limit: 50);
+    yield updatedMessages
+        .map((m) => m.toEntity(currentUserId: currentUserId))
+        .toList();
+  }
 });
 
 /// Load more messages (pagination)
@@ -79,6 +92,107 @@ final chatMessageProvider =
     FutureProvider.autoDispose.family<ChatMessage?, String>((ref, messageId) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.getMessage(messageId);
+});
+
+// =============================================================================
+// Failed Messages Tracking
+// =============================================================================
+
+/// Represents a message that failed to send
+class FailedMessage {
+  final String id;
+  final String content;
+  final List<Map<String, dynamic>> mentions;
+  final String? replyToId;
+  final DateTime attemptedAt;
+  final String errorMessage;
+
+  const FailedMessage({
+    required this.id,
+    required this.content,
+    this.mentions = const [],
+    this.replyToId,
+    required this.attemptedAt,
+    required this.errorMessage,
+  });
+}
+
+/// Failed messages state notifier
+class FailedMessagesNotifier extends StateNotifier<List<FailedMessage>> {
+  final ChatRepository _repository;
+
+  FailedMessagesNotifier(this._repository) : super([]);
+
+  /// Add a failed message
+  void addFailedMessage({
+    required String content,
+    List<Map<String, dynamic>> mentions = const [],
+    String? replyToId,
+    required String errorMessage,
+  }) {
+    final failedMessage = FailedMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      content: content,
+      mentions: mentions,
+      replyToId: replyToId,
+      attemptedAt: DateTime.now(),
+      errorMessage: errorMessage,
+    );
+    state = [...state, failedMessage];
+  }
+
+  /// Retry sending a failed message
+  Future<bool> retryMessage(String failedMessageId) async {
+    final failedMessage = state.firstWhere(
+      (m) => m.id == failedMessageId,
+      orElse: () => throw Exception('Message not found'),
+    );
+
+    try {
+      await _repository.sendMessage(
+        content: failedMessage.content,
+        mentions: failedMessage.mentions,
+        replyToId: failedMessage.replyToId,
+      );
+
+      // Remove from failed list on success
+      state = state.where((m) => m.id != failedMessageId).toList();
+      return true;
+    } catch (e) {
+      // Keep in failed list, update error message
+      state = state.map((m) {
+        if (m.id == failedMessageId) {
+          return FailedMessage(
+            id: m.id,
+            content: m.content,
+            mentions: m.mentions,
+            replyToId: m.replyToId,
+            attemptedAt: DateTime.now(),
+            errorMessage: e.toString(),
+          );
+        }
+        return m;
+      }).toList();
+      return false;
+    }
+  }
+
+  /// Remove a failed message (user dismissed it)
+  void removeFailedMessage(String failedMessageId) {
+    state = state.where((m) => m.id != failedMessageId).toList();
+  }
+
+  /// Clear all failed messages
+  void clearAll() {
+    state = [];
+  }
+}
+
+/// Provider for failed messages
+final failedMessagesProvider =
+    StateNotifierProvider<FailedMessagesNotifier, List<FailedMessage>>((ref) {
+  final repository = ref.watch(chatRepositoryProvider);
+  return FailedMessagesNotifier(repository);
 });
 
 // =============================================================================
@@ -214,12 +328,6 @@ class ComposeStateNotifier extends StateNotifier<ComposeState> {
       state = state.copyWith(isSending: false, error: e.message);
       return false;
     } catch (e, stackTrace) {
-      // DEBUG: Stampa errore reale in console
-      print('=== CHAT SEND ERROR ===');
-      print('Error: $e');
-      print('Stack: $stackTrace');
-      print('=======================');
-
       state = state.copyWith(
         isSending: false,
         error: 'Errore nell\'invio del messaggio. Riprova.',
@@ -289,20 +397,33 @@ final hasUserReportedProvider =
 });
 
 // =============================================================================
+// Delete Message Provider
+// =============================================================================
+
+/// Delete a message (only within 30 minutes of sending)
+final deleteMessageProvider = FutureProvider.autoDispose.family<bool, String>(
+    (ref, messageId) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.deleteMessage(messageId);
+});
+
+// =============================================================================
 // Media Upload Providers
 // =============================================================================
 
 /// Upload media (image, video, audio) to chat
 ///
 /// [maxViews] determines how many times the media can be viewed (1 or 2).
+/// [durationSeconds] is the duration for audio messages.
 final uploadMediaProvider = FutureProvider.autoDispose
-    .family<ChatMediaInfo, ({String filePath, ChatMediaType mediaType, int maxViews})>(
+    .family<ChatMediaInfo, ({String filePath, ChatMediaType mediaType, int maxViews, int? durationSeconds})>(
         (ref, params) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.uploadMedia(
     filePath: params.filePath,
     mediaType: params.mediaType,
     maxViews: params.maxViews,
+    durationSeconds: params.durationSeconds,
   );
 });
 

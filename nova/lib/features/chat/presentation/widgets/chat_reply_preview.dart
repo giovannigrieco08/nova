@@ -10,12 +10,16 @@ import 'package:nova/features/chat/domain/entities/chat_message.dart';
 ///
 /// Used in:
 /// - ChatComposeBar: Shows the message being replied to with dismiss button
-/// - ChatMessageTile: Shows the quoted message in compact form
+/// - ChatMessageTile: Shows the quoted message in Instagram style (above the bubble)
 class ChatReplyPreview extends StatelessWidget {
   final ChatMessage replyTo;
   final VoidCallback? onTap;
   final VoidCallback? onDismiss;
   final bool isCompact;
+  /// Current user ID to determine if replying to own message
+  final String? currentUserId;
+  /// Whether the reply preview is for own message (affects alignment)
+  final bool isOwnMessage;
 
   const ChatReplyPreview({
     super.key,
@@ -23,18 +27,31 @@ class ChatReplyPreview extends StatelessWidget {
     this.onTap,
     this.onDismiss,
     this.isCompact = false,
+    this.currentUserId,
+    this.isOwnMessage = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Compose bar style (with dismiss button)
+    if (onDismiss != null) {
+      return _buildComposeBarStyle(context);
+    }
+
+    // Chat bubble style (Instagram-like, above the message)
+    return _buildChatBubbleStyle(context);
+  }
+
+  /// Build the compose bar style (original style with dismiss button)
+  Widget _buildComposeBarStyle(BuildContext context) {
     final isDeleted = replyTo.isHidden;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(isCompact ? NovaSpacing.xs : NovaSpacing.s),
+        padding: EdgeInsets.all(NovaSpacing.s),
         decoration: BoxDecoration(
-          color: NovaColors.card(context).withOpacity(0.5),
+          color: NovaColors.card(context).withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(NovaRadius.s),
           border: Border(
             left: BorderSide(
@@ -54,7 +71,7 @@ class ChatReplyPreview extends StatelessWidget {
                   Text(
                     isDeleted
                         ? 'Messaggio eliminato'
-                        : replyTo.author.fullName ?? replyTo.author.username,
+                        : replyTo.author.fullName,
                     style: NovaTypography.bodySmall.copyWith(
                       color: NovaColors.primary(context),
                       fontWeight: FontWeight.w600,
@@ -76,29 +93,98 @@ class ChatReplyPreview extends StatelessWidget {
                           : NovaColors.textSecondary(context),
                       fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
                     ),
-                    maxLines: isCompact ? 1 : 2,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
 
-            // Dismiss button (only in compose bar)
-            if (onDismiss != null) ...[
-              SizedBox(width: NovaSpacing.xs),
-              IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: onDismiss,
-                color: NovaColors.textTertiary(context),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 24,
-                  minHeight: 24,
-                ),
+            // Dismiss button
+            SizedBox(width: NovaSpacing.xs),
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: onDismiss,
+              color: NovaColors.textTertiary(context),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 24,
+                minHeight: 24,
               ),
-            ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Build the Instagram-style chat bubble reply preview
+  Widget _buildChatBubbleStyle(BuildContext context) {
+    final isDeleted = replyTo.isHidden;
+    final isReplyToSelf = currentUserId != null && replyTo.userId == currentUserId;
+
+    // Determine label text
+    final String replyLabel;
+    if (isDeleted) {
+      replyLabel = 'Messaggio eliminato';
+    } else if (isReplyToSelf) {
+      replyLabel = 'Hai risposto al tuo messaggio';
+    } else {
+      replyLabel = 'Hai risposto a ${replyTo.author.fullName}';
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: isOwnMessage
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Reply label (like Instagram)
+          Padding(
+            padding: EdgeInsets.only(
+              left: isOwnMessage ? 0 : NovaSpacing.xs,
+              right: isOwnMessage ? NovaSpacing.xs : 0,
+              bottom: NovaSpacing.xxs,
+            ),
+            child: Text(
+              replyLabel,
+              style: NovaTypography.labelSmall.copyWith(
+                color: NovaColors.textTertiary(context),
+                fontSize: 11,
+              ),
+            ),
+          ),
+
+          // Quoted message bubble (darker, compact)
+          Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.6,
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: NovaSpacing.s + 2,
+              vertical: NovaSpacing.xs + 2,
+            ),
+            decoration: BoxDecoration(
+              color: NovaColors.backgroundSecondary(context),
+              borderRadius: NovaRadius.circularM,
+            ),
+            child: Text(
+              isDeleted
+                  ? '[Messaggio eliminato]'
+                  : replyTo.content,
+              style: NovaTypography.bodySmall.copyWith(
+                color: isDeleted
+                    ? NovaColors.textTertiary(context)
+                    : NovaColors.textSecondary(context),
+                fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

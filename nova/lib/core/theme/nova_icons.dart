@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cupertino_native/cupertino_native.dart';
 import 'package:nova/core/utils/platform_utils.dart';
@@ -187,7 +186,7 @@ class NovaIcons {
     return adaptive(
       context,
       sfSymbol: 'chevron.left',
-      materialIcon: Icons.chevron_left,
+      materialIcon: Icons.arrow_back_ios_new,
       size: size,
       color: color,
     );

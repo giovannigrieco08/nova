@@ -61,11 +61,11 @@ class EventStatusBadge extends StatelessWidget {
   Color _getBackgroundColor(BuildContext context) {
     switch (status) {
       case EventStatus.pending:
-        return const Color(0xFFFFF3CD); // Light yellow
+        return NovaColors.eventPendingBackground;
       case EventStatus.approved:
-        return const Color(0xFFD4EDDA); // Light green
+        return NovaColors.eventApprovedBackground;
       case EventStatus.rejected:
-        return const Color(0xFFF8D7DA); // Light red
+        return NovaColors.eventRejectedBackground;
     }
   }
 
@@ -73,11 +73,11 @@ class EventStatusBadge extends StatelessWidget {
   Color _getTextColor(BuildContext context) {
     switch (status) {
       case EventStatus.pending:
-        return const Color(0xFF856404); // Dark yellow
+        return NovaColors.eventPendingText;
       case EventStatus.approved:
-        return const Color(0xFF155724); // Dark green
+        return NovaColors.eventApprovedText;
       case EventStatus.rejected:
-        return const Color(0xFF721C24); // Dark red
+        return NovaColors.eventRejectedText;
     }
   }
 

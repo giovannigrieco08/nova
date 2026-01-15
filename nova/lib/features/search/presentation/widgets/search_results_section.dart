@@ -2,6 +2,7 @@
 ///
 /// Displays a section header with count and list of results.
 /// Used for "Eventi (N)" and "Utenti (N)" sections.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:nova/core/theme/nova_colors.dart';

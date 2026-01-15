@@ -6,6 +6,7 @@
 // RLS Policy: creators_view_own_events
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import '../../domain/entities/event.dart';
 import './repository_providers.dart';
 

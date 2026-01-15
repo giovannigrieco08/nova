@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../domain/entities/subject.dart';
 import '../../data/repositories/tutor_repository.dart';
@@ -61,6 +62,14 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
   Widget _buildMaterialScreen(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: NovaColors.textPrimary(context),
+            size: 24,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(widget.subject.displayName),
         backgroundColor: NovaColors.surface(context),
         elevation: 0,
@@ -200,7 +209,7 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
           color: isSelected
               ? NovaColors.primary(context)
               : NovaColors.card(context),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: NovaRadius.circularL,
           border: isSelected
               ? null
               : Border.all(color: NovaColors.border(context)),

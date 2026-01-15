@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_typography.dart';
+import '../../../../core/animations/page_transitions.dart';
 import '../../domain/entities/subject.dart';
 import '../widgets/subject_list_tile.dart';
 import 'tutors_list_screen.dart';
@@ -30,7 +32,10 @@ class SubjectsScreen extends ConsumerWidget {
   Widget _buildCupertinoScreen(BuildContext context, WidgetRef ref) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('Ripetizioni'),
+        middle: Text(
+          'Ripetizioni',
+          style: NovaTypography.headingMedium,
+        ),
         backgroundColor: NovaColors.surface(context),
         border: null,
       ),
@@ -44,7 +49,20 @@ class SubjectsScreen extends ConsumerWidget {
   Widget _buildMaterialScreen(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ripetizioni'),
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: NovaColors.textPrimary(context),
+            size: 24,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'Ripetizioni',
+          style: NovaTypography.headingMedium.copyWith(
+            color: NovaColors.textPrimary(context),
+          ),
+        ),
         backgroundColor: NovaColors.surface(context),
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -73,13 +91,7 @@ class SubjectsScreen extends ConsumerWidget {
 
   void _navigateToTutorsList(BuildContext context, Subject subject) {
     Navigator.of(context).push(
-      Platform.isIOS
-          ? CupertinoPageRoute(
-              builder: (_) => TutorsListScreen(subject: subject),
-            )
-          : MaterialPageRoute(
-              builder: (_) => TutorsListScreen(subject: subject),
-            ),
+      NovaPageRoute.swipeBack(page: TutorsListScreen(subject: subject)),
     );
   }
 }

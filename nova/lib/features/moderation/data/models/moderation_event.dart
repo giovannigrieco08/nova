@@ -47,8 +47,8 @@ class ModerationEvent with _$ModerationEvent {
     /// Where the event takes place (optional)
     String? location,
 
-    /// Organizer full name (denormalized for display in queue)
-    required String organizerName,
+    /// Organizer full name (denormalized for display in queue, may be null if not available)
+    String? organizerName,
 
     /// When event was created (for sorting oldest-first)
     required DateTime createdAt,

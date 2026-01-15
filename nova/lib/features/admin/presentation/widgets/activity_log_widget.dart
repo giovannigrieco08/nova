@@ -90,7 +90,7 @@ class ActivityLogWidget extends ConsumerWidget {
     ActivityLogFilter filter,
   ) {
     return DropdownButtonFormField<String?>(
-      value: filter.actionType,
+      initialValue: filter.actionType,
       decoration: InputDecoration(
         labelText: 'Tipo azione',
         border: OutlineInputBorder(
@@ -148,6 +148,7 @@ class ActivityLogWidget extends ConsumerWidget {
             );
           },
           icon: const Icon(Icons.chevron_left),
+          tooltip: 'Precedente',
         ),
 
         // Current date display
@@ -188,6 +189,7 @@ class ActivityLogWidget extends ConsumerWidget {
                 }
               : null,
           icon: const Icon(Icons.chevron_right),
+          tooltip: 'Successivo',
         ),
 
         // Clear date filter button
@@ -201,7 +203,7 @@ class ActivityLogWidget extends ConsumerWidget {
               );
             },
             icon: const Icon(Icons.clear),
-            tooltip: 'Mostra tutte le date',
+            tooltip: 'Cancella',
           ),
       ],
     );
@@ -268,7 +270,7 @@ class ActivityLogWidget extends ConsumerWidget {
                 child: Text(
                   entry.actionDescription,
                   style: NovaTextStyles.caption.copyWith(
-                    color: Colors.white,
+                    color: NovaColors.onPrimaryLight,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -300,7 +302,7 @@ class ActivityLogWidget extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(NovaSpacing.s),
               decoration: BoxDecoration(
-                color: NovaColors.error(context).withOpacity(0.1),
+                color: NovaColors.error(context).withValues(alpha: 0.1),
                 borderRadius: NovaRadius.circularS,
               ),
               child: Text(
@@ -391,7 +393,7 @@ class ActivityLogWidget extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(NovaSpacing.l),
       decoration: BoxDecoration(
-        color: NovaColors.error(context).withOpacity(0.1),
+        color: NovaColors.error(context).withValues(alpha: 0.1),
         borderRadius: NovaRadius.circularM,
       ),
       child: Column(

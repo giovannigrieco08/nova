@@ -5,7 +5,6 @@
 // Architecture: Repository pattern with Supabase Auth API
 // =====================================================================
 
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/utils/email_validator.dart';
@@ -36,7 +35,7 @@ class AuthRepository {
   /// and sends OTP magic link via Supabase Auth.
   ///
   /// Parameters:
-  /// - [email]: User's email address (@galileimoro.edu.it)
+  /// - [email]: User's email address
   ///
   /// Returns:
   /// - `true` if magic link sent successfully
@@ -65,12 +64,6 @@ class AuthRepository {
       // Normalize email (trim and lowercase)
       final normalizedEmail = EmailValidator.normalize(email);
 
-      // Debug logging
-      assert(() {
-        debugPrint('📧 Sending magic link to: $normalizedEmail');
-        return true;
-      }());
-
       // Send magic link via Supabase Auth
       // Note: Rate limiting (3 per 15 min) is enforced server-side
       // Use custom URL scheme (novaapp://) for direct app opening
@@ -80,29 +73,11 @@ class AuthRepository {
         emailRedirectTo: 'novaapp://auth/callback',
       );
 
-      // Debug logging
-      assert(() {
-        debugPrint('✅ Magic link sent successfully');
-        return true;
-      }());
-
       return true;
     } on AuthException catch (e) {
-      // Debug logging
-      assert(() {
-        debugPrint('❌ Magic link send failed: ${e.message}');
-        return true;
-      }());
-
       // Re-throw with user-friendly message
       throw _handleAuthException(e);
     } catch (e) {
-      // Debug logging
-      assert(() {
-        debugPrint('❌ Unexpected error sending magic link: $e');
-        return true;
-      }());
-
       // Wrap unexpected errors
       throw AuthException('Failed to send magic link. Please try again.');
     }
@@ -132,31 +107,12 @@ class AuthRepository {
   /// ```
   Future<User> verifyMagicLink(Uri uri) async {
     try {
-      // Debug logging
-      assert(() {
-        debugPrint('🔐 Verifying magic link token');
-        debugPrint('   URI: $uri');
-        return true;
-      }());
-
       // For HTTPS URLs from Supabase email, use getSessionFromUrl
       // This handles the token parameter automatically
       if (uri.scheme == 'https' && uri.host.contains('supabase.co')) {
         final response = await _supabase.auth.getSessionFromUrl(uri);
 
-        if (response.session?.user == null) {
-          throw AuthException('Magic link verification failed');
-        }
-
-        // Debug logging
-        assert(() {
-          debugPrint('✅ Magic link verified successfully (HTTPS)');
-          debugPrint('   User ID: ${response.session!.user.id}');
-          debugPrint('   Email: ${response.session!.user.email}');
-          return true;
-        }());
-
-        return response.session!.user;
+        return response.session.user;
       }
 
       // For custom scheme URLs (novaapp://), use verifyOTP
@@ -190,31 +146,11 @@ class AuthRepository {
         throw AuthException('Magic link verification failed');
       }
 
-      // Debug logging
-      assert(() {
-        debugPrint('✅ Magic link verified successfully (custom scheme)');
-        debugPrint('   User ID: ${response.user!.id}');
-        debugPrint('   Email: ${response.user!.email}');
-        return true;
-      }());
-
       return response.user!;
     } on AuthException catch (e) {
-      // Debug logging
-      assert(() {
-        debugPrint('❌ Magic link verification failed: ${e.message}');
-        return true;
-      }());
-
       // Re-throw with user-friendly message
       throw _handleAuthException(e);
     } catch (e) {
-      // Debug logging
-      assert(() {
-        debugPrint('❌ Unexpected error verifying magic link: $e');
-        return true;
-      }());
-
       // Wrap unexpected errors
       throw AuthException('Failed to verify magic link. Please try again.');
     }
@@ -237,36 +173,12 @@ class AuthRepository {
   /// ```
   Future<bool> signOut() async {
     try {
-      // Debug logging
-      assert(() {
-        debugPrint('🚪 Signing out user');
-        return true;
-      }());
-
       await _supabase.auth.signOut();
-
-      // Debug logging
-      assert(() {
-        debugPrint('✅ User signed out successfully');
-        return true;
-      }());
 
       return true;
     } on AuthException catch (e) {
-      // Debug logging
-      assert(() {
-        debugPrint('❌ Sign out failed: ${e.message}');
-        return true;
-      }());
-
       throw _handleAuthException(e);
     } catch (e) {
-      // Debug logging
-      assert(() {
-        debugPrint('❌ Unexpected error signing out: $e');
-        return true;
-      }());
-
       throw AuthException('Failed to sign out. Please try again.');
     }
   }
@@ -320,13 +232,6 @@ class AuthRepository {
   ///
   /// Maps common Supabase auth errors to readable messages.
   AuthException _handleAuthException(AuthException e) {
-    // Debug logging
-    assert(() {
-      debugPrint('🔍 Handling AuthException: ${e.message}');
-      debugPrint('   Status code: ${e.statusCode}');
-      return true;
-    }());
-
     // Map common errors to user-friendly messages
     final message = e.message.toLowerCase();
 
@@ -342,9 +247,9 @@ class AuthRepository {
       );
     }
 
-    if (message.contains('not authorized') || message.contains('domain')) {
+    if (message.contains('not authorized')) {
       return AuthException(
-        'Please use your school email address (@galileimoro.edu.it)',
+        'Email not authorized. Please try again.',
       );
     }
 

@@ -247,7 +247,7 @@ class ModerationCard extends StatelessWidget {
             label: const Text('Approva'),
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
-              backgroundColor: const Color(0xFF4CAF50), // Material Green 500
+              backgroundColor: NovaColors.approveGreen,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(NovaRadius.m),
@@ -264,7 +264,7 @@ class ModerationCard extends StatelessWidget {
     return Positioned.fill(
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.5),
+          color: Colors.black.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(NovaRadius.l),
         ),
         child: Center(

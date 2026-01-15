@@ -1,27 +1,29 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gal/gal.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:nova/core/theme/nova_colors.dart';
-import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_radius.dart';
+import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
+import 'package:nova/features/profile/presentation/providers/profile_provider.dart' show currentProfileProvider;
 
-/// Photo editor screen like Instagram/Snapchat
+/// Photo preview screen (Instagram Stories style)
 ///
 /// Features:
-/// - Full screen photo preview
-/// - Add text overlays
-/// - Drawing/doodle mode
-/// - Sticker/emoji overlays
-/// - Save and send functionality
-class PhotoEditorScreen extends StatefulWidget {
+/// - Full screen photo preview with rounded corners
+/// - Top toolbar: close, text, link, sticker, music, download
+/// - Bottom bar: replay toggle, send button with profile picture
+class PhotoEditorScreen extends ConsumerStatefulWidget {
   final XFile imageFile;
-  final Function(File editedImage)? onSend;
+  final Function(File editedImage, {bool allowReplay})? onSend;
 
   const PhotoEditorScreen({
     super.key,
@@ -30,122 +32,49 @@ class PhotoEditorScreen extends StatefulWidget {
   });
 
   @override
-  State<PhotoEditorScreen> createState() => _PhotoEditorScreenState();
+  ConsumerState<PhotoEditorScreen> createState() => _PhotoEditorScreenState();
 }
 
-class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
+class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   final GlobalKey _repaintKey = GlobalKey();
 
-  // Text overlays
-  final List<_TextOverlay> _textOverlays = [];
-  bool _isAddingText = false;
-  final TextEditingController _textController = TextEditingController();
-  Color _currentTextColor = Colors.white;
-
-  // Drawing mode
-  bool _isDrawingMode = false;
-  final List<_DrawingPath> _drawingPaths = [];
-  List<Offset> _currentPath = [];
-  Color _drawingColor = Colors.white;
-  double _strokeWidth = 5.0;
-
-  // Stickers/Emojis
-  final List<_StickerOverlay> _stickers = [];
-
-  // Available colors
-  final List<Color> _colors = [
-    Colors.white,
-    Colors.black,
-    Colors.red,
-    Colors.orange,
-    Colors.yellow,
-    Colors.green,
-    Colors.blue,
-    Colors.purple,
-    Colors.pink,
-  ];
-
-  // Quick emojis for stickers
-  final List<String> _quickEmojis = [
-    '😀', '😂', '🥰', '😍', '🔥', '❤️', '👍', '🎉',
-    '✨', '💯', '🥳', '😎', '🤔', '😭', '💪', '🙌',
-  ];
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
+  /// Whether recipient can replay the media (true = unlimited, false = 1 view)
+  bool _allowReplay = true;
 
   @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(currentProfileProvider);
+    final profileImageUrl = profileAsync.valueOrNull?.avatarUrl;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: NovaColors.editorBackground,
       body: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
+        child: Column(
           children: [
-            // Main content with repaint boundary for export
-            RepaintBoundary(
-              key: _repaintKey,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Photo
-                  Image.file(
-                    File(widget.imageFile.path),
-                    fit: BoxFit.contain,
-                  ),
-
-                  // Drawing canvas
-                  if (_drawingPaths.isNotEmpty || _isDrawingMode)
-                    CustomPaint(
-                      painter: _DrawingPainter(
-                        paths: _drawingPaths,
-                        currentPath: _currentPath,
-                        currentColor: _drawingColor,
-                        strokeWidth: _strokeWidth,
-                      ),
-                      size: Size.infinite,
-                    ),
-
-                  // Text overlays
-                  ..._textOverlays.map((overlay) => _buildTextOverlay(overlay)),
-
-                  // Sticker overlays
-                  ..._stickers.map((sticker) => _buildStickerOverlay(sticker)),
-                ],
-              ),
-            ),
-
-            // Drawing gesture detector (only when in drawing mode)
-            if (_isDrawingMode)
-              GestureDetector(
-                onPanStart: _onDrawStart,
-                onPanUpdate: _onDrawUpdate,
-                onPanEnd: _onDrawEnd,
-                child: Container(color: Colors.transparent),
-              ),
-
             // Top toolbar
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _buildTopToolbar(),
+            _buildTopToolbar(),
+
+            // Main photo area with rounded corners
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 2),
+                child: ClipRRect(
+                  borderRadius: NovaRadius.circularM,
+                  child: RepaintBoundary(
+                    key: _repaintKey,
+                    child: Image.file(
+                      File(widget.imageFile.path),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                  ),
+                ),
+              ),
             ),
 
             // Bottom send bar
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _buildBottomBar(),
-            ),
-
-            // Text input overlay
-            if (_isAddingText)
-              _buildTextInputOverlay(),
+            _buildBottomBar(profileImageUrl),
           ],
         ),
       ),
@@ -159,150 +88,135 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         vertical: NovaSpacing.s,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Close button
-          _buildToolButton(
-            icon: Icons.close,
+          // Close button (X)
+          GestureDetector(
             onTap: () => Navigator.pop(context),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Center(
+                child: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            ),
           ),
 
-          // Tools
-          Row(
-            children: [
-              // Text tool
-              _buildToolButton(
-                icon: Icons.text_fields,
-                label: 'Aa',
-                isSelected: _isAddingText,
-                onTap: () {
-                  setState(() {
-                    _isAddingText = true;
-                    _isDrawingMode = false;
-                  });
-                },
-              ),
-              SizedBox(width: NovaSpacing.s),
+          const Spacer(),
 
-              // Drawing tool
-              _buildToolButton(
-                icon: Icons.brush,
-                isSelected: _isDrawingMode,
-                onTap: () {
-                  setState(() {
-                    _isDrawingMode = !_isDrawingMode;
-                    _isAddingText = false;
-                  });
-                },
+          // Download button with thin outline
+          GestureDetector(
+            onTap: _saveToGallery,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  width: 1.5,
+                ),
               ),
-              SizedBox(width: NovaSpacing.s),
-
-              // Sticker/emoji tool
-              _buildToolButton(
-                icon: Icons.emoji_emotions,
-                onTap: _showStickerPicker,
+              child: Center(
+                child: Icon(
+                  Icons.download_outlined,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
-              SizedBox(width: NovaSpacing.s),
-
-              // Music (placeholder)
-              _buildToolButton(
-                icon: Icons.music_note,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Musica in arrivo presto!')),
-                  );
-                },
-              ),
-              SizedBox(width: NovaSpacing.s),
-
-              // Download/Save
-              _buildToolButton(
-                icon: Icons.download,
-                onTap: _saveToGallery,
-              ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildToolButton({
-    IconData? icon,
-    String? label,
-    bool isSelected = false,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withOpacity(0.3)
-              : Colors.black.withOpacity(0.5),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: label != null
-              ? Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-              : Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 22,
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar() {
+  Widget _buildBottomBar(String? profileImageUrl) {
     return Container(
-      padding: EdgeInsets.all(NovaSpacing.m),
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.m,
+        vertical: NovaSpacing.m,
+      ),
+      color: NovaColors.editorBackground,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Replay option (placeholder)
-          Row(
-            children: [
-              Icon(Icons.play_circle_outline, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Consenti di riprodurre di nuovo',
-                style: NovaTypography.bodySmall.copyWith(color: Colors.white),
+          // Replay toggle (tappable)
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _allowReplay = !_allowReplay;
+                });
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white54, width: 1),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        _allowReplay ? Icons.play_arrow : Icons.looks_one,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: NovaSpacing.s),
+                  Flexible(
+                    child: Text(
+                      _allowReplay
+                          ? 'Consenti di riprodurre di nuovo'
+                          : 'Consenti 1 sola visualizzazione',
+                      style: NovaTypography.bodySmall.copyWith(
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
 
-          // Send button
+          SizedBox(width: NovaSpacing.m),
+
+          // Send button with profile picture
           GestureDetector(
             onTap: _sendPhoto,
             child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: NovaSpacing.m,
-                vertical: NovaSpacing.s,
+              padding: EdgeInsets.only(
+                left: 4,
+                right: NovaSpacing.m,
+                top: 4,
+                bottom: 4,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(NovaRadius.xl),
+                borderRadius: NovaRadius.circularXl,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Profile picture
                   CircleAvatar(
-                    radius: 12,
+                    radius: 16,
                     backgroundColor: NovaColors.primary(context),
-                    child: Icon(Icons.person, size: 14, color: Colors.white),
+                    backgroundImage: profileImageUrl != null
+                        ? NetworkImage(profileImageUrl)
+                        : null,
+                    child: profileImageUrl == null
+                        ? Icon(Icons.person, size: 16, color: Colors.white)
+                        : null,
                   ),
-                  SizedBox(width: 8),
+                  SizedBox(width: NovaSpacing.s),
                   Text(
                     'Invia',
                     style: NovaTypography.bodyMedium.copyWith(
@@ -319,305 +233,79 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
     );
   }
 
-  Widget _buildTextInputOverlay() {
-    return Container(
-      color: Colors.black.withOpacity(0.7),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Color picker
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.m),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: _colors.map((color) {
-                final isSelected = color == _currentTextColor;
-                return GestureDetector(
-                  onTap: () => setState(() => _currentTextColor = color),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    margin: EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected ? Colors.white : Colors.transparent,
-                        width: 3,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          SizedBox(height: NovaSpacing.l),
-
-          // Text input
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.xl),
-            child: TextField(
-              controller: _textController,
-              autofocus: true,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _currentTextColor,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Scrivi qualcosa...',
-                hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
-                  fontSize: 32,
-                ),
-                border: InputBorder.none,
-              ),
-              onSubmitted: (_) => _addText(),
-            ),
-          ),
-          SizedBox(height: NovaSpacing.l),
-
-          // Done button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _isAddingText = false;
-                    _textController.clear();
-                  });
-                },
-                child: Text(
-                  'Annulla',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-              ),
-              SizedBox(width: NovaSpacing.xl),
-              ElevatedButton(
-                onPressed: _addText,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: NovaColors.primary(context),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: NovaSpacing.l,
-                    vertical: NovaSpacing.s,
-                  ),
-                ),
-                child: Text(
-                  'Aggiungi',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextOverlay(_TextOverlay overlay) {
-    return Positioned(
-      left: overlay.position.dx,
-      top: overlay.position.dy,
-      child: GestureDetector(
-        onPanUpdate: (details) {
-          setState(() {
-            overlay.position += details.delta;
-          });
-        },
-        onLongPress: () => _removeTextOverlay(overlay),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(
-            overlay.text,
-            style: TextStyle(
-              color: overlay.color,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              shadows: [
-                Shadow(
-                  blurRadius: 4,
-                  color: Colors.black.withOpacity(0.5),
-                  offset: Offset(1, 1),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStickerOverlay(_StickerOverlay sticker) {
-    return Positioned(
-      left: sticker.position.dx,
-      top: sticker.position.dy,
-      child: GestureDetector(
-        onPanUpdate: (details) {
-          setState(() {
-            sticker.position += details.delta;
-          });
-        },
-        onLongPress: () => _removeSticker(sticker),
-        child: Text(
-          sticker.emoji,
-          style: TextStyle(fontSize: sticker.size),
-        ),
-      ),
-    );
-  }
-
-  void _addText() {
-    if (_textController.text.isNotEmpty) {
-      setState(() {
-        _textOverlays.add(_TextOverlay(
-          text: _textController.text,
-          color: _currentTextColor,
-          position: Offset(
-            MediaQuery.of(context).size.width / 2 - 50,
-            MediaQuery.of(context).size.height / 2 - 50,
-          ),
-        ));
-        _textController.clear();
-        _isAddingText = false;
-      });
-    }
-  }
-
-  void _removeTextOverlay(_TextOverlay overlay) {
-    setState(() {
-      _textOverlays.remove(overlay);
-    });
-  }
-
-  void _removeSticker(_StickerOverlay sticker) {
-    setState(() {
-      _stickers.remove(sticker);
-    });
-  }
-
-  void _showStickerPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.black.withOpacity(0.9),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: NovaSpacing.m),
-            Padding(
-              padding: EdgeInsets.all(NovaSpacing.m),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: _quickEmojis.map((emoji) {
-                  return GestureDetector(
-                    onTap: () {
-                      _addSticker(emoji);
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(emoji, style: TextStyle(fontSize: 32)),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            SizedBox(height: NovaSpacing.m),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _addSticker(String emoji) {
-    setState(() {
-      _stickers.add(_StickerOverlay(
-        emoji: emoji,
-        position: Offset(
-          MediaQuery.of(context).size.width / 2 - 30,
-          MediaQuery.of(context).size.height / 2 - 30,
-        ),
-      ));
-    });
-  }
-
-  // Drawing methods
-  void _onDrawStart(DragStartDetails details) {
-    setState(() {
-      _currentPath = [details.localPosition];
-    });
-  }
-
-  void _onDrawUpdate(DragUpdateDetails details) {
-    setState(() {
-      _currentPath.add(details.localPosition);
-    });
-  }
-
-  void _onDrawEnd(DragEndDetails details) {
-    if (_currentPath.isNotEmpty) {
-      setState(() {
-        _drawingPaths.add(_DrawingPath(
-          points: List.from(_currentPath),
-          color: _drawingColor,
-          strokeWidth: _strokeWidth,
-        ));
-        _currentPath = [];
-      });
-    }
-  }
-
   Future<void> _saveToGallery() async {
     try {
       final file = await _captureImage();
       if (file != null) {
+        // Check if we're on desktop (Windows/macOS/Linux)
+        final isDesktop = !kIsWeb &&
+            (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+
+        if (isDesktop) {
+          // On desktop, save to Downloads folder
+          final downloadsDir = await getDownloadsDirectory();
+          if (downloadsDir != null) {
+            final fileName = 'nova_photo_${DateTime.now().millisecondsSinceEpoch}.png';
+            final destPath = '${downloadsDir.path}${Platform.pathSeparator}$fileName';
+            await file.copy(destPath);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Immagine salvata in Downloads'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } else {
+            throw Exception('Cartella Downloads non trovata');
+          }
+        } else {
+          // On mobile, save to gallery using Gal package
+          await Gal.putImage(file.path);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Immagine salvata nella galleria!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Impossibile catturare l\'immagine'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Immagine salvata!'),
-            backgroundColor: Colors.green,
+            content: Text('Errore: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Errore nel salvataggio'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
   Future<File?> _captureImage() async {
     try {
       final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) return null;
+      if (boundary == null) {
+        return null;
+      }
 
       final image = await boundary.toImage(pixelRatio: 2.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) return null;
+      if (byteData == null) {
+        return null;
+      }
 
       final bytes = byteData.buffer.asUint8List();
 
@@ -635,104 +323,21 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   Future<void> _sendPhoto() async {
     final file = await _captureImage();
     if (file != null && widget.onSend != null) {
-      widget.onSend!(file);
-      Navigator.pop(context);
+      widget.onSend!(file, allowReplay: _allowReplay);
+      // Navigator.pop is handled by the callback
+    } else if (file == null) {
+      // Show error if capture failed
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Impossibile preparare l\'immagine per l\'invio'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } else {
-      // Just close if no callback
+      // No callback, just close
       Navigator.pop(context);
     }
   }
-}
-
-// Helper classes
-class _TextOverlay {
-  String text;
-  Color color;
-  Offset position;
-
-  _TextOverlay({
-    required this.text,
-    required this.color,
-    required this.position,
-  });
-}
-
-class _StickerOverlay {
-  String emoji;
-  Offset position;
-  double size;
-
-  _StickerOverlay({
-    required this.emoji,
-    required this.position,
-    this.size = 60,
-  });
-}
-
-class _DrawingPath {
-  List<Offset> points;
-  Color color;
-  double strokeWidth;
-
-  _DrawingPath({
-    required this.points,
-    required this.color,
-    required this.strokeWidth,
-  });
-}
-
-class _DrawingPainter extends CustomPainter {
-  final List<_DrawingPath> paths;
-  final List<Offset> currentPath;
-  final Color currentColor;
-  final double strokeWidth;
-
-  _DrawingPainter({
-    required this.paths,
-    required this.currentPath,
-    required this.currentColor,
-    required this.strokeWidth,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Draw completed paths
-    for (final path in paths) {
-      final paint = Paint()
-        ..color = path.color
-        ..strokeWidth = path.strokeWidth
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
-
-      if (path.points.length > 1) {
-        final drawPath = Path();
-        drawPath.moveTo(path.points.first.dx, path.points.first.dy);
-        for (int i = 1; i < path.points.length; i++) {
-          drawPath.lineTo(path.points[i].dx, path.points[i].dy);
-        }
-        canvas.drawPath(drawPath, paint);
-      }
-    }
-
-    // Draw current path
-    if (currentPath.isNotEmpty) {
-      final paint = Paint()
-        ..color = currentColor
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
-
-      if (currentPath.length > 1) {
-        final drawPath = Path();
-        drawPath.moveTo(currentPath.first.dx, currentPath.first.dy);
-        for (int i = 1; i < currentPath.length; i++) {
-          drawPath.lineTo(currentPath[i].dx, currentPath[i].dy);
-        }
-        canvas.drawPath(drawPath, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DrawingPainter oldDelegate) => true;
 }

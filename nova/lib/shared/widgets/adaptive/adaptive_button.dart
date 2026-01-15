@@ -90,12 +90,11 @@ class AdaptiveButton extends StatelessWidget {
       return CupertinoButton(
         onPressed: onPressed,
         color: buttonColor,
-        minSize: height,
         borderRadius: NovaRadius.circularL,
         padding: const EdgeInsets.symmetric(
           horizontal: NovaSpacing.l,
           vertical: NovaSpacing.m,
-        ),
+        ), minimumSize: Size(height, height),
         child: child,
       );
     }

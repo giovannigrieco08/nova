@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 import 'package:nova/features/chat/data/models/chat_message_model.dart';
-import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
 
 /// Manages Supabase Realtime subscriptions for the chat feature.
 ///
@@ -70,7 +70,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
           },
         );
 
-    await _messagesChannel!.subscribe();
+    _messagesChannel!.subscribe();
   }
 
   /// Subscribe to reaction changes via Broadcast channel
@@ -96,7 +96,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
           },
         );
 
-    await _reactionsChannel!.subscribe();
+    _reactionsChannel!.subscribe();
   }
 
   void _addMessage(ChatMessage message) {

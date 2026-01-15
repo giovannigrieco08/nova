@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/profile/presentation/providers/profile_provider.dart'
     show currentProfileProvider;
 
@@ -51,7 +51,7 @@ class TypingIndicatorNotifier extends StateNotifier<TypingIndicatorState> {
       _handlePresenceChange();
     });
 
-    await _presenceChannel!.subscribe((status, error) async {
+    _presenceChannel!.subscribe((status, error) async {
       if (status == RealtimeSubscribeStatus.subscribed) {
         // Track current user
         await _presenceChannel!.track({

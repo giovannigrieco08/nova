@@ -39,6 +39,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final typingState = ref.watch(typingIndicatorProvider);
     final composeState = ref.watch(composeStateProvider);
     final isOnlineAsync = ref.watch(isOnlineProvider);
+    final failedMessages = ref.watch(failedMessagesProvider);
 
     final isOnline = isOnlineAsync.whenOrNull(data: (v) => v) ?? true;
     final isConnecting = !realtimeState.isConnected;
@@ -50,6 +51,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         foregroundColor: NovaColors.textPrimary(context),
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: NovaColors.textPrimary(context),
+            size: 20,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Indietro',
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -115,6 +125,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: messagesAsync.when(
               data: (messages) => ChatMessageList(
                 messages: messages,
+                failedMessages: failedMessages,
                 isLoading: false,
                 hasMore: messages.length >= 50,
                 onLoadMore: () => _loadMoreMessages(messages),

@@ -44,7 +44,7 @@ class NovaToast {
           children: [
             Icon(
               iconData,
-              color: Colors.white,
+              color: NovaColors.onPrimaryLight,
               size: 20,
             ),
             SizedBox(width: NovaSpacing.m),
@@ -52,7 +52,7 @@ class NovaToast {
               child: Text(
                 message,
                 style: NovaTextStyles.body.copyWith(
-                  color: Colors.white,
+                  color: NovaColors.onPrimaryLight,
                 ),
               ),
             ),

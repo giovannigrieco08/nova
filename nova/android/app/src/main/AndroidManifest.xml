@@ -94,5 +94,21 @@
             <action android:name="android.intent.action.GET_CONTENT"/>
             <data android:mimeType="image/*"/>
         </intent>
+
+        <!-- URL Launcher: Required for Android 11+ (API 30+) to open external URLs -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
+
+        <!-- Geo Intent: For opening maps with coordinates -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="geo"/>
+        </intent>
     </queries>
 </manifest>

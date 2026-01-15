@@ -11,6 +11,7 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/providers/core_providers.dart';
 import '../../../../shared/widgets/nova_toast.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/avatar_initials.dart';
@@ -346,6 +347,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             CircleAvatar(
                               radius: 64,
                               backgroundImage: FileImage(_selectedAvatarFile!),
+                            )
+                          else if (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                            CircleAvatar(
+                              radius: 64,
+                              backgroundImage: NetworkImage(_avatarUrl!),
+                              onBackgroundImageError: (_, __) {},
                             )
                           else
                             AvatarInitials(

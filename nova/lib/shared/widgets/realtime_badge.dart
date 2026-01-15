@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:nova/core/theme/nova_colors.dart';
+import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 
 /// Realtime badge showing count with optional fallback indicator
@@ -62,7 +63,7 @@ class RealtimeBadge extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: NovaColors.errorLight, // Red notification badge
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: NovaRadius.circularXs,
           ),
           constraints: const BoxConstraints(
             minWidth: 20,
@@ -72,7 +73,7 @@ class RealtimeBadge extends StatelessWidget {
             child: Text(
               count > 99 ? '99+' : count.toString(),
               style: const TextStyle(
-                color: Colors.white,
+                color: NovaColors.onPrimaryLight,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 height: 1.0,
@@ -93,7 +94,7 @@ class RealtimeBadge extends StatelessWidget {
                 color: NovaColors.warningLight, // Yellow dot
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white,
+                  color: NovaColors.backgroundLight,
                   width: 1.5,
                 ),
               ),

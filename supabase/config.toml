@@ -122,7 +122,7 @@ enabled = true
 # in emails.
 site_url = "http://127.0.0.1:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["https://127.0.0.1:3000", "novaapp://auth/callback"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
@@ -358,3 +358,10 @@ entrypoint = "./functions/log-auth-event/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/log-auth-event/*.html" ]
+
+[functions.share-redirect]
+enabled = true
+# No JWT verification - this is a public endpoint for link previews
+verify_jwt = false
+import_map = "./functions/share-redirect/deno.json"
+entrypoint = "./functions/share-redirect/index.ts"

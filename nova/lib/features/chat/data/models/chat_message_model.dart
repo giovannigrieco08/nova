@@ -224,14 +224,20 @@ class ChatMessageModel {
   }
 
   static Map<String, dynamic>? _parseMediaJson(dynamic media) {
-    if (media == null) return null;
+    if (media == null) {
+      return null;
+    }
     // chat_media can be a list (from join) or single object
     if (media is List) {
-      if (media.isEmpty) return null;
-      return Map<String, dynamic>.from(media.first as Map);
+      if (media.isEmpty) {
+        return null;
+      }
+      final result = Map<String, dynamic>.from(media.first as Map);
+      return result;
     }
     if (media is Map) {
-      return Map<String, dynamic>.from(media);
+      final result = Map<String, dynamic>.from(media);
+      return result;
     }
     return null;
   }

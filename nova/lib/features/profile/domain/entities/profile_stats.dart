@@ -1,6 +1,7 @@
 /// Profile statistics entity
 ///
 /// Contains user activity statistics for display in profile.
+library;
 
 class ProfileStats {
   final int eventsCreatedCount;

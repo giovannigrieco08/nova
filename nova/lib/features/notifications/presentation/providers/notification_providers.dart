@@ -5,6 +5,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/notification.dart';
+import '../../domain/entities/notification_channel.dart';
 
 /// Notification preferences model
 class NotificationPreferences {
@@ -181,16 +182,27 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           .order('created_at', ascending: false)
           .limit(50);
 
-      final notifications = (response as List)
+      var notifications = (response as List)
           .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
           .toList();
 
+      // ========== MOCK DATA FOR UI TESTING ==========
+      // TODO: Remove this mock data after testing
+      if (notifications.isEmpty) {
+        notifications = _getMockNotifications(userId);
+      }
+      // ========== END MOCK DATA ==========
+
       state = state.copyWith(isLoading: false, notifications: notifications);
     } catch (e) {
-      // If table doesn't exist yet (migration not applied), show empty state
+      // If table doesn't exist yet (migration not applied), show mock data
       final errorStr = e.toString();
       if (errorStr.contains('does not exist') || errorStr.contains('42P01') || errorStr.contains('42703')) {
-        state = state.copyWith(isLoading: false, notifications: []);
+        final userId = _supabase.auth.currentUser?.id ?? 'mock-user';
+        state = state.copyWith(
+          isLoading: false,
+          notifications: _getMockNotifications(userId),
+        );
         return;
       }
       state = state.copyWith(
@@ -198,6 +210,141 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         error: 'Errore nel caricamento delle notifiche: ${e.toString()}',
       );
     }
+  }
+
+  /// Generate mock notifications for UI testing
+  List<AppNotification> _getMockNotifications(String userId) {
+    final now = DateTime.now();
+    return [
+      // Unread - Event approved (system notification, no actor)
+      AppNotification(
+        id: 'mock-1',
+        userId: userId,
+        channel: NotificationChannel.eventModeration,
+        title: 'approvato',
+        body: 'Il tuo evento "Torneo di Calcetto" è stato approvato ed è ora visibile nel feed.',
+        isRead: false,
+        createdAt: now.subtract(const Duration(minutes: 5)),
+        data: {'target_type': 'event', 'target_id': 'event-123'},
+        actorName: 'Nova',
+      ),
+      // Unread - Chat mention
+      AppNotification(
+        id: 'mock-2',
+        userId: userId,
+        channel: NotificationChannel.chatMention,
+        title: 'ti ha menzionato nella chat',
+        body: '@tu sei libero domani per lo studio di gruppo?',
+        isRead: false,
+        createdAt: now.subtract(const Duration(minutes: 15)),
+        data: {'target_type': 'chat_mention'},
+        actorName: 'Marco Bianchi',
+        actorAvatarUrl: 'https://i.pravatar.cc/150?u=marco',
+      ),
+      // Unread - New comment
+      AppNotification(
+        id: 'mock-3',
+        userId: userId,
+        channel: NotificationChannel.newComment,
+        title: 'ha commentato il tuo evento',
+        body: '"Fantastico! Ci sarò sicuramente!"',
+        isRead: false,
+        createdAt: now.subtract(const Duration(hours: 1)),
+        data: {'target_type': 'comment', 'event_id': 'event-123', 'target_id': 'comment-456'},
+        actorName: 'Sofia Romano',
+        actorAvatarUrl: 'https://i.pravatar.cc/150?u=sofia',
+      ),
+      // Unread - Event like
+      AppNotification(
+        id: 'mock-4',
+        userId: userId,
+        channel: NotificationChannel.eventLike,
+        title: 'ha messo like al tuo evento',
+        body: '"Torneo di Calcetto"',
+        isRead: false,
+        createdAt: now.subtract(const Duration(hours: 2)),
+        data: {'target_type': 'event', 'target_id': 'event-123'},
+        actorName: 'Giulia Verdi',
+        actorAvatarUrl: 'https://i.pravatar.cc/150?u=giulia',
+      ),
+      // Unread - New participation
+      AppNotification(
+        id: 'mock-5',
+        userId: userId,
+        channel: NotificationChannel.eventParticipation,
+        title: 'parteciperà al tuo evento',
+        body: '"Studio di Gruppo Matematica"',
+        isRead: false,
+        createdAt: now.subtract(const Duration(hours: 3)),
+        data: {'target_type': 'event', 'target_id': 'event-456'},
+        actorName: 'Andrea Rossi',
+        actorAvatarUrl: 'https://i.pravatar.cc/150?u=andrea',
+      ),
+      // Read - Comment reply (ieri)
+      AppNotification(
+        id: 'mock-6',
+        userId: userId,
+        channel: NotificationChannel.commentReply,
+        title: 'ha risposto al tuo commento',
+        body: '"Perfetto, ci vediamo alle 15!"',
+        isRead: true,
+        createdAt: now.subtract(const Duration(days: 1, hours: 2)),
+        data: {'target_type': 'comment', 'event_id': 'event-789', 'target_id': 'comment-789'},
+        actorName: 'Luca Neri',
+        actorAvatarUrl: 'https://i.pravatar.cc/150?u=luca',
+      ),
+      // Read - Co-organizer update (ieri)
+      AppNotification(
+        id: 'mock-7',
+        userId: userId,
+        channel: NotificationChannel.coorganizerUpdate,
+        title: 'ha modificato l\'evento',
+        body: '"Sessione di Studio"',
+        isRead: true,
+        createdAt: now.subtract(const Duration(days: 1, hours: 5)),
+        data: {'target_type': 'event', 'target_id': 'event-789'},
+        actorName: 'Marco Bianchi',
+        actorAvatarUrl: 'https://i.pravatar.cc/150?u=marco',
+      ),
+      // Read - Event rejected (ultimi 7 giorni)
+      AppNotification(
+        id: 'mock-8',
+        userId: userId,
+        channel: NotificationChannel.eventModeration,
+        title: 'non approvato',
+        body: 'Il tuo evento "Festa in Spiaggia" non è stato approvato. Motivo: località non idonea.',
+        isRead: true,
+        createdAt: now.subtract(const Duration(days: 3)),
+        data: {'target_type': 'event', 'target_id': 'event-rejected'},
+        actorName: 'Nova',
+      ),
+      // Read - Multiple likes (ultimi 7 giorni)
+      AppNotification(
+        id: 'mock-9',
+        userId: userId,
+        channel: NotificationChannel.eventLike,
+        title: 'e altri 2 hanno messo like',
+        body: 'al tuo evento "Cineforum Venerdì"',
+        isRead: true,
+        createdAt: now.subtract(const Duration(days: 4)),
+        data: {'target_type': 'event', 'target_id': 'event-cinema'},
+        actorName: 'Elena',
+        actorAvatarUrl: 'https://i.pravatar.cc/150?u=elena',
+      ),
+      // Read - Old participation (ultimi 7 giorni)
+      AppNotification(
+        id: 'mock-10',
+        userId: userId,
+        channel: NotificationChannel.eventParticipation,
+        title: 'e altri 4 parteciperanno',
+        body: 'al tuo evento "Torneo di Calcetto"',
+        isRead: true,
+        createdAt: now.subtract(const Duration(days: 5)),
+        data: {'target_type': 'event', 'target_id': 'event-123'},
+        actorName: 'Maria',
+        actorAvatarUrl: 'https://i.pravatar.cc/150?u=maria',
+      ),
+    ];
   }
 
   /// Refresh notifications

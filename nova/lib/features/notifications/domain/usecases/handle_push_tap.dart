@@ -5,8 +5,6 @@
 // Called: When user taps a push notification (background or terminated)
 // =====================================================================
 
-import 'package:flutter/foundation.dart';
-
 import '../entities/push_payload.dart';
 import '../../data/repositories/notification_repository.dart';
 
@@ -94,8 +92,6 @@ class HandlePushTap {
   /// [payload] - The parsed push notification payload
   /// Returns navigation result with target info
   Future<PushNavigationResult> execute(PushPayload payload) async {
-    debugPrint('🔔 HandlePushTap: Processing ${payload.targetType}');
-
     // Mark notification as read first
     if (payload.notificationId.isNotEmpty) {
       await _markAsRead(payload.notificationId);
@@ -155,10 +151,8 @@ class HandlePushTap {
   Future<void> _markAsRead(String notificationId) async {
     try {
       await _repository.markAsRead(notificationId);
-      debugPrint('✅ Notification marked as read: $notificationId');
     } catch (e) {
-      // Non-fatal - log but continue with navigation
-      debugPrint('⚠️ Failed to mark notification as read: $e');
+      // Non-fatal - continue with navigation
     }
   }
 }

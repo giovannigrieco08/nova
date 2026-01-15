@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Core Features:** Events, Bacheche (Request Board), Global Chat, Profile, Moderation Queue
 
-**Current Status:** Early initialization phase - SpecKit framework set up, constitution ratified (v1.1.0), no Flutter code yet
+**Current Status:** Early initialization phase - SpecKit framework set up, constitution ratified (v1.2.0), no Flutter code yet
 
 ---
 
@@ -84,7 +84,7 @@ spike/[###]-<short-name>      # Technical research (max 1 week)
 ## Constitution - Supreme Governance Document
 
 **Location:** [.specify/memory/constitution.md](.specify/memory/constitution.md)
-**Version:** 1.1.0 (last amended 2024-10-29)
+**Version:** 1.2.0 (last amended 2025-01-13)
 **Authority:** Constitution supersedes all other documents. When in doubt, consult the constitution.
 
 ### The 7 Core Principles
@@ -102,7 +102,7 @@ spike/[###]-<short-name>      # Technical research (max 1 week)
 ### Critical Constraints From Constitution
 
 **Privacy (Non-Negotiable):**
-- School email-only authentication (@galileimoro.edu.it)
+- Magic Link authentication via any valid email address (passwordless)
 - Zero third-party tracking (no Google Analytics, Facebook SDK)
 - Zero advertising ever
 - Chat messages auto-delete after 24 hours
@@ -308,7 +308,7 @@ Before merging any code to `main` branch, verify:
 
 ### SpecKit Configuration
 
-**[.specify/memory/constitution.md](.specify/memory/constitution.md)** - Supreme governance document (v1.1.0)
+**[.specify/memory/constitution.md](.specify/memory/constitution.md)** - Supreme governance document (v1.2.0)
 - Defines 7 core principles, tech stack, security requirements, GDPR compliance
 - Amendment process documented; Emergency override procedure included
 - **Always consult when unsure about project decisions**
@@ -522,7 +522,7 @@ Nova serves minors (ages 14-18) in the EU, therefore GDPR compliance is **mandat
 
 **Status:** Early initialization phase
 - ✅ SpecKit framework configured
-- ✅ Constitution ratified (v1.1.0)
+- ✅ Constitution ratified (v1.2.0)
 - ✅ Templates and workflows ready
 - ❌ No Flutter code yet (`lib/` directory does not exist)
 - ❌ No feature specs yet (`specs/` directory does not exist)
@@ -610,7 +610,7 @@ Nova serves minors (ages 14-18) in the EU, therefore GDPR compliance is **mandat
    - Constitution > Spec > Code
    - Fix code to match spec
    - Amend spec if it contradicts constitution (or request exception)
-   - Amend constitution only through governance process (v1.1.0 defines procedure)
+   - Amend constitution only through governance process (v1.2.0 defines procedure)
 
 ### Prototype & Exploration Guidelines
 
@@ -642,7 +642,7 @@ From **Principle 5 (SPEC_FIRST)** - Prototypes are allowed for exploration:
 
 ## Emergency Override Procedure
 
-From [Constitution v1.1.0 - Governance](.specify/memory/constitution.md):
+From [Constitution v1.2.0 - Governance](.specify/memory/constitution.md):
 
 If adhering to a principle creates **existential risk to project survival**:
 
@@ -666,7 +666,7 @@ If adhering to a principle creates **existential risk to project survival**:
 
 ## Related Documentation
 
-- **[Constitution v1.1.0](.specify/memory/constitution.md)** - Supreme governance document (7 principles, tech stack, anti-goals)
+- **[Constitution v1.2.0](.specify/memory/constitution.md)** - Supreme governance document (7 principles, tech stack, anti-goals)
 - **[Spec Template](.specify/templates/spec-template.md)** - Feature specification structure
 - **[Plan Template](.specify/templates/plan-template.md)** - Implementation plan structure
 - **[Tasks Template](.specify/templates/tasks-template.md)** - Task list organization pattern
@@ -674,8 +674,8 @@ If adhering to a principle creates **existential risk to project survival**:
 
 ---
 
-**Last Updated:** 2024-10-29
-**Constitution Version Referenced:** 1.1.0
+**Last Updated:** 2025-01-13
+**Constitution Version Referenced:** 1.2.0
 **Project Phase:** Early Initialization (pre-Flutter code)
 
 ---

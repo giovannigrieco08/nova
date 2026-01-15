@@ -151,7 +151,7 @@ class MyEventsScreen extends ConsumerWidget {
                 Container(
                   padding: EdgeInsets.all(NovaSpacing.small),
                   decoration: BoxDecoration(
-                    color: NovaColors.error(context).withOpacity(0.1),
+                    color: NovaColors.error(context).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(NovaRadius.small),
                   ),
                   child: Column(
@@ -227,7 +227,7 @@ class MyEventsScreen extends ConsumerWidget {
                 Navigator.pop(context); // Go back for now
               },
               icon: const Icon(Icons.add, size: 20),
-              label: const Text('Crea Evento'),
+              label: const Text('Crea evento'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: NovaColors.primary(context),
                 foregroundColor: Colors.white,

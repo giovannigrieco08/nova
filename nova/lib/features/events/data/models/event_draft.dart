@@ -49,6 +49,26 @@ class EventDraft extends HiveObject {
   @HiveField(6)
   List<String> pendingInvites;
 
+  /// GPS latitude coordinate for map integration
+  @HiveField(7)
+  double? latitude;
+
+  /// GPS longitude coordinate for map integration
+  @HiveField(8)
+  double? longitude;
+
+  /// OpenStreetMap Nominatim place_id for location lookup
+  @HiveField(9)
+  String? placeId;
+
+  /// Whether creator needs help with this event
+  @HiveField(10)
+  bool needsHelp;
+
+  /// Free-text help requests (max 5)
+  @HiveField(11)
+  List<String> helpRequests;
+
   EventDraft({
     required this.title,
     required this.description,
@@ -57,6 +77,11 @@ class EventDraft extends HiveObject {
     this.imagePath,
     required this.lastSaved,
     this.pendingInvites = const [],
+    this.latitude,
+    this.longitude,
+    this.placeId,
+    this.needsHelp = false,
+    this.helpRequests = const [],
   });
 
   /// Check if draft is valid for submission
@@ -77,7 +102,8 @@ class EventDraft extends HiveObject {
         eventDate == null &&
         location == null &&
         imagePath == null &&
-        pendingInvites.isEmpty;
+        pendingInvites.isEmpty &&
+        helpRequests.isEmpty;
   }
 
   /// Create a copy with updated fields
@@ -89,6 +115,11 @@ class EventDraft extends HiveObject {
     String? imagePath,
     DateTime? lastSaved,
     List<String>? pendingInvites,
+    double? latitude,
+    double? longitude,
+    String? placeId,
+    bool? needsHelp,
+    List<String>? helpRequests,
   }) {
     return EventDraft(
       title: title ?? this.title,
@@ -98,6 +129,11 @@ class EventDraft extends HiveObject {
       imagePath: imagePath ?? this.imagePath,
       lastSaved: lastSaved ?? this.lastSaved,
       pendingInvites: pendingInvites ?? this.pendingInvites,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      placeId: placeId ?? this.placeId,
+      needsHelp: needsHelp ?? this.needsHelp,
+      helpRequests: helpRequests ?? this.helpRequests,
     );
   }
 

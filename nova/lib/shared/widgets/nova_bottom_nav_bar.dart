@@ -91,10 +91,10 @@ class NovaBottomNavBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             decoration: BoxDecoration(
-              color: NovaColors.surface(context).withOpacity(0.8),
+              color: NovaColors.surface(context).withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(NovaRadius.full),
               border: Border.all(
-                color: NovaColors.border(context).withOpacity(0.2),
+                color: NovaColors.border(context).withValues(alpha: 0.2),
                 width: 0.5,
               ),
             ),
@@ -122,7 +122,7 @@ class NovaBottomNavBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(NovaRadius.full),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, -2),
           ),
@@ -216,7 +216,7 @@ class NovaBottomNavBar extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: NovaColors.errorLight, // Badge notification red
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: NovaRadius.circularXs,
                     ),
                     constraints: const BoxConstraints(
                       minWidth: 18,

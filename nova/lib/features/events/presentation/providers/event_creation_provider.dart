@@ -10,15 +10,70 @@
 // - Form submission with loading state
 
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/event_status.dart';
 import '../../domain/repositories/event_repository_interface.dart';
 import '../../data/models/event_draft.dart';
 import '../../data/datasources/event_local_datasource.dart';
 import './repository_providers.dart';
+
+// =============================================================================
+// PENDING INVITE INFO (for display during event creation)
+// =============================================================================
+
+/// Simple class to store invited user info for display in the form
+class PendingInviteInfo {
+  /// User ID (UUID)
+  final String id;
+
+  /// User's full name for display
+  final String fullName;
+
+  /// User's class (e.g., "3A", "4B")
+  final String className;
+
+  /// Optional avatar URL
+  final String? avatarUrl;
+
+  const PendingInviteInfo({
+    required this.id,
+    required this.fullName,
+    required this.className,
+    this.avatarUrl,
+  });
+
+  /// Create from JSON (for Hive serialization)
+  factory PendingInviteInfo.fromJson(Map<String, dynamic> json) {
+    return PendingInviteInfo(
+      id: json['id'] as String,
+      fullName: json['fullName'] as String,
+      className: json['className'] as String,
+      avatarUrl: json['avatarUrl'] as String?,
+    );
+  }
+
+  /// Convert to JSON (for Hive serialization)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'fullName': fullName,
+      'className': className,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is PendingInviteInfo && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
+}
 
 // =============================================================================
 // EVENT FORM STATE
@@ -34,10 +89,19 @@ class EventFormState {
   final File? imageFile;
   final String? imagePath; // Path for display (before upload)
 
-  /// Pending collaboration invites (user IDs who haven't accepted yet)
+  /// Pending collaboration invites (user info for display)
   /// These users will receive an invite when the event is created.
   /// They must accept before appearing as co-organizers.
-  final List<String> pendingInvites;
+  final List<PendingInviteInfo> pendingInvites;
+
+  // Map location coordinates (for Maps integration)
+  final double? latitude;
+  final double? longitude;
+  final String? placeId;
+
+  // Help requests (free-text, max 5)
+  final bool needsHelp;
+  final List<String> helpRequests;
 
   // Validation errors (null if valid)
   final String? titleError;
@@ -57,6 +121,11 @@ class EventFormState {
     this.imageFile,
     this.imagePath,
     this.pendingInvites = const [],
+    this.latitude,
+    this.longitude,
+    this.placeId,
+    this.needsHelp = false,
+    this.helpRequests = const [],
     this.titleError,
     this.descriptionError,
     this.eventDateError,
@@ -90,6 +159,9 @@ class EventFormState {
   /// Character count for description (with limit)
   String get descriptionCharCount => '${description.length}/500';
 
+  /// Check if location has map coordinates
+  bool get hasMapLocation => latitude != null && longitude != null;
+
   /// Copy with updated fields
   EventFormState copyWith({
     String? title,
@@ -98,7 +170,12 @@ class EventFormState {
     String? location,
     File? imageFile,
     String? imagePath,
-    List<String>? pendingInvites,
+    List<PendingInviteInfo>? pendingInvites,
+    double? latitude,
+    double? longitude,
+    String? placeId,
+    bool? needsHelp,
+    List<String>? helpRequests,
     String? titleError,
     String? descriptionError,
     String? eventDateError,
@@ -111,6 +188,7 @@ class EventFormState {
     bool clearImagePath = false,
     bool clearImageError = false,
     bool clearSubmitError = false,
+    bool clearCoordinates = false,
   }) {
     return EventFormState(
       title: title ?? this.title,
@@ -120,6 +198,11 @@ class EventFormState {
       imageFile: clearImageFile ? null : (imageFile ?? this.imageFile),
       imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
       pendingInvites: pendingInvites ?? this.pendingInvites,
+      latitude: clearCoordinates ? null : (latitude ?? this.latitude),
+      longitude: clearCoordinates ? null : (longitude ?? this.longitude),
+      placeId: clearCoordinates ? null : (placeId ?? this.placeId),
+      needsHelp: needsHelp ?? this.needsHelp,
+      helpRequests: helpRequests ?? this.helpRequests,
       titleError: titleError,
       descriptionError: descriptionError,
       eventDateError: eventDateError,
@@ -130,6 +213,7 @@ class EventFormState {
   }
 
   /// Convert to EventDraft for Hive storage
+  /// Encodes PendingInviteInfo as JSON strings for Hive compatibility
   EventDraft toDraft() {
     return EventDraft(
       title: title,
@@ -138,19 +222,52 @@ class EventFormState {
       location: location,
       imagePath: imagePath,
       lastSaved: DateTime.now(),
-      pendingInvites: pendingInvites,
+      // Store invite info as JSON strings
+      pendingInvites: pendingInvites
+          .map((i) => '${i.id}|${i.fullName}|${i.className}|${i.avatarUrl ?? ''}')
+          .toList(),
+      latitude: latitude,
+      longitude: longitude,
+      placeId: placeId,
+      needsHelp: needsHelp,
+      helpRequests: helpRequests,
     );
   }
 
   /// Create from EventDraft (restore from Hive)
+  /// Parses JSON strings back to PendingInviteInfo
   factory EventFormState.fromDraft(EventDraft draft) {
+    // Parse invite info from pipe-separated strings
+    final invites = draft.pendingInvites.map((str) {
+      final parts = str.split('|');
+      if (parts.length >= 3) {
+        return PendingInviteInfo(
+          id: parts[0],
+          fullName: parts[1],
+          className: parts[2],
+          avatarUrl: parts.length > 3 && parts[3].isNotEmpty ? parts[3] : null,
+        );
+      }
+      // Fallback for old format (just ID) - use placeholder name
+      return PendingInviteInfo(
+        id: str,
+        fullName: 'Utente',
+        className: '',
+      );
+    }).toList();
+
     return EventFormState(
       title: draft.title,
       description: draft.description,
       eventDate: draft.eventDate,
       location: draft.location,
       imagePath: draft.imagePath,
-      pendingInvites: draft.pendingInvites,
+      pendingInvites: invites,
+      latitude: draft.latitude,
+      longitude: draft.longitude,
+      placeId: draft.placeId,
+      needsHelp: draft.needsHelp,
+      helpRequests: draft.helpRequests,
     );
   }
 }
@@ -226,11 +343,37 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
     _saveDraftDebounced();
   }
 
-  /// Update location (optional field)
+  /// Update location (optional field) - text only, no coordinates
   void updateLocation(String? location) {
     state = state.copyWith(
       location: location,
       clearLocation: location == null || location.isEmpty,
+      clearCoordinates: true, // Clear coordinates when manually entering text
+    );
+    _saveDraftDebounced();
+  }
+
+  /// Update location with GPS coordinates (from map picker)
+  void updateLocationWithCoordinates({
+    required String locationName,
+    required double latitude,
+    required double longitude,
+    String? placeId,
+  }) {
+    state = state.copyWith(
+      location: locationName,
+      latitude: latitude,
+      longitude: longitude,
+      placeId: placeId,
+    );
+    _saveDraftDebounced();
+  }
+
+  /// Clear location and coordinates
+  void clearLocationAndCoordinates() {
+    state = state.copyWith(
+      clearLocation: true,
+      clearCoordinates: true,
     );
     _saveDraftDebounced();
   }
@@ -257,21 +400,57 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
 
   /// Add pending invite (max 3)
   /// The invited user must accept before becoming a co-organizer
-  void addPendingInvite(String userId) {
+  void addPendingInvite(PendingInviteInfo inviteInfo) {
     if (state.pendingInvites.length >= 3) return;
-    if (state.pendingInvites.contains(userId)) return;
+    if (state.pendingInvites.any((i) => i.id == inviteInfo.id)) return;
 
     state = state.copyWith(
-      pendingInvites: [...state.pendingInvites, userId],
+      pendingInvites: [...state.pendingInvites, inviteInfo],
     );
     _saveDraftDebounced();
   }
 
-  /// Remove pending invite
+  /// Remove pending invite by user ID
   void removePendingInvite(String userId) {
     state = state.copyWith(
-      pendingInvites: state.pendingInvites.where((id) => id != userId).toList(),
+      pendingInvites: state.pendingInvites.where((i) => i.id != userId).toList(),
     );
+    _saveDraftDebounced();
+  }
+
+  // ===========================================================================
+  // HELP REQUESTS MANAGEMENT
+  // ===========================================================================
+
+  /// Toggle needs help switch
+  void toggleNeedsHelp(bool value) {
+    state = state.copyWith(
+      needsHelp: value,
+      // Clear help requests when disabling
+      helpRequests: value ? state.helpRequests : const [],
+    );
+    _saveDraftDebounced();
+  }
+
+  /// Add help request (max 5)
+  void addHelpRequest(String description) {
+    final trimmed = description.trim();
+    if (trimmed.isEmpty) return;
+    if (state.helpRequests.length >= 5) return;
+    if (state.helpRequests.contains(trimmed)) return;
+
+    state = state.copyWith(
+      helpRequests: [...state.helpRequests, trimmed],
+    );
+    _saveDraftDebounced();
+  }
+
+  /// Remove help request by index
+  void removeHelpRequest(int index) {
+    if (index < 0 || index >= state.helpRequests.length) return;
+
+    final newList = List<String>.from(state.helpRequests)..removeAt(index);
+    state = state.copyWith(helpRequests: newList);
     _saveDraftDebounced();
   }
 
@@ -346,13 +525,18 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
         status: EventStatus.pending,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        latitude: state.latitude,
+        longitude: state.longitude,
+        placeId: state.placeId,
       );
 
       // Call repository to create event (handles image upload + draft deletion)
+      // Extract just the user IDs for the repository
+      final inviteUserIds = state.pendingInvites.map((i) => i.id).toList();
       final createdEvent = await _repository.createEvent(
         event,
         imageFile: state.imageFile,
-        pendingInvites: state.pendingInvites, // Send invites to these users
+        pendingInvites: inviteUserIds, // Send invites to these users
       );
 
       // Clear form on success

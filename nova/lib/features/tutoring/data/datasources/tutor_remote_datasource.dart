@@ -166,13 +166,13 @@ class TutorRemoteDataSource {
       }
       if (e.code == '23514') {
         // Check constraint violation
-        if (e.message?.contains('contact_required') == true) {
+        if (e.message.contains('contact_required') == true) {
           throw TutorValidationException('Inserisci almeno un contatto');
         }
-        if (e.message?.contains('bio') == true) {
+        if (e.message.contains('bio') == true) {
           throw TutorValidationException('La bio non può superare 200 caratteri');
         }
-        if (e.message?.contains('subjects') == true) {
+        if (e.message.contains('subjects') == true) {
           throw TutorValidationException('Seleziona da 1 a 5 materie');
         }
       }
@@ -217,7 +217,7 @@ class TutorRemoteDataSource {
       }
       if (e.code == '23514') {
         // Check constraint violation
-        if (e.message?.contains('contact_required') == true) {
+        if (e.message.contains('contact_required') == true) {
           throw TutorValidationException('Inserisci almeno un contatto');
         }
       }

@@ -114,10 +114,6 @@ class AvatarUploadService {
         }
       } while (compressed.lengthInBytes > 200 * 1024);
 
-      debugPrint(
-        'Avatar compressed: ${(compressed.lengthInBytes / 1024).toStringAsFixed(2)} KB (level: $quality)',
-      );
-
       return compressed;
     } catch (e) {
       throw AvatarUploadException(
@@ -136,8 +132,7 @@ class AvatarUploadService {
         await _supabase.storage.from('avatars').remove(['$userId/${file.name}']);
       }
     } catch (e) {
-      // Non-critical error - log but don't throw
-      debugPrint('Failed to delete old avatar: ${e.toString()}');
+      // Non-critical error - ignore but don't throw
     }
   }
 
@@ -172,7 +167,6 @@ class AvatarUploadService {
 
       return signedUrl;
     } catch (e) {
-      debugPrint('Failed to get avatar URL: ${e.toString()}');
       return null;
     }
   }

@@ -46,6 +46,7 @@ class AdminPanelScreen extends ConsumerWidget {
               ref.invalidate(moderatorsProvider);
               ref.invalidate(systemStatsProvider);
             },
+            tooltip: 'Aggiorna',
           ),
         ],
       ),
@@ -133,7 +134,7 @@ class AdminPanelScreen extends ConsumerWidget {
                 error: (error, _) => Container(
                   padding: const EdgeInsets.all(NovaSpacing.m),
                   decoration: BoxDecoration(
-                    color: NovaColors.error(context).withOpacity(0.1),
+                    color: NovaColors.error(context).withValues(alpha: 0.1),
                     borderRadius: const BorderRadius.all(
                       Radius.circular(16),
                     ),
@@ -166,7 +167,7 @@ class AdminPanelScreen extends ConsumerWidget {
                 error: (error, _) => Container(
                   padding: const EdgeInsets.all(NovaSpacing.m),
                   decoration: BoxDecoration(
-                    color: NovaColors.error(context).withOpacity(0.1),
+                    color: NovaColors.error(context).withValues(alpha: 0.1),
                     borderRadius: const BorderRadius.all(
                       Radius.circular(16),
                     ),

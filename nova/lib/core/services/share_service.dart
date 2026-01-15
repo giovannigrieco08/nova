@@ -3,8 +3,14 @@
 // Extended: 006-user-profile (US4 - Profile Sharing)
 // Purpose: Share events and profiles via native share sheet with deep links
 //
-// Event Deep Link Format: nova://events/{event_id}
-// Profile Deep Link Format: nova://profiles/{user_id}
+// Architecture:
+// - Uses Supabase Edge Function to generate landing pages with Open Graph meta tags
+// - Landing pages show rich previews in WhatsApp/Telegram (image, title, description)
+// - Auto-redirects to app via nova:// deep link scheme
+//
+// URL Formats:
+// - Development: https://PROJECT.supabase.co/functions/v1/share-redirect/events/{id}
+// - Production (Supabase Pro): https://nova.galileimoro.edu.it/events/{id}
 //
 // Usage:
 // ```dart
@@ -17,6 +23,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../features/events/domain/entities/event.dart';
 import '../../features/profile/domain/entities/profile.dart';
+import '../config/supabase_config.dart';
 
 /// Service for sharing Nova content via native share sheet
 class ShareService {
@@ -74,11 +81,29 @@ class ShareService {
     }
   }
 
+  /// Base URL for share links
+  ///
+  /// Uses Supabase Edge Function URL which:
+  /// - Generates landing page with Open Graph meta tags (for WhatsApp/Telegram previews)
+  /// - Auto-redirects to app via nova:// deep link
+  ///
+  /// With Supabase Pro, you can configure a custom domain (e.g., nova.galileimoro.edu.it)
+  /// to replace the default Supabase function URL.
+  static String get _baseUrl {
+    // Get Supabase URL and append the edge function path
+    final supabaseUrl = SupabaseConfig.supabaseUrl;
+    return '$supabaseUrl/functions/v1/share-redirect';
+
+    // When using Supabase Pro with custom domain, replace with:
+    // return 'https://nova.galileimoro.edu.it';
+  }
+
   /// Generate deep link for event
   ///
-  /// Format: nova://events/{event_id}
+  /// Format: {baseUrl}/events/{event_id}
+  /// The Edge Function returns HTML with Open Graph tags for rich previews
   static String _generateEventDeepLink(String eventId) {
-    return 'nova://events/$eventId';
+    return '$_baseUrl/events/$eventId';
   }
 
   /// Format basic share message (for feed cards)
@@ -180,9 +205,10 @@ $deepLink
 
   /// Generate deep link for profile
   ///
-  /// Format: nova://profiles/{user_id}
+  /// Format: {baseUrl}/profiles/{user_id}
+  /// The Edge Function returns HTML with Open Graph tags for rich previews
   static String _generateProfileDeepLink(String userId) {
-    return 'nova://profiles/$userId';
+    return '$_baseUrl/profiles/$userId';
   }
 }
 

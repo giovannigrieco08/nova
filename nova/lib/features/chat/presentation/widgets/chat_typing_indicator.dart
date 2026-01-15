@@ -29,7 +29,7 @@ class _ChatTypingIndicatorState extends State<ChatTypingIndicator>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 800),
     )..repeat();
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'dart:io' show Platform;
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/comment.dart';
@@ -114,6 +115,8 @@ class CommentActionsMenu extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
+      isDismissible: true,
+      enableDrag: true,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -125,7 +128,7 @@ class CommentActionsMenu extends StatelessWidget {
               margin: EdgeInsets.symmetric(vertical: NovaSpacing.s),
               decoration: BoxDecoration(
                 color: NovaColors.dividerLight,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: NovaRadius.circularXxs,
               ),
             ),
 

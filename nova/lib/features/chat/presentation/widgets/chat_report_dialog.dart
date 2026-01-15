@@ -89,7 +89,7 @@ class _ChatReportDialogState extends ConsumerState<ChatReportDialog> {
                       : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: NovaColors.error(context),
-                    foregroundColor: Colors.white,
+                    foregroundColor: NovaColors.onErrorLight,
                   ),
                   child: _isSubmitting
                       ? const SizedBox(
@@ -97,7 +97,7 @@ class _ChatReportDialogState extends ConsumerState<ChatReportDialog> {
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: NovaColors.onErrorLight,
                           ),
                         )
                       : const Text('Segnala'),
@@ -120,11 +120,11 @@ class _ChatReportDialogState extends ConsumerState<ChatReportDialog> {
         padding: EdgeInsets.all(NovaSpacing.s),
         decoration: BoxDecoration(
           color: isSelected
-              ? NovaColors.error(context).withOpacity(0.1)
+              ? NovaColors.error(context).withValues(alpha: 0.1)
               : NovaColors.card(context),
           borderRadius: BorderRadius.circular(NovaRadius.m),
           border: Border.all(
-            color: isSelected ? NovaColors.error(context) : Colors.transparent,
+            color: isSelected ? NovaColors.error(context) : NovaColors.card(context).withValues(alpha: 0.0),
           ),
         ),
         child: Row(

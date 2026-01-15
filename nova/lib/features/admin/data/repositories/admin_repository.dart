@@ -7,7 +7,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:nova/core/providers/supabase_provider.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/admin/domain/entities/moderator.dart';
 import 'package:nova/features/admin/domain/entities/system_stats.dart';
 import 'package:nova/features/admin/domain/entities/activity_log_entry.dart';

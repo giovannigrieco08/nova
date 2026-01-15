@@ -157,6 +157,28 @@ class NovaColors {
   static const Color glassTintDarkStrong = Color(0x35FFFFFF);
 
   // ============================================
+  // GLASS BORDER COLORS (for liquid glass borders)
+  // ============================================
+
+  /// White 15% opacity - subtle border (light mode)
+  static const Color glassBorderSubtle = Color(0x25FFFFFF);
+
+  /// White 21% opacity - medium border (light mode)
+  static const Color glassBorderMedium = Color(0x35FFFFFF);
+
+  /// White 27% opacity - strong border (light mode)
+  static const Color glassBorderStrong = Color(0x45FFFFFF);
+
+  /// White 19% opacity - subtle border (dark mode)
+  static const Color glassBorderDarkSubtle = Color(0x30FFFFFF);
+
+  /// White 25% opacity - medium border (dark mode)
+  static const Color glassBorderDarkMedium = Color(0x40FFFFFF);
+
+  /// White 31% opacity - strong border (dark mode)
+  static const Color glassBorderDarkStrong = Color(0x50FFFFFF);
+
+  // ============================================
   // CONTEXT-AWARE GETTERS (Auto Light/Dark Mode)
   // ============================================
 
@@ -256,16 +278,161 @@ class NovaColors {
   }
 
   // ============================================
+  // BRAND GRADIENT COLORS
+  // ============================================
+
+  /// Brand gradient start - purple
+  static const Color gradientStart = Color(0xFF833AB4);
+
+  /// Brand gradient end - pink/red
+  static const Color gradientEnd = Color(0xFFFD1D1D);
+
+  /// Brand gradient for avatars and accents
+  static const LinearGradient brandGradient = LinearGradient(
+    colors: [gradientStart, gradientEnd],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Like active color (Instagram red)
+  static const Color likeActive = Color(0xFFED4956);
+
+  // ============================================
+  // OVERLAY & TRANSPARENT COLORS
+  // ============================================
+
+  /// Transparent color (fully transparent)
+  static const Color transparent = Color(0x00000000);
+
+  /// Dark overlay (for modal backgrounds, image overlays)
+  static const Color overlayDark = Color(0x99000000);
+
+  /// Light overlay
+  static const Color overlayLight = Color(0x40FFFFFF);
+
+  // ============================================
+  // SEMANTIC GRAYS (Static)
+  // ============================================
+
+  /// Light gray for placeholders and backgrounds
+  static const Color grayLight = Color(0xFFF5F5F5);
+
+  /// Medium gray for disabled states
+  static const Color grayMedium = Color(0xFFE0E0E0);
+
+  /// Gray for timestamps and metadata
+  static const Color grayDark = Color(0xFF737373);
+
+  /// Placeholder background
+  static const Color placeholder = Color(0xFFF0F0F0);
+
+  /// Handle bar color for sheets
+  static const Color handleBar = Color(0xFFD0D0D0);
+
+  // ============================================
+  // HELP REQUEST COLORS
+  // ============================================
+
+  /// Help request background (light orange)
+  static const Color helpBackground = Color(0xFFFFF3E0);
+
+  /// Help request border (orange)
+  static const Color helpBorder = Color(0xFFFFB74D);
+
+  /// Help request accent (orange)
+  static const Color helpAccent = Color(0xFFFF9800);
+
+  /// Help request text (dark orange)
+  static const Color helpText = Color(0xFFE65100);
+
+  // ============================================
+  // EVENT STATUS COLORS
+  // ============================================
+
+  /// Event pending status background (light yellow)
+  static const Color eventPendingBackground = Color(0xFFFFF3CD);
+
+  /// Event pending status text (dark yellow/brown)
+  static const Color eventPendingText = Color(0xFF856404);
+
+  /// Event approved status background (light green)
+  static const Color eventApprovedBackground = Color(0xFFD4EDDA);
+
+  /// Event approved status text (dark green)
+  static const Color eventApprovedText = Color(0xFF155724);
+
+  /// Event rejected status background (light red)
+  static const Color eventRejectedBackground = Color(0xFFF8D7DA);
+
+  /// Event rejected status text (dark red)
+  static const Color eventRejectedText = Color(0xFF721C24);
+
+  // ============================================
+  // AVATAR COLORS (Material Design 500 palette)
+  // ============================================
+
+  /// Material Design 500 color palette for avatar backgrounds (17 colors)
+  /// Used by AvatarInitialsGenerator for deterministic name-based coloring
+  static const List<Color> avatarColors = [
+    Color(0xFFF44336), // Red 500
+    Color(0xFFE91E63), // Pink 500
+    Color(0xFF9C27B0), // Purple 500
+    Color(0xFF673AB7), // Deep Purple 500
+    Color(0xFF3F51B5), // Indigo 500
+    Color(0xFF2196F3), // Blue 500
+    Color(0xFF03A9F4), // Light Blue 500
+    Color(0xFF00BCD4), // Cyan 500
+    Color(0xFF009688), // Teal 500
+    Color(0xFF4CAF50), // Green 500
+    Color(0xFF8BC34A), // Light Green 500
+    Color(0xFFCDDC39), // Lime 500
+    Color(0xFFFFC107), // Amber 500
+    Color(0xFFFF9800), // Orange 500
+    Color(0xFFFF5722), // Deep Orange 500
+    Color(0xFF795548), // Brown 500
+    Color(0xFF607D8B), // Blue Grey 500
+  ];
+
+  /// Avatar quick access colors (subset for small color pickers)
+  static const List<Color> avatarColorsQuick = [
+    Color(0xFF6366F1), // Indigo
+    Color(0xFF8B5CF6), // Purple
+    Color(0xFFEC4899), // Pink
+    Color(0xFF14B8A6), // Teal
+    Color(0xFFF59E0B), // Amber
+  ];
+
+  // ============================================
+  // SOCIAL MEDIA & BRAND COLORS
+  // ============================================
+
+  /// WhatsApp brand green - for WhatsApp contact buttons
+  static const Color whatsappGreen = Color(0xFF25D366);
+
+  /// Instagram brand pink - for Instagram contact buttons
+  static const Color instagramPink = Color(0xFFE4405F);
+
+  /// Material Green 500 - for approve/success action buttons
+  static const Color approveGreen = Color(0xFF4CAF50);
+
+  // ============================================
+  // MEDIA & EDITOR COLORS
+  // ============================================
+
+  /// Photo editor dark background
+  static const Color editorBackground = Color(0xFF121212);
+
+  // ============================================
   // LEGACY ALIASES (backward compatibility)
   // ============================================
 
-  /// @deprecated Use [primary] instead
+  /// @deprecated Use [gradientStart] or [primary] instead
   static const Color brandViolet = primaryLight;
 
-  /// @deprecated Use gradient with primary colors instead
+  /// @deprecated Use [gradientEnd] instead
   static const Color brandPink = Color(0xFFEC4899); // Pink-500
 
-  /// @deprecated Use [error] instead
+  /// @deprecated Use [likeActive] instead
   static const Color instagramRed = Color(0xFFE1306C); // Instagram brand red
 
   /// @deprecated Use [background] instead

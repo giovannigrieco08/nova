@@ -141,7 +141,7 @@ class _NotificationPreferencesScreenState
                 Container(
                   padding: EdgeInsets.all(NovaSpacing.medium),
                   decoration: BoxDecoration(
-                    color: NovaColors.primary(context).withOpacity(0.1),
+                    color: NovaColors.primary(context).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(NovaRadius.medium),
                   ),
                   child: Row(
@@ -216,7 +216,7 @@ class _NotificationPreferencesScreenState
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: NovaColors.primary(context),
+            activeThumbColor: NovaColors.primary(context),
           ),
         ],
       ),

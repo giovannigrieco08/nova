@@ -7,14 +7,20 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
+import 'package:nova/core/theme/nova_colors.dart';
+import 'package:nova/core/widgets/nova_logo.dart';
 import 'package:nova/core/theme/cupertino_theme.dart';
+import 'package:nova/core/providers/theme_provider.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/utils/deep_link_handler.dart';
 import 'package:nova/core/models/auth_state.dart';
@@ -29,13 +35,16 @@ import 'package:nova/features/profile/domain/entities/profile.dart';
 import 'package:nova/features/profile/presentation/providers/profile_provider.dart';
 import 'package:nova/features/profile/presentation/providers/incomplete_profile_provider.dart';
 import 'package:nova/features/profile/presentation/screens/profile_setup_screen.dart';
+import 'package:nova/features/profile/presentation/screens/other_profile_screen.dart';
 import 'package:nova/features/events/data/models/event_model.dart';
 import 'package:nova/features/events/data/models/event_draft.dart';
 import 'package:nova/features/events/data/models/comment_model.dart';
 import 'package:nova/features/events/data/models/like_model.dart';
+import 'package:nova/core/animations/page_transitions.dart';
 import 'package:nova/features/events/data/models/participation_model.dart';
 import 'package:nova/features/events/data/models/report_model.dart';
 import 'package:nova/features/events/domain/entities/offline_action.dart';
+import 'package:nova/features/search/data/models/search_results_cache.dart';
 
 /// Firebase Cloud Messaging background message handler
 /// Must be top-level function (not inside a class)
@@ -44,14 +53,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Initialize Firebase if not already initialized
   await Firebase.initializeApp();
 
-  // Handle background notification
-  assert(() {
-    debugPrint('🔔 Handling background FCM message: ${message.messageId}');
-    debugPrint('   Title: ${message.notification?.title}');
-    debugPrint('   Body: ${message.notification?.body}');
-    return true;
-  }());
-
   // Background message handling logic will be added in Phase 4 (US2)
   // For now, just log the message
 }
@@ -59,6 +60,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock screen orientation to portrait mode only
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Initialize Italian locale for date formatting
+  await initializeDateFormatting('it_IT', null);
 
   // Initialize Firebase (for FCM push notifications)
   await Firebase.initializeApp();
@@ -81,21 +91,21 @@ Future<void> main() async {
     await Hive.deleteBoxFromDisk('event_drafts');
     await Hive.deleteBoxFromDisk('offline_actions_queue');
     await Hive.deleteBoxFromDisk('chat_pending_messages');
-    debugPrint('✅ Cleared Hive boxes due to typeId migration');
   } catch (e) {
-    debugPrint('ℹ️ Hive box cleanup: $e');
+    // Hive box cleanup - ignore errors
   }
 
   // Register adapters (with error handling for hot reload/restart)
   // TypeIds must match @HiveType(typeId: X) in each model:
   // ProfileModel=1, EventModel=2, OfflineAction=3, CommentModel=4,
-  // LikeModel=5, ParticipationModel=6, ReportModel=7, EventDraft=8
+  // LikeModel=5, ParticipationModel=6, ReportModel=7, EventDraft=8,
+  // SearchResultsCache=11, CachedEventResult=12, CachedProfileResult=13
   try {
     if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(ProfileModelAdapter());
     }
   } catch (e) {
-    debugPrint('ProfileModelAdapter already registered: $e');
+    // ProfileModelAdapter already registered
   }
 
   try {
@@ -103,7 +113,7 @@ Future<void> main() async {
       Hive.registerAdapter(EventModelAdapter());
     }
   } catch (e) {
-    debugPrint('EventModelAdapter already registered: $e');
+    // EventModelAdapter already registered
   }
 
   try {
@@ -111,7 +121,7 @@ Future<void> main() async {
       Hive.registerAdapter(OfflineActionAdapter());
     }
   } catch (e) {
-    debugPrint('OfflineActionAdapter already registered: $e');
+    // OfflineActionAdapter already registered
   }
 
   try {
@@ -119,7 +129,7 @@ Future<void> main() async {
       Hive.registerAdapter(CommentModelAdapter());
     }
   } catch (e) {
-    debugPrint('CommentModelAdapter already registered: $e');
+    // CommentModelAdapter already registered
   }
 
   try {
@@ -127,7 +137,7 @@ Future<void> main() async {
       Hive.registerAdapter(LikeModelAdapter());
     }
   } catch (e) {
-    debugPrint('LikeModelAdapter already registered: $e');
+    // LikeModelAdapter already registered
   }
 
   try {
@@ -135,7 +145,7 @@ Future<void> main() async {
       Hive.registerAdapter(ParticipationModelAdapter());
     }
   } catch (e) {
-    debugPrint('ParticipationModelAdapter already registered: $e');
+    // ParticipationModelAdapter already registered
   }
 
   try {
@@ -143,7 +153,7 @@ Future<void> main() async {
       Hive.registerAdapter(ReportModelAdapter());
     }
   } catch (e) {
-    debugPrint('ReportModelAdapter already registered: $e');
+    // ReportModelAdapter already registered
   }
 
   try {
@@ -151,7 +161,32 @@ Future<void> main() async {
       Hive.registerAdapter(EventDraftAdapter()); // Feature 004: Event drafts
     }
   } catch (e) {
-    debugPrint('EventDraftAdapter already registered: $e');
+    // EventDraftAdapter already registered
+  }
+
+  // Search results cache adapters (TypeIds: 11, 12, 13)
+  try {
+    if (!Hive.isAdapterRegistered(11)) {
+      Hive.registerAdapter(SearchResultsCacheAdapter());
+    }
+  } catch (e) {
+    // SearchResultsCacheAdapter already registered
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(12)) {
+      Hive.registerAdapter(CachedEventResultAdapter());
+    }
+  } catch (e) {
+    // CachedEventResultAdapter already registered
+  }
+
+  try {
+    if (!Hive.isAdapterRegistered(13)) {
+      Hive.registerAdapter(CachedProfileResultAdapter());
+    }
+  } catch (e) {
+    // CachedProfileResultAdapter already registered
   }
 
   await Hive.openBox<ProfileModel>('profiles');
@@ -207,97 +242,53 @@ class _NovaAppState extends ConsumerState<NovaApp> {
   Future<void> _initializeDeepLinks() async {
     await _deepLinkService.initialize(
       onLink: (uri) async {
-        assert(() {
-          debugPrint('🔗 Processing deep link: $uri');
-          return true;
-        }());
-
         // Check if this is an auth callback (magic link)
         if (uri.scheme == 'novaapp' &&
             uri.host == 'auth' &&
             uri.path == '/callback') {
           // Verify magic link token via auth notifier
-          final success = await ref
+          await ref
               .read(authNotifierProvider.notifier)
               .verifyMagicLink(uri);
-
-          if (success) {
-            assert(() {
-              debugPrint('✅ Magic link verified via deep link');
-              return true;
-            }());
-            // Navigation handled automatically by AuthGuard
-            // when auth state changes to AuthStateAuthenticated
-          } else {
-            assert(() {
-              debugPrint('❌ Magic link verification failed');
-              return true;
-            }());
-          }
+          // Navigation handled automatically by AuthGuard
+          // when auth state changes to AuthStateAuthenticated
         } else {
           // Try parsing as Nova event/profile deep link (nova://events/{id})
           final deepLinkInfo = _deepLinkHandler.parse(uri);
 
           if (deepLinkInfo != null) {
-            assert(() {
-              debugPrint('✅ Parsed Nova deep link: $deepLinkInfo');
-              return true;
-            }());
-
             // Handle based on deep link type
             switch (deepLinkInfo.type) {
               case DeepLinkType.event:
                 // Navigate to event detail screen
-                assert(() {
-                  debugPrint('📍 Navigating to event: ${deepLinkInfo.eventId}');
-                  return true;
-                }());
-
                 // Wait a bit for app initialization to complete
                 await Future.delayed(const Duration(milliseconds: 500));
 
                 // Navigate to EventDetailScreen with eventId
                 if (_navigatorKey.currentState != null) {
-                  if (PlatformUtils.isIOS) {
-                    // iOS: Use CupertinoPageRoute
-                    _navigatorKey.currentState!.push(
-                      CupertinoPageRoute(
-                        builder: (context) => EventDetailScreen(
-                          eventId: deepLinkInfo.eventId,
-                        ),
-                      ),
-                    );
-                  } else {
-                    // Android: Use MaterialPageRoute
-                    _navigatorKey.currentState!.push(
-                      MaterialPageRoute(
-                        builder: (context) => EventDetailScreen(
-                          eventId: deepLinkInfo.eventId,
-                        ),
-                      ),
-                    );
-                  }
-                } else {
-                  assert(() {
-                    debugPrint('⚠️ Navigator not ready yet for deep link');
-                    return true;
-                  }());
+                  _navigatorKey.currentState!.push(
+                    NovaPageRoute.swipeBack(
+                      page: EventDetailScreen(eventId: deepLinkInfo.eventId),
+                    ),
+                  );
                 }
                 break;
 
               case DeepLinkType.profile:
-                assert(() {
-                  debugPrint('📍 Navigating to profile: ${deepLinkInfo.userId}');
-                  return true;
-                }());
-                // TODO: Add profile deep link navigation (future feature)
+                // Navigate to profile screen
+                // Wait a bit for app initialization to complete
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                // Navigate to OtherProfileScreen with userId
+                if (_navigatorKey.currentState != null) {
+                  _navigatorKey.currentState!.push(
+                    NovaPageRoute.swipeBack(
+                      page: OtherProfileScreen(userId: deepLinkInfo.userId!),
+                    ),
+                  );
+                }
                 break;
             }
-          } else {
-            assert(() {
-              debugPrint('⚠️ Unknown deep link: $uri');
-              return true;
-            }());
           }
         }
       },
@@ -312,16 +303,38 @@ class _NovaAppState extends ConsumerState<NovaApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch theme mode for both platforms
+    final themeMode = ref.watch(themeModeProvider);
+
     // Platform-adaptive app wrapper
     if (PlatformUtils.isIOS) {
+      // Determine Cupertino theme based on user selection
+      final CupertinoThemeData cupertinoTheme;
+      switch (themeMode) {
+        case ThemeMode.light:
+          cupertinoTheme = NovaCupertinoTheme.light;
+          break;
+        case ThemeMode.dark:
+          cupertinoTheme = NovaCupertinoTheme.dark;
+          break;
+        case ThemeMode.system:
+          // Follow system brightness
+          final brightness =
+              WidgetsBinding.instance.platformDispatcher.platformBrightness;
+          cupertinoTheme = brightness == Brightness.dark
+              ? NovaCupertinoTheme.dark
+              : NovaCupertinoTheme.light;
+          break;
+      }
+
       // iOS: CupertinoApp with native theme
       return CupertinoApp(
         title: 'Nova',
         debugShowCheckedModeBanner: false,
         navigatorKey: _navigatorKey, // For deep link navigation
 
-        // Cupertino theme configuration (cached themes)
-        theme: NovaCupertinoTheme.light,
+        // Cupertino theme based on user selection
+        theme: cupertinoTheme,
 
         // Splash screen shown first, then navigates to AuthGuard
         home: const SplashScreen(),
@@ -344,13 +357,24 @@ class _NovaAppState extends ConsumerState<NovaApp> {
       // Material 3 theme configuration
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system, // Auto follow OS theme
+      themeMode: ref.watch(themeModeProvider), // User-selectable theme
 
       // Splash screen shown first, then navigates to AuthGuard
       home: const SplashScreen(),
     );
   }
 }
+
+// =============================================================================
+// ⚠️ DEV BYPASS - REMOVE BEFORE PRODUCTION! ⚠️
+// =============================================================================
+// Set to true to bypass authentication and go directly to main app.
+// Requires a valid existing Supabase session (login once manually first).
+// This is ONLY for development testing. MUST be set to false before release!
+// =============================================================================
+const bool kDevBypassAuth = false;
+const String kDevUserEmail = 'griecogiovanni08@gmail.com';
+// =============================================================================
 
 /// Auth guard widget that routes based on authentication state
 ///
@@ -364,6 +388,11 @@ class AuthGuard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // ⚠️ DEV BYPASS - Skip auth check in development
+    if (kDevBypassAuth) {
+      return const _ProfileCheckGuard();
+    }
+
     // Watch auth state from provider
     final authState = ref.watch(authNotifierProvider);
 
@@ -412,6 +441,43 @@ class _ProfileCheckGuard extends ConsumerWidget {
 
     // If no user ID, return to login (shouldn't happen after AuthStateAuthenticated)
     if (userId == null) {
+      // ⚠️ DEV MODE: Show helpful message if no session exists
+      if (kDevBypassAuth) {
+        return Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.warning_amber, size: 64, color: NovaColors.warningLight),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'DEV MODE: No Session',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Devi prima effettuare il login una volta con:\n$kDevUserEmail\n\nPoi il bypass funzionerà automaticamente.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Navigate to login
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      );
+                    },
+                    child: const Text('Vai al Login'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
       return const LoginScreen();
     }
 
@@ -444,14 +510,17 @@ class _ProfileCheckGuard extends ConsumerWidget {
 }
 
 /// Loading screen shown during auth initialization
+/// Uses same splash screen style for seamless experience
 class _LoadingScreen extends StatelessWidget {
   const _LoadingScreen();
 
   @override
   Widget build(BuildContext context) {
+    // Show same UI as splash screen - no spinner, just the logo
     return const Scaffold(
+      backgroundColor: NovaColors.backgroundDark,
       body: Center(
-        child: CircularProgressIndicator(),
+        child: NovaLogo.large(color: NovaColors.backgroundLight),
       ),
     );
   }
@@ -475,7 +544,7 @@ class _ErrorScreen extends StatelessWidget {
               const Icon(
                 Icons.error_outline,
                 size: 64,
-                color: Colors.red,
+                color: NovaColors.errorLight,
               ),
               const SizedBox(height: 16),
               const Text(

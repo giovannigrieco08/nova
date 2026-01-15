@@ -7,7 +7,6 @@
 // =====================================================================
 
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 // import 'package:flutter_app_badger/flutter_app_badger.dart'; // REMOVED: incompatible with AGP 8.0+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,11 +74,8 @@ class PushNotificationService {
   /// Sets up message handlers for all app states.
   Future<void> initialize() async {
     if (_isInitialized) {
-      debugPrint('⚠️ PushNotificationService already initialized');
       return;
     }
-
-    debugPrint('🔔 Initializing PushNotificationService...');
 
     // Initialize local notifications for foreground display
     await _initializeLocalNotifications();
@@ -91,7 +87,6 @@ class PushNotificationService {
     _setupTokenRefreshListener();
 
     _isInitialized = true;
-    debugPrint('✅ PushNotificationService initialized');
   }
 
   /// Initialize local notifications plugin
@@ -146,7 +141,6 @@ class PushNotificationService {
   /// Setup token refresh listener
   void _setupTokenRefreshListener() {
     _messaging.onTokenRefresh.listen((newToken) async {
-      debugPrint('🔄 FCM token refreshed');
       await _handleTokenRefresh(newToken);
     });
   }
@@ -177,7 +171,6 @@ class PushNotificationService {
   /// On iOS: Shows system permission dialog
   /// On Android 13+: Shows runtime permission dialog
   Future<NotificationPermissionState> requestPermission() async {
-    debugPrint('🔔 Requesting notification permission...');
 
     final settings = await _messaging.requestPermission(
       alert: true,
@@ -194,7 +187,6 @@ class PushNotificationService {
         NotificationPermissionState.notDetermined,
     };
 
-    debugPrint('📱 Permission result: ${status.name}');
     return status;
   }
 
@@ -215,19 +207,15 @@ class PushNotificationService {
       // Get FCM token
       final token = await _messaging.getToken();
       if (token == null) {
-        debugPrint('⚠️ Failed to get FCM token');
         return null;
       }
 
       _currentToken = token;
-      debugPrint('📱 FCM token obtained: ${token.substring(0, 20)}...');
 
       // Register with backend
       final tokenId = await _repository.registerToken(token);
-      debugPrint('✅ FCM token registered: $tokenId');
       return tokenId;
     } catch (e) {
-      debugPrint('❌ Failed to register FCM token: $e');
       return null;
     }
   }
@@ -244,8 +232,6 @@ class PushNotificationService {
 
       if (storedInstanceId == null) {
         // Fresh install or reinstall detected
-        debugPrint('🔄 Fresh install detected, cleaning up old tokens...');
-
         // Remove all tokens for this user (they're now invalid)
         await _repository.removeAllTokens();
 
@@ -253,14 +239,9 @@ class PushNotificationService {
         const uuid = Uuid();
         final newInstanceId = uuid.v4();
         await prefs.setString(_kAppInstanceId, newInstanceId);
-
-        debugPrint('✅ Old tokens cleaned, new instance ID: ${newInstanceId.substring(0, 8)}...');
-      } else {
-        debugPrint('📱 Existing app instance: ${storedInstanceId.substring(0, 8)}...');
       }
     } catch (e) {
-      // Non-fatal - log but continue with registration
-      debugPrint('⚠️ Failed to check for app reinstall: $e');
+      // Non-fatal - continue with registration
     }
   }
 
@@ -269,7 +250,6 @@ class PushNotificationService {
   /// Removes the current device's token from backend.
   Future<bool> removeToken() async {
     if (_currentToken == null) {
-      debugPrint('⚠️ No FCM token to remove');
       return true;
     }
 
@@ -277,11 +257,9 @@ class PushNotificationService {
       final success = await _repository.removeToken(_currentToken!);
       if (success) {
         _currentToken = null;
-        debugPrint('✅ FCM token removed');
       }
       return success;
     } catch (e) {
-      debugPrint('❌ Failed to remove FCM token: $e');
       return false;
     }
   }
@@ -296,7 +274,6 @@ class PushNotificationService {
     // Register new token
     _currentToken = newToken;
     await _repository.registerToken(newToken);
-    debugPrint('✅ Token refresh handled');
   }
 
   // =========================================================================
@@ -315,7 +292,7 @@ class PushNotificationService {
       final pushPayload = PushPayload.fromFcmData(data);
       onPushTap?.call(pushPayload);
     } catch (e) {
-      debugPrint('❌ Failed to parse local notification payload: $e');
+      // Failed to parse local notification payload - ignore
     }
   }
 
@@ -340,8 +317,6 @@ class PushNotificationService {
 
   /// Handle foreground message
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    debugPrint('📥 Foreground message received: ${message.messageId}');
-
     // Parse payload
     final payload = PushPayload.fromFcmData(message.data);
 
@@ -357,8 +332,6 @@ class PushNotificationService {
 
   /// Handle background tap (app was in background, user tapped notification)
   void _handleBackgroundTap(RemoteMessage message) {
-    debugPrint('👆 Background notification tapped: ${message.messageId}');
-
     final payload = PushPayload.fromFcmData(message.data);
     onPushTap?.call(payload);
   }
@@ -370,7 +343,6 @@ class PushNotificationService {
     final message = await _messaging.getInitialMessage();
     if (message == null) return null;
 
-    debugPrint('📱 App opened from terminated via push: ${message.messageId}');
     return PushPayload.fromFcmData(message.data);
   }
 
@@ -421,7 +393,6 @@ class PushNotificationService {
   /// AGP 8.0+ compatibility issues. Will be re-enabled when package is updated.
   Future<void> _updateBadge(int count) async {
     // Badge functionality disabled - flutter_app_badger incompatible with AGP 8.0+
-    debugPrint('📛 Badge update requested: $count (feature disabled)');
   }
 
   /// Clear badge (call when user reads all notifications)

@@ -272,7 +272,7 @@ class ProfileRepository {
   Future<Profile?> getPublicProfile(String userId) async {
     try {
       final model = await _remoteDataSource.getProfileById(userId);
-      if (model != null && model.profileVisible) {
+      if (model.profileVisible) {
         return model.toEntity();
       }
       return null;

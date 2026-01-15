@@ -13,23 +13,121 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/event.dart';
 import './repository_providers.dart';
 
-/// Provider for pending events awaiting moderation
+/// State notifier for moderation queue with optimistic updates
 ///
-/// Only accessible to users with moderator role (via RLS policies).
-/// Returns events sorted by created_at ASC (oldest first = FIFO queue).
-///
-/// Usage:
-/// ```dart
-/// final pendingEventsAsync = ref.watch(moderationQueueProvider);
-/// pendingEventsAsync.when(
-///   data: (events) => ModerationQueue(events),
-///   loading: () => CircularProgressIndicator(),
-///   error: (err, stack) => ErrorWidget(err),
-/// );
-/// ```
-final moderationQueueProvider = FutureProvider<List<Event>>((ref) async {
-  final repository = ref.watch(eventRepositoryProvider);
-  return await repository.getPendingEvents();
+/// Provides instant UI feedback when approving/rejecting events.
+/// Events are removed from the list immediately, then API call is made.
+/// If API call fails, event is restored and error is shown.
+class ModerationQueueNotifier extends StateNotifier<AsyncValue<List<Event>>> {
+  final Ref _ref;
+
+  ModerationQueueNotifier(this._ref) : super(const AsyncValue.loading()) {
+    _loadEvents();
+  }
+
+  Future<void> _loadEvents() async {
+    state = const AsyncValue.loading();
+    try {
+      final repository = _ref.read(eventRepositoryProvider);
+      final events = await repository.getPendingEvents();
+      state = AsyncValue.data(events);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Refresh events from server
+  Future<void> refresh() async {
+    await _loadEvents();
+  }
+
+  /// Remove event from local list (optimistic update)
+  void _removeEventLocally(String eventId) {
+    if (state.hasValue) {
+      final currentEvents = state.value!;
+      final updatedEvents = currentEvents.where((e) => e.id != eventId).toList();
+      state = AsyncValue.data(updatedEvents);
+    }
+  }
+
+  /// Restore event to local list (rollback on error)
+  void _restoreEvent(Event event) {
+    if (state.hasValue) {
+      final currentEvents = [...state.value!, event];
+      // Sort by created_at ASC to maintain order
+      currentEvents.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      state = AsyncValue.data(currentEvents);
+    }
+  }
+
+  /// Approve event with optimistic update
+  Future<void> approveEvent(String eventId) async {
+    // Find the event before removing (for potential rollback)
+    Event? removedEvent;
+    if (state.hasValue) {
+      removedEvent = state.value!.cast<Event?>().firstWhere(
+        (e) => e?.id == eventId,
+        orElse: () => null,
+      );
+    }
+
+    // Optimistic update: remove immediately
+    _removeEventLocally(eventId);
+
+    try {
+      final repository = _ref.read(eventRepositoryProvider);
+      await repository.approveEvent(eventId);
+      // Update pending count
+      _ref.invalidate(pendingEventsCountProvider);
+    } catch (e) {
+      // Rollback: restore the event on error
+      if (removedEvent != null) {
+        _restoreEvent(removedEvent);
+      }
+      rethrow;
+    }
+  }
+
+  /// Reject event with optimistic update
+  Future<void> rejectEvent(String eventId, String rejectionReason) async {
+    if (rejectionReason.trim().isEmpty) {
+      throw Exception('Rejection reason is required');
+    }
+    if (rejectionReason.trim().length < 10) {
+      throw Exception('Rejection reason must be at least 10 characters');
+    }
+
+    // Find the event before removing (for potential rollback)
+    Event? removedEvent;
+    if (state.hasValue) {
+      removedEvent = state.value!.cast<Event?>().firstWhere(
+        (e) => e?.id == eventId,
+        orElse: () => null,
+      );
+    }
+
+    // Optimistic update: remove immediately
+    _removeEventLocally(eventId);
+
+    try {
+      final repository = _ref.read(eventRepositoryProvider);
+      await repository.rejectEvent(eventId, rejectionReason.trim());
+      // Update pending count
+      _ref.invalidate(pendingEventsCountProvider);
+    } catch (e) {
+      // Rollback: restore the event on error
+      if (removedEvent != null) {
+        _restoreEvent(removedEvent);
+      }
+      rethrow;
+    }
+  }
+}
+
+/// Provider for moderation queue with optimistic updates
+final moderationQueueProvider =
+    StateNotifierProvider<ModerationQueueNotifier, AsyncValue<List<Event>>>((ref) {
+  return ModerationQueueNotifier(ref);
 });
 
 /// Provider for pending events count (for badge display)
@@ -48,101 +146,9 @@ final pendingEventsCountProvider = FutureProvider<int>((ref) async {
   }
 });
 
-/// Notifier for moderation actions
-///
-/// Provides methods to approve/reject events with proper error handling.
-/// Auto-refreshes moderation queue after successful action.
-class ModerationNotifier extends StateNotifier<AsyncValue<void>> {
-  final Ref _ref;
-
-  ModerationNotifier(this._ref) : super(const AsyncValue.data(null));
-
-  /// Approve event (status = 'approved')
-  ///
-  /// Triggers notification to event creator via Edge Function.
-  /// Updates event status and sets moderated_by, moderated_at fields.
-  Future<void> approveEvent(String eventId) async {
-    state = const AsyncValue.loading();
-
-    try {
-      final repository = _ref.read(eventRepositoryProvider);
-      await repository.approveEvent(eventId);
-
-      // Refresh moderation queue
-      _ref.invalidate(moderationQueueProvider);
-      _ref.invalidate(pendingEventsCountProvider);
-
-      state = const AsyncValue.data(null);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  /// Reject event (status = 'rejected')
-  ///
-  /// Requires rejection reason for transparency.
-  /// Triggers notification to event creator with reason via Edge Function.
-  Future<void> rejectEvent(String eventId, String rejectionReason) async {
-    if (rejectionReason.trim().isEmpty) {
-      state = AsyncValue.error(
-        Exception('Rejection reason is required'),
-        StackTrace.current,
-      );
-      return;
-    }
-
-    if (rejectionReason.trim().length < 10) {
-      state = AsyncValue.error(
-        Exception('Rejection reason must be at least 10 characters'),
-        StackTrace.current,
-      );
-      return;
-    }
-
-    state = const AsyncValue.loading();
-
-    try {
-      final repository = _ref.read(eventRepositoryProvider);
-      await repository.rejectEvent(eventId, rejectionReason.trim());
-
-      // Refresh moderation queue
-      _ref.invalidate(moderationQueueProvider);
-      _ref.invalidate(pendingEventsCountProvider);
-
-      state = const AsyncValue.data(null);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  /// Bulk approve events (for future use)
-  ///
-  /// Approves multiple events in a single operation.
-  /// Useful for batch moderation during high-volume periods.
-  Future<void> bulkApprove(List<String> eventIds) async {
-    state = const AsyncValue.loading();
-
-    try {
-      final repository = _ref.read(eventRepositoryProvider);
-
-      // Approve events sequentially (Supabase doesn't support batch updates directly)
-      for (final eventId in eventIds) {
-        await repository.approveEvent(eventId);
-      }
-
-      // Refresh moderation queue
-      _ref.invalidate(moderationQueueProvider);
-      _ref.invalidate(pendingEventsCountProvider);
-
-      state = const AsyncValue.data(null);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-}
-
-/// Provider for ModerationNotifier
+/// Legacy provider for backwards compatibility
+/// @deprecated Use moderationQueueProvider.notifier instead
 final moderationNotifierProvider =
-    StateNotifierProvider<ModerationNotifier, AsyncValue<void>>((ref) {
-  return ModerationNotifier(ref);
+    Provider<ModerationQueueNotifier>((ref) {
+  return ref.watch(moderationQueueProvider.notifier);
 });

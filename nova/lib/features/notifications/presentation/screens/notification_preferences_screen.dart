@@ -121,7 +121,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
           child: Container(
             padding: EdgeInsets.all(NovaSpacing.m),
             decoration: BoxDecoration(
-              color: NovaColors.info(context).withOpacity(0.1),
+              color: NovaColors.info(context).withValues(alpha: 0.1),
               borderRadius: NovaRadius.circularM,
             ),
             child: Row(
@@ -202,7 +202,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
               // Rebuild widget
               (context as Element).markNeedsBuild();
             },
-            activeColor: NovaColors.primary(context),
+            activeThumbColor: NovaColors.primary(context),
             contentPadding: EdgeInsets.symmetric(
               horizontal: NovaSpacing.m,
               vertical: NovaSpacing.xs,
@@ -254,7 +254,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
         ),
         value: value,
         onChanged: (newValue) => _togglePreference(ref, columnName, newValue),
-        activeColor: NovaColors.primary(context),
+        activeThumbColor: NovaColors.primary(context),
         contentPadding: EdgeInsets.symmetric(
           horizontal: NovaSpacing.m,
           vertical: NovaSpacing.xs,

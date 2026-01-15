@@ -2,6 +2,7 @@
 ///
 /// Displays recent search queries as tappable chips.
 /// Allows deletion of individual queries or clearing all history.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

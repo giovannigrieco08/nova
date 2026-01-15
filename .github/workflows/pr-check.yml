@@ -1,0 +1,54 @@
+# Pull Request Quality Gate
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-quality:
+    name: PR Quality Gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nova
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check diff for design system violations
+        run: |
+          echo "Checking for hardcoded colors/spacing..."
+
+          # Get changed Dart files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'nova/lib/*.dart' || echo "")
+
+          if [ -n "$CHANGED_FILES" ]; then
+            for file in $CHANGED_FILES; do
+              if [ -f "$file" ]; then
+                # Check for hardcoded colors
+                if grep -E "Color\(0x[A-Fa-f0-9]+\)" "$file"; then
+                  echo "::error file=$file::Hardcoded color found. Use NovaColors."
+                fi
+
+                # Check for hardcoded spacing (magic numbers in EdgeInsets)
+                if grep -E "EdgeInsets\.(all|symmetric|only)\([0-9]+" "$file"; then
+                  echo "::warning file=$file::Potential hardcoded spacing. Consider using NovaSpacing."
+                fi
+              fi
+            done
+          fi
+
+      - name: Analyze changed files
+        run: flutter analyze --no-fatal-infos

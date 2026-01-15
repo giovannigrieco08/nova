@@ -2,6 +2,7 @@
 ///
 /// All exceptions inherit from base CommentException for easy catch blocks.
 /// Each exception type maps to specific error scenarios from Supabase/repository.
+library;
 
 /// Base exception class for all comment-related errors
 abstract class CommentException implements Exception {
@@ -17,9 +18,9 @@ abstract class CommentException implements Exception {
 /// Network connectivity issues or timeouts
 class NetworkException extends CommentException {
   const NetworkException(
-    String message, [
-    StackTrace? stackTrace,
-  ]) : super(message, stackTrace);
+    super.message, [
+    super.stackTrace,
+  ]);
 
   @override
   String toString() => 'NetworkException: $message';
@@ -28,9 +29,9 @@ class NetworkException extends CommentException {
 /// User not authenticated (missing or invalid JWT)
 class UnauthorizedException extends CommentException {
   const UnauthorizedException(
-    String message, [
-    StackTrace? stackTrace,
-  ]) : super(message, stackTrace);
+    super.message, [
+    super.stackTrace,
+  ]);
 
   @override
   String toString() => 'UnauthorizedException: $message';
@@ -41,10 +42,10 @@ class ForbiddenException extends CommentException {
   final String? requiredRole;
 
   const ForbiddenException(
-    String message, [
+    super.message, [
     this.requiredRole,
-    StackTrace? stackTrace,
-  ]) : super(message, stackTrace);
+    super.stackTrace,
+  ]);
 
   @override
   String toString() => 'ForbiddenException: $message'
@@ -120,11 +121,11 @@ class ServerException extends CommentException {
   final String? serverMessage;
 
   const ServerException(
-    String message, [
+    super.message, [
     this.statusCode,
     this.serverMessage,
-    StackTrace? stackTrace,
-  ]) : super(message, stackTrace);
+    super.stackTrace,
+  ]);
 
   @override
   String toString() => 'ServerException: $message'

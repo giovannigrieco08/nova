@@ -77,7 +77,7 @@ class AdaptiveAppBar extends StatelessWidget implements PreferredSizeWidget {
                 )
               : null,
           backgroundColor: backgroundColor ??
-              NovaColors.background(context).withOpacity(0.9),
+              NovaColors.background(context).withValues(alpha: 0.9),
           border: null,
         );
       }
@@ -93,7 +93,7 @@ class AdaptiveAppBar extends StatelessWidget implements PreferredSizeWidget {
               )
             : null,
         backgroundColor: backgroundColor ??
-            NovaColors.background(context).withOpacity(0.9),
+            NovaColors.background(context).withValues(alpha: 0.9),
         border: Border(
           bottom: BorderSide(
             color: NovaColors.border(context),

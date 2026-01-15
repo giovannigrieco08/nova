@@ -9,7 +9,7 @@
 /// - View-once media with screenshot protection
 ///
 /// Entry point: [ChatScreen]
-library chat;
+library;
 
 // Domain - Entities
 export 'domain/entities/chat_message.dart';

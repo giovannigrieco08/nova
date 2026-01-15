@@ -1,13 +1,14 @@
 /// Hive model for caching search results
 ///
 /// Stores serialized search results with timestamp for TTL validation.
-/// TypeId: 8 (registered in main.dart)
+/// TypeId: 11 (registered in main.dart)
+library;
 
 import 'package:hive_flutter/hive_flutter.dart';
 
 part 'search_results_cache.g.dart';
 
-@HiveType(typeId: 8)
+@HiveType(typeId: 11)
 class SearchResultsCache extends HiveObject {
   @HiveField(0)
   final String query;
@@ -37,7 +38,7 @@ class SearchResultsCache extends HiveObject {
   int get totalCount => events.length + profiles.length;
 }
 
-@HiveType(typeId: 9)
+@HiveType(typeId: 12)
 class CachedEventResult extends HiveObject {
   @HiveField(0)
   final String id;
@@ -71,7 +72,7 @@ class CachedEventResult extends HiveObject {
   });
 }
 
-@HiveType(typeId: 10)
+@HiveType(typeId: 13)
 class CachedProfileResult extends HiveObject {
   @HiveField(0)
   final String id;

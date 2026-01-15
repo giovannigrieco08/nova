@@ -18,6 +18,7 @@ class ChatMediaInfo {
   final bool screenshotDetected;
   final DateTime expiresAt;
   final DateTime createdAt;
+  final int? durationSeconds; // Duration in seconds for audio messages
 
   const ChatMediaInfo({
     required this.id,
@@ -33,6 +34,7 @@ class ChatMediaInfo {
     required this.screenshotDetected,
     required this.expiresAt,
     required this.createdAt,
+    this.durationSeconds,
   });
 
   /// Whether the media has been fully viewed (all views used)
@@ -62,6 +64,18 @@ class ChatMediaInfo {
 
   /// Time remaining before expiration
   Duration get timeUntilExpiry => expiresAt.difference(DateTime.now());
+
+  /// Duration as Duration object (for audio messages)
+  Duration? get duration =>
+      durationSeconds != null ? Duration(seconds: durationSeconds!) : null;
+
+  /// Formatted duration string (mm:ss) for audio messages
+  String get durationFormatted {
+    if (durationSeconds == null) return '00:00';
+    final minutes = durationSeconds! ~/ 60;
+    final seconds = durationSeconds! % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   bool operator ==(Object other) {

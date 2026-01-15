@@ -8,8 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
-import '../../domain/entities/tutor_profile.dart';
 import '../../data/repositories/tutor_repository.dart';
 
 /// TutorCard - Card displaying tutor information in the list
@@ -45,7 +45,7 @@ class TutorCard extends StatelessWidget {
   Widget _buildMaterialCard(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: NovaRadius.circularM,
       child: _buildCardContent(context),
     );
   }
@@ -57,7 +57,7 @@ class TutorCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: NovaSpacing.m),
       decoration: BoxDecoration(
         color: NovaColors.card(context),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: NovaRadius.circularM,
         border: Border.all(
           color: NovaColors.border(context),
           width: 1,
@@ -65,8 +65,8 @@ class TutorCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: NovaColors.isDark(context)
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.05),
+                ? NovaColors.textPrimaryLight.withValues(alpha: 0.3)
+                : NovaColors.textPrimaryLight.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -107,8 +107,8 @@ class TutorCard extends StatelessWidget {
                             vertical: NovaSpacing.xxs,
                           ),
                           decoration: BoxDecoration(
-                            color: NovaColors.primary(context).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            color: NovaColors.primary(context).withValues(alpha: 0.1),
+                            borderRadius: NovaRadius.circularXs,
                           ),
                           child: Text(
                             tutor.authorClass!,
@@ -145,9 +145,9 @@ class TutorCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: profile.isFree
-                              ? NovaColors.success(context).withOpacity(0.1)
+                              ? NovaColors.success(context).withValues(alpha: 0.1)
                               : NovaColors.surface(context),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: NovaRadius.circularXs,
                           border: profile.isFree
                               ? null
                               : Border.all(color: NovaColors.border(context)),
@@ -234,7 +234,7 @@ class TutorCard extends StatelessWidget {
         .join();
 
     return Container(
-      color: NovaColors.primary(context).withOpacity(0.1),
+      color: NovaColors.primary(context).withValues(alpha: 0.1),
       child: Center(
         child: Text(
           initials.isEmpty ? '?' : initials,

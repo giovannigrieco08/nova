@@ -62,7 +62,7 @@ class AvatarWidget extends StatelessWidget {
         child: Text(
           initials,
           style: NovaTextStyles.caption.copyWith(
-            color: Colors.white,
+            color: NovaColors.onPrimaryLight,
             fontWeight: FontWeight.w600,
             fontSize: size * 0.4,
           ),
@@ -82,17 +82,8 @@ class AvatarWidget extends StatelessWidget {
 
   Color _getColorFromName(String name) {
     // Generate a consistent color based on name hash
+    // Uses NovaColors.avatarColors for design system compliance
     final hash = name.hashCode;
-    final colors = [
-      NovaColors.brandViolet,
-      NovaColors.brandPink,
-      NovaColors.infoLight,
-      const Color(0xFF6366F1), // Indigo
-      const Color(0xFF8B5CF6), // Purple
-      const Color(0xFFEC4899), // Pink
-      const Color(0xFF14B8A6), // Teal
-      const Color(0xFFF59E0B), // Amber
-    ];
-    return colors[hash.abs() % colors.length];
+    return NovaColors.avatarColors[hash.abs() % NovaColors.avatarColors.length];
   }
 }

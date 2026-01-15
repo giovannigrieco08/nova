@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,8 +8,10 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
 import 'package:nova/core/theme/nova_colors.dart';
+import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
@@ -16,6 +20,9 @@ import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_reply_preview.dart';
 import 'package:nova/features/chat/presentation/widgets/mention_autocomplete.dart';
 import 'package:nova/features/chat/presentation/screens/photo_editor_screen.dart';
+import 'package:nova/features/chat/presentation/screens/camera_screen.dart';
+import 'package:nova/features/chat/presentation/screens/video_preview_screen.dart';
+import 'package:nova/core/animations/page_transitions.dart';
 
 /// Compose bar for sending chat messages.
 ///
@@ -49,12 +56,20 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
   // Voice recording state
   bool _isRecording = false;
+  bool _isPaused = false;
   Duration _recordingDuration = Duration.zero;
   String? _recordingPath;
+  Timer? _durationTimer;
+
+  // Waveform animation (more bars for WhatsApp-like density)
+  List<double> _waveformLevels = List.filled(50, 0.2);
 
   // Mention tracking
   int? _mentionStartIndex;
   final List<Map<String, dynamic>> _selectedMentions = [];
+
+  // Emoji picker state
+  bool _showEmojiPicker = false;
 
   static const int _maxCharacters = 500;
 
@@ -65,9 +80,15 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     _initRecorder();
   }
 
-  Future<void> _initRecorder() async {
-    await _audioRecorder.openRecorder();
-    _recorderInitialized = true;
+  Future<bool> _initRecorder() async {
+    try {
+      await _audioRecorder.openRecorder();
+      _recorderInitialized = true;
+      return true;
+    } catch (e) {
+      _recorderInitialized = false;
+      return false;
+    }
   }
 
   @override
@@ -75,8 +96,14 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
     _focusNode.dispose();
+    _durationTimer?.cancel();
+    _durationTimer = null;
     if (_recorderInitialized) {
-      _audioRecorder.closeRecorder();
+      try {
+        _audioRecorder.closeRecorder();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
     }
     super.dispose();
   }
@@ -150,51 +177,137 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     final state = ref.read(composeStateProvider);
     if (state.content.trim().isEmpty || state.isSending) return;
 
+    // Store message content before sending (in case it fails)
+    final messageContent = state.content.trim();
+    final messageMentions = List<Map<String, dynamic>>.from(_selectedMentions);
+    final messageReplyToId = state.replyToId;
+
     // Use tracked mentions from autocomplete selection
     final success = await ref.read(composeStateProvider.notifier).sendMessage(
-          mentions: List.from(_selectedMentions),
+          mentions: messageMentions,
         );
 
     if (success) {
       _controller.clear();
       _selectedMentions.clear();
       widget.onSent?.call();
+    } else {
+      // Check if it's a generic error (not rate limit or profanity)
+      final error = ref.read(composeStateProvider).error;
+      if (error != null &&
+          !error.contains('rate limit') &&
+          !error.contains('linguaggio') &&
+          !error.contains('offensiv')) {
+        // Add to failed messages for retry
+        ref.read(failedMessagesProvider.notifier).addFailedMessage(
+              content: messageContent,
+              mentions: messageMentions,
+              replyToId: messageReplyToId,
+              errorMessage: error,
+            );
+
+        // Clear the compose bar so user can type new messages
+        _controller.clear();
+        _selectedMentions.clear();
+        ref.read(composeStateProvider.notifier).clearError();
+      }
+      // For rate limit/profanity, keep message in compose bar so user can edit
     }
+  }
+
+  // =========================================================================
+  // Emoji Picker Methods
+  // =========================================================================
+
+  /// Toggle emoji picker visibility
+  void _toggleEmojiPicker() {
+    if (_showEmojiPicker) {
+      // Hide emoji picker and show keyboard
+      setState(() => _showEmojiPicker = false);
+      _focusNode.requestFocus();
+    } else {
+      // Hide keyboard and show emoji picker
+      _focusNode.unfocus();
+      setState(() => _showEmojiPicker = true);
+    }
+  }
+
+  /// Handle emoji selection
+  void _onEmojiSelected(Category? category, Emoji emoji) {
+    final text = _controller.text;
+    final cursorPosition = _controller.selection.baseOffset;
+
+    // Insert emoji at cursor position
+    final newText = cursorPosition >= 0
+        ? text.substring(0, cursorPosition) + emoji.emoji + text.substring(cursorPosition)
+        : text + emoji.emoji;
+
+    _controller.text = newText;
+    _controller.selection = TextSelection.collapsed(
+      offset: (cursorPosition >= 0 ? cursorPosition : text.length) + emoji.emoji.length,
+    );
+  }
+
+  /// Handle backspace in emoji picker
+  void _onEmojiBackspace() {
+    final text = _controller.text;
+    if (text.isEmpty) return;
+
+    final cursorPosition = _controller.selection.baseOffset;
+    if (cursorPosition <= 0) return;
+
+    // Remove character before cursor
+    final newText = text.substring(0, cursorPosition - 1) + text.substring(cursorPosition);
+    _controller.text = newText;
+    _controller.selection = TextSelection.collapsed(offset: cursorPosition - 1);
   }
 
   // =========================================================================
   // Media & Input Methods
   // =========================================================================
 
-  /// Open camera to take a photo, then navigate to photo editor
+  /// Open custom camera screen (photo + video support)
   Future<void> _openCamera() async {
     try {
-      final XFile? photo = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 90,
-        maxWidth: 1920,
-        maxHeight: 1920,
+      // Navigate to custom camera screen
+      final result = await Navigator.push<Map<String, dynamic>>(
+        context,
+        NovaPageRoute.swipeBack(page: const CameraScreen()),
       );
 
-      if (photo != null && mounted) {
-        // Navigate to photo editor screen (Snapchat-style)
-        final editedImage = await Navigator.push<File>(
+      if (result == null || !mounted) return;
+
+      final String type = result['type'] as String;
+      final XFile file = result['file'] as XFile;
+
+      if (type == 'photo') {
+        // Navigate to photo editor screen
+        await Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => PhotoEditorScreen(
-              imageFile: photo,
-              onSend: (File editedFile) {
-                // Return the edited file back
-                Navigator.pop(context, editedFile);
+          NovaPageRoute.swipeBack(
+            page: PhotoEditorScreen(
+              imageFile: file,
+              onSend: (File editedFile, {bool allowReplay = true}) {
+                _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay);
+                Navigator.pop(context);
               },
             ),
           ),
         );
-
-        // If user sent the edited photo, handle it
-        if (editedImage != null && mounted) {
-          _handleEditedPhoto(editedImage);
-        }
+      } else if (type == 'video') {
+        // Navigate to video preview screen
+        await Navigator.push(
+          context,
+          NovaPageRoute.swipeBack(
+            page: VideoPreviewScreen(
+              videoFile: file,
+              onSend: (File videoFile, {bool allowReplay = true}) {
+                _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay);
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -208,12 +321,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     }
   }
 
-  /// Handle the edited photo from PhotoEditorScreen
-  Future<void> _handleEditedPhoto(File editedImage) async {
-    final maxViews = await _showViewCountPicker();
-    if (maxViews != null) {
-      await _uploadMedia(editedImage.path, ChatMediaType.image, maxViews: maxViews);
-    }
+  /// Handle media from photo/video editor screens
+  Future<void> _handleMediaFromEditor(File file, ChatMediaType mediaType, bool allowReplay) async {
+    final maxViews = allowReplay ? 2 : 1;
+    await _uploadMedia(file.path, mediaType, maxViews: maxViews);
   }
 
   /// Open gallery to pick an image
@@ -241,141 +352,20 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     }
   }
 
-  /// Handle selected media file
+  /// Handle selected media file - opens PhotoEditorScreen for preview
   Future<void> _handleSelectedMedia(XFile file) async {
-    final maxViews = await _showViewCountPicker();
-    if (maxViews != null) {
-      await _uploadMedia(file.path, ChatMediaType.image, maxViews: maxViews);
-    }
-  }
+    if (!mounted) return;
 
-  /// Show bottom sheet to select how many times the photo can be viewed
-  Future<int?> _showViewCountPicker() async {
-    return showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: NovaColors.surface(context),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(NovaSpacing.l),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: NovaColors.border(sheetContext),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              SizedBox(height: NovaSpacing.l),
-
-              // Title
-              Text(
-                'Quante visualizzazioni?',
-                style: NovaTypography.headingSmall.copyWith(
-                  color: NovaColors.textPrimary(sheetContext),
-                ),
-              ),
-              SizedBox(height: NovaSpacing.xs),
-              Text(
-                'Scegli quante volte può essere vista la foto',
-                style: NovaTypography.bodySmall.copyWith(
-                  color: NovaColors.textSecondary(sheetContext),
-                ),
-              ),
-              SizedBox(height: NovaSpacing.l),
-
-              // Options
-              Row(
-                children: [
-                  // 1x option
-                  Expanded(
-                    child: _buildViewCountOption(
-                      sheetContext,
-                      count: 1,
-                      icon: Icons.visibility,
-                      label: '1 volta',
-                      subtitle: 'Scompare dopo la prima visualizzazione',
-                    ),
-                  ),
-                  SizedBox(width: NovaSpacing.m),
-                  // 2x option
-                  Expanded(
-                    child: _buildViewCountOption(
-                      sheetContext,
-                      count: 2,
-                      icon: Icons.replay,
-                      label: '2 volte',
-                      subtitle: 'Può essere rivista una volta',
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: NovaSpacing.m),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildViewCountOption(
-    BuildContext context, {
-    required int count,
-    required IconData icon,
-    required String label,
-    required String subtitle,
-  }) {
-    return InkWell(
-      onTap: () => Navigator.pop(context, count),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: EdgeInsets.all(NovaSpacing.m),
-        decoration: BoxDecoration(
-          color: NovaColors.card(context),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: NovaColors.border(context),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: NovaColors.primary(context).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: NovaColors.primary(context),
-                size: 28,
-              ),
-            ),
-            SizedBox(height: NovaSpacing.s),
-            Text(
-              label,
-              style: NovaTypography.bodyMedium.copyWith(
-                color: NovaColors.textPrimary(context),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: NovaSpacing.xxs),
-            Text(
-              subtitle,
-              style: NovaTypography.bodySmall.copyWith(
-                color: NovaColors.textSecondary(context),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+    // Open photo editor screen (same flow as camera)
+    Navigator.push(
+      context,
+      NovaPageRoute.swipeBack(
+        page: PhotoEditorScreen(
+          imageFile: file,
+          onSend: (editedFile, {bool allowReplay = true}) {
+            _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay);
+            Navigator.pop(context);
+          },
         ),
       ),
     );
@@ -402,8 +392,20 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         return;
       }
 
+      // Initialize recorder if needed
       if (!_recorderInitialized) {
-        await _initRecorder();
+        final initialized = await _initRecorder();
+        if (!initialized) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Impossibile inizializzare il registratore'),
+                backgroundColor: NovaColors.error(context),
+              ),
+            );
+          }
+          return;
+        }
       }
 
       // Get temp directory for recording
@@ -419,11 +421,28 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
       setState(() {
         _isRecording = true;
+        _isPaused = false;
         _recordingDuration = Duration.zero;
+        _waveformLevels = List.filled(50, 0.2);
       });
 
-      // Start duration timer
-      _updateRecordingDuration();
+      // Start duration timer using Timer.periodic (replaces while loop)
+      _durationTimer?.cancel();
+      final random = Random();
+      _durationTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+        if (_isRecording && !_isPaused && mounted) {
+          setState(() {
+            // Update duration every second
+            if (timer.tick % 10 == 0) {
+              _recordingDuration += const Duration(seconds: 1);
+            }
+            // Update waveform with random levels (simulated)
+            _waveformLevels = List.generate(50, (_) => 0.2 + random.nextDouble() * 0.8);
+          });
+        } else if (!_isRecording) {
+          timer.cancel();
+        }
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -436,33 +455,26 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     }
   }
 
-  /// Update recording duration every second
-  void _updateRecordingDuration() async {
-    while (_isRecording && mounted) {
-      await Future.delayed(const Duration(seconds: 1));
-      if (_isRecording && mounted) {
-        setState(() {
-          _recordingDuration += const Duration(seconds: 1);
-        });
-      }
-    }
-  }
-
   /// Stop recording and handle the audio file
   Future<void> _stopRecording() async {
     if (!_isRecording) return;
+
+    // Cancel the duration timer
+    _durationTimer?.cancel();
+    _durationTimer = null;
 
     try {
       final path = await _audioRecorder.stopRecorder();
 
       setState(() {
         _isRecording = false;
+        _isPaused = false;
       });
 
       if (path != null && mounted) {
         // Only send if recording is at least 1 second
         if (_recordingDuration.inSeconds >= 1) {
-          _handleVoiceMessage(File(path));
+          _handleVoiceMessage(File(path), _recordingDuration.inSeconds);
         } else {
           // Delete short recording
           final file = File(path);
@@ -482,7 +494,27 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     } catch (e) {
       setState(() {
         _isRecording = false;
+        _isPaused = false;
       });
+    }
+  }
+
+  /// Toggle pause/resume recording
+  Future<void> _togglePauseRecording() async {
+    if (!_isRecording) return;
+
+    try {
+      if (_isPaused) {
+        // Resume recording
+        await _audioRecorder.resumeRecorder();
+        setState(() => _isPaused = false);
+      } else {
+        // Pause recording
+        await _audioRecorder.pauseRecorder();
+        setState(() => _isPaused = true);
+      }
+    } catch (e) {
+      // Ignore errors during pause toggle
     }
   }
 
@@ -490,11 +522,16 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   Future<void> _cancelRecording() async {
     if (!_isRecording) return;
 
+    // Cancel the duration timer
+    _durationTimer?.cancel();
+    _durationTimer = null;
+
     try {
       final path = await _audioRecorder.stopRecorder();
 
       setState(() {
         _isRecording = false;
+        _isPaused = false;
       });
 
       // Delete the recording
@@ -507,14 +544,20 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     } catch (e) {
       setState(() {
         _isRecording = false;
+        _isPaused = false;
       });
     }
   }
 
   /// Handle recorded voice message
-  Future<void> _handleVoiceMessage(File audioFile) async {
+  Future<void> _handleVoiceMessage(File audioFile, int durationSeconds) async {
     // Voice messages always have 1 view (no picker needed)
-    await _uploadMedia(audioFile.path, ChatMediaType.audio, maxViews: 1);
+    await _uploadMedia(
+      audioFile.path,
+      ChatMediaType.audio,
+      maxViews: 1,
+      durationSeconds: durationSeconds,
+    );
   }
 
   // =========================================================================
@@ -524,12 +567,19 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   /// Upload media to chat (image, video, or audio)
   ///
   /// [maxViews] determines how many times the media can be viewed (1 or 2).
-  Future<void> _uploadMedia(String filePath, ChatMediaType mediaType, {int maxViews = 1}) async {
+  /// [durationSeconds] is the duration for audio messages.
+  Future<void> _uploadMedia(
+    String filePath,
+    ChatMediaType mediaType, {
+    int maxViews = 1,
+    int? durationSeconds,
+  }) async {
     try {
       await ref.read(uploadMediaProvider((
         filePath: filePath,
         mediaType: mediaType,
         maxViews: maxViews,
+        durationSeconds: durationSeconds,
       )).future);
 
       // Invalidate messages stream to refresh with new media
@@ -549,12 +599,6 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         );
       }
     } catch (e, stackTrace) {
-      // Debug: log the actual error
-      print('=== MEDIA UPLOAD ERROR ===');
-      print('Error: $e');
-      print('Stack: $stackTrace');
-      print('==========================');
-
       // TODO: Mark the message as failed with red X indicator
       // For now, show error snackbar only for upload failures
       if (mounted) {
@@ -576,95 +620,132 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     return '$minutes:$seconds';
   }
 
-  /// Build recording UI widget
+  /// Build recording UI widget - WhatsApp style (single row)
+  /// Layout: [🗑️] [timer waveform] [⏸️] [▶️]
   Widget _buildRecordingUI() {
-    return Padding(
+    return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: NovaSpacing.s,
+        horizontal: NovaSpacing.m,
         vertical: NovaSpacing.s,
       ),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: NovaSpacing.m,
-          vertical: NovaSpacing.s,
+      decoration: BoxDecoration(
+        color: NovaColors.surface(context),
+        border: Border(
+          top: BorderSide(color: NovaColors.border(context)),
         ),
-        decoration: BoxDecoration(
-          color: NovaColors.error(context).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: NovaColors.error(context).withOpacity(0.3),
-            width: 1,
-          ),
-        ),
+      ),
+      child: SafeArea(
+        top: false,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Cancel button
+            // 1. Trash/Delete button (LEFT)
             GestureDetector(
               onTap: _cancelRecording,
               child: Container(
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.delete_outline,
+                  color: NovaColors.textSecondary(context),
+                  size: 24,
+                ),
+              ),
+            ),
+
+            SizedBox(width: NovaSpacing.xs),
+
+            // 2. Timer + Waveform (CENTER - expanded)
+            Expanded(
+              child: Container(
+                height: 44,
+                padding: EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   color: NovaColors.card(context),
+                  borderRadius: NovaRadius.circularXl,
+                  border: Border.all(
+                    color: NovaColors.border(context),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Timer
+                    Text(
+                      _formatDuration(_recordingDuration),
+                      style: TextStyle(
+                        color: NovaColors.textPrimary(context),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+
+                    SizedBox(width: 8),
+
+                    // Waveform visualization
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: _waveformLevels.map((level) {
+                          return Container(
+                            width: 2,
+                            height: 24 * level,
+                            decoration: BoxDecoration(
+                              color: _isPaused
+                                  ? NovaColors.textTertiary(context)
+                                  : NovaColors.primary(context),
+                              borderRadius: NovaRadius.circularXxs,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SizedBox(width: NovaSpacing.xs),
+
+            // 3. Pause/Resume button (red circle outline)
+            GestureDetector(
+              onTap: _togglePauseRecording,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: NovaColors.error(context),
+                    width: 2,
+                  ),
                 ),
                 child: Icon(
-                  Icons.close,
-                  color: NovaColors.textSecondary(context),
-                  size: 20,
+                  _isPaused ? Icons.mic : Icons.pause,
+                  color: NovaColors.error(context),
+                  size: 22,
                 ),
               ),
             ),
 
-            SizedBox(width: NovaSpacing.m),
+            SizedBox(width: NovaSpacing.xs),
 
-            // Recording indicator
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: NovaColors.error(context),
-                shape: BoxShape.circle,
-              ),
-            ),
-
-            SizedBox(width: NovaSpacing.s),
-
-            // Duration
-            Text(
-              _formatDuration(_recordingDuration),
-              style: NovaTypography.bodyMedium.copyWith(
-                color: NovaColors.error(context),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
-            Spacer(),
-
-            // Recording message
-            Text(
-              'Registrando...',
-              style: NovaTypography.bodySmall.copyWith(
-                color: NovaColors.textSecondary(context),
-              ),
-            ),
-
-            SizedBox(width: NovaSpacing.m),
-
-            // Stop/Send button
+            // 4. Send button (Nova purple circle)
             GestureDetector(
               onTap: _stopRecording,
               child: Container(
-                width: 36,
-                height: 36,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: NovaColors.primary(context),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.send,
-                  color: Colors.white,
-                  size: 18,
+                  color: NovaColors.onPrimaryLight,
+                  size: 20,
                 ),
               ),
             ),
@@ -730,7 +811,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                   horizontal: NovaSpacing.m,
                   vertical: NovaSpacing.xs,
                 ),
-                color: NovaColors.error(context).withOpacity(0.1),
+                color: NovaColors.error(context).withValues(alpha: 0.1),
                 child: Row(
                   children: [
                     Icon(
@@ -757,6 +838,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                         minWidth: 24,
                         minHeight: 24,
                       ),
+                      tooltip: 'Chiudi',
                     ),
                   ],
                 ),
@@ -795,10 +877,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                         onPressed: _openCamera,
                         icon: const Icon(
                           Icons.camera_alt,
-                          color: Colors.white,
+                          color: NovaColors.onPrimaryLight,
                           size: 22,
                         ),
                         padding: EdgeInsets.zero,
+                        tooltip: 'Fotocamera',
                       ),
                     ),
 
@@ -809,7 +892,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: NovaColors.card(context),
-                          borderRadius: BorderRadius.circular(22),
+                          borderRadius: NovaRadius.circularXl,
                           border: Border.all(
                             color: NovaColors.border(context),
                             width: 1,
@@ -825,6 +908,12 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                                 maxLines: 4,
                                 minLines: 1,
                                 textCapitalization: TextCapitalization.sentences,
+                                onTap: () {
+                                  // Hide emoji picker when text field is tapped
+                                  if (_showEmojiPicker) {
+                                    setState(() => _showEmojiPicker = false);
+                                  }
+                                },
                                 style: NovaTypography.bodyMedium.copyWith(
                                   color: NovaColors.textPrimary(context),
                                 ),
@@ -835,7 +924,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                                   ),
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.symmetric(
-                                    horizontal: NovaSpacing.m,
+                                    horizontal: NovaSpacing.s,
                                     vertical: NovaSpacing.s,
                                   ),
                                   isDense: true,
@@ -885,10 +974,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                     // Icons outside the text input (when not typing)
                     if (state.content.isEmpty) ...[
                       SizedBox(width: NovaSpacing.xs),
-                      // Microphone - hold to record
+                      // Microphone - tap to start recording
                       GestureDetector(
-                        onLongPressStart: (_) => _startRecording(),
-                        onLongPressEnd: (_) => _stopRecording(),
+                        onTap: _startRecording,
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 6),
                           child: Icon(
@@ -930,6 +1018,63 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                       color: isOverLimit
                           ? NovaColors.error(context)
                           : NovaColors.textTertiary(context),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Emoji picker
+            if (_showEmojiPicker)
+              SizedBox(
+                height: 250,
+                child: EmojiPicker(
+                  onEmojiSelected: _onEmojiSelected,
+                  onBackspacePressed: _onEmojiBackspace,
+                  config: Config(
+                    height: 250,
+                    checkPlatformCompatibility: true,
+                    emojiViewConfig: EmojiViewConfig(
+                      columns: 8,
+                      emojiSizeMax: 28,
+                      verticalSpacing: 0,
+                      horizontalSpacing: 0,
+                      gridPadding: EdgeInsets.zero,
+                      recentsLimit: 28,
+                      replaceEmojiOnLimitExceed: true,
+                      noRecents: Text(
+                        'Nessun emoji recente',
+                        style: NovaTypography.bodySmall.copyWith(
+                          color: NovaColors.textTertiary(context),
+                        ),
+                      ),
+                      loadingIndicator: Center(
+                        child: CircularProgressIndicator(
+                          color: NovaColors.primary(context),
+                        ),
+                      ),
+                      buttonMode: ButtonMode.MATERIAL,
+                      backgroundColor: NovaColors.surface(context),
+                    ),
+                    categoryViewConfig: CategoryViewConfig(
+                      initCategory: Category.RECENT,
+                      backgroundColor: NovaColors.surface(context),
+                      indicatorColor: NovaColors.primary(context),
+                      iconColor: NovaColors.textTertiary(context),
+                      iconColorSelected: NovaColors.primary(context),
+                      tabIndicatorAnimDuration: kTabScrollDuration,
+                      categoryIcons: const CategoryIcons(),
+                    ),
+                    bottomActionBarConfig: BottomActionBarConfig(
+                      backgroundColor: NovaColors.surface(context),
+                      buttonColor: NovaColors.primary(context),
+                      buttonIconColor: NovaColors.onPrimaryLight,
+                      showBackspaceButton: true,
+                      showSearchViewButton: true,
+                    ),
+                    searchViewConfig: SearchViewConfig(
+                      backgroundColor: NovaColors.surface(context),
+                      buttonIconColor: NovaColors.textSecondary(context),
+                      hintText: 'Cerca emoji...',
                     ),
                   ),
                 ),

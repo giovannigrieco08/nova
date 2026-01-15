@@ -16,7 +16,6 @@
 // 5. event_modified: "Un evento che organizzi è stato modificato"
 
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Notification service for Firebase Cloud Messaging
@@ -46,22 +45,9 @@ class NotificationService {
 
         // Setup message handlers
         _setupMessageHandlers();
-
-        assert(() {
-          debugPrint('✅ FCM initialized successfully. Token: ${token?.substring(0, 20)}...');
-          return true;
-        }());
-      } else {
-        assert(() {
-          debugPrint('⚠️ Notification permissions denied: ${settings.authorizationStatus}');
-          return true;
-        }());
       }
     } catch (e) {
-      assert(() {
-        debugPrint('❌ FCM initialization failed: $e');
-        return true;
-      }());
+      // FCM initialization failed - continue without push notifications
     }
   }
 
@@ -93,16 +79,8 @@ class NotificationService {
           data: {'fcm_token': token},
         ),
       );
-
-      assert(() {
-        debugPrint('✅ FCM token saved to Supabase: ${token.substring(0, 20)}...');
-        return true;
-      }());
     } catch (e) {
-      assert(() {
-        debugPrint('❌ Failed to save FCM token: $e');
-        return true;
-      }());
+      // Failed to save FCM token - continue without persistence
     }
   }
 
@@ -122,28 +100,14 @@ class NotificationService {
   ///
   /// Show in-app notification banner (custom implementation required)
   void _handleForegroundMessage(RemoteMessage message) {
-    assert(() {
-      debugPrint('🔔 Foreground notification received:');
-      debugPrint('   Title: ${message.notification?.title}');
-      debugPrint('   Body: ${message.notification?.body}');
-      debugPrint('   Data: ${message.data}');
-      return true;
-    }());
-
     // TODO: Show in-app notification banner using package like overlay_support
-    // For now, just log it (will be implemented in Phase 4)
+    // For now, notifications are handled by the system (will be implemented in Phase 4)
   }
 
   /// Handle background tap (user taps notification)
   ///
   /// Navigate to appropriate screen based on notification data
   void _handleBackgroundTap(RemoteMessage message) {
-    assert(() {
-      debugPrint('🔔 Background notification tapped:');
-      debugPrint('   Data: ${message.data}');
-      return true;
-    }());
-
     // Extract event_id from notification data
     final eventId = message.data['event_id'] as String?;
 
@@ -170,15 +134,8 @@ class NotificationService {
   Future<void> deleteToken() async {
     try {
       await _fcm.deleteToken();
-      assert(() {
-        debugPrint('✅ FCM token deleted');
-        return true;
-      }());
     } catch (e) {
-      assert(() {
-        debugPrint('❌ Failed to delete FCM token: $e');
-        return true;
-      }());
+      // Failed to delete FCM token - continue anyway
     }
   }
 
@@ -186,15 +143,8 @@ class NotificationService {
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _fcm.subscribeToTopic(topic);
-      assert(() {
-        debugPrint('✅ Subscribed to topic: $topic');
-        return true;
-      }());
     } catch (e) {
-      assert(() {
-        debugPrint('❌ Failed to subscribe to topic: $e');
-        return true;
-      }());
+      // Failed to subscribe to topic - continue anyway
     }
   }
 
@@ -202,15 +152,8 @@ class NotificationService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _fcm.unsubscribeFromTopic(topic);
-      assert(() {
-        debugPrint('✅ Unsubscribed from topic: $topic');
-        return true;
-      }());
     } catch (e) {
-      assert(() {
-        debugPrint('❌ Failed to unsubscribe from topic: $e');
-        return true;
-      }());
+      // Failed to unsubscribe from topic - continue anyway
     }
   }
 }

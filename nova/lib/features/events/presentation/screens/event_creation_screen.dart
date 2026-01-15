@@ -3,9 +3,9 @@
 // Purpose: Main screen for creating new events with form and submission
 //
 // Features:
-// - AppBar with "Crea Evento" title
+// - AppBar with "Crea evento" title
 // - EventForm widget (scrollable)
-// - Bottom bar with "Crea Evento" button (disabled if invalid)
+// - Bottom bar with "Crea evento" button (disabled if invalid)
 // - Loading overlay during submission
 // - Success SnackBar navigation on success
 // - Error handling with SnackBar
@@ -36,7 +36,16 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crea Evento'),
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: NovaColors.textPrimary(context),
+            size: 24,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Indietro',
+        ),
+        title: const Text('Crea evento'),
         centerTitle: true,
         elevation: 0,
         backgroundColor: NovaColors.background(context),
@@ -46,25 +55,15 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
           if (state.title.isNotEmpty || state.description.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.refresh_outlined),
-              tooltip: 'Ricomincia',
+              tooltip: 'Aggiorna',
               onPressed: () => _showClearConfirmation(context, notifier),
             ),
         ],
       ),
-      body: Stack(
-        children: [
-          // Form
-          const EventForm(),
-
-          // Loading overlay
-          if (state.isSubmitting)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-        ],
+      body: AbsorbPointer(
+        // Disable interactions during submission
+        absorbing: state.isSubmitting,
+        child: const EventForm(),
       ),
       bottomNavigationBar: _buildBottomBar(context, state, notifier),
     );
@@ -97,7 +96,7 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
                 padding: EdgeInsets.all(NovaSpacing.m),
                 margin: EdgeInsets.only(bottom: NovaSpacing.m),
                 decoration: BoxDecoration(
-                  color: NovaColors.error(context).withOpacity(0.1),
+                  color: NovaColors.error(context).withValues(alpha: 0.1),
                   borderRadius: NovaRadius.circularM,
                 ),
                 child: Row(
@@ -130,7 +129,7 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: NovaColors.primary(context),
-                  foregroundColor: Colors.white,
+                  foregroundColor: NovaColors.onPrimaryLight,
                   disabledBackgroundColor: NovaColors.border(context),
                   disabledForegroundColor: NovaColors.textSecondary(context),
                   padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
@@ -145,11 +144,11 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: const AlwaysStoppedAnimation<Color>(NovaColors.onPrimaryLight),
                         ),
                       )
                     : const Text(
-                        'Crea Evento',
+                        'Crea evento',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

@@ -32,6 +32,8 @@ class ChatReactionDetailSheet extends ConsumerWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       builder: (_) => ChatReactionDetailSheet(
         messageId: messageId,
         reactionCounts: reactionCounts,
@@ -63,7 +65,7 @@ class ChatReactionDetailSheet extends ConsumerWidget {
             margin: EdgeInsets.only(top: NovaSpacing.s),
             decoration: BoxDecoration(
               color: NovaColors.border(context),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: NovaRadius.circularXxs,
             ),
           ),
 

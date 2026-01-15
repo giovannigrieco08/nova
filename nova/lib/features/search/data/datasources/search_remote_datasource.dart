@@ -2,6 +2,7 @@
 ///
 /// Handles Supabase FTS queries for events and profiles.
 /// Uses PostgreSQL GIN Full-Text Search with Italian language configuration.
+library;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/search_results.dart';

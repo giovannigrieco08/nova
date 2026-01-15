@@ -3,6 +3,7 @@
 // Purpose: Like button using native IconButton (Instagram-style)
 
 import 'package:flutter/material.dart';
+import '../../core/theme/nova_colors.dart';
 
 /// Simplified like button using native Flutter IconButton
 ///
@@ -42,11 +43,12 @@ class OptimisticLikeButton extends StatelessWidget {
         size: iconSize,
       ),
       color: isLiked
-        ? (activeColor ?? const Color(0xFFed4956)) // Instagram red
-        : (inactiveColor ?? const Color(0xFF000000)), // Black
+        ? (activeColor ?? NovaColors.likeActive) // Instagram red
+        : (inactiveColor ?? NovaColors.backgroundDark), // Black
       onPressed: _handleTap,
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
+      tooltip: isLiked ? 'Rimuovi mi piace' : 'Mi piace',
     );
   }
 }

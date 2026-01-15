@@ -1,6 +1,7 @@
 /// Search loading skeleton widget
 ///
 /// Shimmer loading state for search results.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:nova/core/theme/nova_colors.dart';
@@ -24,9 +25,9 @@ class _SearchLoadingSkeletonState extends State<SearchLoadingSkeleton>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
-    )..repeat();
+    )..repeat(reverse: true);
     _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
@@ -149,7 +150,7 @@ class _SearchLoadingSkeletonState extends State<SearchLoadingSkeleton>
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: NovaColors.dividerLight.withOpacity(_animation.value),
+        color: NovaColors.dividerLight.withValues(alpha: _animation.value),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );

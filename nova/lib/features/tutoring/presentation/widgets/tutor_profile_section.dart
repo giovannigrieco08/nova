@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../domain/entities/tutor_profile.dart';
 import '../../data/repositories/tutor_repository.dart';
@@ -60,7 +61,7 @@ class TutorProfileSection extends ConsumerWidget {
       ),
       decoration: BoxDecoration(
         color: NovaColors.card(context),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: NovaRadius.circularM,
         border: Border.all(
           color: NovaColors.border(context),
           width: 1,
@@ -111,7 +112,7 @@ class TutorProfileSection extends ConsumerWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: NovaRadius.circularXs,
           ),
           child: Icon(
             Platform.isIOS ? CupertinoIcons.book_fill : Icons.school_rounded,
@@ -139,9 +140,9 @@ class TutorProfileSection extends ConsumerWidget {
           ),
           decoration: BoxDecoration(
             color: profile.isFree
-                ? NovaColors.success(context).withOpacity(0.15)
-                : NovaColors.primary(context).withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
+                ? NovaColors.success(context).withValues(alpha: 0.15)
+                : NovaColors.primary(context).withValues(alpha: 0.15),
+            borderRadius: NovaRadius.circularL,
           ),
           child: Text(
             profile.priceDisplay,
@@ -170,7 +171,7 @@ class TutorProfileSection extends ConsumerWidget {
           ),
           decoration: BoxDecoration(
             color: NovaColors.backgroundSecondary(context),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: NovaRadius.circularL,
             border: Border.all(
               color: NovaColors.border(context),
               width: 1,
@@ -257,7 +258,7 @@ class TutorProfileSection extends ConsumerWidget {
             ? CupertinoButton(
                 padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
                 color: NovaColors.primary(context),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: NovaRadius.circularS,
                 onPressed: () => _showContactSheet(context),
                 child: const Text(
                   'Contatta per Ripetizioni',
@@ -276,7 +277,7 @@ class TutorProfileSection extends ConsumerWidget {
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: NovaRadius.circularS,
                   ),
                 ),
                 child: const Text(
@@ -299,8 +300,8 @@ class TutorProfileSection extends ConsumerWidget {
         vertical: NovaSpacing.m,
       ),
       decoration: BoxDecoration(
-        color: NovaColors.card(context).withOpacity(0.6),
-        borderRadius: BorderRadius.circular(16),
+        color: NovaColors.card(context).withValues(alpha: 0.6),
+        borderRadius: NovaRadius.circularM,
         border: Border.all(
           color: NovaColors.border(context),
           width: 1,
@@ -318,8 +319,8 @@ class TutorProfileSection extends ConsumerWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: NovaColors.textSecondary(context).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
+                    color: NovaColors.textSecondary(context).withValues(alpha: 0.2),
+                    borderRadius: NovaRadius.circularXs,
                   ),
                   child: Icon(
                     Platform.isIOS ? CupertinoIcons.book_fill : Icons.school_rounded,
@@ -361,7 +362,7 @@ class TutorProfileSection extends ConsumerWidget {
                   ? CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
                       color: NovaColors.primary(context),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: NovaRadius.circularS,
                       onPressed: () => _reactivateProfile(context, ref),
                       child: const Text(
                         'Riattiva Profilo',
@@ -380,7 +381,7 @@ class TutorProfileSection extends ConsumerWidget {
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: NovaRadius.circularS,
                         ),
                       ),
                       child: const Text(
@@ -408,6 +409,8 @@ class TutorProfileSection extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      isDismissible: true,
+      enableDrag: true,
       builder: (_) => ContactTutorSheet(
         tutor: tutorWithAuthor,
       ),

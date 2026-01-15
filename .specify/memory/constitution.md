@@ -32,9 +32,9 @@ Follow-up TODOs:
 
 # Nova Project Constitution
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Ratification Date:** 2024-10-29
-**Last Amended:** 2024-10-29
+**Last Amended:** 2025-01-13
 **Project:** Nova - School Events Platform for Liceo Galilei Moro
 
 ---
@@ -85,7 +85,7 @@ Nova connects Liceo Galilei Moro students through a transparent, safe, and engag
 **Statement:** Student privacy is non-negotiable. Nova MUST collect minimal data, never sell or share data, and implement privacy-first architecture from day one.
 
 **Rules:**
-- School email-only authentication (verified @galileimoro.edu.it domain)
+- Magic Link authentication via any valid email address (passwordless, email as second factor)
 - Data collected limited to: name, class, email, optional Instagram handle. Nothing more without explicit constitutional amendment.
 - Zero third-party tracking (no Google Analytics, Facebook SDK, or similar)
 - Zero advertising ever (not now, not later, not "privacy-respecting" ads)
@@ -327,7 +327,7 @@ lib/
 ### Security Requirements
 
 #### **Authentication Security:**
-- Email domain validation enforced: reject all non-@galileimoro.edu.it email addresses at both client and server levels
+- Any valid email address accepted (personal or school emails)
 - Magic link expiration: 15 minutes from generation (balance security and UX)
 - Session management: 30-day refresh tokens, automatic logout after 30 days inactivity
 - No password storage ever (passwordless authentication only)
@@ -571,9 +571,10 @@ If adhering to a principle creates existential risk to project survival:
 
 ### Versioning Policy
 
-**Current Version:** 1.1.0
+**Current Version:** 1.2.0
 
 **Version History:**
+- **1.2.0** (2025-01-13): Removed school email-only requirement - authentication now accepts any valid email address
 - **1.1.0** (2024-10-29): Added Emergency Override Procedure, GDPR compliance details, Moderator accountability system, SPEC_FIRST prototype flexibility
 - **1.0.0** (2024-10-29): Initial constitution ratified with 7 core principles, technical constraints, and governance model
 

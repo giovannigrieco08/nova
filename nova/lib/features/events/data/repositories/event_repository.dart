@@ -9,7 +9,6 @@
 // - Implement offline-first draft persistence
 
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/repositories/event_repository_interface.dart';
 import '../datasources/event_remote_datasource.dart';
@@ -124,11 +123,7 @@ class EventRepositoryImpl implements EventRepository {
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      // Log but don't fail the event creation
-      assert(() {
-        debugPrint('⚠️ Failed to send collaboration invite to $inviteeId: $e');
-        return true;
-      }());
+      // Silently fail - don't block event creation for invite failure
     }
   }
 
@@ -233,18 +228,6 @@ class EventRepositoryImpl implements EventRepository {
           .from('event-images')
           .getPublicUrl(fileName);
 
-      assert(() {
-        final compressionRatio = ImageCompressor.calculateCompressionRatio(
-          imageFile.lengthSync(),
-          compressedBytes.length,
-        );
-        debugPrint('✅ Image uploaded: $fileName');
-        debugPrint('   Original size: ${imageFile.lengthSync() ~/ 1024}KB');
-        debugPrint('   Compressed size: ${compressedBytes.length ~/ 1024}KB');
-        debugPrint('   Compression ratio: ${compressionRatio.toStringAsFixed(1)}%');
-        return true;
-      }());
-
       return publicUrl;
     } catch (e) {
       throw EventRepositoryException('Failed to upload image: $e');
@@ -270,17 +253,8 @@ class EventRepositoryImpl implements EventRepository {
 
       // Delete from storage
       await _supabase.storage.from('event-images').remove([filePath]);
-
-      assert(() {
-        debugPrint('✅ Image deleted: $filePath');
-        return true;
-      }());
     } catch (e) {
       // Don't throw on delete failure - image might already be deleted
-      assert(() {
-        debugPrint('⚠️ Failed to delete image: $e');
-        return true;
-      }());
     }
   }
 }

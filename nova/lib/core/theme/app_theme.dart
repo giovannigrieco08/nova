@@ -44,11 +44,9 @@ class AppTheme {
       colorScheme: ColorScheme.light(
         primary: NovaColors.primaryLight,
         surface: NovaColors.surfaceLight,
-        background: NovaColors.backgroundLight,
         error: NovaColors.errorLight,
         onPrimary: Colors.white,
         onSurface: NovaColors.textPrimaryLight,
-        onBackground: NovaColors.textPrimaryLight,
         onError: Colors.white,
       ),
 
@@ -156,10 +154,10 @@ class AppTheme {
         height: 60,
         elevation: 0,
         backgroundColor: NovaColors.surfaceLight,
-        indicatorColor: NovaColors.primaryLight.withOpacity(0.1),
+        indicatorColor: NovaColors.primaryLight.withValues(alpha: 0.1),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return NovaTextStyles.caption.copyWith(
               color: NovaColors.primaryLight,
               fontWeight: FontWeight.w600,
@@ -187,11 +185,9 @@ class AppTheme {
       colorScheme: ColorScheme.dark(
         primary: NovaColors.primaryDark,
         surface: NovaColors.surfaceDark,
-        background: NovaColors.backgroundDark,
         error: NovaColors.errorDark,
         onPrimary: Colors.white,
         onSurface: NovaColors.textPrimaryDark,
-        onBackground: NovaColors.textPrimaryDark,
         onError: Colors.white,
       ),
 
@@ -317,10 +313,10 @@ class AppTheme {
         height: 60,
         elevation: 0,
         backgroundColor: NovaColors.surfaceDark,
-        indicatorColor: NovaColors.primaryDark.withOpacity(0.1),
+        indicatorColor: NovaColors.primaryDark.withValues(alpha: 0.1),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return NovaTextStyles.caption.copyWith(
               color: NovaColors.primaryDark,
               fontWeight: FontWeight.w600,

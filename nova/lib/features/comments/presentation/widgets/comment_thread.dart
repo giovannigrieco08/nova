@@ -209,7 +209,7 @@ class _CommentThreadState extends ConsumerState<CommentThread>
           width: 48, // 48px indent per task spec
           child: CustomPaint(
             painter: _ThreadConnectorPainter(
-              color: NovaColors.primary(context).withOpacity(0.3),
+              color: NovaColors.primary(context).withValues(alpha: 0.3),
             ),
             child: const SizedBox(width: 48, height: double.infinity),
           ),

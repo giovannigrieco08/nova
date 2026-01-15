@@ -161,8 +161,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
               ),
             ),
 
-            // Events grid (created events only)
-            SliverFillRemaining(
+            // Events grid (created events only, no separate scroll)
+            SliverToBoxAdapter(
               child: _buildEventsGrid(profile, statsAsync),
             ),
           ],
@@ -186,11 +186,21 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
       );
     } else {
       return AppBar(
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: NovaColors.textPrimary(context),
+            size: 24,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
           displayName,
           style: NovaTypography.headingMedium,
           overflow: TextOverflow.ellipsis,
         ),
+        backgroundColor: NovaColors.background(context),
+        elevation: 0,
       );
     }
   }
@@ -204,6 +214,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
       events: const [], // TODO: Load created events for this user
       onEventTap: _navigateToEventDetail,
       emptyMessage: 'Nessun evento creato.',
+      shrinkWrap: true, // Don't scroll independently
     );
   }
 

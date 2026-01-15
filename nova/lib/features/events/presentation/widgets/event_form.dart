@@ -18,7 +18,10 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/event_creation_provider.dart';
+import '../../../search/presentation/providers/search_provider.dart';
+import '../../../search/domain/entities/search_results.dart';
 import './image_picker_widget.dart';
+import './location_picker_sheet.dart';
 
 /// Complete event creation form
 class EventForm extends ConsumerWidget {
@@ -30,27 +33,10 @@ class EventForm extends ConsumerWidget {
     final notifier = ref.read(eventCreationProvider.notifier);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(NovaSpacing.l),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title field
-          _buildTitleField(context, state, notifier),
-          SizedBox(height: NovaSpacing.l),
-
-          // Description field
-          _buildDescriptionField(context, state, notifier),
-          SizedBox(height: NovaSpacing.l),
-
-          // Date/Time picker
-          _buildDateTimePicker(context, state, notifier),
-          SizedBox(height: NovaSpacing.l),
-
-          // Location field (optional)
-          _buildLocationField(context, state, notifier),
-          SizedBox(height: NovaSpacing.l),
-
-          // Image picker
+          // Image picker (Instagram-style: FIRST and PROMINENT)
           ImagePickerWidget(
             imageFile: state.imageFile,
             imagePath: state.imagePath,
@@ -58,14 +44,42 @@ class EventForm extends ConsumerWidget {
             onImageRemoved: () => notifier.removeImage(),
             errorText: state.imageError,
           ),
-          SizedBox(height: NovaSpacing.l),
 
-          // Collaborators picker
-          _buildCollaboratorsPicker(context, ref, state, notifier),
-          SizedBox(height: NovaSpacing.l),
+          // Form fields with padding
+          Padding(
+            padding: EdgeInsets.all(NovaSpacing.l),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title field
+                _buildTitleField(context, state, notifier),
+                SizedBox(height: NovaSpacing.l),
 
-          // Info text
-          _buildInfoText(context),
+                // Description field
+                _buildDescriptionField(context, state, notifier),
+                SizedBox(height: NovaSpacing.l),
+
+                // Date/Time picker
+                _buildDateTimePicker(context, state, notifier),
+                SizedBox(height: NovaSpacing.l),
+
+                // Location field (optional)
+                _buildLocationField(context, state, notifier),
+                SizedBox(height: NovaSpacing.l),
+
+                // Collaborators picker
+                _buildCollaboratorsPicker(context, ref, state, notifier),
+                SizedBox(height: NovaSpacing.l),
+
+                // Help requests section
+                _buildHelpRequestsSection(context, state, notifier),
+                SizedBox(height: NovaSpacing.l),
+
+                // Info text
+                _buildInfoText(context),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -254,44 +268,144 @@ class EventForm extends ConsumerWidget {
     );
   }
 
-  /// Location field (optional)
+  /// Location field (optional) with map picker
   Widget _buildLocationField(
     BuildContext context,
     EventFormState state,
     EventCreationNotifier notifier,
   ) {
+    final hasLocation = state.location != null && state.location!.isNotEmpty;
+    final hasCoordinates = state.hasMapLocation;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Luogo',
-          style: NovaTextStyles.labelLarge,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Luogo',
+              style: NovaTextStyles.labelLarge,
+            ),
+            if (hasCoordinates)
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: NovaSpacing.xs,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: NovaColors.success(context).withValues(alpha: 0.1),
+                  borderRadius: NovaRadius.circularS,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.map_outlined,
+                      size: 12,
+                      color: NovaColors.success(context),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Maps',
+                      style: NovaTextStyles.caption.copyWith(
+                        color: NovaColors.success(context),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         SizedBox(height: NovaSpacing.s),
-        TextField(
-          onChanged: (value) => notifier.updateLocation(
-            value.isEmpty ? null : value,
+        InkWell(
+          onTap: () => _showLocationPicker(context, state, notifier),
+          borderRadius: NovaRadius.circularM,
+          child: Container(
+            padding: EdgeInsets.all(NovaSpacing.m),
+            decoration: BoxDecoration(
+              color: NovaColors.surface(context),
+              borderRadius: NovaRadius.circularM,
+              border: Border.all(color: NovaColors.border(context)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasLocation ? Icons.place : Icons.add_location_alt_outlined,
+                  size: 20,
+                  color: hasLocation
+                      ? NovaColors.primary(context)
+                      : NovaColors.textSecondary(context),
+                ),
+                SizedBox(width: NovaSpacing.m),
+                Expanded(
+                  child: Text(
+                    hasLocation ? state.location! : 'Cerca un luogo su Maps',
+                    style: NovaTextStyles.body.copyWith(
+                      color: hasLocation
+                          ? NovaColors.textPrimary(context)
+                          : NovaColors.textSecondary(context),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (hasLocation)
+                  GestureDetector(
+                    onTap: () => notifier.clearLocationAndCoordinates(),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: NovaColors.textSecondary(context),
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: NovaColors.textSecondary(context),
+                  ),
+              ],
+            ),
           ),
-          decoration: InputDecoration(
-            hintText: 'Es: Campo sportivo del liceo',
-            filled: true,
-            fillColor: NovaColors.surface(context),
-            border: OutlineInputBorder(
-              borderRadius: NovaRadius.circularM,
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: NovaRadius.circularM,
-              borderSide: BorderSide(color: NovaColors.border(context)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: NovaRadius.circularM,
-              borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
-            ),
-          ),
-          style: NovaTextStyles.body,
         ),
       ],
+    );
+  }
+
+  /// Show location picker bottom sheet
+  void _showLocationPicker(
+    BuildContext context,
+    EventFormState state,
+    EventCreationNotifier notifier,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: NovaColors.background(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => LocationPickerSheet(
+        currentLocation: state.location,
+        onLocationSelected: (result) {
+          notifier.updateLocationWithCoordinates(
+            locationName: result.name,
+            latitude: result.latitude,
+            longitude: result.longitude,
+            placeId: result.placeId,
+          );
+        },
+        onManualLocationEntered: (locationName) {
+          // Manual entry - location without coordinates
+          notifier.updateLocation(locationName);
+        },
+        onLocationCleared: () {
+          notifier.clearLocationAndCoordinates();
+        },
+      ),
     );
   }
 
@@ -334,11 +448,11 @@ class EventForm extends ConsumerWidget {
           spacing: NovaSpacing.s,
           runSpacing: NovaSpacing.s,
           children: [
-            // Pending invite chips
-            ...state.pendingInvites.map((userId) => _buildPendingInviteChip(
+            // Pending invite chips - using PendingInviteInfo with real names
+            ...state.pendingInvites.map((invite) => _buildPendingInviteChip(
                   context,
-                  userId,
-                  () => notifier.removePendingInvite(userId),
+                  invite,
+                  () => notifier.removePendingInvite(invite.id),
                 )),
             // Add button (if less than 3)
             if (state.pendingInvites.length < 3)
@@ -387,12 +501,11 @@ class EventForm extends ConsumerWidget {
   /// Build a chip for pending invite (shows "In attesa" indicator)
   Widget _buildPendingInviteChip(
     BuildContext context,
-    String userId,
+    PendingInviteInfo invite,
     VoidCallback onRemove,
   ) {
-    // TODO: Get actual user info from profile provider
-    // For now, show userId truncated
-    final displayName = userId.length > 8 ? '${userId.substring(0, 8)}...' : userId;
+    // Use the real name from PendingInviteInfo
+    final displayName = invite.fullName;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -400,10 +513,10 @@ class EventForm extends ConsumerWidget {
         vertical: NovaSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: NovaColors.warning(context).withOpacity(0.1),
+        color: NovaColors.warning(context).withValues(alpha: 0.1),
         borderRadius: NovaRadius.circularM,
         border: Border.all(
-          color: NovaColors.warning(context).withOpacity(0.3),
+          color: NovaColors.warning(context).withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -498,18 +611,210 @@ class EventForm extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: NovaColors.background(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (sheetContext) => _CollaboratorPickerSheet(
-        selectedIds: state.pendingInvites,
-        onSelect: (userId) {
-          notifier.addPendingInvite(userId);
+        selectedIds: state.pendingInvites.map((i) => i.id).toList(),
+        onSelect: (inviteInfo) {
+          notifier.addPendingInvite(inviteInfo);
           Navigator.pop(sheetContext);
         },
         maxSelections: 3,
       ),
+    );
+  }
+
+  /// Help requests section
+  /// Allows event creators to add free-text help requests
+  Widget _buildHelpRequestsSection(
+    BuildContext context,
+    EventFormState state,
+    EventCreationNotifier notifier,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with toggle
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Richieste di aiuto',
+                    style: NovaTextStyles.labelLarge,
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Cerca collaboratori per il tuo evento',
+                    style: NovaTextStyles.caption.copyWith(
+                      color: NovaColors.textSecondary(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch.adaptive(
+              value: state.needsHelp,
+              onChanged: (value) => notifier.toggleNeedsHelp(value),
+              activeColor: NovaColors.primary(context),
+            ),
+          ],
+        ),
+
+        // Help requests list (only show if needsHelp is true)
+        if (state.needsHelp) ...[
+          SizedBox(height: NovaSpacing.m),
+
+          // Existing help requests as chips
+          if (state.helpRequests.isNotEmpty) ...[
+            Wrap(
+              spacing: NovaSpacing.s,
+              runSpacing: NovaSpacing.s,
+              children: state.helpRequests.asMap().entries.map((entry) {
+                return _buildHelpRequestChip(
+                  context,
+                  entry.value,
+                  () => notifier.removeHelpRequest(entry.key),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: NovaSpacing.m),
+          ],
+
+          // Add new request (if less than 5)
+          if (state.helpRequests.length < 5)
+            _buildAddHelpRequestField(context, notifier),
+
+          // Limit info
+          if (state.helpRequests.length >= 5)
+            Text(
+              'Massimo 5 richieste per evento',
+              style: NovaTextStyles.caption.copyWith(
+                color: NovaColors.textSecondary(context),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  /// Build a chip for a help request
+  Widget _buildHelpRequestChip(
+    BuildContext context,
+    String description,
+    VoidCallback onRemove,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.m,
+        vertical: NovaSpacing.s,
+      ),
+      decoration: BoxDecoration(
+        color: NovaColors.primary(context).withValues(alpha: 0.1),
+        borderRadius: NovaRadius.circularM,
+        border: Border.all(
+          color: NovaColors.primary(context).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.help_outline,
+            size: 16,
+            color: NovaColors.primary(context),
+          ),
+          SizedBox(width: NovaSpacing.xs),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 200),
+            child: Text(
+              description,
+              style: NovaTextStyles.caption.copyWith(
+                color: NovaColors.textPrimary(context),
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          SizedBox(width: NovaSpacing.xs),
+          GestureDetector(
+            onTap: onRemove,
+            child: Icon(
+              Icons.close,
+              size: 16,
+              color: NovaColors.textSecondary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Field to add a new help request
+  Widget _buildAddHelpRequestField(
+    BuildContext context,
+    EventCreationNotifier notifier,
+  ) {
+    final controller = TextEditingController();
+
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: 'Es: Cerco fotografo, grafico...',
+              hintStyle: NovaTextStyles.body.copyWith(
+                color: NovaColors.textSecondary(context),
+              ),
+              filled: true,
+              fillColor: NovaColors.surface(context),
+              border: OutlineInputBorder(
+                borderRadius: NovaRadius.circularM,
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: NovaRadius.circularM,
+                borderSide: BorderSide(color: NovaColors.border(context)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: NovaRadius.circularM,
+                borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: NovaSpacing.m,
+                vertical: NovaSpacing.s,
+              ),
+            ),
+            style: NovaTextStyles.body,
+            onSubmitted: (value) {
+              if (value.trim().isNotEmpty) {
+                notifier.addHelpRequest(value.trim());
+                controller.clear();
+              }
+            },
+          ),
+        ),
+        SizedBox(width: NovaSpacing.s),
+        IconButton(
+          onPressed: () {
+            if (controller.text.trim().isNotEmpty) {
+              notifier.addHelpRequest(controller.text.trim());
+              controller.clear();
+            }
+          },
+          icon: Icon(
+            Icons.add_circle,
+            color: NovaColors.primary(context),
+            size: 32,
+          ),
+          tooltip: 'Aggiungi',
+        ),
+      ],
     );
   }
 
@@ -518,7 +823,7 @@ class EventForm extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.all(NovaSpacing.m),
       decoration: BoxDecoration(
-        color: NovaColors.primary(context).withOpacity(0.1),
+        color: NovaColors.primary(context).withValues(alpha: 0.1),
         borderRadius: NovaRadius.circularM,
       ),
       child: Row(
@@ -609,10 +914,10 @@ class EventForm extends ConsumerWidget {
 // COLLABORATOR PICKER SHEET
 // =============================================================================
 
-/// Bottom sheet for selecting collaborators
-class _CollaboratorPickerSheet extends StatefulWidget {
+/// Bottom sheet for selecting collaborators using real profile search
+class _CollaboratorPickerSheet extends ConsumerStatefulWidget {
   final List<String> selectedIds;
-  final void Function(String userId) onSelect;
+  final void Function(PendingInviteInfo inviteInfo) onSelect;
   final int maxSelections;
 
   const _CollaboratorPickerSheet({
@@ -622,40 +927,53 @@ class _CollaboratorPickerSheet extends StatefulWidget {
   });
 
   @override
-  State<_CollaboratorPickerSheet> createState() => _CollaboratorPickerSheetState();
+  ConsumerState<_CollaboratorPickerSheet> createState() => _CollaboratorPickerSheetState();
 }
 
-class _CollaboratorPickerSheetState extends State<_CollaboratorPickerSheet> {
+class _CollaboratorPickerSheetState extends ConsumerState<_CollaboratorPickerSheet> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<ProfileSearchResult> _searchResults = [];
+  bool _isLoading = false;
+  String? _error;
 
-  // TODO: Replace with actual users from profile search provider
-  // Mock data for now
-  final List<Map<String, String>> _mockUsers = [
-    {'id': 'user1', 'name': 'Marco Rossi', 'class': '3A'},
-    {'id': 'user2', 'name': 'Luigi Verdi', 'class': '4B'},
-    {'id': 'user3', 'name': 'Anna Bianchi', 'class': '3A'},
-    {'id': 'user4', 'name': 'Sofia Romano', 'class': '5C'},
-    {'id': 'user5', 'name': 'Alessandro Conti', 'class': '2D'},
-    {'id': 'user6', 'name': 'Giulia Esposito', 'class': '4A'},
-    {'id': 'user7', 'name': 'Francesco Marino', 'class': '3B'},
-    {'id': 'user8', 'name': 'Elena Ferrari', 'class': '5A'},
-  ];
-
-  List<Map<String, String>> get _filteredUsers {
-    if (_searchQuery.isEmpty) return _mockUsers;
-    return _mockUsers.where((user) {
-      final name = user['name']!.toLowerCase();
-      final className = user['class']!.toLowerCase();
-      final query = _searchQuery.toLowerCase();
-      return name.contains(query) || className.contains(query);
-    }).toList();
+  @override
+  void initState() {
+    super.initState();
+    // Load initial results (empty query shows recent/popular)
+    _performSearch('');
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _performSearch(String query) async {
+    setState(() {
+      _searchQuery = query;
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final repository = ref.read(searchRepositoryProvider);
+      final results = await repository.search(query);
+      if (mounted) {
+        setState(() {
+          _searchResults = results.profiles;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Errore nella ricerca';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -673,8 +991,8 @@ class _CollaboratorPickerSheetState extends State<_CollaboratorPickerSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFFD0D0D0),
-              borderRadius: BorderRadius.circular(2),
+              color: NovaColors.divider(context),
+              borderRadius: NovaRadius.circularXxs,
             ),
           ),
           // Title
@@ -704,7 +1022,7 @@ class _CollaboratorPickerSheetState extends State<_CollaboratorPickerSheet> {
             padding: EdgeInsets.symmetric(horizontal: NovaSpacing.l),
             child: TextField(
               controller: _searchController,
-              onChanged: (value) => setState(() => _searchQuery = value),
+              onChanged: (value) => _performSearch(value),
               decoration: InputDecoration(
                 hintText: 'Cerca studente...',
                 hintStyle: NovaTextStyles.body.copyWith(
@@ -732,92 +1050,166 @@ class _CollaboratorPickerSheetState extends State<_CollaboratorPickerSheet> {
           SizedBox(height: NovaSpacing.m),
           // Users list
           Expanded(
-            child: _filteredUsers.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 48,
-                          color: NovaColors.textSecondary(context),
-                        ),
-                        SizedBox(height: NovaSpacing.m),
-                        Text(
-                          'Nessun risultato',
-                          style: NovaTextStyles.body.copyWith(
-                            color: NovaColors.textSecondary(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    controller: scrollController,
-                    itemCount: _filteredUsers.length,
-                    itemBuilder: (context, index) {
-                      final user = _filteredUsers[index];
-                      final userId = user['id']!;
-                      final isSelected = widget.selectedIds.contains(userId);
-                      final canSelect = !isSelected &&
-                          widget.selectedIds.length < widget.maxSelections;
-
-                      return ListTile(
-                        leading: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected
-                                ? NovaColors.primary(context)
-                                : NovaColors.primary(context).withOpacity(0.2),
-                          ),
-                          child: Center(
-                            child: Text(
-                              user['name']![0].toUpperCase(),
-                              style: NovaTextStyles.body.copyWith(
-                                color: isSelected
-                                    ? Colors.white
-                                    : NovaColors.primary(context),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          user['name']!,
-                          style: NovaTextStyles.body.copyWith(
-                            color: NovaColors.textPrimary(context),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        subtitle: Text(
-                          user['class']!,
-                          style: NovaTextStyles.caption.copyWith(
-                            color: NovaColors.textSecondary(context),
-                          ),
-                        ),
-                        trailing: isSelected
-                            ? Icon(
-                                Icons.check_circle,
-                                color: NovaColors.primary(context),
-                              )
-                            : canSelect
-                                ? Icon(
-                                    Icons.add_circle_outline,
-                                    color: NovaColors.textSecondary(context),
-                                  )
-                                : null,
-                        onTap: canSelect
-                            ? () => widget.onSelect(userId)
-                            : null,
-                        enabled: canSelect,
-                      );
-                    },
-                  ),
+            child: _buildContent(scrollController),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildContent(ScrollController scrollController) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: NovaColors.error(context),
+            ),
+            SizedBox(height: NovaSpacing.m),
+            Text(
+              _error!,
+              style: NovaTextStyles.body.copyWith(
+                color: NovaColors.textSecondary(context),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_searchResults.isEmpty && _searchQuery.length >= 2) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 48,
+              color: NovaColors.textSecondary(context),
+            ),
+            SizedBox(height: NovaSpacing.m),
+            Text(
+              'Nessun risultato per "$_searchQuery"',
+              style: NovaTextStyles.body.copyWith(
+                color: NovaColors.textSecondary(context),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_searchResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_search,
+              size: 48,
+              color: NovaColors.textSecondary(context),
+            ),
+            SizedBox(height: NovaSpacing.m),
+            Text(
+              'Cerca uno studente per nome o classe',
+              style: NovaTextStyles.body.copyWith(
+                color: NovaColors.textSecondary(context),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: scrollController,
+      itemCount: _searchResults.length,
+      itemBuilder: (context, index) {
+        final profile = _searchResults[index];
+        final isSelected = widget.selectedIds.contains(profile.id);
+        final canSelect = !isSelected &&
+            widget.selectedIds.length < widget.maxSelections;
+
+        return ListTile(
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected
+                  ? NovaColors.primary(context)
+                  : NovaColors.primary(context).withValues(alpha: 0.2),
+              image: profile.avatarUrl != null
+                  ? DecorationImage(
+                      image: NetworkImage(profile.avatarUrl!),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: profile.avatarUrl == null
+                ? Center(
+                    child: Text(
+                      profile.fullName.isNotEmpty
+                          ? profile.fullName[0].toUpperCase()
+                          : '?',
+                      style: NovaTextStyles.body.copyWith(
+                        color: isSelected
+                            ? Colors.white
+                            : NovaColors.primary(context),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          title: Text(
+            profile.fullName,
+            style: NovaTextStyles.body.copyWith(
+              color: NovaColors.textPrimary(context),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          subtitle: profile.className != null && profile.className!.isNotEmpty
+              ? Text(
+                  profile.className!,
+                  style: NovaTextStyles.caption.copyWith(
+                    color: NovaColors.textSecondary(context),
+                  ),
+                )
+              : null,
+          trailing: isSelected
+              ? Icon(
+                  Icons.check_circle,
+                  color: NovaColors.primary(context),
+                )
+              : canSelect
+                  ? Icon(
+                      Icons.add_circle_outline,
+                      color: NovaColors.textSecondary(context),
+                    )
+                  : null,
+          onTap: canSelect
+              ? () {
+                  // Convert ProfileSearchResult to PendingInviteInfo
+                  final inviteInfo = PendingInviteInfo(
+                    id: profile.id,
+                    fullName: profile.fullName,
+                    className: profile.className ?? '',
+                    avatarUrl: profile.avatarUrl,
+                  );
+                  widget.onSelect(inviteInfo);
+                }
+              : null,
+          enabled: canSelect,
+        );
+      },
     );
   }
 }

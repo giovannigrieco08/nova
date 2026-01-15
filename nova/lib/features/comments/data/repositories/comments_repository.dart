@@ -416,7 +416,7 @@ class CommentsRepository implements CommentsRepositoryInterface {
         await _executeOfflineAction(action);
         await _localDataSource.removeFromQueue(tempId: action.tempId);
         successCount++;
-      } on NetworkException catch (e) {
+      } on NetworkException {
         // Network still unavailable - stop syncing, keep queue
         return OfflineSyncResult(
           successCount: successCount,

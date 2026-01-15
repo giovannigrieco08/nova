@@ -69,6 +69,22 @@ class EventModel {
   @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
 
+  // =========================================================================
+  // MAP LOCATION (GPS coordinates for Maps integration)
+  // =========================================================================
+
+  @HiveField(14)
+  @JsonKey(name: 'latitude')
+  final double? latitude;
+
+  @HiveField(15)
+  @JsonKey(name: 'longitude')
+  final double? longitude;
+
+  @HiveField(16)
+  @JsonKey(name: 'place_id')
+  final String? placeId;
+
   // Optional nested creator profile (from Supabase joins)
   // Not stored in Hive - only used for display
   @JsonKey(name: 'creator', includeToJson: false, includeFromJson: true)
@@ -89,6 +105,9 @@ class EventModel {
     this.moderatedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.latitude,
+    this.longitude,
+    this.placeId,
     this.creatorData,
   });
 
@@ -116,11 +135,19 @@ class EventModel {
       moderatedAt: entity.moderatedAt,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      latitude: entity.latitude,
+      longitude: entity.longitude,
+      placeId: entity.placeId,
     );
   }
 
   /// Convert data model to domain entity
   Event toEntity() {
+    // Extract creator info from joined profile data
+    final creatorName = creatorData?['full_name'] as String?;
+    final creatorClass = creatorData?['class'] as String?;
+    final creatorAvatarUrl = creatorData?['avatar_url'] as String?;
+
     return Event(
       id: id,
       title: title,
@@ -136,6 +163,12 @@ class EventModel {
       moderatedAt: moderatedAt,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      creatorName: creatorName,
+      creatorClass: creatorClass,
+      creatorAvatarUrl: creatorAvatarUrl,
+      latitude: latitude,
+      longitude: longitude,
+      placeId: placeId,
     );
   }
 
@@ -155,6 +188,9 @@ class EventModel {
     DateTime? moderatedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    double? latitude,
+    double? longitude,
+    String? placeId,
     Map<String, dynamic>? creatorData,
   }) {
     return EventModel(
@@ -172,6 +208,9 @@ class EventModel {
       moderatedAt: moderatedAt ?? this.moderatedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      placeId: placeId ?? this.placeId,
       creatorData: creatorData ?? this.creatorData,
     );
   }

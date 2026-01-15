@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io' show Platform;
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/edit_comment_provider.dart';
@@ -126,7 +127,7 @@ class _EditInputFieldState extends ConsumerState<EditInputField> {
                           textInputAction: TextInputAction.newline,
                           decoration: BoxDecoration(
                             color: NovaColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: NovaRadius.circularL,
                             border: Border.all(
                               color: NovaColors.warningLight,
                               width: 1,
@@ -148,21 +149,21 @@ class _EditInputFieldState extends ConsumerState<EditInputField> {
                             filled: true,
                             fillColor: NovaColors.surfaceLight,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: NovaRadius.circularL,
                               borderSide: BorderSide(
                                 color: NovaColors.warningLight,
                                 width: 1,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: NovaRadius.circularL,
                               borderSide: BorderSide(
                                 color: NovaColors.warningLight,
                                 width: 1,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: NovaRadius.circularL,
                               borderSide: BorderSide(
                                 color: NovaColors.warningDark,
                                 width: 2,

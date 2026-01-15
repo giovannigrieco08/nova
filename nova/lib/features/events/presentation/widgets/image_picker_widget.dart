@@ -46,31 +46,22 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   Widget build(BuildContext context) {
     final hasImage = widget.imageFile != null || widget.imagePath != null;
 
+    // Instagram-style: image takes prominent space at top, 4:5 aspect ratio
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label
-        Text(
-          'Immagine Evento',
-          style: NovaTextStyles.labelLarge,
-        ),
-        SizedBox(height: NovaSpacing.s),
-
-        // Image preview or placeholder
+        // Image preview or placeholder (Instagram-style: full width, 4:5 ratio)
         GestureDetector(
-          onTap: hasImage ? _showImageOptions : null,
+          onTap: _showPickerOptions, // Both with/without image use same picker
           child: AspectRatio(
-            aspectRatio: 16 / 9,
+            aspectRatio: 4 / 5, // Instagram post ratio
             child: Container(
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: NovaColors.surface(context),
-                borderRadius: NovaRadius.circularL,
-                border: Border.all(
-                  color: widget.errorText != null
-                      ? NovaColors.error(context)
-                      : NovaColors.border(context),
-                  width: widget.errorText != null ? 2 : 1,
-                ),
+                border: widget.errorText != null
+                    ? Border.all(color: NovaColors.error(context), width: 2)
+                    : null,
               ),
               child: _isLoading
                   ? _buildLoadingIndicator()
@@ -81,24 +72,93 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
           ),
         ),
 
-        // Error text
-        if (widget.errorText != null) ...[
-          SizedBox(height: NovaSpacing.xs),
-          Text(
-            widget.errorText!,
-            style: NovaTextStyles.caption.copyWith(
-              color: NovaColors.error(context),
+        // Error text (below image)
+        if (widget.errorText != null)
+          Padding(
+            padding: EdgeInsets.all(NovaSpacing.m),
+            child: Text(
+              widget.errorText!,
+              style: NovaTextStyles.caption.copyWith(
+                color: NovaColors.error(context),
+              ),
             ),
           ),
-        ],
-        SizedBox(height: NovaSpacing.s),
 
-        // Action buttons (only show if no image)
-        if (!hasImage) _buildActionButtons(),
-
-        // Remove button (only show if image exists)
-        if (hasImage && !_isLoading) _buildRemoveButton(),
+        // Change/Remove button (only when image exists)
+        if (hasImage && !_isLoading) _buildChangeImageBar(),
       ],
+    );
+  }
+
+  /// Show picker options (camera/gallery) when tapping placeholder
+  void _showPickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(NovaRadius.l),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: EdgeInsets.symmetric(vertical: NovaSpacing.s),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: NovaColors.border(context),
+                borderRadius: NovaRadius.circularXxs,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Scatta Foto'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Scegli dalla Galleria'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            SizedBox(height: NovaSpacing.m),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Bar at bottom of image for change/remove actions
+  Widget _buildChangeImageBar() {
+    return Container(
+      color: NovaColors.surface(context),
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.m,
+        vertical: NovaSpacing.s,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextButton.icon(
+            onPressed: _showPickerOptions,
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Cambia'),
+          ),
+          SizedBox(width: NovaSpacing.l),
+          TextButton.icon(
+            onPressed: widget.onImageRemoved,
+            icon: Icon(Icons.delete_outline, size: 18, color: NovaColors.error(context)),
+            label: Text('Rimuovi', style: TextStyle(color: NovaColors.error(context))),
+          ),
+        ],
+      ),
     );
   }
 
@@ -123,25 +183,26 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
     );
   }
 
-  /// Image preview
+  /// Image preview - Instagram-style: full bleed, no rounded corners
   Widget _buildImagePreview() {
-    return ClipRRect(
-      borderRadius: NovaRadius.circularL,
-      child: widget.imageFile != null
-          ? Image.file(
-              widget.imageFile!,
-              fit: BoxFit.cover,
-            )
-          : widget.imagePath != null
-              ? Image.file(
-                  File(widget.imagePath!),
-                  fit: BoxFit.cover,
-                )
-              : const SizedBox(),
-    );
+    return widget.imageFile != null
+        ? Image.file(
+            widget.imageFile!,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          )
+        : widget.imagePath != null
+            ? Image.file(
+                File(widget.imagePath!),
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              )
+            : const SizedBox();
   }
 
-  /// Placeholder (no image selected)
+  /// Placeholder (no image selected) - Instagram-style: large and engaging
   Widget _buildPlaceholder() {
     return Center(
       child: Column(
@@ -149,116 +210,25 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
         children: [
           Icon(
             Icons.add_photo_alternate_outlined,
-            size: 48,
+            size: 72, // Larger icon for prominence
             color: NovaColors.textSecondary(context),
           ),
-          SizedBox(height: NovaSpacing.s),
+          SizedBox(height: NovaSpacing.m),
           Text(
             'Aggiungi un\'immagine',
-            style: NovaTextStyles.body.copyWith(
+            style: NovaTextStyles.bodyLarge.copyWith(
               color: NovaColors.textSecondary(context),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: NovaSpacing.xs),
+          Text(
+            'Tocca per scegliere',
+            style: NovaTextStyles.caption.copyWith(
+              color: NovaColors.textTertiary(context),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Action buttons: Camera and Gallery
-  Widget _buildActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _pickImage(ImageSource.camera),
-            icon: const Icon(Icons.camera_alt_outlined, size: 20),
-            label: const Text('Camera'),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
-              side: BorderSide(color: NovaColors.border(context)),
-              shape: RoundedRectangleBorder(
-                borderRadius: NovaRadius.circularM,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(width: NovaSpacing.s),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _pickImage(ImageSource.gallery),
-            icon: const Icon(Icons.photo_library_outlined, size: 20),
-            label: const Text('Galleria'),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
-              side: BorderSide(color: NovaColors.border(context)),
-              shape: RoundedRectangleBorder(
-                borderRadius: NovaRadius.circularM,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Remove button (when image is selected)
-  Widget _buildRemoveButton() {
-    return Center(
-      child: TextButton.icon(
-        onPressed: () {
-          widget.onImageRemoved?.call();
-        },
-        icon: const Icon(Icons.delete_outline, size: 20),
-        label: const Text('Rimuovi Immagine'),
-        style: TextButton.styleFrom(
-          foregroundColor: NovaColors.error(context),
-        ),
-      ),
-    );
-  }
-
-  /// Show options: Change or Remove
-  void _showImageOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(NovaRadius.l),
-        ),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Scatta Foto'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Scegli dalla Galleria'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_outline, color: NovaColors.error(context)),
-              title: Text(
-                'Rimuovi Immagine',
-                style: TextStyle(color: NovaColors.error(context)),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                widget.onImageRemoved?.call();
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

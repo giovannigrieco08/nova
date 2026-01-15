@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'dart:io' show Platform;
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 
@@ -147,7 +148,7 @@ class _ModeratorRemovalDialogState extends State<ModeratorRemovalDialog> {
                   color: NovaColors.textTertiaryLight,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: NovaRadius.circularXs,
                 ),
                 contentPadding: EdgeInsets.all(NovaSpacing.s),
               ),
@@ -238,7 +239,7 @@ class _ModeratorRemovalDialogState extends State<ModeratorRemovalDialog> {
                     color: isSelected
                         ? NovaColors.primaryLight.withValues(alpha: 0.1)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: NovaRadius.circularXs,
                     border: Border.all(
                       color: isSelected
                           ? NovaColors.primaryLight

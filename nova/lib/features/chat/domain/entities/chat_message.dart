@@ -60,6 +60,21 @@ class ChatMessage {
   /// Whether this message contains @mentions
   bool get hasMentions => mentions.isNotEmpty;
 
+  /// Whether the message can be deleted (only within 30 minutes of sending)
+  bool get canDelete {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+    return difference.inMinutes < 30;
+  }
+
+  /// Minutes remaining until message can no longer be deleted
+  int get deleteWindowMinutesRemaining {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+    final remaining = 30 - difference.inMinutes;
+    return remaining > 0 ? remaining : 0;
+  }
+
   /// Display text - returns placeholder if hidden
   String get displayContent {
     if (isHidden) return '[Messaggio nascosto]';

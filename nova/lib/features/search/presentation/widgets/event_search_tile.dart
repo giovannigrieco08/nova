@@ -2,6 +2,7 @@
 ///
 /// Compact card for displaying event search results.
 /// Shows title, date, location with optional image thumbnail.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:nova/core/theme/nova_colors.dart';

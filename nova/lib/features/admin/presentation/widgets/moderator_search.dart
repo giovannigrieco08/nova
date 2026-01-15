@@ -145,6 +145,7 @@ class _ModeratorSearchState extends ConsumerState<ModeratorSearch> {
                     color: NovaColors.textTertiary(context),
                   ),
                   onPressed: _clearSearch,
+                  tooltip: 'Cancella',
                 )
               : null,
         ),
@@ -156,7 +157,7 @@ class _ModeratorSearchState extends ConsumerState<ModeratorSearch> {
           Container(
             padding: const EdgeInsets.all(NovaSpacing.m),
             decoration: BoxDecoration(
-              color: NovaColors.error(context).withOpacity(0.1),
+              color: NovaColors.error(context).withValues(alpha: 0.1),
               borderRadius: NovaRadius.circularM,
             ),
             child: Text(
@@ -231,8 +232,8 @@ class _ModeratorSearchState extends ConsumerState<ModeratorSearch> {
                           )
                         : AdaptiveButton(
                             onPressed: () => _promoteUser(user),
-                            child: const Text('Promuovi'),
                             type: AdaptiveButtonType.primary,
+                            child: const Text('Promuovi'),
                           ),
                   );
                 },
@@ -245,7 +246,7 @@ class _ModeratorSearchState extends ConsumerState<ModeratorSearch> {
           error: (err, _) => Container(
             padding: const EdgeInsets.all(NovaSpacing.m),
             decoration: BoxDecoration(
-              color: NovaColors.error(context).withOpacity(0.1),
+              color: NovaColors.error(context).withValues(alpha: 0.1),
               borderRadius: NovaRadius.circularM,
             ),
             child: Text(

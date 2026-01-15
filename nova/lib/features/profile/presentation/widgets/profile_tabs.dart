@@ -109,7 +109,7 @@ class ProfileTabs extends StatelessWidget {
         selectedColor: NovaColors.brandViolet,
         unselectedColor: NovaColors.backgroundSecondary(context),
         borderColor: NovaColors.borderPrimary(context),
-        pressedColor: NovaColors.brandViolet.withOpacity(0.3),
+        pressedColor: NovaColors.brandViolet.withValues(alpha: 0.3),
       ),
     );
   }

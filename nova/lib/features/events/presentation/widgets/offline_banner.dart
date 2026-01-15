@@ -102,7 +102,7 @@ class _OfflineBannerState extends State<OfflineBanner>
           color: Colors.orange[700],
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -138,7 +138,7 @@ class _OfflineBannerState extends State<OfflineBanner>
                 onPressed: _handleDismiss,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                tooltip: 'Dismiss',
+                tooltip: 'Chiudi',
               ),
             ],
           ),

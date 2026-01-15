@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io' show Platform;
+import '../../../../core/animations/page_transitions.dart';
 import '../../domain/entities/profile.dart';
 import '../../domain/entities/profile_stats.dart';
 import '../providers/profile_provider.dart';
@@ -14,6 +15,7 @@ import '../widgets/profile_tabs.dart';
 import '../widgets/events_grid.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
+import 'profile_photo_viewer_screen.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
@@ -26,6 +28,12 @@ import '../../../tutoring/presentation/providers/tutor_providers.dart';
 import '../../../tutoring/presentation/widgets/become_tutor_card.dart';
 import '../../../tutoring/presentation/widgets/tutor_profile_section.dart';
 import '../../../tutoring/presentation/screens/become_tutor_screen.dart';
+// Events imports
+import '../../../events/domain/entities/event.dart';
+import '../../../events/presentation/screens/event_detail_screen.dart';
+// Moderation imports
+import '../../../moderation/presentation/screens/moderation_screen.dart';
+import '../../../moderation/presentation/providers/pending_count_provider.dart';
 
 /// Profile screen for viewing own profile
 ///
@@ -82,9 +90,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       appBar: _buildAppBar(profile),
       body: RefreshIndicator(
         onRefresh: () async {
-          // Refresh profile and stats
+          // Refresh profile, stats, and events
           ref.invalidate(currentProfileProvider);
           ref.invalidate(currentProfileStatsProvider);
+          ref.invalidate(userCreatedEventsProvider);
+          ref.invalidate(userParticipatingEventsProvider);
         },
         child: CustomScrollView(
           slivers: [
@@ -94,6 +104,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 profile: profile,
                 stats: stats,
                 isOwnProfile: true,
+                onAvatarTap: () => _navigateToPhotoViewer(profile),
               ),
             ),
 
@@ -102,30 +113,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: _buildTutorSection(),
             ),
 
-            // Edit Profile button (Instagram-style: gray background)
+            // Action buttons row (Edit Profile + Moderation if admin/moderator)
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 36,
-                  child: TextButton(
-                    onPressed: () => _navigateToEditProfile(profile),
-                    style: TextButton.styleFrom(
-                      backgroundColor: NovaColors.surface(context),
-                      foregroundColor: NovaColors.textPrimary(context),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: NovaRadius.circularXs,
+                child: Row(
+                  children: [
+                    // Edit Profile button
+                    Expanded(
+                      child: SizedBox(
+                        height: 36,
+                        child: TextButton(
+                          onPressed: () => _navigateToEditProfile(profile),
+                          style: TextButton.styleFrom(
+                            backgroundColor: NovaColors.surface(context),
+                            foregroundColor: NovaColors.textPrimary(context),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: NovaRadius.circularXs,
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
+                          ),
+                          child: Text(
+                            'Modifica profilo',
+                            style: NovaTypography.bodyMedium.copyWith(
+                              color: NovaColors.textPrimary(context),
+                            ),
+                          ),
+                        ),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
                     ),
-                    child: Text(
-                      'Modifica profilo',
-                      style: NovaTypography.bodyMedium.copyWith(
-                        color: NovaColors.textPrimary(context),
+                    // Moderation button (only for moderators/admins)
+                    if (profile.isModerator) ...[
+                      SizedBox(width: NovaSpacing.small),
+                      SizedBox(
+                        height: 36,
+                        child: _buildModerationButton(),
                       ),
-                    ),
-                  ),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -141,8 +166,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
 
-            // Events grid based on selected tab
-            SliverFillRemaining(
+            // Events grid based on selected tab (no separate scroll)
+            SliverToBoxAdapter(
               child: _buildEventsGrid(profile, statsAsync),
             ),
           ],
@@ -151,25 +176,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  /// Build app bar with username (Instagram-style) and settings icon
+  /// Build app bar with username and settings icon
   PreferredSizeWidget _buildAppBar([Profile? profile]) {
     final username = profile?.username ?? 'Profilo';
 
     if (Platform.isIOS) {
       return CupertinoNavigationBar(
-        middle: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '@$username',
-              style: NovaTypography.headingSmall,
-            ),
-            const SizedBox(width: 4),
-            const Icon(
-              CupertinoIcons.chevron_down,
-              size: 14,
-            ),
-          ],
+        middle: Text(
+          username,
+          style: NovaTypography.headingSmall,
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
@@ -183,22 +198,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } else {
       return AppBar(
         centerTitle: true,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '@$username',
-              style: NovaTypography.headingSmall.copyWith(
-                color: NovaColors.textPrimary(context),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: 20,
-              color: NovaColors.textPrimary(context),
-            ),
-          ],
+        title: Text(
+          username,
+          style: NovaTypography.headingSmall.copyWith(
+            color: NovaColors.textPrimary(context),
+          ),
         ),
         actions: [
           IconButton(
@@ -212,20 +216,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   /// Build events grid based on selected tab
   Widget _buildEventsGrid(Profile profile, AsyncValue<ProfileStats> statsAsync) {
-    // TODO(T037): Replace with actual event queries
-    // For now, show placeholder empty state
-
     if (_selectedTab == ProfileTab.eventi) {
-      return EventsGrid(
-        events: const [], // TODO: Load created events
-        onEventTap: _navigateToEventDetail,
-        emptyMessage: 'Nessun evento creato.\nCrea il tuo primo evento!',
+      // Load user's created events
+      final createdEventsAsync = ref.watch(userCreatedEventsProvider);
+      return createdEventsAsync.when(
+        data: (events) => EventsGrid(
+          events: events,
+          onEventTap: _navigateToEventDetail,
+          emptyMessage: 'Nessun evento creato.\nCrea il tuo primo evento!',
+          shrinkWrap: true, // Don't scroll independently
+        ),
+        loading: () => EventsGrid(
+          events: const [],
+          onEventTap: _navigateToEventDetail,
+          isLoading: true,
+          shrinkWrap: true,
+        ),
+        error: (_, __) => EventsGrid(
+          events: const [],
+          onEventTap: _navigateToEventDetail,
+          emptyMessage: 'Errore nel caricamento degli eventi.',
+          shrinkWrap: true,
+        ),
       );
     } else {
-      return EventsGrid(
-        events: const [], // TODO: Load participated events
-        onEventTap: _navigateToEventDetail,
-        emptyMessage: 'Nessuna partecipazione.\nPartecipa al tuo primo evento!',
+      // Load events user is participating in
+      final participatingEventsAsync = ref.watch(userParticipatingEventsProvider);
+      return participatingEventsAsync.when(
+        data: (events) => EventsGrid(
+          events: events,
+          onEventTap: _navigateToEventDetail,
+          emptyMessage: 'Nessuna partecipazione.\nPartecipa al tuo primo evento!',
+          shrinkWrap: true, // Don't scroll independently
+        ),
+        loading: () => EventsGrid(
+          events: const [],
+          onEventTap: _navigateToEventDetail,
+          isLoading: true,
+          shrinkWrap: true,
+        ),
+        error: (_, __) => EventsGrid(
+          events: const [],
+          onEventTap: _navigateToEventDetail,
+          emptyMessage: 'Errore nel caricamento delle partecipazioni.',
+          shrinkWrap: true,
+        ),
       );
     }
   }
@@ -234,13 +269,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _navigateToEditProfile(Profile profile) {
     Navigator.push(
       context,
-      Platform.isIOS
-          ? CupertinoPageRoute(
-              builder: (_) => const EditProfileScreen(),
-            )
-          : MaterialPageRoute(
-              builder: (_) => const EditProfileScreen(),
-            ),
+      NovaPageRoute.swipeBack(page: const EditProfileScreen()),
+    );
+  }
+
+  /// Navigate to profile photo viewer
+  void _navigateToPhotoViewer(Profile profile) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.transparent,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return ProfilePhotoViewerScreen(profile: profile);
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+      ),
     );
   }
 
@@ -248,15 +296,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _navigateToSettings() {
     Navigator.push(
       context,
-      Platform.isIOS
-          ? CupertinoPageRoute(builder: (_) => const SettingsScreen())
-          : MaterialPageRoute(builder: (_) => const SettingsScreen()),
+      NovaPageRoute.swipeBack(page: const SettingsScreen()),
     );
   }
 
   /// Navigate to event detail
-  void _navigateToEventDetail(dynamic event) {
-    // TODO: Navigate to EventDetailScreen
+  void _navigateToEventDetail(Event event) {
+    Navigator.push(
+      context,
+      NovaPageRoute.swipeBack(page: EventDetailScreen(eventId: event.id)),
+    );
   }
 
   /// Build tutor section - shows BecomeTutorCard or TutorProfileSection
@@ -290,9 +339,73 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _navigateToBecomeTutor() {
     Navigator.push(
       context,
-      Platform.isIOS
-          ? CupertinoPageRoute(builder: (_) => const BecomeTutorScreen())
-          : MaterialPageRoute(builder: (_) => const BecomeTutorScreen()),
+      NovaPageRoute.swipeBack(page: const BecomeTutorScreen()),
+    );
+  }
+
+  /// Navigate to moderation screen
+  void _navigateToModeration() {
+    Navigator.push(
+      context,
+      NovaPageRoute.swipeBack(page: const ModerationScreen()),
+    );
+  }
+
+  /// Build moderation button with pending count badge
+  Widget _buildModerationButton() {
+    final pendingCountAsync = ref.watch(pendingCountProvider);
+
+    return TextButton(
+      onPressed: _navigateToModeration,
+      style: TextButton.styleFrom(
+        backgroundColor: NovaColors.brandViolet.withValues(alpha: 0.1),
+        foregroundColor: NovaColors.brandViolet,
+        shape: RoundedRectangleBorder(
+          borderRadius: NovaRadius.circularXs,
+          side: BorderSide(color: NovaColors.brandViolet),
+        ),
+        padding: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.shield_outlined, size: 16, color: NovaColors.brandViolet),
+          SizedBox(width: NovaSpacing.xsmall),
+          Text(
+            'Moderazione',
+            style: NovaTypography.bodyMedium.copyWith(
+              color: NovaColors.brandViolet,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          // Badge with pending count
+          pendingCountAsync.when(
+            data: (count) {
+              if (count > 0) {
+                return Container(
+                  margin: EdgeInsets.only(left: NovaSpacing.xsmall),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: NovaColors.brandViolet,
+                    borderRadius: NovaRadius.circularXs,
+                  ),
+                  child: Text(
+                    count > 99 ? '99+' : count.toString(),
+                    style: NovaTypography.labelSmall.copyWith(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
+      ),
     );
   }
 

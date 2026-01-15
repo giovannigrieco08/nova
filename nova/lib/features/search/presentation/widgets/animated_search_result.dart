@@ -2,6 +2,7 @@
 ///
 /// Provides staggered fade-in animation for search results.
 /// Uses SlideTransition with FadeTransition for smooth 60fps performance.
+library;
 
 import 'package:flutter/material.dart';
 

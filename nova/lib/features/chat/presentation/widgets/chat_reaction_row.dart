@@ -80,13 +80,13 @@ class _ReactionChip extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? NovaColors.primary(context).withOpacity(0.15)
+              ? NovaColors.primary(context).withValues(alpha: 0.15)
               : NovaColors.card(context),
           borderRadius: BorderRadius.circular(NovaRadius.full),
           border: Border.all(
             color: isSelected
-                ? NovaColors.primary(context).withOpacity(0.3)
-                : Colors.transparent,
+                ? NovaColors.primary(context).withValues(alpha: 0.3)
+                : NovaColors.card(context).withValues(alpha: 0.0),
           ),
         ),
         child: Row(
@@ -94,7 +94,10 @@ class _ReactionChip extends StatelessWidget {
           children: [
             Text(
               emoji,
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(
+                fontSize: 14,
+                decoration: TextDecoration.none,
+              ),
             ),
             SizedBox(width: NovaSpacing.xxs),
             Text(
@@ -104,6 +107,7 @@ class _ReactionChip extends StatelessWidget {
                     ? NovaColors.primary(context)
                     : NovaColors.textSecondary(context),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                decoration: TextDecoration.none,
               ),
             ),
           ],

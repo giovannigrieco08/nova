@@ -126,9 +126,7 @@ class RealtimeCommentsNotifier extends StateNotifier<RealtimeCommentsState> {
       // Clear highlight after animation duration (1 second)
       _highlightClearTimer?.cancel();
       _highlightClearTimer = Timer(const Duration(seconds: 1), () {
-        if (mounted) {
-          state = state.copyWith(newlyAddedIds: {});
-        }
+        state = state.copyWith(newlyAddedIds: {});
       });
     }
   }

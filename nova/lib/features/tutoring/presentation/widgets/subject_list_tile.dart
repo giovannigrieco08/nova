@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../domain/entities/subject.dart';
 
@@ -49,7 +50,7 @@ class SubjectListTile extends StatelessWidget {
             height: 1,
             thickness: 1,
             indent: 80, // Align with text, not icon
-            color: NovaColors.border(context).withOpacity(0.5),
+            color: NovaColors.border(context).withValues(alpha: 0.5),
           ),
       ],
     );
@@ -83,8 +84,8 @@ class SubjectListTile extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: NovaColors.brandViolet.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: NovaColors.brandViolet.withValues(alpha: 0.1),
+              borderRadius: NovaRadius.circularS,
             ),
             child: Icon(
               icon,

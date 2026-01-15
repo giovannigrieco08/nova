@@ -2,6 +2,7 @@
 ///
 /// Platform-adaptive search bar that uses CupertinoSearchTextField on iOS
 /// and Material SearchBar on Android.
+library;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -121,6 +122,7 @@ class _AdaptiveSearchBarState extends State<AdaptiveSearchBar> {
                     color: NovaColors.textSecondaryStatic,
                   ),
                   onPressed: _handleClear,
+                  tooltip: 'Cancella',
                 )
               : null,
           border: InputBorder.none,

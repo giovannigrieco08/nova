@@ -5,8 +5,6 @@ import 'package:nova/features/chat/data/models/chat_message_model.dart';
 import 'package:nova/features/chat/data/models/chat_reaction_model.dart';
 import 'package:nova/features/chat/data/models/chat_report_model.dart';
 import 'package:nova/features/chat/data/models/chat_media_model.dart';
-import 'package:nova/features/chat/domain/entities/chat_report.dart';
-import 'package:nova/features/chat/domain/entities/chat_media_info.dart';
 import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 
 /// Remote data source for Global Chat using Supabase.
@@ -63,11 +61,21 @@ class ChatRemoteDataSource {
     }
 
     // Apply ordering and limit
-    final response = await queryBuilder
-        .order('created_at', ascending: false)
-        .limit(limit);
+    List<dynamic> responseList;
+    try {
+      final response = await queryBuilder
+          .order('created_at', ascending: false)
+          .limit(limit);
+      responseList = response;
 
-    return (response as List)
+    } catch (e) {
+      throw Exception(
+        'Database error: le tabelle della chat potrebbero non esistere. '
+        'Esegui le migrazioni SQL su Supabase. Dettaglio: $e',
+      );
+    }
+
+    return responseList
         .map((json) => ChatMessageModel.fromJson(json as Map<String, dynamic>))
         .toList();
   }
@@ -118,6 +126,31 @@ class ChatRemoteDataSource {
         .single();
 
     return ChatMessageModel.fromJson(response);
+  }
+
+  /// Delete a message.
+  ///
+  /// Also deletes associated reactions, reports, and media.
+  Future<void> deleteMessage(String messageId) async {
+    // Delete related media files from storage first
+    final mediaResponse = await _supabase
+        .from('chat_media')
+        .select('storage_path')
+        .eq('message_id', messageId);
+
+    for (final media in (mediaResponse as List)) {
+      final storagePath = media['storage_path'] as String?;
+      if (storagePath != null) {
+        try {
+          await _supabase.storage.from('ephemeral-media').remove([storagePath]);
+        } catch (e) {
+          // Ignore errors deleting media files
+        }
+      }
+    }
+
+    // Delete message (cascade will handle reactions, reports, media records)
+    await _supabase.from('chat_messages').delete().eq('id', messageId);
   }
 
   // =========================================================================
@@ -267,12 +300,14 @@ class ChatRemoteDataSource {
   /// Upload media to ephemeral-media bucket.
   ///
   /// [maxViews] determines how many times the media can be viewed (1 or 2).
+  /// [durationSeconds] is the duration for audio messages.
   Future<ChatMediaModel> uploadMedia({
     required String messageId,
     required String userId,
     required String filePath,
     required ChatMediaType mediaType,
     int maxViews = 1,
+    int? durationSeconds,
   }) async {
     final file = File(filePath);
     final fileBytes = await file.readAsBytes();
@@ -295,6 +330,7 @@ class ChatRemoteDataSource {
           mediaType: mediaType,
           fileSizeBytes: fileBytes.length,
           maxViews: maxViews,
+          durationSeconds: durationSeconds,
         ))
         .select()
         .single();
@@ -309,7 +345,7 @@ class ChatRemoteDataSource {
           .from('ephemeral-media')
           .createSignedUrl(storagePath, 60);
       return response;
-    } catch (e) {
+    } catch (e, stackTrace) {
       return null;
     }
   }
@@ -330,8 +366,21 @@ class ChatRemoteDataSource {
       },
     );
 
+    // RPC returns a TABLE (list of rows), so we need to get the first row
     if (response == null) return null;
-    return ChatMediaModel.fromJson(response as Map<String, dynamic>);
+
+    // Handle both List (from RETURNS TABLE) and Map (single row)
+    final Map<String, dynamic> mediaJson;
+    if (response is List) {
+      if (response.isEmpty) return null;
+      mediaJson = Map<String, dynamic>.from(response.first as Map);
+    } else if (response is Map) {
+      mediaJson = Map<String, dynamic>.from(response);
+    } else {
+      return null;
+    }
+
+    return ChatMediaModel.fromJson(mediaJson);
   }
 
   /// Report a screenshot was detected.

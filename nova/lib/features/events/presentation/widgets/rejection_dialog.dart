@@ -183,7 +183,7 @@ class _RejectionDialogState extends State<RejectionDialog> {
           Container(
             padding: EdgeInsets.all(NovaSpacing.s),
             decoration: BoxDecoration(
-              color: NovaColors.error(context).withOpacity(0.1),
+              color: NovaColors.error(context).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(NovaRadius.s),
             ),
             child: Row(

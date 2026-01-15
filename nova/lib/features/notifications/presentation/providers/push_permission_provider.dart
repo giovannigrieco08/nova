@@ -6,7 +6,6 @@
 // =====================================================================
 
 import 'package:app_settings/app_settings.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -110,10 +109,7 @@ class PushPermissionNotifier extends StateNotifier<PushPermissionState> {
         status: currentStatus,
         hasAskedBefore: hasAsked,
       );
-
-      debugPrint('🔔 Permission status: ${currentStatus.name}, hasAsked: $hasAsked');
     } catch (e) {
-      debugPrint('❌ Failed to initialize permission state: $e');
       state = state.copyWith(error: e.toString());
     }
   }
@@ -122,7 +118,6 @@ class PushPermissionNotifier extends StateNotifier<PushPermissionState> {
   Future<void> refreshStatus() async {
     final currentStatus = await _pushService.checkPermissionStatus();
     state = state.copyWith(status: currentStatus);
-    debugPrint('🔄 Permission status refreshed: ${currentStatus.name}');
   }
 
   /// Request notification permission
@@ -147,10 +142,8 @@ class PushPermissionNotifier extends StateNotifier<PushPermissionState> {
         isRequesting: false,
       );
 
-      debugPrint('✅ Permission requested, result: ${result.name}');
       return result;
     } catch (e) {
-      debugPrint('❌ Permission request failed: $e');
       state = state.copyWith(
         isRequesting: false,
         error: e.toString(),
@@ -165,10 +158,8 @@ class PushPermissionNotifier extends StateNotifier<PushPermissionState> {
   Future<bool> openAppSettings() async {
     try {
       await AppSettings.openAppSettings(type: AppSettingsType.notification);
-      debugPrint('✅ Opened app notification settings');
       return true;
     } catch (e) {
-      debugPrint('❌ Failed to open app settings: $e');
       state = state.copyWith(error: 'Impossibile aprire le impostazioni');
       return false;
     }
@@ -183,7 +174,6 @@ class PushPermissionNotifier extends StateNotifier<PushPermissionState> {
     await prefs.setInt(_kLastAskedTimestamp, DateTime.now().millisecondsSinceEpoch);
 
     state = state.copyWith(hasAskedBefore: true);
-    debugPrint('📝 User chose to ask later for permissions');
   }
 
   /// Clear error state

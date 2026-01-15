@@ -49,7 +49,7 @@ class ChatMessageSkeleton extends StatelessWidget {
                 height: 36,
                 borderRadius: 20,
                 color: isOwnMessage
-                    ? NovaColors.primary(context).withOpacity(0.3)
+                    ? NovaColors.primary(context).withValues(alpha: 0.3)
                     : null,
               ),
             ],
@@ -121,8 +121,8 @@ class _SkeletonBoxState extends State<_SkeletonBox>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
 
     _animation = Tween<double>(begin: 0.3, end: 0.6).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
@@ -145,7 +145,7 @@ class _SkeletonBoxState extends State<_SkeletonBox>
           height: widget.height,
           decoration: BoxDecoration(
             color: widget.color ??
-                NovaColors.card(context).withOpacity(_animation.value),
+                NovaColors.card(context).withValues(alpha: _animation.value),
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
         );

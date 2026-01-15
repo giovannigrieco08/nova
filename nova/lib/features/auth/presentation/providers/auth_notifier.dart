@@ -5,7 +5,8 @@
 // Architecture: Riverpod 2.0+ AsyncNotifierProvider
 // =====================================================================
 
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:nova/core/models/auth_state.dart';
@@ -79,6 +80,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Push notification service for FCM token management
   late final PushNotificationService _pushService;
 
+  /// Auth state subscription (stored for cleanup)
+  StreamSubscription<supabase.AuthState>? _authSubscription;
+
   @override
   Future<AuthState> build() async {
     // Get auth repository from provider
@@ -87,35 +91,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     // Get push notification service from provider
     _pushService = ref.read(pushNotificationServiceProvider);
 
-    // Debug logging
-    assert(() {
-      debugPrint('🔧 AuthNotifier: Initializing');
-      return true;
-    }());
-
     // Listen to Supabase auth state changes
     _setupAuthStateListener();
+
+    // Register cleanup callback for when provider is disposed
+    ref.onDispose(() {
+      _authSubscription?.cancel();
+    });
 
     // Get initial auth state from current session
     final currentUser = _authRepository.getCurrentUser();
 
     if (currentUser != null) {
-      // Debug logging
-      assert(() {
-        debugPrint('✅ AuthNotifier: User already authenticated');
-        debugPrint('   User ID: ${currentUser.id}');
-        debugPrint('   Email: ${currentUser.email}');
-        return true;
-      }());
-
       return AuthStateAuthenticated(currentUser);
     } else {
-      // Debug logging
-      assert(() {
-        debugPrint('ℹ️ AuthNotifier: No active session');
-        return true;
-      }());
-
       return const AuthStateUnauthenticated();
     }
   }
@@ -128,68 +117,47 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// - Session expires
   /// - Token refreshes (silent)
   void _setupAuthStateListener() {
-    _authRepository.streamAuthState().listen((authState) {
-      // Debug logging
-      assert(() {
-        debugPrint('🔔 AuthNotifier: Auth state changed');
-        debugPrint('   Event: ${authState.event}');
-        return true;
-      }());
+    _authSubscription = _authRepository.streamAuthState().listen(
+      (authState) {
+        switch (authState.event) {
+          case supabase.AuthChangeEvent.signedIn:
+            // User signed in successfully
+            if (authState.session?.user != null) {
+              state = AsyncData(AuthStateAuthenticated(authState.session!.user));
 
-      switch (authState.event) {
-        case supabase.AuthChangeEvent.signedIn:
-          // User signed in successfully
-          if (authState.session?.user != null) {
-            assert(() {
-              debugPrint('✅ User signed in: ${authState.session!.user.email}');
-              return true;
-            }());
-            state = AsyncData(AuthStateAuthenticated(authState.session!.user));
+              // Register FCM token for push notifications
+              _registerFcmTokenAfterLogin();
+            }
+            break;
 
-            // Register FCM token for push notifications
-            _registerFcmTokenAfterLogin();
-          }
-          break;
+          case supabase.AuthChangeEvent.signedOut:
+            // User signed out
+            state = const AsyncData(AuthStateUnauthenticated());
+            break;
 
-        case supabase.AuthChangeEvent.signedOut:
-          // User signed out
-          assert(() {
-            debugPrint('🚪 User signed out');
-            return true;
-          }());
-          state = const AsyncData(AuthStateUnauthenticated());
-          break;
+          case supabase.AuthChangeEvent.tokenRefreshed:
+            // Token refreshed (silent) - update user object
+            if (authState.session?.user != null) {
+              state = AsyncData(AuthStateAuthenticated(authState.session!.user));
+            }
+            break;
 
-        case supabase.AuthChangeEvent.tokenRefreshed:
-          // Token refreshed (silent) - update user object
-          if (authState.session?.user != null) {
-            assert(() {
-              debugPrint('🔄 Token refreshed');
-              return true;
-            }());
-            state = AsyncData(AuthStateAuthenticated(authState.session!.user));
-          }
-          break;
+          case supabase.AuthChangeEvent.userUpdated:
+            // User data updated
+            if (authState.session?.user != null) {
+              state = AsyncData(AuthStateAuthenticated(authState.session!.user));
+            }
+            break;
 
-        case supabase.AuthChangeEvent.userUpdated:
-          // User data updated
-          if (authState.session?.user != null) {
-            assert(() {
-              debugPrint('👤 User data updated');
-              return true;
-            }());
-            state = AsyncData(AuthStateAuthenticated(authState.session!.user));
-          }
-          break;
-
-        default:
-          // Other events (passwordRecovery, etc.) - ignore for now
-          assert(() {
-            debugPrint('ℹ️ Unhandled auth event: ${authState.event}');
-            return true;
-          }());
-      }
-    });
+          default:
+            // Other events (passwordRecovery, etc.) - ignore for now
+            break;
+        }
+      },
+      onError: (error) {
+        // Handle stream errors - logged silently
+      },
+    );
   }
 
   /// Send magic link to email address
@@ -219,39 +187,15 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// }
   /// ```
   Future<bool> sendMagicLink(String email) async {
-    // Debug logging
-    assert(() {
-      debugPrint('📧 AuthNotifier: Sending magic link to $email');
-      return true;
-    }());
-
     try {
       // Send magic link via repository
       final result = await _authRepository.sendMagicLink(email);
 
-      // Debug logging
-      assert(() {
-        debugPrint('✅ AuthNotifier: Magic link sent successfully');
-        return true;
-      }());
-
       return result;
-    } on supabase.AuthException catch (e) {
-      // Debug logging
-      assert(() {
-        debugPrint('❌ AuthNotifier: Magic link send failed - ${e.message}');
-        return true;
-      }());
-
+    } on supabase.AuthException {
       // Re-throw for LoginScreen to handle
       rethrow;
     } catch (e) {
-      // Debug logging
-      assert(() {
-        debugPrint('❌ AuthNotifier: Unexpected error - $e');
-        return true;
-      }());
-
       // Re-throw for LoginScreen to handle
       rethrow;
     }
@@ -280,12 +224,6 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Set loading state
       state = const AsyncLoading();
 
-      // Debug logging
-      assert(() {
-        debugPrint('🔐 AuthNotifier: Verifying magic link');
-        return true;
-      }());
-
       // Verify token via repository
       final user = await _authRepository.verifyMagicLink(uri);
 
@@ -293,29 +231,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // But we can set it immediately for faster UI update
       state = AsyncData(AuthStateAuthenticated(user));
 
-      // Debug logging
-      assert(() {
-        debugPrint('✅ AuthNotifier: Magic link verified successfully');
-        return true;
-      }());
-
       return true;
     } on supabase.AuthException catch (e) {
       // Set error state
-      assert(() {
-        debugPrint('❌ AuthNotifier: Magic link verification failed - ${e.message}');
-        return true;
-      }());
-
       state = AsyncError(e.message, StackTrace.current);
       return false;
     } catch (e, stackTrace) {
       // Set error state for unexpected errors
-      assert(() {
-        debugPrint('❌ AuthNotifier: Unexpected error - $e');
-        return true;
-      }());
-
       state = AsyncError(e, stackTrace);
       return false;
     }
@@ -339,12 +261,6 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Set loading state
       state = const AsyncLoading();
 
-      // Debug logging
-      assert(() {
-        debugPrint('🚪 AuthNotifier: Signing out');
-        return true;
-      }());
-
       // Remove FCM token before signing out (to stop push notifications)
       await _removeFcmTokenBeforeLogout();
 
@@ -355,29 +271,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // But we can set it immediately for faster UI update
       state = const AsyncData(AuthStateUnauthenticated());
 
-      // Debug logging
-      assert(() {
-        debugPrint('✅ AuthNotifier: Signed out successfully');
-        return true;
-      }());
-
       return true;
     } on supabase.AuthException catch (e) {
       // Set error state
-      assert(() {
-        debugPrint('❌ AuthNotifier: Sign out failed - ${e.message}');
-        return true;
-      }());
-
       state = AsyncError(e.message, StackTrace.current);
       return false;
     } catch (e, stackTrace) {
       // Set error state for unexpected errors
-      assert(() {
-        debugPrint('❌ AuthNotifier: Unexpected error - $e');
-        return true;
-      }());
-
       state = AsyncError(e, stackTrace);
       return false;
     }
@@ -396,11 +296,6 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     // This prevents blocking the auth flow
     Future(() async {
       try {
-        assert(() {
-          debugPrint('📱 AuthNotifier: Registering FCM token...');
-          return true;
-        }());
-
         // Initialize push notifications service
         await _pushService.initialize();
 
@@ -408,22 +303,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         final permission = await _pushService.requestPermission();
         if (permission == NotificationPermissionState.granted) {
           await _pushService.registerToken();
-          assert(() {
-            debugPrint('✅ AuthNotifier: FCM token registered successfully');
-            return true;
-          }());
-        } else {
-          assert(() {
-            debugPrint('⚠️ AuthNotifier: Push permission denied, skipping token registration');
-            return true;
-          }());
         }
       } catch (e) {
-        // Log error but don't fail auth flow
-        assert(() {
-          debugPrint('⚠️ AuthNotifier: FCM token registration failed - $e');
-          return true;
-        }());
+        // Silently fail - don't block auth flow for push notification issues
       }
     });
   }
@@ -433,24 +315,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Called before sign out to stop push notifications.
   Future<void> _removeFcmTokenBeforeLogout() async {
     try {
-      assert(() {
-        debugPrint('📱 AuthNotifier: Removing FCM token...');
-        return true;
-      }());
-
       // Remove token from Supabase
       await _pushService.removeToken();
-
-      assert(() {
-        debugPrint('✅ AuthNotifier: FCM token removed successfully');
-        return true;
-      }());
     } catch (e) {
-      // Log error but don't fail logout flow
-      assert(() {
-        debugPrint('⚠️ AuthNotifier: FCM token removal failed - $e');
-        return true;
-      }());
+      // Silently fail - don't block logout flow for push notification issues
     }
   }
 }

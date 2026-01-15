@@ -61,6 +61,32 @@ class Event with _$Event {
 
     /// When event was last updated
     required DateTime updatedAt,
+
+    // ========================================================================
+    // CREATOR INFO (from joined profile data)
+    // ========================================================================
+
+    /// Creator's display name (from profiles.full_name)
+    String? creatorName,
+
+    /// Creator's class (from profiles.class) - e.g., "4A", "5B"
+    String? creatorClass,
+
+    /// Creator's avatar URL (from profiles.avatar_url)
+    String? creatorAvatarUrl,
+
+    // ========================================================================
+    // MAP LOCATION (GPS coordinates for Maps integration)
+    // ========================================================================
+
+    /// GPS latitude coordinate for map integration
+    double? latitude,
+
+    /// GPS longitude coordinate for map integration
+    double? longitude,
+
+    /// OpenStreetMap Nominatim place_id for location lookup
+    String? placeId,
   }) = _Event;
 
   /// JSON deserialization factory
@@ -101,5 +127,14 @@ class Event with _$Event {
     final hour = eventDate.hour.toString().padLeft(2, '0');
     final minute = eventDate.minute.toString().padLeft(2, '0');
     return '$day $month $year alle $hour:$minute';
+  }
+
+  /// Check if event has map coordinates for navigation
+  bool get hasMapLocation => latitude != null && longitude != null;
+
+  /// Get Google Maps URL for this location (opens in Maps app)
+  String? get googleMapsUrl {
+    if (!hasMapLocation) return null;
+    return 'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
   }
 }

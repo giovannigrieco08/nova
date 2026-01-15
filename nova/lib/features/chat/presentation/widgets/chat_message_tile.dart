@@ -3,18 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:nova/core/theme/nova_colors.dart';
-import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_radius.dart';
+import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 import 'package:nova/features/chat/domain/entities/chat_media_info.dart';
+import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_reaction_row.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_reaction_detail_sheet.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_reply_preview.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_media_bubble.dart';
+import 'package:nova/features/chat/presentation/widgets/chat_message_context_overlay.dart';
 import 'package:nova/features/chat/presentation/screens/media_viewer_screen.dart';
 import 'package:nova/shared/widgets/avatar_widget.dart';
+import 'package:nova/core/animations/page_transitions.dart';
 
 /// A single message tile in the chat feed.
 ///
@@ -146,7 +150,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: NovaColors.primary(context).withOpacity(0.15),
+                      color: NovaColors.primary(context).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -209,44 +213,54 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
                           ? CrossAxisAlignment.end
                           : CrossAxisAlignment.start,
                       children: [
-                        // Message bubble
-                        GestureDetector(
-                          onLongPress: () => _showContextMenu(context),
-                          child: Container(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.75,
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: NovaSpacing.m + 4,
-                              vertical: NovaSpacing.s + 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isOwnMessage
-                                  ? NovaColors.primary(context)
-                                  : NovaColors.card(context),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Reply preview
-                                if (widget.message.isReply && widget.message.replyTo != null)
-                                  Padding(
-                                    padding: EdgeInsets.only(bottom: NovaSpacing.xs),
-                                    child: ChatReplyPreview(
-                                      replyTo: widget.message.replyTo!,
-                                      onTap: widget.onTapReplyPreview,
-                                      isCompact: true,
-                                    ),
-                                  ),
-
-                                // Message content
-                                _buildMessageContent(context, isOwnMessage),
-                              ],
+                        // Reply preview (Instagram style - ABOVE the bubble)
+                        if (widget.message.isReply && widget.message.replyTo != null)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: NovaSpacing.xxs),
+                            child: ChatReplyPreview(
+                              replyTo: widget.message.replyTo!,
+                              onTap: widget.onTapReplyPreview,
+                              isCompact: true,
+                              currentUserId: currentUserId,
+                              isOwnMessage: isOwnMessage,
                             ),
                           ),
-                        ),
+
+                        // Media message: show ChatMediaBubble directly (no wrapper bubble)
+                        if (widget.message.hasMedia && widget.message.media != null)
+                          GestureDetector(
+                            onLongPress: () => _showContextMenu(context),
+                            // Audio plays inline - don't open MediaViewerScreen
+                            // Images/videos open full-screen viewer
+                            onTap: widget.message.media!.mediaType.isAudio
+                                ? null  // Audio: no tap handler (plays inline in bubble)
+                                : () => _openMediaViewer(context, widget.message.media!),
+                            child: ChatMediaBubble(
+                              media: widget.message.media!,
+                              isOwnMessage: isOwnMessage,
+                            ),
+                          )
+                        // Text message: show in normal bubble
+                        else
+                          GestureDetector(
+                            onLongPress: () => _showContextMenu(context),
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.75,
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: NovaSpacing.m + 4,
+                                vertical: NovaSpacing.s + 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isOwnMessage
+                                    ? NovaColors.primary(context)
+                                    : NovaColors.card(context),
+                                borderRadius: NovaRadius.circularL,
+                              ),
+                              child: _buildMessageContent(context, isOwnMessage),
+                            ),
+                          ),
 
                         // Reactions row
                         if (widget.message.reactionCounts.isNotEmpty)
@@ -295,27 +309,13 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
       );
     }
 
-    // Show media bubble if message has media
-    if (widget.message.hasMedia && widget.message.media != null) {
-      return ChatMediaBubble(
-        media: widget.message.media!,
-        isOwnMessage: isOwnMessage,
-        onTap: () => _openMediaViewer(context, widget.message.media!),
-      );
-    }
+    // Note: Media messages are now handled separately in the layout
+    // This method only handles text content
 
-    // Skip empty or space-only content (media placeholder)
+    // Skip media placeholder content
     final trimmedContent = widget.message.content.trim();
-    if (trimmedContent.isEmpty) {
-      // This shouldn't happen normally, but show loading indicator as fallback
-      return SizedBox(
-        width: 24,
-        height: 24,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: isOwnMessage ? Colors.white70 : NovaColors.primary(context),
-        ),
-      );
+    if (trimmedContent.isEmpty || trimmedContent == '[media]') {
+      return const SizedBox.shrink();
     }
 
     // For messages with mentions, highlight them
@@ -389,111 +389,174 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
     return RichText(text: TextSpan(children: spans));
   }
 
-  /// Allowed emoji reactions (matches database constraint)
-  static const List<String> _allowedEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
-
   void _showContextMenu(BuildContext context) {
-    showModalBottomSheet(
+    final currentUserId = ref.read(currentUserIdProvider);
+    final isOwnMessage = widget.message.userId == currentUserId;
+
+    // Build the message bubble to display in overlay
+    final messageBubble = _buildMessageBubbleForOverlay(context, isOwnMessage);
+
+    // Only show delete option if message can be deleted (within 30 minutes)
+    final canDelete = isOwnMessage && widget.message.canDelete;
+
+    // Don't show copy option for audio messages (can't copy audio)
+    final isAudioMessage = widget.message.hasMedia &&
+        widget.message.media?.mediaType.isAudio == true;
+
+    ChatMessageContextOverlay.show(
+      context,
+      messageBubble: messageBubble,
+      isOwnMessage: isOwnMessage,
+      currentUserReactions: widget.message.currentUserReactions,
+      onReact: widget.onReact,
+      onReply: widget.onReply,
+      onReport: widget.onReport,
+      messageContent: isAudioMessage ? null : widget.message.content,
+      onDelete: canDelete ? () => _deleteMessage(context) : null,
+    );
+  }
+
+  Future<void> _deleteMessage(BuildContext context) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
       context: context,
-      backgroundColor: NovaColors.surface(context),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(NovaRadius.xl),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: NovaColors.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: NovaRadius.circularM,
         ),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: EdgeInsets.only(top: NovaSpacing.s),
-              decoration: BoxDecoration(
-                color: NovaColors.border(sheetContext),
-                borderRadius: BorderRadius.circular(2),
-              ),
+        title: Text(
+          'Elimina messaggio',
+          style: NovaTypography.headingSmall.copyWith(
+            color: NovaColors.textPrimary(context),
+          ),
+        ),
+        content: Text(
+          'Vuoi eliminare questo messaggio? Questa azione non può essere annullata.',
+          style: NovaTypography.bodyMedium.copyWith(
+            color: NovaColors.textSecondary(context),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              'Annulla',
+              style: TextStyle(color: NovaColors.textSecondary(context)),
             ),
-            SizedBox(height: NovaSpacing.m),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Elimina',
+              style: TextStyle(color: NovaColors.error(context)),
+            ),
+          ),
+        ],
+      ),
+    );
 
-            // Reaction picker row
+    if (confirmed != true) return;
+
+    try {
+      final repository = ref.read(chatRepositoryProvider);
+      await repository.deleteMessage(widget.message.id);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Messaggio eliminato'),
+            backgroundColor: NovaColors.textSecondary(context),
+          ),
+        );
+      }
+    } on ChatDeleteNotAllowedException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: NovaColors.error(context),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Errore nell\'eliminazione del messaggio'),
+            backgroundColor: NovaColors.error(context),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Build a standalone message bubble for the context overlay
+  Widget _buildMessageBubbleForOverlay(BuildContext context, bool isOwnMessage) {
+    final currentUserId = ref.read(currentUserIdProvider);
+
+    // For media messages, show the media bubble
+    if (widget.message.hasMedia && widget.message.media != null) {
+      return Column(
+        crossAxisAlignment: isOwnMessage
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Reply preview (Instagram style - ABOVE the bubble)
+          if (widget.message.isReply && widget.message.replyTo != null)
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: NovaSpacing.l),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: _allowedEmojis.map((emoji) {
-                  final hasReacted = widget.message.currentUserReactions.contains(emoji);
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      widget.onReact?.call(emoji);
-                    },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: hasReacted
-                            ? NovaColors.primary(sheetContext).withOpacity(0.15)
-                            : NovaColors.card(sheetContext),
-                        shape: BoxShape.circle,
-                        border: hasReacted
-                            ? Border.all(
-                                color: NovaColors.primary(sheetContext),
-                                width: 2,
-                              )
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          emoji,
-                          style: const TextStyle(fontSize: 22),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+              padding: EdgeInsets.only(bottom: NovaSpacing.xxs),
+              child: ChatReplyPreview(
+                replyTo: widget.message.replyTo!,
+                isCompact: true,
+                currentUserId: currentUserId,
+                isOwnMessage: isOwnMessage,
               ),
             ),
+          ChatMediaBubble(
+            media: widget.message.media!,
+            isOwnMessage: isOwnMessage,
+          ),
+        ],
+      );
+    }
 
-            SizedBox(height: NovaSpacing.m),
-            Divider(height: 1, color: NovaColors.border(sheetContext)),
-
-            // Reply option
-            ListTile(
-              leading: Icon(Icons.reply, color: NovaColors.textPrimary(sheetContext)),
-              title: Text(
-                'Rispondi',
-                style: NovaTypography.bodyMedium.copyWith(
-                  color: NovaColors.textPrimary(sheetContext),
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                widget.onReply?.call();
-              },
+    // For text messages, show the text bubble with reply above
+    return Column(
+      crossAxisAlignment: isOwnMessage
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Reply preview (Instagram style - ABOVE the bubble)
+        if (widget.message.isReply && widget.message.replyTo != null)
+          Padding(
+            padding: EdgeInsets.only(bottom: NovaSpacing.xxs),
+            child: ChatReplyPreview(
+              replyTo: widget.message.replyTo!,
+              isCompact: true,
+              currentUserId: currentUserId,
+              isOwnMessage: isOwnMessage,
             ),
-
-            // Report option (only for others' messages)
-            if (widget.message.userId != ref.read(currentUserIdProvider))
-              ListTile(
-                leading: Icon(Icons.flag_outlined, color: NovaColors.error(sheetContext)),
-                title: Text(
-                  'Segnala',
-                  style: NovaTypography.bodyMedium.copyWith(
-                    color: NovaColors.error(sheetContext),
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  widget.onReport?.call();
-                },
-              ),
-
-            SizedBox(height: NovaSpacing.m),
-          ],
+          ),
+        Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75,
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.m + 4,
+            vertical: NovaSpacing.s + 2,
+          ),
+          decoration: BoxDecoration(
+            color: isOwnMessage
+                ? NovaColors.primary(context)
+                : NovaColors.card(context),
+            borderRadius: NovaRadius.circularL,
+          ),
+          child: _buildMessageContent(context, isOwnMessage),
         ),
-      ),
+      ],
     );
   }
 
@@ -549,15 +612,15 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
       if (context.mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (navContext) => MediaViewerScreen(
+          NovaPageRoute.swipeBack(
+            page: MediaViewerScreen(
               media: media,
               signedUrl: signedUrl,
             ),
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Dismiss loading indicator
       if (context.mounted) {
         Navigator.pop(context);

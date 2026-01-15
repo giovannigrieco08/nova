@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io' show Platform;
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/comment_input_notifier.dart';
@@ -48,18 +49,25 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
     super.didUpdateWidget(oldWidget);
 
     // Pre-fill @mention when entering reply mode
+    // Use addPostFrameCallback to avoid modifying provider during build
     if (!oldWidget.replyModeState.isReplyMode && widget.replyModeState.isReplyMode) {
-      final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
-      inputNotifier.textController.text = widget.replyModeState.mentionPrefix;
-      inputNotifier.textController.selection = TextSelection.fromPosition(
-        TextPosition(offset: widget.replyModeState.mentionPrefix.length),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
+        inputNotifier.textController.text = widget.replyModeState.mentionPrefix;
+        inputNotifier.textController.selection = TextSelection.fromPosition(
+          TextPosition(offset: widget.replyModeState.mentionPrefix.length),
+        );
+      });
     }
 
     // Clear @mention when exiting reply mode
     if (oldWidget.replyModeState.isReplyMode && !widget.replyModeState.isReplyMode) {
-      final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
-      inputNotifier.textController.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
+        inputNotifier.textController.clear();
+      });
     }
   }
 
@@ -111,7 +119,7 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                           textInputAction: TextInputAction.newline,
                           decoration: BoxDecoration(
                             color: NovaColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: NovaRadius.circularL,
                             border: Border.all(
                               color: NovaColors.dividerLight,
                               width: 1,
@@ -133,21 +141,21 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                             filled: true,
                             fillColor: NovaColors.surfaceLight,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: NovaRadius.circularL,
                               borderSide: BorderSide(
                                 color: NovaColors.dividerLight,
                                 width: 1,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: NovaRadius.circularL,
                               borderSide: BorderSide(
                                 color: NovaColors.dividerLight,
                                 width: 1,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: NovaRadius.circularL,
                               borderSide: BorderSide(
                                 color: NovaColors.primaryLight,
                                 width: 2,
@@ -231,15 +239,28 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
       );
     }
 
-    // Send button
+    // Send button - calls postReply when in reply mode, postComment otherwise
     return Semantics(
       button: true,
       label: inputState.canSend
-          ? 'Invia commento'
+          ? (widget.replyModeState.isReplyMode ? 'Invia risposta' : 'Invia commento')
           : 'Pulsante invia disabilitato, scrivi un commento per inviare',
       enabled: inputState.canSend,
       child: IconButton(
-        onPressed: inputState.canSend ? () => inputNotifier.postComment() : null,
+        onPressed: inputState.canSend
+            ? () {
+                if (widget.replyModeState.isReplyMode &&
+                    widget.replyModeState.targetComment != null) {
+                  // In reply mode - post as reply
+                  inputNotifier.postReply(widget.replyModeState.targetComment!.id);
+                  // Cancel reply mode after posting
+                  ref.read(replyModeNotifierProvider(widget.eventId).notifier).cancelReply();
+                } else {
+                  // Normal mode - post as new comment
+                  inputNotifier.postComment();
+                }
+              }
+            : null,
         icon: Icon(
           Platform.isIOS ? CupertinoIcons.arrow_up_circle_fill : Icons.send,
           color: inputState.canSend

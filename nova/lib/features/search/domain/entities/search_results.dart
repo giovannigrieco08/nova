@@ -2,6 +2,7 @@
 ///
 /// Contains unified search result types for events and profiles.
 /// Used across data and presentation layers.
+library;
 
 import 'package:flutter/foundation.dart';
 

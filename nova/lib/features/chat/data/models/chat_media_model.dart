@@ -16,6 +16,7 @@ class ChatMediaModel {
   final bool screenshotNotified;
   final DateTime expiresAt;
   final DateTime createdAt;
+  final int? durationSeconds; // Duration in seconds for audio messages
 
   const ChatMediaModel({
     required this.id,
@@ -32,6 +33,7 @@ class ChatMediaModel {
     required this.screenshotNotified,
     required this.expiresAt,
     required this.createdAt,
+    this.durationSeconds,
   });
 
   /// Create from Supabase JSON response
@@ -55,6 +57,7 @@ class ChatMediaModel {
       screenshotNotified: json['screenshot_notified'] as bool? ?? false,
       expiresAt: DateTime.parse(json['expires_at'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
+      durationSeconds: json['duration_seconds'] as int?,
     );
   }
 
@@ -85,6 +88,7 @@ class ChatMediaModel {
     required ChatMediaType mediaType,
     required int fileSizeBytes,
     int maxViews = 1,
+    int? durationSeconds,
   }) {
     return {
       'message_id': messageId,
@@ -93,6 +97,7 @@ class ChatMediaModel {
       'media_type': mediaType.value,
       'file_size_bytes': fileSizeBytes,
       'max_views': maxViews,
+      if (durationSeconds != null) 'duration_seconds': durationSeconds,
     };
   }
 
@@ -112,6 +117,7 @@ class ChatMediaModel {
       screenshotDetected: screenshotDetectedAt != null,
       expiresAt: expiresAt,
       createdAt: createdAt,
+      durationSeconds: durationSeconds,
     );
   }
 
@@ -132,6 +138,7 @@ class ChatMediaModel {
       screenshotNotified: false,
       expiresAt: entity.expiresAt,
       createdAt: entity.createdAt,
+      durationSeconds: entity.durationSeconds,
     );
   }
 }

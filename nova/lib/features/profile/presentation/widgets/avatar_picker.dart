@@ -6,11 +6,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/theme/nova_radius.dart';
+import 'avatar_cropper.dart';
 
 /// Avatar picker widget with image selection and circular cropping
 ///
@@ -321,11 +321,12 @@ class AvatarPicker extends StatelessWidget {
         return;
       }
 
-      // Crop image to circular aspect
-      final croppedFile = await _cropImage(image.path);
+      // Crop image to circular aspect using custom cropper
+      if (!context.mounted) return;
+      final croppedFile = await _cropImage(context, image.path);
 
       if (croppedFile != null) {
-        onImageSelected(File(croppedFile.path));
+        onImageSelected(croppedFile);
       }
     } catch (e) {
       if (context.mounted) {
@@ -334,32 +335,10 @@ class AvatarPicker extends StatelessWidget {
     }
   }
 
-  /// Crop image to circular aspect using image_cropper
-  Future<CroppedFile?> _cropImage(String sourcePath) async {
-    return await ImageCropper().cropImage(
-      sourcePath: sourcePath,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-      uiSettings: [
-        // Android settings
-        AndroidUiSettings(
-          toolbarTitle: 'Ritaglia foto',
-          toolbarColor: NovaColors.brandViolet,
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.square,
-          lockAspectRatio: true,
-          hideBottomControls: false,
-          cropStyle: CropStyle.circle,
-        ),
-        // iOS settings
-        IOSUiSettings(
-          title: 'Ritaglia foto',
-          aspectRatioLockEnabled: true,
-          resetAspectRatioEnabled: false,
-          aspectRatioPickerButtonHidden: true,
-          cropStyle: CropStyle.circle,
-        ),
-      ],
-    );
+  /// Crop image to circular aspect using custom AvatarCropper
+  Future<File?> _cropImage(BuildContext context, String sourcePath) async {
+    final sourceFile = File(sourcePath);
+    return await AvatarCropper.show(context, sourceFile);
   }
 
   /// Show error message

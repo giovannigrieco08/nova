@@ -7,7 +7,6 @@
 
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/fcm_token_model.dart';
@@ -52,7 +51,6 @@ class FcmTokenRemoteDataSource {
   Future<String?> upsertToken(String fcmToken) async {
     final userId = _currentUserId;
     if (userId == null) {
-      debugPrint('⚠️ Cannot upsert FCM token: user not authenticated');
       return null;
     }
 
@@ -67,10 +65,8 @@ class FcmTokenRemoteDataSource {
         },
       );
 
-      debugPrint('✅ FCM token registered: ${fcmToken.substring(0, 20)}...');
       return response as String?;
     } catch (e) {
-      debugPrint('❌ Failed to upsert FCM token: $e');
       rethrow;
     }
   }
@@ -83,7 +79,6 @@ class FcmTokenRemoteDataSource {
   Future<bool> deleteToken(String fcmToken) async {
     final userId = _currentUserId;
     if (userId == null) {
-      debugPrint('⚠️ Cannot delete FCM token: user not authenticated');
       return false;
     }
 
@@ -97,14 +92,8 @@ class FcmTokenRemoteDataSource {
       );
 
       final success = response as bool? ?? false;
-      if (success) {
-        debugPrint('✅ FCM token deleted: ${fcmToken.substring(0, 20)}...');
-      } else {
-        debugPrint('⚠️ FCM token not found for deletion');
-      }
       return success;
     } catch (e) {
-      debugPrint('❌ Failed to delete FCM token: $e');
       rethrow;
     }
   }
@@ -127,7 +116,6 @@ class FcmTokenRemoteDataSource {
           .map((json) => FcmTokenModel.fromJson(json))
           .toList();
     } catch (e) {
-      debugPrint('❌ Failed to get user FCM tokens: $e');
       return [];
     }
   }
@@ -139,9 +127,7 @@ class FcmTokenRemoteDataSource {
 
     try {
       await _supabase.from('fcm_tokens').delete().eq('user_id', userId);
-      debugPrint('✅ All FCM tokens deleted for user');
     } catch (e) {
-      debugPrint('❌ Failed to delete all FCM tokens: $e');
       rethrow;
     }
   }
@@ -164,7 +150,6 @@ class FcmTokenRemoteDataSource {
 
       return response['push_enabled'] as bool? ?? true;
     } catch (e) {
-      debugPrint('❌ Failed to get push_enabled: $e');
       return true; // Default to enabled
     }
   }
@@ -178,9 +163,7 @@ class FcmTokenRemoteDataSource {
       await _supabase
           .from('profiles')
           .update({'push_enabled': enabled}).eq('user_id', userId);
-      debugPrint('✅ Push enabled set to: $enabled');
     } catch (e) {
-      debugPrint('❌ Failed to set push_enabled: $e');
       rethrow;
     }
   }

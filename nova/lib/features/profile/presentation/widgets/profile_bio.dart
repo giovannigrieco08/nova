@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 
@@ -138,21 +139,21 @@ class _BioEditorState extends State<BioEditor> {
               color: NovaColors.textTertiary(context),
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: NovaRadius.circularXs,
               borderSide: BorderSide(
                 color: NovaColors.borderPrimary(context),
                 width: 1,
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: NovaRadius.circularXs,
               borderSide: BorderSide(
                 color: NovaColors.brandViolet,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: NovaRadius.circularXs,
               borderSide: BorderSide(
                 color: NovaColors.error(context),
                 width: 1,

@@ -72,7 +72,7 @@ class ModeratorStatsScreen extends ConsumerWidget {
                       child: _buildStatCard(
                         context,
                         icon: Icons.check_circle_outline,
-                        iconColor: const Color(0xFF4CAF50),
+                        iconColor: NovaColors.successLight,
                         label: 'Approvati',
                         value: stats.approvedToday.toString(),
                       ),
@@ -188,13 +188,13 @@ class ModeratorStatsScreen extends ConsumerWidget {
         gradient: LinearGradient(
           colors: [
             NovaColors.primary(context),
-            NovaColors.primary(context).withOpacity(0.7),
+            NovaColors.primary(context).withValues(alpha: 0.7),
           ],
         ),
         borderRadius: BorderRadius.circular(NovaRadius.l),
         boxShadow: [
           BoxShadow(
-            color: NovaColors.primary(context).withOpacity(0.3),
+            color: NovaColors.primary(context).withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -205,7 +205,7 @@ class ModeratorStatsScreen extends ConsumerWidget {
           Icon(
             Icons.pending_actions_outlined,
             size: 48,
-            color: Colors.white,
+            color: NovaColors.onPrimaryLight,
           ),
           SizedBox(width: NovaSpacing.m),
           Expanded(
@@ -215,14 +215,14 @@ class ModeratorStatsScreen extends ConsumerWidget {
                 Text(
                   count.toString(),
                   style: NovaTextStyles.h1.copyWith(
-                    color: Colors.white,
+                    color: NovaColors.onPrimaryLight,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   count == 1 ? 'Evento in Attesa' : 'Eventi in Attesa',
                   style: NovaTextStyles.body.copyWith(
-                    color: Colors.white.withOpacity(0.9),
+                    color: NovaColors.onPrimaryLight.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -231,7 +231,7 @@ class ModeratorStatsScreen extends ConsumerWidget {
           if (count > 0)
             Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white,
+              color: NovaColors.onPrimaryLight,
               size: 20,
             ),
         ],
@@ -357,7 +357,7 @@ class ModeratorStatsScreen extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.all(NovaSpacing.m),
       decoration: BoxDecoration(
-        color: NovaColors.primary(context).withOpacity(0.1),
+        color: NovaColors.primary(context).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(NovaRadius.m),
       ),
       child: Row(

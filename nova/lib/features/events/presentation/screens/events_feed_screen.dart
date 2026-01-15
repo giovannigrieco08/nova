@@ -7,19 +7,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
+import '../../../../core/animations/staggered_list_animation.dart';
+import '../../../../core/animations/page_transitions.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../providers/events_feed_provider.dart';
+import '../providers/event_engagement_provider.dart';
 import '../widgets/event_card.dart';
 import '../widgets/offline_banner.dart';
+import '../widgets/pending_event_banner.dart';
+import 'event_detail_screen.dart';
 
 class EventsFeedScreen extends ConsumerStatefulWidget {
   /// Whether to show the AppBar (default: true)
   /// Set to false when used inside MainFeedScreen's TabBarView
   final bool showAppBar;
 
+  /// Whether to disable the built-in RefreshIndicator
+  /// Set to true when parent handles refresh (e.g., MainFeedScreen with Instagram-style indicator)
+  final bool disableRefresh;
+
   const EventsFeedScreen({
     super.key,
     this.showAppBar = true,
+    this.disableRefresh = false,
   });
 
   @override
@@ -82,6 +92,14 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     await ref.read(eventsFeedProvider.notifier).refresh();
   }
 
+  /// Open event detail screen
+  void _openEventDetail(String eventId) {
+    Navigator.push(
+      context,
+      NovaPageRoute.swipeBack(page: EventDetailScreen(eventId: eventId)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -114,7 +132,7 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     // Conditionally wrap with Scaffold + AppBar
     if (widget.showAppBar) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF), // Pure white background (Instagram-style)
+        backgroundColor: NovaColors.backgroundLight, // Pure white background (Instagram-style)
         appBar: AppBar(
           title: Text(
             'Eventi',
@@ -144,13 +162,22 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
   }
 
   Widget _buildFeedContent(EventsFeedState state) {
-    // Show empty state if no events
-    if (state.events.isEmpty && !state.isLoadingMore) {
+    // Get pending events for current user
+    final pendingEventsAsync = ref.watch(userPendingEventsProvider);
+    final pendingEvents = pendingEventsAsync.valueOrNull ?? [];
+
+    // Show empty state if no events (both pending and approved)
+    if (state.events.isEmpty && pendingEvents.isEmpty && !state.isLoadingMore) {
       return _buildEmptyState();
     }
 
-    // Calculate item count: events + loading indicator
-    final itemCount = state.events.length + (state.isLoadingMore ? 1 : 0);
+    // Fetch engagement metrics for all events in batch
+    final eventIds = state.events.map((e) => e.id).toList();
+    final engagementAsync = ref.watch(batchEventEngagementProvider(eventIds));
+    final engagementMap = engagementAsync.valueOrNull ?? {};
+
+    // Calculate item count: pending events + approved events + loading indicator
+    final itemCount = pendingEvents.length + state.events.length + (state.isLoadingMore ? 1 : 0);
 
     final listView = ListView.builder(
       // Use own controller only in standalone mode
@@ -160,21 +187,49 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 2.0,
-        vertical: NovaSpacing.m,
+      padding: const EdgeInsets.only(
+        left: 2.0,
+        right: 2.0,
+        top: NovaSpacing.m,
+        bottom: 100, // Account for bottom navbar + safe area
       ),
       itemCount: itemCount,
       itemBuilder: (context, index) {
+        // First: Pending events banner (compact) at top
+        if (index < pendingEvents.length) {
+          final pendingEvent = pendingEvents[index];
+          return PendingEventBanner(
+            event: pendingEvent,
+            onTap: () => _openEventDetail(pendingEvent.id),
+          );
+        }
+
+        // Adjust index for approved events
+        final approvedIndex = index - pendingEvents.length;
+
         // Show loading indicator at bottom while paginating
-        if (index == state.events.length) {
+        if (approvedIndex == state.events.length) {
           return _buildPaginationLoader();
         }
 
-        final event = state.events[index];
-        // EventCard now has internal tap-to-expand, no navigation needed
-        return EventCard(
-          event: event,
+        final event = state.events[approvedIndex];
+        final engagement = engagementMap[event.id] ?? const EventEngagement();
+
+        // EventCard with staggered animation for smooth list loading
+        return StaggeredListItem(
+          index: approvedIndex,
+          child: EventCard(
+            event: event,
+            organizerName: event.creatorName ?? 'Organizzatore',
+            organizerClass: event.creatorClass ?? '',
+            likeCount: engagement.likeCount,
+            commentCount: engagement.commentCount,
+            participantCount: engagement.participantCount,
+            isLiked: engagement.isLiked,
+            isParticipating: engagement.isParticipating,
+            collaborators: const [], // TODO: Fetch real collaborators
+            helpRequests: const [],  // TODO: Fetch real help requests from DB
+          ),
         );
       },
     );
@@ -186,6 +241,11 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
             onNotification: _handleScrollNotification,
             child: listView,
           );
+
+    // Conditionally wrap with RefreshIndicator (disabled when parent handles refresh)
+    if (widget.disableRefresh) {
+      return scrollableContent;
+    }
 
     return RefreshIndicator(
       onRefresh: _onRefresh,

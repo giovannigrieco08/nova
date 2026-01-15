@@ -22,25 +22,50 @@ class CommentsLocalDataSource {
   static const String _offlineQueueBoxName = 'comments_offline_queue';
   static const Duration _cacheTTL = Duration(minutes: 15);
 
-  late Box<Map<dynamic, dynamic>> _commentsCache;
-  late Box<Map<dynamic, dynamic>> _offlineQueue;
+  Box<Map<dynamic, dynamic>>? _commentsCache;
+  Box<Map<dynamic, dynamic>>? _offlineQueue;
+  bool _isInitializing = false;
 
   /// Initialize Hive boxes
   ///
-  /// Must be called before any other operations.
-  /// Typically called during app initialization in main.dart.
+  /// Can be called explicitly during app startup, but will also be
+  /// called lazily on first access if not initialized.
   Future<void> init() async {
-    await Hive.initFlutter();
+    if (_commentsCache != null && _offlineQueue != null) {
+      return; // Already initialized
+    }
 
-    // Register Hive adapters if needed (for custom types)
-    // Note: Using JSON serialization (Map<String, dynamic>) to avoid custom adapters
+    if (_isInitializing) {
+      // Wait for ongoing initialization
+      while (_isInitializing) {
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
+      return;
+    }
 
-    _commentsCache = await Hive.openBox<Map<dynamic, dynamic>>(
-      _commentsCacheBoxName,
-    );
-    _offlineQueue = await Hive.openBox<Map<dynamic, dynamic>>(
-      _offlineQueueBoxName,
-    );
+    _isInitializing = true;
+    try {
+      await Hive.initFlutter();
+
+      // Register Hive adapters if needed (for custom types)
+      // Note: Using JSON serialization (Map<String, dynamic>) to avoid custom adapters
+
+      _commentsCache = await Hive.openBox<Map<dynamic, dynamic>>(
+        _commentsCacheBoxName,
+      );
+      _offlineQueue = await Hive.openBox<Map<dynamic, dynamic>>(
+        _offlineQueueBoxName,
+      );
+    } finally {
+      _isInitializing = false;
+    }
+  }
+
+  /// Ensure boxes are initialized before accessing them
+  Future<void> _ensureInitialized() async {
+    if (_commentsCache == null || _offlineQueue == null) {
+      await init();
+    }
   }
 
   // ==========================================================================
@@ -55,8 +80,9 @@ class CommentsLocalDataSource {
     required String eventId,
   }) async {
     try {
+      await _ensureInitialized();
       final cacheKey = 'event_$eventId';
-      final cachedData = _commentsCache.get(cacheKey);
+      final cachedData = _commentsCache?.get(cacheKey);
 
       if (cachedData == null) {
         return null; // Cache miss
@@ -68,7 +94,7 @@ class CommentsLocalDataSource {
 
       if (timestampStr == null || commentsJson == null) {
         // Corrupted cache entry - delete it
-        await _commentsCache.delete(cacheKey);
+        await _commentsCache?.delete(cacheKey);
         return null;
       }
 
@@ -78,7 +104,7 @@ class CommentsLocalDataSource {
 
       if (age > _cacheTTL) {
         // Cache expired - delete and return null
-        await _commentsCache.delete(cacheKey);
+        await _commentsCache?.delete(cacheKey);
         return null;
       }
 
@@ -91,8 +117,6 @@ class CommentsLocalDataSource {
       return comments;
     } catch (e) {
       // Hive error or JSON parsing error - return null (fail silently)
-      // Log error in production for debugging
-      print('Error reading cache for event $eventId: $e');
       return null;
     }
   }
@@ -106,6 +130,7 @@ class CommentsLocalDataSource {
     required List<CommentModel> comments,
   }) async {
     try {
+      await _ensureInitialized();
       final cacheKey = 'event_$eventId';
 
       // Serialize comments to JSON
@@ -118,11 +143,10 @@ class CommentsLocalDataSource {
       };
 
       // Store in Hive
-      await _commentsCache.put(cacheKey, cacheEntry);
+      await _commentsCache?.put(cacheKey, cacheEntry);
     } catch (e) {
       // Hive error (disk full, permissions, etc.)
-      // Log but don't throw - caching is best-effort
-      print('Error caching comments for event $eventId: $e');
+      // Caching is best-effort, so we ignore errors
     }
   }
 
@@ -131,9 +155,10 @@ class CommentsLocalDataSource {
   /// Used when user logs out or for cache management.
   Future<void> clearCache() async {
     try {
-      await _commentsCache.clear();
+      await _ensureInitialized();
+      await _commentsCache?.clear();
     } catch (e) {
-      print('Error clearing comments cache: $e');
+      // Ignore errors when clearing cache
     }
   }
 
@@ -142,11 +167,15 @@ class CommentsLocalDataSource {
   /// Should be called periodically (e.g., on app startup) to prevent cache bloat.
   Future<void> cleanupExpiredCache() async {
     try {
+      await _ensureInitialized();
+      final cache = _commentsCache;
+      if (cache == null) return;
+
       final now = DateTime.now();
       final keysToDelete = <String>[];
 
-      for (final key in _commentsCache.keys) {
-        final cachedData = _commentsCache.get(key);
+      for (final key in cache.keys) {
+        final cachedData = cache.get(key);
         if (cachedData == null) continue;
 
         final timestampStr = cachedData['timestamp'] as String?;
@@ -165,12 +194,10 @@ class CommentsLocalDataSource {
 
       // Delete expired entries
       for (final key in keysToDelete) {
-        await _commentsCache.delete(key);
+        await cache.delete(key);
       }
-
-      print('Cleaned up ${keysToDelete.length} expired cache entries');
     } catch (e) {
-      print('Error cleaning up cache: $e');
+      // Ignore errors when cleaning up cache
     }
   }
 
@@ -186,6 +213,7 @@ class CommentsLocalDataSource {
     required OfflineCommentAction action,
   }) async {
     try {
+      await _ensureInitialized();
       // Serialize action to JSON
       final actionJson = {
         'temp_id': action.tempId,
@@ -200,12 +228,9 @@ class CommentsLocalDataSource {
       };
 
       // Add to queue (key = temp_id for easy lookup)
-      await _offlineQueue.put(action.tempId, actionJson);
-
-      print('Queued offline action: ${action.type.name} (${action.tempId})');
+      await _offlineQueue?.put(action.tempId, actionJson);
     } catch (e) {
-      // Hive error - log but don't throw
-      print('Error queuing offline action: $e');
+      // Hive error - ignore
     }
   }
 
@@ -214,9 +239,13 @@ class CommentsLocalDataSource {
   /// Returns actions in FIFO order (oldest first).
   Future<List<OfflineCommentAction>> getOfflineQueue() async {
     try {
+      await _ensureInitialized();
+      final queue = _offlineQueue;
+      if (queue == null) return [];
+
       final actions = <OfflineCommentAction>[];
 
-      for (final actionJson in _offlineQueue.values) {
+      for (final actionJson in queue.values) {
         final action = _parseOfflineAction(actionJson);
         if (action != null) {
           actions.add(action);
@@ -228,7 +257,6 @@ class CommentsLocalDataSource {
 
       return actions;
     } catch (e) {
-      print('Error reading offline queue: $e');
       return [];
     }
   }
@@ -240,9 +268,10 @@ class CommentsLocalDataSource {
     required String tempId,
   }) async {
     try {
-      await _offlineQueue.delete(tempId);
+      await _ensureInitialized();
+      await _offlineQueue?.delete(tempId);
     } catch (e) {
-      print('Error removing action from queue: $e');
+      // Ignore errors when removing from queue
     }
   }
 
@@ -251,10 +280,10 @@ class CommentsLocalDataSource {
   /// Used after successful sync or on user request.
   Future<void> clearOfflineQueue() async {
     try {
-      await _offlineQueue.clear();
-      print('Offline queue cleared');
+      await _ensureInitialized();
+      await _offlineQueue?.clear();
     } catch (e) {
-      print('Error clearing offline queue: $e');
+      // Ignore errors when clearing queue
     }
   }
 
@@ -263,9 +292,8 @@ class CommentsLocalDataSource {
   /// Useful for UI indicators ("X pending actions").
   int getQueueSize() {
     try {
-      return _offlineQueue.length;
+      return _offlineQueue?.length ?? 0;
     } catch (e) {
-      print('Error getting queue size: $e');
       return 0;
     }
   }
@@ -304,7 +332,6 @@ class CommentsLocalDataSource {
         queuedAt: DateTime.parse(queuedAtStr),
       );
     } catch (e) {
-      print('Error parsing offline action: $e');
       return null;
     }
   }
@@ -318,10 +345,10 @@ class CommentsLocalDataSource {
   /// Should be called when app is shutting down.
   Future<void> dispose() async {
     try {
-      await _commentsCache.close();
-      await _offlineQueue.close();
+      await _commentsCache?.close();
+      await _offlineQueue?.close();
     } catch (e) {
-      print('Error closing Hive boxes: $e');
+      // Ignore errors when closing boxes
     }
   }
 }

@@ -2,6 +2,7 @@
 ///
 /// Main search screen with adaptive search bar and results sections.
 /// Supports live search with 500ms debouncing, search history, and highlighting.
+library;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -11,12 +12,15 @@ import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/utils/platform_utils.dart';
+import 'package:nova/core/animations/page_transitions.dart';
 import 'package:nova/features/events/presentation/screens/event_detail_screen.dart';
+import 'package:nova/features/events/presentation/providers/events_feed_provider.dart';
 import 'package:nova/features/profile/presentation/screens/other_profile_screen.dart';
 import '../providers/search_provider.dart';
 import '../providers/search_history_provider.dart';
 import '../widgets/adaptive_search_bar.dart';
 import '../widgets/event_search_tile.dart';
+import '../widgets/event_grid_tile.dart';
 import '../widgets/profile_search_tile.dart';
 import '../widgets/recent_searches_widget.dart';
 import '../widgets/search_empty_state.dart';
@@ -113,7 +117,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         horizontal: NovaSpacing.l,
         vertical: NovaSpacing.s,
       ),
-      color: NovaColors.warningLight.withOpacity(0.1),
+      color: NovaColors.warningLight.withValues(alpha: 0.1),
       child: Row(
         children: [
           Icon(
@@ -134,8 +138,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildInitialState(SearchNotifier notifier) {
+    final eventsFeedAsync = ref.watch(eventsFeedProvider);
+
     return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Recent searches
           RecentSearchesWidget(
@@ -145,10 +152,118 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             },
             onClearAll: () {},
           ),
-          // Empty state
-          const SearchEmptyState.initial(),
+          // Upcoming events grid
+          _buildUpcomingEventsSection(eventsFeedAsync),
         ],
       ),
+    );
+  }
+
+  Widget _buildUpcomingEventsSection(AsyncValue<EventsFeedState> eventsFeedAsync) {
+    return eventsFeedAsync.when(
+      data: (feedState) {
+        if (feedState.events.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        // Take up to 6 events for the grid
+        final gridEvents = feedState.events.take(6).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NovaSpacing.l,
+                NovaSpacing.m,
+                NovaSpacing.l,
+                NovaSpacing.s,
+              ),
+              child: Text(
+                'Prossimi eventi',
+                style: NovaTextStyles.h3.copyWith(
+                  color: NovaColors.textPrimaryStatic,
+                ),
+              ),
+            ),
+            // Events grid
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: NovaSpacing.l),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: NovaSpacing.s,
+                  mainAxisSpacing: NovaSpacing.s,
+                  childAspectRatio: 1.0, // Square tiles
+                ),
+                itemCount: gridEvents.length,
+                itemBuilder: (context, index) {
+                  final event = gridEvents[index];
+                  return EventGridTile(
+                    event: event,
+                    onTap: () => _navigateToEvent(event.id),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: NovaSpacing.xl),
+          ],
+        );
+      },
+      loading: () => _buildEventsGridSkeleton(),
+      error: (error, stack) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildEventsGridSkeleton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header skeleton
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            NovaSpacing.l,
+            NovaSpacing.m,
+            NovaSpacing.l,
+            NovaSpacing.s,
+          ),
+          child: Container(
+            width: 120,
+            height: 20,
+            decoration: BoxDecoration(
+              color: NovaColors.surfaceLight,
+              borderRadius: BorderRadius.circular(NovaRadius.small),
+            ),
+          ),
+        ),
+        // Grid skeleton
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: NovaSpacing.l),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: NovaSpacing.s,
+              mainAxisSpacing: NovaSpacing.s,
+              childAspectRatio: 1.0,
+            ),
+            itemCount: 4,
+            itemBuilder: (context, index) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: NovaColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(NovaRadius.medium),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: NovaSpacing.xl),
+      ],
     );
   }
 
@@ -370,35 +485,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _navigateToEvent(String eventId) {
-    if (PlatformUtils.isIOS) {
-      Navigator.of(context).push(
-        CupertinoPageRoute(
-          builder: (context) => EventDetailScreen(eventId: eventId),
-        ),
-      );
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => EventDetailScreen(eventId: eventId),
-        ),
-      );
-    }
+    Navigator.of(context).push(
+      NovaPageRoute.swipeBack(page: EventDetailScreen(eventId: eventId)),
+    );
   }
 
   void _navigateToProfile(String userId) {
-    if (PlatformUtils.isIOS) {
-      Navigator.of(context).push(
-        CupertinoPageRoute(
-          builder: (context) => OtherProfileScreen(userId: userId),
-        ),
-      );
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => OtherProfileScreen(userId: userId),
-        ),
-      );
-    }
+    Navigator.of(context).push(
+      NovaPageRoute.swipeBack(page: OtherProfileScreen(userId: userId)),
+    );
   }
 }
 

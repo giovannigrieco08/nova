@@ -11,6 +11,7 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/providers/core_providers.dart';
 import '../../../../shared/widgets/nova_toast.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/avatar_initials.dart';
@@ -157,7 +158,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       }
     } catch (e) {
       // Silently fail - user can enter name manually
-      debugPrint('Failed to parse name from email: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -357,7 +357,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             width: 128,
                             height: 128,
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
+                              color: NovaColors.overlayDark.withValues(alpha: 0.6),
                               shape: BoxShape.circle,
                             ),
                             child: Column(
@@ -520,7 +520,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: NovaColors.primary(context),
                     disabledBackgroundColor:
-                        NovaColors.textSecondary(context).withOpacity(0.3),
+                        NovaColors.textSecondary(context).withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(NovaRadius.m),
                     ),

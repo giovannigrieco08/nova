@@ -5,6 +5,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive/hive.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import '../../data/data_sources/events_local_data_source.dart';
 import '../../data/data_sources/events_remote_data_source.dart';
 import '../../data/models/event_model.dart';
@@ -16,11 +17,7 @@ import '../../domain/entities/offline_action.dart';
 // ========================================================================
 // DEPENDENCY PROVIDERS
 // ========================================================================
-
-/// Supabase client provider
-final supabaseClientProvider = Provider<SupabaseClient>((ref) {
-  return Supabase.instance.client;
-});
+// supabaseClientProvider - imported from core_providers.dart
 
 /// Events cache Hive box provider
 final eventsCacheBoxProvider = Provider<Box<EventModel>>((ref) {
@@ -123,7 +120,7 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
   /// Load a specific page of events
   Future<EventsFeedState> _loadPage(int page, {required bool isRefresh}) async {
     try {
-      final getEventsFeed = ref.read(getEventsFeedUseCaseProvider);
+      final getEventsFeed = ref.watch(getEventsFeedUseCaseProvider);
       final events = await getEventsFeed.execute(
         page: page,
         limit: _pageSize,
@@ -140,11 +137,7 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
         isLoadingMore: false,
         error: null,
       );
-    } catch (e, stackTrace) {
-      // Log error for debugging
-      print('Error loading events feed page $page: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e, _) {
       return EventsFeedState(
         events: const [],
         currentPage: 0,
@@ -168,7 +161,7 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
 
     try {
       final nextPage = currentState.currentPage + 1;
-      final getEventsFeed = ref.read(getEventsFeedUseCaseProvider);
+      final getEventsFeed = ref.watch(getEventsFeedUseCaseProvider);
       final newEvents = await getEventsFeed.execute(
         page: nextPage,
         limit: _pageSize,
@@ -187,10 +180,7 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
         isLoadingMore: false,
         error: null,
       ));
-    } catch (e, stackTrace) {
-      print('Error loading next page: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e, _) {
       // Keep existing events but show error
       state = AsyncData(currentState.copyWith(
         isLoadingMore: false,
@@ -220,6 +210,24 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
     }
   }
 }
+
+// ========================================================================
+// USER PENDING EVENTS PROVIDER
+// ========================================================================
+
+/// Provider for fetching the current user's pending events.
+/// Used to show a compact banner at the top of the feed.
+final userPendingEventsProvider = FutureProvider.autoDispose<List<Event>>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final userId = supabase.auth.currentUser?.id;
+
+  if (userId == null || userId.isEmpty) {
+    return [];
+  }
+
+  final repository = ref.watch(eventsRepositoryProvider);
+  return repository.getUserPendingEvents(userId);
+});
 
 // ========================================================================
 // SCROLL POSITION PROVIDER

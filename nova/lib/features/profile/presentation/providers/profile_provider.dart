@@ -4,9 +4,9 @@
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import '../../domain/entities/profile.dart';
 import '../../domain/usecases/create_profile.dart';
 import '../../domain/usecases/check_profile_complete.dart';
@@ -15,15 +15,14 @@ import '../../data/datasources/profile_remote_datasource.dart';
 import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/models/profile_model.dart';
 import '../../data/services/avatar_upload_service.dart';
+// Events imports for user events providers
+import '../../../events/presentation/providers/events_feed_provider.dart' show eventsRepositoryProvider;
+import '../../../events/domain/entities/event.dart';
 
 // ============================================================================
 // PROVIDERS
 // ============================================================================
-
-/// Supabase client provider
-final supabaseClientProvider = Provider<SupabaseClient>((ref) {
-  return Supabase.instance.client;
-});
+// supabaseClientProvider - imported from core_providers.dart
 
 /// Hive box provider for profiles
 final profileBoxProvider = Provider<Box<ProfileModel>>((ref) {
@@ -270,3 +269,35 @@ final updateProfileUseCaseProvider = Provider<Future<void> Function(String, Map<
 });
 
 // ProfileStats is exported from profile_repository.dart
+
+// ============================================================================
+// USER EVENTS PROVIDERS
+// ============================================================================
+
+/// Events created by current user
+/// Used for profile "Eventi" tab
+final userCreatedEventsProvider = FutureProvider<List<Event>>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final repository = ref.watch(eventsRepositoryProvider);
+
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) {
+    throw Exception('User not authenticated');
+  }
+
+  return await repository.getEventsByCreator(userId);
+});
+
+/// Events user is participating in
+/// Used for profile "Partecipazioni" tab
+final userParticipatingEventsProvider = FutureProvider<List<Event>>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final repository = ref.watch(eventsRepositoryProvider);
+
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) {
+    throw Exception('User not authenticated');
+  }
+
+  return await repository.getEventsParticipating(userId);
+});

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 
 /// Skeleton placeholder for tutor cards during loading.
@@ -23,8 +24,8 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
 
     _animation = Tween<double>(begin: 0.3, end: 0.6).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
@@ -50,7 +51,7 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
           padding: const EdgeInsets.all(NovaSpacing.m),
           decoration: BoxDecoration(
             color: NovaColors.card(context),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: NovaRadius.circularM,
             border: Border.all(color: NovaColors.border(context)),
           ),
           child: Row(
@@ -76,7 +77,7 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                       height: 16,
                       decoration: BoxDecoration(
                         color: NovaColors.border(context).withValues(alpha: _animation.value),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: NovaRadius.circularXxs,
                       ),
                     ),
                     const SizedBox(height: NovaSpacing.xs),
@@ -86,7 +87,7 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                       height: 12,
                       decoration: BoxDecoration(
                         color: NovaColors.border(context).withValues(alpha: _animation.value),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: NovaRadius.circularXxs,
                       ),
                     ),
                     const SizedBox(height: NovaSpacing.s),
@@ -96,7 +97,7 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                       height: 10,
                       decoration: BoxDecoration(
                         color: NovaColors.border(context).withValues(alpha: _animation.value),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: NovaRadius.circularXxs,
                       ),
                     ),
                   ],
@@ -109,7 +110,7 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                 height: 24,
                 decoration: BoxDecoration(
                   color: NovaColors.border(context).withValues(alpha: _animation.value),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: NovaRadius.circularS,
                 ),
               ),
             ],
@@ -158,8 +159,8 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
 
     _animation = Tween<double>(begin: 0.3, end: 0.6).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
@@ -192,7 +193,7 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
                     height: 48,
                     decoration: BoxDecoration(
                       color: NovaColors.border(context).withValues(alpha: _animation.value),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: NovaRadius.circularS,
                     ),
                   ),
                   const SizedBox(width: NovaSpacing.m),
@@ -206,7 +207,7 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
                           height: 16,
                           decoration: BoxDecoration(
                             color: NovaColors.border(context).withValues(alpha: _animation.value),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: NovaRadius.circularXxs,
                           ),
                         ),
                         const SizedBox(height: NovaSpacing.xs),
@@ -215,7 +216,7 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
                           height: 12,
                           decoration: BoxDecoration(
                             color: NovaColors.border(context).withValues(alpha: _animation.value),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: NovaRadius.circularXxs,
                           ),
                         ),
                       ],

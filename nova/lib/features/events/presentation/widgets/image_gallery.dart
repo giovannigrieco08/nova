@@ -7,6 +7,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 
 /// Swipeable image gallery with pagination indicators (Instagram-style)
 ///
@@ -112,26 +114,26 @@ class _ImageGalleryState extends State<ImageGallery> {
     final imageWidget = AspectRatio(
       aspectRatio: widget.aspectRatio,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14), // Instagram-style rounded corners
+        borderRadius: NovaRadius.circularS, // Instagram-style rounded corners
         child: CachedNetworkImage(
           imageUrl: imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: const Color(0xFFF0F0F0), // Light gray placeholder
+            color: NovaColors.placeholder, // Light gray placeholder
             child: const Center(
               child: CircularProgressIndicator(
-                color: Color(0xFF737373), // Instagram gray
+                color: NovaColors.grayDark, // Instagram gray
                 strokeWidth: 2,
               ),
             ),
           ),
           errorWidget: (context, url, error) => Container(
-            color: const Color(0xFFF0F0F0),
+            color: NovaColors.placeholder,
             child: const Center(
               child: Icon(
                 Icons.image_not_supported_outlined,
                 size: 64,
-                color: Color(0xFF737373),
+                color: NovaColors.grayDark,
               ),
             ),
           ),
@@ -156,21 +158,21 @@ class _ImageGalleryState extends State<ImageGallery> {
       imageUrl: imageUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
-        color: const Color(0xFFF0F0F0),
+        color: NovaColors.placeholder,
         child: const Center(
           child: CircularProgressIndicator(
-            color: Color(0xFF737373),
+            color: NovaColors.grayDark,
             strokeWidth: 2,
           ),
         ),
       ),
       errorWidget: (context, url, error) => Container(
-        color: const Color(0xFFF0F0F0),
+        color: NovaColors.placeholder,
         child: const Center(
           child: Icon(
             Icons.image_not_supported_outlined,
             size: 64,
-            color: Color(0xFF737373),
+            color: NovaColors.grayDark,
           ),
         ),
       ),
@@ -181,14 +183,14 @@ class _ImageGalleryState extends State<ImageGallery> {
       return Hero(
         tag: widget.heroTag!,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: NovaRadius.circularS,
           child: imageWidget,
         ),
       );
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: NovaRadius.circularS,
       child: imageWidget,
     );
   }
@@ -216,8 +218,8 @@ class _ImageGalleryState extends State<ImageGallery> {
       height: 8,
       decoration: BoxDecoration(
         color: isActive
-            ? const Color(0xFF0095f6) // Instagram blue for active
-            : const Color(0xFFDBDBDB), // Light gray for inactive
+            ? NovaColors.infoLight // Instagram blue for active
+            : NovaColors.grayMedium, // Light gray for inactive
         shape: BoxShape.circle,
       ),
     );

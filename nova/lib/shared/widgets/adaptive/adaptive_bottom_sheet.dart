@@ -75,6 +75,8 @@ class AdaptiveBottomSheet {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       backgroundColor: NovaColors.backgroundPrimary(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(

@@ -130,7 +130,7 @@ class AvatarPickerBottomSheet extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: NovaColors.primary(context).withOpacity(0.1),
+              color: NovaColors.primary(context).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(NovaRadius.m),
             ),
             child: Icon(
@@ -160,7 +160,7 @@ class AvatarPickerBottomSheet extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: NovaColors.primary(context).withOpacity(0.1),
+              color: NovaColors.primary(context).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(NovaRadius.m),
             ),
             child: Icon(
@@ -195,7 +195,7 @@ class AvatarPickerBottomSheet extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: NovaColors.error(context).withOpacity(0.1),
+                color: NovaColors.error(context).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(NovaRadius.m),
               ),
               child: Icon(

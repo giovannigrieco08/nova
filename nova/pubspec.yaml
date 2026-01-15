@@ -40,6 +40,7 @@ dependencies:
   connectivity_plus: ^5.0.0          # Network status monitoring
   path_provider: ^2.1.1              # File system paths for Hive
   shared_preferences: ^2.2.2         # Persistent key-value storage
+  package_info_plus: ^8.0.0          # App version and package info
   freezed_annotation: ^2.4.0         # Immutable entities annotations
   json_annotation: ^4.8.0            # JSON serialization annotations
 
@@ -60,8 +61,12 @@ dependencies:
   # Chat Media Feature Dependencies (015-global-chat)
   flutter_sound: ^9.16.0               # Audio recording and playback for voice messages
   permission_handler: ^11.3.1          # Runtime permissions for camera/mic
+  emoji_picker_flutter: ^2.1.1         # Emoji picker for chat messages
   # flutter_app_badger: ^1.5.0          # REMOVED: incompatible with AGP 8.0+ (namespace issue)
   uuid: ^4.4.0                          # UUID generation
+  camera: ^0.10.6                       # Custom camera UI with photo/video support
+  gal: ^2.3.0                           # Save images/videos to device gallery
+  video_player: ^2.9.2                  # Video preview playback
 
   # Additional UI/Navigation Dependencies
   go_router: ^14.2.0                    # Declarative routing
@@ -69,6 +74,15 @@ dependencies:
   image_cropper: ^7.0.5                 # Image cropping for avatars
   timeago: ^3.6.0                       # Relative time formatting
   app_settings: ^5.1.1                  # Open device settings
+
+  # Animations (Instagram-like UX)
+  lottie: ^3.1.0                        # Complex vector animations (heart explosion)
+
+  # URL Launching (Settings screen mailto: links)
+  url_launcher: ^6.2.0                  # Open URLs and mailto: links
+
+  # HTTP Client (for Nominatim geocoding API)
+  http: ^1.2.0                          # HTTP requests for location search
 
 dev_dependencies:
   flutter_test:
@@ -81,11 +95,27 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+  # Testing Dependencies
+  mocktail: ^1.0.1                   # Mock generation without code generation
+  fake_async: ^1.3.1                 # Control async tests
+
   # Code Generation (Profile Feature)
   build_runner: ^2.4.0               # Code generation runner
   hive_generator: ^2.0.0             # Generate Hive type adapters
   freezed: ^2.4.0                    # Generate immutable entities
   json_serializable: ^6.7.0          # Generate JSON serialization code
+
+  # App Icon Generation
+  flutter_launcher_icons: ^0.14.2    # Generate app icons for iOS and Android
+
+# App Icon Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  # Android Adaptive Icons (black background)
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

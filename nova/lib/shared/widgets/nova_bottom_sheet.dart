@@ -1,16 +1,19 @@
 // Shared Widget: NovaBottomSheet
 // Feature: 002-profile-setup (and reusable across features)
-// Purpose: DraggableScrollableSheet with glass effect and consistent styling
+// Purpose: Platform-aware bottom sheet (glass on iOS, Material on Android)
 
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import '../../core/theme/nova_colors.dart';
 import '../../core/theme/nova_spacing.dart';
 import '../../core/theme/nova_radius.dart';
 import '../../core/widgets/nova_glass.dart';
 
-/// Helper class for showing bottom sheets with consistent styling
+/// Helper class for showing bottom sheets with platform-aware styling
+/// - iOS: Glassmorphism effect (frosted glass)
+/// - Android: Standard Material Design (solid background)
 class NovaBottomSheet {
-  /// Show modal bottom sheet with glass effect
+  /// Show modal bottom sheet with platform-aware styling
   ///
   /// Parameters:
   /// - [context]: BuildContext
@@ -29,12 +32,15 @@ class NovaBottomSheet {
     bool isDismissible = true,
     bool showDragHandle = true,
   }) {
+    final isIOS = Platform.isIOS;
+
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       isDismissible: isDismissible,
       enableDrag: true,
-      backgroundColor: Colors.transparent,
+      // Transparent on iOS for glass effect, solid on Android
+      backgroundColor: isIOS ? Colors.transparent : NovaColors.background(context),
       barrierColor: Colors.black54,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -46,21 +52,38 @@ class NovaBottomSheet {
           initialChildSize: initialChildSize,
           minChildSize: minChildSize,
           maxChildSize: maxChildSize,
+          expand: false,
           builder: (context, scrollController) {
-            return NovaGlassCard(
-              level: GlassLevel.medium,
-              borderRadius: NovaRadius.xl,
-              child: Column(
-                children: [
-                  // Drag handle (if enabled)
-                  if (showDragHandle) _buildDragHandle(),
+            final content = Column(
+              children: [
+                // Drag handle (if enabled)
+                if (showDragHandle) _buildDragHandle(isIOS),
 
-                  // Content
-                  Expanded(
-                    child: builder(context, scrollController),
-                  ),
-                ],
+                // Content
+                Expanded(
+                  child: builder(context, scrollController),
+                ),
+              ],
+            );
+
+            // iOS: Use glass effect
+            if (isIOS) {
+              return NovaGlassCard(
+                level: GlassLevel.medium,
+                borderRadius: NovaRadius.xl,
+                child: content,
+              );
+            }
+
+            // Android: Use solid background
+            return Container(
+              decoration: BoxDecoration(
+                color: NovaColors.background(context),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(NovaRadius.xl),
+                ),
               ),
+              child: content,
             );
           },
         );
@@ -68,8 +91,8 @@ class NovaBottomSheet {
     );
   }
 
-  /// Build drag handle bar
-  static Widget _buildDragHandle() {
+  /// Build drag handle bar (adapts to platform styling)
+  static Widget _buildDragHandle(bool isIOS) {
     return Builder(
       builder: (context) => Container(
         width: double.infinity,
@@ -82,7 +105,10 @@ class NovaBottomSheet {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: NovaColors.textSecondary(context).withOpacity(0.5),
+              // Slightly more visible on iOS glass background
+              color: isIOS
+                  ? Colors.white.withValues(alpha: 0.6)
+                  : NovaColors.textSecondary(context).withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(NovaRadius.s),
             ),
           ),
@@ -129,7 +155,7 @@ class NovaBottomSheet {
             // Divider
             Divider(
               height: 1,
-              color: NovaColors.textSecondary(context).withOpacity(0.2),
+              color: NovaColors.textSecondary(context).withValues(alpha: 0.2),
             ),
 
             // Scrollable content

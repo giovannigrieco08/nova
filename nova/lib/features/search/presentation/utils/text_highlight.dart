@@ -1,6 +1,7 @@
 /// Text highlighting utility for search results
 ///
 /// Provides case-insensitive bold highlighting of search terms in text.
+library;
 
 import 'package:flutter/material.dart';
 

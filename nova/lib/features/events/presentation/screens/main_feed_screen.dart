@@ -1,8 +1,8 @@
 // =====================================================================
 // Nova - Main Feed Screen (BeReal-Inspired Design)
 // =====================================================================
-// Purpose: Main screen with tab navigation between Eventi and Bacheche
-// Architecture: TabController with custom NovaAppBar and NovaBottomNavBar
+// Purpose: Main screen with Eventi feed and bottom navigation
+// Architecture: Custom NovaAppBar and NovaBottomNavBar
 // =====================================================================
 
 import 'package:flutter/material.dart';
@@ -11,9 +11,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/utils/platform_utils.dart';
+import '../../../../core/animations/page_transitions.dart';
+import '../../../../core/animations/instagram_refresh_indicator.dart';
 import '../../../../shared/widgets/nova_bottom_nav_bar.dart';
 import '../../../../shared/widgets/avatar_widget.dart';
-import '../../../bacheche/presentation/screens/bacheche_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
@@ -21,14 +22,18 @@ import '../../../search/presentation/screens/search_screen.dart';
 import '../../../tutoring/presentation/screens/subjects_screen.dart';
 import '../../../notifications/presentation/screens/notification_list_screen.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
+import '../../../notifications/presentation/providers/push_providers.dart';
+import '../../../../shared/widgets/in_app_notification_banner.dart';
+import '../providers/events_feed_provider.dart';
 import 'events_feed_screen.dart';
 import 'event_creation_screen.dart';
+import 'event_detail_screen.dart';
 
-/// Main feed screen with tab navigation (Eventi/Bacheche)
+/// Main feed screen with Eventi feed
 ///
 /// Features:
 /// - NovaAppBar with logo and notifications
-/// - Tab bar to switch between Eventi and Bacheche
+/// - Eventi feed
 /// - NovaBottomNavBar with pill-shaped glassmorphic design
 /// - Clean white background (BeReal-inspired)
 class MainFeedScreen extends ConsumerStatefulWidget {
@@ -38,23 +43,71 @@ class MainFeedScreen extends ConsumerStatefulWidget {
   ConsumerState<MainFeedScreen> createState() => _MainFeedScreenState();
 }
 
-class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
   int _currentNavIndex = 0; // Bottom nav index (0=Home, 1=Search, 2=Tutoring, 3=Chat, 4=Profile)
-  String _currentSection = 'Eventi'; // Current section: 'Eventi' or 'Bacheche'
-  bool _isNavigatingCreate = false; // For slide animation on + button
-  bool _isNavigatingNotifications = false; // For slide animation on bell
+
+  // Instagram-style refresh state
+  bool _isRefreshing = false;
+  // Use ValueNotifier to avoid setState on every scroll frame (60fps = 60 rebuilds/sec)
+  final ValueNotifier<double> _pullProgressNotifier = ValueNotifier(0.0);
+
+  // Swipe gesture tracking
+  bool _isHorizontalDragActive = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    // Setup foreground notification banner
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupForegroundNotificationBanner();
+    });
+  }
+
+  /// Setup foreground notification callback to show in-app banner
+  void _setupForegroundNotificationBanner() {
+    final pushService = ref.read(pushNotificationServiceProvider);
+    pushService.onForegroundNotification = (payload) {
+      if (!mounted) return;
+
+      InAppNotificationBanner.show(
+        context: context,
+        title: payload.title ?? 'Nova',
+        body: payload.body ?? '',
+        onTap: () {
+          // Navigate based on payload type
+          final targetType = payload.targetType;
+          final targetId = payload.targetId;
+
+          if (targetType == 'event') {
+            Navigator.push(
+              context,
+              NovaPageRoute.swipeBack(page: EventDetailScreen(eventId: targetId)),
+            );
+          } else if (targetType == 'chat') {
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const ChatScreen(),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+              ),
+            );
+          } else {
+            // Default: go to notifications
+            _onNotificationsTap();
+          }
+        },
+      );
+    };
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    // Clear the callback when disposing
+    final pushService = ref.read(pushNotificationServiceProvider);
+    pushService.onForegroundNotification = null;
+    _pullProgressNotifier.dispose();
     super.dispose();
   }
 
@@ -76,9 +129,12 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
   Future<void> _openChatScreen() async {
     await Navigator.push(
       context,
-      context.isIOS
-          ? CupertinoPageRoute(builder: (context) => const ChatScreen())
-          : MaterialPageRoute(builder: (context) => const ChatScreen()),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const ChatScreen(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
     );
   }
 
@@ -121,118 +177,28 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     ];
   }
 
-  /// Handle create button tap - Open event/bacheca creation screen with slide animation
-  void _onCreateTap() async {
-    setState(() => _isNavigatingCreate = true);
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    if (!mounted) return;
-    await Navigator.push(
+  /// Handle create button tap - Open event/bacheca creation screen (slide from left)
+  void _onCreateTap() {
+    Navigator.push(
       context,
-      context.isIOS
-          ? CupertinoPageRoute(
-              builder: (context) => const EventCreationScreen(),
-            )
-          : MaterialPageRoute(
-              builder: (context) => const EventCreationScreen(),
-            ),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const EventCreationScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Slide from left (starts off-screen left, slides to center)
+          const begin = Offset(-1.0, 0.0);
+          const end = Offset.zero;
+          final tween = Tween(begin: begin, end: end)
+              .chain(CurveTween(curve: Curves.easeInOut));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+      ),
     );
-
-    if (mounted) setState(() => _isNavigatingCreate = false);
-  }
-
-  /// Show section selector (Eventi/Bacheche)
-  void _showSectionSelector() {
-    if (context.isIOS) {
-      // iOS: Native CupertinoActionSheet
-      showCupertinoModalPopup(
-        context: context,
-        builder: (context) => CupertinoActionSheet(
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                setState(() {
-                  _currentSection = 'Eventi';
-                  _tabController.animateTo(0);
-                });
-              },
-              isDefaultAction: _currentSection == 'Eventi',
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.event, size: 20),
-                  SizedBox(width: 8),
-                  Text('Eventi'),
-                ],
-              ),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                setState(() {
-                  _currentSection = 'Bacheche';
-                  _tabController.animateTo(1);
-                });
-              },
-              isDefaultAction: _currentSection == 'Bacheche',
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.dashboard, size: 20),
-                  SizedBox(width: 8),
-                  Text('Bacheche'),
-                ],
-              ),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
-          ),
-        ),
-      );
-    } else {
-      // Android: Material Design dropdown menu
-      showMenu(
-        context: context,
-        position: RelativeRect.fromLTRB(
-          MediaQuery.of(context).size.width / 2 - 100,
-          kToolbarHeight,
-          MediaQuery.of(context).size.width / 2 + 100,
-          0,
-        ),
-        items: [
-          PopupMenuItem(
-            value: 'Eventi',
-            child: Row(
-              children: const [
-                Icon(Icons.event, size: 20),
-                SizedBox(width: 8),
-                Text('Eventi'),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'Bacheche',
-            child: Row(
-              children: const [
-                Icon(Icons.dashboard, size: 20),
-                SizedBox(width: 8),
-                Text('Bacheche'),
-              ],
-            ),
-          ),
-        ],
-      ).then((value) {
-        if (value != null) {
-          setState(() {
-            _currentSection = value;
-            _tabController.animateTo(value == 'Eventi' ? 0 : 1);
-          });
-        }
-      });
-    }
   }
 
   /// Build notification bell with unread badge
@@ -276,20 +242,61 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     );
   }
 
-  /// Handle notifications icon tap with slide animation
-  void _onNotificationsTap() async {
-    setState(() => _isNavigatingNotifications = true);
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    if (!mounted) return;
-    await Navigator.push(
+  /// Handle notifications icon tap (slide from right)
+  void _onNotificationsTap() {
+    Navigator.push(
       context,
-      context.isIOS
-          ? CupertinoPageRoute(builder: (context) => const NotificationListScreen())
-          : MaterialPageRoute(builder: (context) => const NotificationListScreen()),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const NotificationListScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Slide from right (starts off-screen right, slides to center)
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          final tween = Tween(begin: begin, end: end)
+              .chain(CurveTween(curve: Curves.easeInOut));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+      ),
     );
+  }
 
-    if (mounted) setState(() => _isNavigatingNotifications = false);
+  /// Handle horizontal swipe gestures on Home screen
+  /// - Swipe left (right→left): Open notifications
+  /// - Swipe right (left→right): Open event creation
+  void _onHorizontalDragStart(DragStartDetails details) {
+    _isHorizontalDragActive = true;
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    if (!_isHorizontalDragActive) return;
+    _isHorizontalDragActive = false;
+
+    final velocity = details.velocity.pixelsPerSecond.dx;
+
+    // Minimum velocity threshold for swipe detection
+    const minVelocity = 300.0;
+
+    // Swipe left (right→left) with sufficient velocity → Notifications
+    if (velocity < -minVelocity) {
+      _onNotificationsTap();
+      return;
+    }
+
+    // Swipe right (left→right) with sufficient velocity → Create event
+    if (velocity > minVelocity) {
+      _onCreateTap();
+      return;
+    }
+  }
+
+  void _onHorizontalDragCancel() {
+    _isHorizontalDragActive = false;
   }
 
   /// Build the main content based on current nav index
@@ -315,97 +322,143 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen>
     );
   }
 
-  /// Build the Home screen with Eventi/Bacheche tabs
+  /// Handle pull-to-refresh for events feed
+  Future<void> _onRefresh() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      await ref.read(eventsFeedProvider.notifier).refresh();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+        _pullProgressNotifier.value = 0.0;
+      }
+    }
+  }
+
+  /// Handle scroll notifications for pull-to-refresh
+  /// Uses ValueNotifier to avoid setState on every scroll frame
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (_isRefreshing) return false;
+
+    if (notification is ScrollUpdateNotification) {
+      final pixels = notification.metrics.pixels;
+
+      // Detect overscroll (negative pixels with BouncingScrollPhysics)
+      if (pixels < 0) {
+        // Calculate progress based on how far user pulled
+        final progress = (-pixels / 100.0).clamp(0.0, 1.0);
+        if (progress != _pullProgressNotifier.value) {
+          _pullProgressNotifier.value = progress;
+        }
+      } else if (_pullProgressNotifier.value > 0 && pixels >= 0) {
+        // Reset when scrolling back to normal position
+        _pullProgressNotifier.value = 0.0;
+      }
+    } else if (notification is ScrollEndNotification) {
+      if (_pullProgressNotifier.value >= 1.0) {
+        // Trigger refresh when pulled enough
+        _onRefresh();
+      } else if (_pullProgressNotifier.value > 0) {
+        // Reset if not pulled enough
+        _pullProgressNotifier.value = 0.0;
+      }
+    }
+
+    return false;
+  }
+
+  /// Build the Home screen with Eventi feed
   Widget _buildHomeScreen() {
-    return NestedScrollView(
-      floatHeaderSlivers: true,
-      headerSliverBuilder: (context, innerBoxIsScrolled) {
-        return [
-          SliverAppBar(
-            backgroundColor: NovaColors.background(context),
-            elevation: 0,
-            floating: true,
-            snap: true,
-            pinned: false,
-            toolbarHeight: 56,
-            titleSpacing: 0,
-            automaticallyImplyLeading: false,
-            title: Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Sinistra: Pulsante + con slide animation verso sinistra
-                  AnimatedSlide(
-                    offset: _isNavigatingCreate ? const Offset(-1.5, 0) : Offset.zero,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    child: AnimatedOpacity(
-                      opacity: _isNavigatingCreate ? 0.0 : 1.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: GestureDetector(
-                        onTap: _isNavigatingCreate ? null : _onCreateTap,
-                        child: Icon(
-                          context.isIOS ? CupertinoIcons.plus : Icons.add,
-                          color: NovaColors.textPrimary(context),
-                          size: 24,
-                        ),
+    return GestureDetector(
+      // Horizontal swipe gestures for navigation
+      onHorizontalDragStart: _onHorizontalDragStart,
+      onHorizontalDragEnd: _onHorizontalDragEnd,
+      onHorizontalDragCancel: _onHorizontalDragCancel,
+      behavior: HitTestBehavior.translucent,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: _handleScrollNotification,
+        child: NestedScrollView(
+        floatHeaderSlivers: true,
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              backgroundColor: NovaColors.background(context),
+              elevation: 0,
+              floating: true,
+              snap: true,
+              pinned: false,
+              toolbarHeight: 56,
+              titleSpacing: 0,
+              automaticallyImplyLeading: false,
+              title: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Sinistra: Pulsante + (schermata slide da sinistra)
+                    GestureDetector(
+                      onTap: _onCreateTap,
+                      child: Icon(
+                        context.isIOS ? CupertinoIcons.plus : Icons.add,
+                        color: NovaColors.textPrimary(context),
+                        size: 24,
                       ),
                     ),
-                  ),
 
-                  // Centro: Titolo sezione con dropdown (stile Instagram "Per te")
-                  GestureDetector(
-                    onTap: _showSectionSelector,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _currentSection,
-                          style: NovaTypography.headingMedium.copyWith(
-                            color: NovaColors.textPrimary(context),
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          size: 20,
-                          color: NovaColors.textPrimary(context),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Destra: Campanella con slide animation verso destra
-                  AnimatedSlide(
-                    offset: _isNavigatingNotifications ? const Offset(1.5, 0) : Offset.zero,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    child: AnimatedOpacity(
-                      opacity: _isNavigatingNotifications ? 0.0 : 1.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: GestureDetector(
-                        onTap: _isNavigatingNotifications ? null : _onNotificationsTap,
-                        child: _buildNotificationBell(context),
+                    // Centro: Titolo "Eventi" (statico, senza dropdown)
+                    Text(
+                      'Eventi',
+                      style: NovaTypography.headingMedium.copyWith(
+                        color: NovaColors.textPrimary(context),
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
-                ],
+
+                    // Destra: Campanella (schermata slide da destra)
+                    GestureDetector(
+                      onTap: _onNotificationsTap,
+                      child: _buildNotificationBell(context),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ];
-      },
-      body: TabBarView(
-        controller: _tabController,
-        physics: const NeverScrollableScrollPhysics(),
-        children: const [
-          EventsFeedScreen(showAppBar: false),
-          BachecheScreen(),
-        ],
+
+            // Instagram-style refresh indicator (below header)
+            // Use ValueListenableBuilder to only rebuild this widget, not entire screen
+            SliverToBoxAdapter(
+              child: ValueListenableBuilder<double>(
+                valueListenable: _pullProgressNotifier,
+                builder: (context, pullProgress, _) {
+                  if (!_isRefreshing && pullProgress == 0) {
+                    return const SizedBox.shrink();
+                  }
+                  return Container(
+                    height: 40,
+                    alignment: Alignment.center,
+                    child: InstagramRefreshIndicator(
+                      size: 24,
+                      isRefreshing: _isRefreshing,
+                      pullProgress: pullProgress,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ];
+        },
+        body: EventsFeedScreen(
+          showAppBar: false,
+          disableRefresh: true, // Disable built-in refresh since we handle it here
+        ),
+        ),
       ),
     );
   }

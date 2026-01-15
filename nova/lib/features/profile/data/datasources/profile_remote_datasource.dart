@@ -22,7 +22,14 @@ class ProfileRemoteDataSource {
           .eq('user_id', userId)
           .single();
 
-      return ProfileModel.fromJson(response);
+      // Fetch user role from user_roles table (separate query since profiles doesn't have role column)
+      final roleData = await _getUserRole(userId);
+
+      // Merge role into profile data
+      final profileWithRole = Map<String, dynamic>.from(response);
+      profileWithRole['role'] = roleData;
+
+      return ProfileModel.fromJson(profileWithRole);
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST116') {
         // No rows returned - profile doesn't exist
@@ -43,12 +50,48 @@ class ProfileRemoteDataSource {
           .eq('user_id', userId)
           .single();
 
-      return ProfileModel.fromJson(response);
+      // Fetch user role from user_roles table
+      final roleData = await _getUserRole(userId);
+
+      // Merge role into profile data
+      final profileWithRole = Map<String, dynamic>.from(response);
+      profileWithRole['role'] = roleData;
+
+      return ProfileModel.fromJson(profileWithRole);
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST116') {
         throw ProfileNotFoundException('Profile not found for user $userId');
       }
       rethrow;
+    }
+  }
+
+  /// Get user's highest role from user_roles table
+  /// Returns 'admin' > 'moderator' > 'student' (hierarchy)
+  Future<String> _getUserRole(String userId) async {
+    try {
+      final response = await _supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId);
+
+      final rolesList = response as List;
+      if (rolesList.isEmpty) {
+        return 'student'; // Default role
+      }
+
+      // Get highest role (admin > moderator > student)
+      final roles = rolesList.map((r) => r['role'] as String).toList();
+
+      if (roles.contains('admin')) {
+        return 'admin';
+      } else if (roles.contains('moderator')) {
+        return 'moderator';
+      }
+      return 'student';
+    } catch (e) {
+      // On error, default to student
+      return 'student';
     }
   }
 

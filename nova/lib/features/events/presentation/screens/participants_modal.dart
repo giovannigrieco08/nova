@@ -9,6 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../../profile/presentation/widgets/avatar_initials.dart';
+import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_typography.dart';
+import '../../../../core/theme/nova_spacing.dart';
+import '../../../../core/theme/nova_radius.dart';
 
 /// Bottom sheet modal displaying all event participants
 ///
@@ -50,6 +54,8 @@ class ParticipantsModal extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       builder: (context) => ParticipantsModal(
         participants: participants,
         totalCount: totalCount,
@@ -64,27 +70,25 @@ class ParticipantsModal extends StatelessWidget {
 
     return Container(
       height: height,
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF), // Pure white (Instagram-style)
+      decoration: BoxDecoration(
+        color: NovaColors.cardLight, // Pure white (Instagram-style)
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(16),
+          top: Radius.circular(NovaRadius.m),
         ),
       ),
       child: Column(
         children: [
           // Header with close button
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: NovaSpacing.l, vertical: NovaSpacing.m),
             child: Row(
               children: [
                 // Title
                 Expanded(
                   child: Text(
                     'Partecipanti ($totalCount)',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF000000),
+                    style: NovaTypography.labelLarge.copyWith(
+                      color: NovaColors.textPrimaryLight,
                     ),
                   ),
                 ),
@@ -93,12 +97,13 @@ class ParticipantsModal extends StatelessWidget {
                 IconButton(
                   icon: const Icon(
                     Icons.close,
-                    color: Color(0xFF000000),
+                    color: NovaColors.textPrimaryLight,
                     size: 24,
                   ),
                   onPressed: () => Navigator.of(context).pop(),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
+                  tooltip: 'Chiudi',
                 ),
               ],
             ),
@@ -108,7 +113,7 @@ class ParticipantsModal extends StatelessWidget {
           const Divider(
             height: 1,
             thickness: 0.5,
-            color: Color(0xFFDBDBDB),
+            color: NovaColors.borderLight,
           ),
 
           // Participants list
@@ -125,13 +130,13 @@ class ParticipantsModal extends StatelessWidget {
   /// Build scrollable participants list
   Widget _buildParticipantsList(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: NovaSpacing.s),
       itemCount: participants.length,
       separatorBuilder: (context, index) => const Divider(
         height: 1,
         thickness: 0.5,
         indent: 72, // Align with text (48px avatar + 24px padding)
-        color: Color(0xFFDBDBDB),
+        color: NovaColors.borderLight,
       ),
       itemBuilder: (context, index) {
         final participant = participants[index];
@@ -143,7 +148,7 @@ class ParticipantsModal extends StatelessWidget {
   /// Build single participant tile (Instagram-style)
   Widget _buildParticipantTile(BuildContext context, UserProfile participant) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: NovaSpacing.l, vertical: NovaSpacing.s),
       child: Row(
         children: [
           // Avatar (40x40 circle)
@@ -156,13 +161,13 @@ class ParticipantsModal extends StatelessWidget {
                       imageUrl: participant.avatarUrl!,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
-                        color: const Color(0xFFF0F0F0),
+                        color: NovaColors.placeholder,
                         child: const Center(
                           child: SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              color: Color(0xFF737373),
+                              color: NovaColors.grayDark,
                               strokeWidth: 2,
                             ),
                           ),
@@ -180,7 +185,7 @@ class ParticipantsModal extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: NovaSpacing.m),
 
           // Participant info
           Expanded(
@@ -190,25 +195,21 @@ class ParticipantsModal extends StatelessWidget {
                 // Name
                 Text(
                   participant.displayName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF000000),
+                  style: NovaTypography.labelMedium.copyWith(
+                    color: NovaColors.textPrimaryLight,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
 
-                const SizedBox(height: 2),
+                const SizedBox(height: NovaSpacing.xxs),
 
                 // Class (if available)
                 if (participant.classValue != null)
                   Text(
                     participant.classValue!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF737373),
+                    style: NovaTypography.labelSmall.copyWith(
+                      color: NovaColors.grayDark,
                     ),
                   ),
               ],
@@ -223,31 +224,27 @@ class ParticipantsModal extends StatelessWidget {
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(NovaSpacing.xxxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(
               Icons.people_outline,
               size: 64,
-              color: Color(0xFF737373),
+              color: NovaColors.grayDark,
             ),
-            const SizedBox(height: 16),
-            const Text(
+            const SizedBox(height: NovaSpacing.l),
+            Text(
               'Nessun partecipante',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF000000),
+              style: NovaTypography.bodyLarge.copyWith(
+                color: NovaColors.textPrimaryLight,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: NovaSpacing.s),
+            Text(
               'Sii il primo a partecipare!',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF737373),
+              style: NovaTypography.labelMedium.copyWith(
+                color: NovaColors.grayDark,
               ),
               textAlign: TextAlign.center,
             ),

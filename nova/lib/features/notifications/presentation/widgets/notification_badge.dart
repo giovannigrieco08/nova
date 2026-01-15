@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_typography.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../providers/notification_providers.dart';
 
 /// Notification badge widget for displaying unread count
@@ -59,7 +60,7 @@ class NotificationBadge extends ConsumerWidget {
             ),
             decoration: BoxDecoration(
               color: NovaColors.instagramRed,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: NovaRadius.circularXs,
               border: Border.all(
                 color: NovaColors.card(context),
                 width: 1.5,

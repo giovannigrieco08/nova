@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/theme/nova_radius.dart';
+import '../../../profile/presentation/widgets/avatar_initials.dart';
 import '../../domain/entities/notification.dart' as domain;
-import '../../domain/entities/notification_channel.dart';
 
-/// Individual notification tile widget
+/// Individual notification tile widget (Instagram-style)
 ///
 /// Features:
 /// - Swipe left to delete (flutter_slidable)
 /// - Tap to navigate to target
-/// - Visual distinction for unread notifications
-/// - Relative timestamp (timeago)
-/// - Channel-specific icons
+/// - Avatar of actor (user who triggered notification)
+/// - Blue dot for unread notifications
+/// - CTA button on the RIGHT side (filled, colored)
+/// - Relative timestamp inline with text
 class NotificationTile extends StatelessWidget {
   final domain.AppNotification notification;
   final VoidCallback? onTap;
@@ -60,74 +62,29 @@ class NotificationTile extends StatelessWidget {
           onTap?.call();
         },
         child: Container(
-          padding: EdgeInsets.all(NovaSpacing.m),
+          padding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.l,
+            vertical: NovaSpacing.m,
+          ),
           decoration: BoxDecoration(
-            color: !notification.isRead
-                ? NovaColors.primary(context).withOpacity(0.05)
-                : NovaColors.card(context),
-            border: Border(
-              bottom: BorderSide(
-                color: NovaColors.divider(context),
-                width: 0.5,
-              ),
-            ),
+            color: NovaColors.background(context),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Channel icon
-              _buildIcon(context),
+              // Avatar with unread badge
+              _buildAvatarWithBadge(context),
               SizedBox(width: NovaSpacing.m),
 
-              // Content
+              // Content (text + timestamp inline)
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    Text(
-                      notification.title,
-                      style: NovaTextStyles.bodyBold.copyWith(
-                        color: NovaColors.textPrimary(context),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: NovaSpacing.xs),
-
-                    // Description (body)
-                    Text(
-                      notification.body,
-                      style: NovaTextStyles.body.copyWith(
-                        color: NovaColors.textSecondary(context),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: NovaSpacing.xs),
-
-                    // Timestamp
-                    Text(
-                      _formatTimeAgo(notification.createdAt),
-                      style: NovaTextStyles.caption.copyWith(
-                        color: NovaColors.textTertiary(context),
-                      ),
-                    ),
-                  ],
-                ),
+                child: _buildNotificationContent(context),
               ),
 
-              // Unread indicator
-              if (!notification.isRead) ...[
+              // CTA Button on RIGHT (if applicable)
+              if (notification.hasAction) ...[
                 SizedBox(width: NovaSpacing.s),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: NovaColors.primary(context),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+                _buildCTAButton(context),
               ],
             ],
           ),
@@ -136,57 +93,143 @@ class NotificationTile extends StatelessWidget {
     );
   }
 
-  /// Build channel-specific icon
-  Widget _buildIcon(BuildContext context) {
-    final IconData icon;
-    final Color iconColor;
+  /// Build avatar with blue unread badge
+  Widget _buildAvatarWithBadge(BuildContext context) {
+    return Stack(
+      children: [
+        _buildAvatar(context),
+        // Blue dot badge for unread notifications
+        if (!notification.isRead)
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: NovaColors.primary(context),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: NovaColors.background(context),
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
-    switch (notification.channel) {
-      case NotificationChannel.eventModeration:
-        icon = Icons.verified_outlined;
-        iconColor = NovaColors.success(context);
-      case NotificationChannel.newComment:
-        icon = Icons.chat_bubble_outline;
-        iconColor = NovaColors.info(context);
-      case NotificationChannel.commentReply:
-        icon = Icons.reply_outlined;
-        iconColor = NovaColors.info(context);
-      case NotificationChannel.eventLike:
-        icon = Icons.favorite_outline;
-        iconColor = NovaColors.instagramRed;
-      case NotificationChannel.eventParticipation:
-        icon = Icons.people_outline;
-        iconColor = NovaColors.primary(context);
-      case NotificationChannel.coorganizerUpdate:
-        icon = Icons.edit_outlined;
-        iconColor = NovaColors.warning(context);
-      case NotificationChannel.moderatorAlert:
-        icon = Icons.admin_panel_settings_outlined;
-        iconColor = NovaColors.error(context);
-      case NotificationChannel.chatMention:
-        icon = Icons.alternate_email;
-        iconColor = NovaColors.primary(context);
-    }
-
-    return Container(
+  /// Build actor avatar (40x40 circle)
+  Widget _buildAvatar(BuildContext context) {
+    return SizedBox(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
-        color: iconColor.withOpacity(0.1),
-        borderRadius: NovaRadius.circularFull,
-      ),
-      child: Icon(
-        icon,
-        size: 20,
-        color: iconColor,
+      child: ClipOval(
+        child: notification.actorAvatarUrl != null &&
+                notification.actorAvatarUrl!.isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: notification.actorAvatarUrl!,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: NovaColors.surface(context),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => AvatarInitials(
+                  fullName: notification.actorName ?? 'U',
+                  size: 40,
+                ),
+              )
+            : AvatarInitials(
+                fullName: notification.actorName ?? 'Nova',
+                size: 40,
+              ),
       ),
     );
   }
 
-  /// Format timestamp as relative time in Italian
+  /// Build notification content (text + timestamp inline, Instagram-style)
+  Widget _buildNotificationContent(BuildContext context) {
+    final actorName = notification.actorName;
+    final title = notification.title;
+    final relativeTime = _formatTimeAgo(notification.createdAt);
+
+    // Instagram style: "ActorName action text timestamp"
+    return RichText(
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: NovaTextStyles.body.copyWith(
+          color: NovaColors.textPrimary(context),
+          height: 1.35,
+        ),
+        children: [
+          // Actor name in bold
+          if (actorName != null && actorName.isNotEmpty)
+            TextSpan(
+              text: actorName,
+              style: NovaTextStyles.bodyBold.copyWith(
+                color: NovaColors.textPrimary(context),
+              ),
+            ),
+          // Action text (single space before, no trailing space)
+          TextSpan(
+            text: ' $title',
+          ),
+          // Timestamp in tertiary color (single space before)
+          TextSpan(
+            text: ' $relativeTime',
+            style: NovaTextStyles.body.copyWith(
+              color: NovaColors.textTertiary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build CTA button (filled, colored, on right side - Instagram style)
+  Widget _buildCTAButton(BuildContext context) {
+    return SizedBox(
+      height: 30,
+      child: ElevatedButton(
+        onPressed: () {
+          if (!notification.isRead) {
+            onMarkAsRead?.call();
+          }
+          onTap?.call();
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: NovaColors.primary(context),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.m,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(NovaRadius.s),
+          ),
+        ),
+        child: Text(
+          notification.ctaLabel,
+          style: NovaTextStyles.caption.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Format timestamp as relative time in Italian (short format)
   String _formatTimeAgo(DateTime dateTime) {
-    // Set Italian locale for timeago
-    timeago.setLocaleMessages('it', timeago.ItMessages());
-    return timeago.format(dateTime, locale: 'it');
+    timeago.setLocaleMessages('it_short', timeago.ItShortMessages());
+    return timeago.format(dateTime, locale: 'it_short');
   }
 }

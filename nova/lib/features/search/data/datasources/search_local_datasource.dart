@@ -2,6 +2,7 @@
 ///
 /// Handles Hive storage for search history and results cache.
 /// History is stored locally only (GDPR compliant - no server tracking).
+library;
 
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/search_results_cache.dart';

@@ -52,6 +52,12 @@ abstract class ChatRepository {
   /// Returns null if message not found or hidden.
   Future<ChatMessage?> getMessage(String messageId);
 
+  /// Delete a message (only allowed within 30 minutes of sending).
+  ///
+  /// Returns true if message was deleted, false if not allowed.
+  /// Throws [ChatDeleteNotAllowedException] if deletion window has passed.
+  Future<bool> deleteMessage(String messageId);
+
   // =========================================================================
   // Reactions
   // =========================================================================
@@ -111,12 +117,14 @@ abstract class ChatRepository {
   /// Upload ephemeral media and attach to a message.
   ///
   /// [maxViews] determines how many times the media can be viewed (1 or 2).
+  /// [durationSeconds] is the duration for audio messages.
   /// Returns the media info on success.
   /// Throws [ChatMediaLimitException] if daily limit exceeded (5/day).
   Future<ChatMediaInfo> uploadMedia({
     required String filePath,
     required ChatMediaType mediaType,
     int maxViews = 1,
+    int? durationSeconds,
   });
 
   /// Get a signed URL for viewing media (expires in 60 seconds).
@@ -216,4 +224,14 @@ class ChatMediaLimitException implements Exception {
 
   @override
   String toString() => 'ChatMediaLimitException: $message';
+}
+
+/// Exception thrown when message deletion is not allowed
+class ChatDeleteNotAllowedException implements Exception {
+  final String message;
+  const ChatDeleteNotAllowedException(
+      [this.message = 'Message deletion not allowed after 30 minutes']);
+
+  @override
+  String toString() => 'ChatDeleteNotAllowedException: $message';
 }

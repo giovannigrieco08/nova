@@ -7,7 +7,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nova/core/enums/user_role.dart';
-import 'package:nova/core/providers/supabase_provider.dart';
+import 'package:nova/core/providers/core_providers.dart';
 
 /// Provider for current user's role with real-time updates
 ///

@@ -141,8 +141,8 @@ class ModeratorCard extends ConsumerWidget {
               ),
               AdaptiveButton(
                 onPressed: () => _removeModerator(context, ref),
-                child: const Text('Rimuovi'),
                 type: AdaptiveButtonType.destructive,
+                child: const Text('Rimuovi'),
               ),
             ],
           ),

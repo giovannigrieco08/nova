@@ -5,7 +5,6 @@
 import '../../domain/entities/tutor_profile.dart';
 import '../../domain/entities/subject.dart';
 import '../datasources/tutor_remote_datasource.dart';
-import '../models/tutor_profile_model.dart';
 
 /// Repository for tutor profile operations
 ///

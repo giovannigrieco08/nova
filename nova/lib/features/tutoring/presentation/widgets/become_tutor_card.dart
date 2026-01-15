@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 
 /// BecomeTutorCard - Call-to-action card for becoming a tutor
@@ -37,10 +38,10 @@ class BecomeTutorCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: NovaRadius.circularM,
         boxShadow: [
           BoxShadow(
-            color: NovaColors.brandViolet.withOpacity(0.3),
+            color: NovaColors.brandViolet.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -50,7 +51,7 @@ class BecomeTutorCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: NovaRadius.circularM,
           child: Padding(
             padding: const EdgeInsets.all(NovaSpacing.l),
             child: Row(
@@ -60,8 +61,8 @@ class BecomeTutorCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: NovaRadius.circularS,
                   ),
                   child: Icon(
                     Platform.isIOS
@@ -90,7 +91,7 @@ class BecomeTutorCard extends StatelessWidget {
                         'Aiuta i tuoi compagni e guadagna',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],

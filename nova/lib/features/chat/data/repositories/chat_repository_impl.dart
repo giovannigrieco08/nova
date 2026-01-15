@@ -91,6 +91,33 @@ class ChatRepositoryImpl implements ChatRepository {
     return model?.toEntity(currentUserId: _currentUserId);
   }
 
+  @override
+  Future<bool> deleteMessage(String messageId) async {
+    // First, get the message to check if deletion is allowed
+    final message = await getMessage(messageId);
+    if (message == null) {
+      return false;
+    }
+
+    // Check if user owns the message
+    if (message.userId != _currentUserId) {
+      throw const ChatDeleteNotAllowedException(
+        'Puoi eliminare solo i tuoi messaggi.',
+      );
+    }
+
+    // Check if within 30-minute window
+    if (!message.canDelete) {
+      throw const ChatDeleteNotAllowedException(
+        'Puoi eliminare un messaggio solo entro 30 minuti dall\'invio.',
+      );
+    }
+
+    // Proceed with deletion
+    await _remoteDataSource.deleteMessage(messageId);
+    return true;
+  }
+
   // =========================================================================
   // Reactions
   // =========================================================================
@@ -187,17 +214,11 @@ class ChatRepositoryImpl implements ChatRepository {
     required String filePath,
     required ChatMediaType mediaType,
     int maxViews = 1,
+    int? durationSeconds,
   }) async {
-    // Check daily limit
-    final todayCount = await _remoteDataSource.getTodayMediaCount(_currentUserId);
-    if (todayCount >= 5) {
-      throw const ChatMediaLimitException(
-          'Hai raggiunto il limite giornaliero di 5 media.');
-    }
-
     // Create a message for the media (content will be hidden when media is attached)
-    // Use a single space as placeholder - will be replaced by ChatMediaBubble
-    final message = await sendMessage(content: ' ');
+    // Use a placeholder that passes DB validation - will be replaced by ChatMediaBubble in UI
+    final message = await sendMessage(content: '[media]');
 
     // Upload media
     final model = await _remoteDataSource.uploadMedia(
@@ -206,6 +227,7 @@ class ChatRepositoryImpl implements ChatRepository {
       filePath: filePath,
       mediaType: mediaType,
       maxViews: maxViews,
+      durationSeconds: durationSeconds,
     );
 
     return model.toEntity();
@@ -220,14 +242,20 @@ class ChatRepositoryImpl implements ChatRepository {
         .eq('id', mediaId)
         .maybeSingle();
 
-    if (response == null) return null;
+    if (response == null) {
+      return null;
+    }
 
     // Check if max views exceeded
     final maxViews = response['max_views'] as int? ?? 1;
     final viewCount = response['view_count'] as int? ?? 0;
-    if (viewCount >= maxViews) return null;
+    if (viewCount >= maxViews) {
+      return null;
+    }
 
-    return _remoteDataSource.getSignedMediaUrl(response['storage_path']);
+    final storagePath = response['storage_path'] as String;
+    final url = await _remoteDataSource.getSignedMediaUrl(storagePath);
+    return url;
   }
 
   @override

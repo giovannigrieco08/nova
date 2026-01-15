@@ -15,6 +15,11 @@ class AppNotification {
   final bool isRead;
   final DateTime createdAt;
 
+  /// Actor info (user who triggered the notification)
+  final String? actorId;
+  final String? actorName;
+  final String? actorAvatarUrl;
+
   const AppNotification({
     required this.id,
     required this.userId,
@@ -24,6 +29,9 @@ class AppNotification {
     this.data,
     this.isRead = false,
     required this.createdAt,
+    this.actorId,
+    this.actorName,
+    this.actorAvatarUrl,
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
@@ -54,6 +62,24 @@ class AppNotification {
       };
     }
 
+    // Extract actor info from joined profile or metadata
+    String? actorId = json['actor_id'] as String?;
+    String? actorName;
+    String? actorAvatarUrl;
+
+    // Try to get actor info from joined profile data
+    final actorProfile = json['actor'] as Map<String, dynamic>?;
+    if (actorProfile != null) {
+      actorName = actorProfile['full_name'] as String?;
+      actorAvatarUrl = actorProfile['avatar_url'] as String?;
+    }
+
+    // Fallback: try metadata for actor name
+    if (actorName == null && json['metadata'] != null) {
+      final metadata = json['metadata'] as Map<String, dynamic>?;
+      actorName = metadata?['actor_name'] as String?;
+    }
+
     return AppNotification(
       id: json['id'] as String,
       userId: json['recipient_id'] as String,
@@ -63,6 +89,9 @@ class AppNotification {
       data: dataMap,
       isRead: json['is_read'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+      actorId: actorId,
+      actorName: actorName,
+      actorAvatarUrl: actorAvatarUrl,
     );
   }
 
@@ -75,6 +104,9 @@ class AppNotification {
     Map<String, dynamic>? data,
     bool? isRead,
     DateTime? createdAt,
+    String? actorId,
+    String? actorName,
+    String? actorAvatarUrl,
   }) {
     return AppNotification(
       id: id ?? this.id,
@@ -85,7 +117,48 @@ class AppNotification {
       data: data ?? this.data,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
+      actorId: actorId ?? this.actorId,
+      actorName: actorName ?? this.actorName,
+      actorAvatarUrl: actorAvatarUrl ?? this.actorAvatarUrl,
     );
+  }
+
+  /// Check if notification has an actionable CTA
+  /// Instagram-style: only show CTA for notifications that need immediate action
+  bool get hasAction {
+    switch (channel) {
+      case NotificationChannel.newComment:
+      case NotificationChannel.commentReply:
+        return true; // "Rispondi"
+      case NotificationChannel.moderatorAlert:
+        return true; // "Modera"
+      // These don't need CTA buttons (like Instagram)
+      case NotificationChannel.chatMention:
+      case NotificationChannel.coorganizerUpdate:
+      case NotificationChannel.eventModeration:
+      case NotificationChannel.eventLike:
+      case NotificationChannel.eventParticipation:
+        return false;
+    }
+  }
+
+  /// Get CTA label based on notification type
+  String get ctaLabel {
+    switch (channel) {
+      case NotificationChannel.newComment:
+      case NotificationChannel.commentReply:
+        return 'Rispondi';
+      case NotificationChannel.chatMention:
+        return 'Visualizza';
+      case NotificationChannel.coorganizerUpdate:
+        return 'Visualizza';
+      case NotificationChannel.eventModeration:
+      case NotificationChannel.eventLike:
+      case NotificationChannel.eventParticipation:
+        return 'Visualizza';
+      case NotificationChannel.moderatorAlert:
+        return 'Modera';
+    }
   }
 }
 

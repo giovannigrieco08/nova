@@ -189,7 +189,6 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
           .updateComment(updatedComment);
     } catch (e) {
       // Comments provider might not be active - ignore
-      print('Could not update comment in list: $e');
     }
   }
 

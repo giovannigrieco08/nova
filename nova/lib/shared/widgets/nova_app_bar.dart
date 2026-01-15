@@ -71,6 +71,7 @@ class NovaAppBar extends StatelessWidget implements PreferredSizeWidget {
                     onPressed: onNotificationsTap,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
+                    tooltip: 'Notifiche',
                   ),
 
                   // Notification badge (red dot)

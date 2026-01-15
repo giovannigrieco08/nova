@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/realtime_comments_provider.dart';
@@ -94,7 +95,7 @@ class RealtimeStatusBanner extends ConsumerWidget {
                   ),
                   decoration: BoxDecoration(
                     color: iconColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: NovaRadius.circularXxs,
                   ),
                   child: Text(
                     'Riprova',

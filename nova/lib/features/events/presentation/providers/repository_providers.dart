@@ -12,6 +12,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import '../../domain/repositories/event_repository_interface.dart';
 import '../../domain/repositories/notification_repository_interface.dart';
 import '../../data/repositories/event_repository.dart';
@@ -20,7 +21,6 @@ import '../../data/datasources/event_remote_datasource.dart';
 import '../../data/datasources/event_local_datasource.dart';
 import '../../data/datasources/notification_remote_datasource.dart';
 import '../../data/models/event_draft.dart';
-import './supabase_provider.dart';
 
 // =============================================================================
 // DATA SOURCE PROVIDERS
@@ -95,14 +95,8 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 // =============================================================================
 // UTILITY PROVIDERS (For common queries)
 // =============================================================================
-
-/// Provider for current user ID (from Supabase auth)
-///
-/// Returns null if user is not authenticated.
-final currentUserIdProvider = Provider<String?>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return supabase.auth.currentUser?.id;
-});
+// currentUserIdProvider - imported from core_providers.dart
+// currentUserIdOrNullProvider - imported from core_providers.dart
 
 /// Provider for checking if current user is a moderator
 ///
@@ -110,7 +104,7 @@ final currentUserIdProvider = Provider<String?>((ref) {
 /// Returns false if user is not authenticated or not a moderator.
 final isModeratorProvider = FutureProvider<bool>((ref) async {
   final supabase = ref.watch(supabaseClientProvider);
-  final userId = supabase.auth.currentUser?.id;
+  final userId = ref.watch(currentUserIdOrNullProvider);
 
   if (userId == null) return false;
 

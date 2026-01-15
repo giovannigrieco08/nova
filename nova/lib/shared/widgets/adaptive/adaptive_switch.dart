@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cupertino_native/cupertino_native.dart';
 import 'package:nova/core/utils/platform_utils.dart';
@@ -47,7 +46,7 @@ class AdaptiveSwitch extends StatelessWidget {
     return Switch(
       value: value,
       onChanged: onChanged,
-      activeColor: activeColor ?? NovaColors.primary(context),
+      activeThumbColor: activeColor ?? NovaColors.primary(context),
     );
   }
 }

@@ -6,7 +6,7 @@
 // =====================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nova/core/providers/supabase_provider.dart';
+import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/admin/domain/entities/moderator.dart';
 
 /// Provider for real-time moderator list with statistics

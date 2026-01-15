@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cupertino_native/cupertino_native.dart';
 import 'package:nova/core/utils/platform_utils.dart';
@@ -85,10 +84,10 @@ class AdaptiveBottomNavBar extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color:
-                      NovaColors.background(context).withOpacity(0.8),
+                      NovaColors.background(context).withValues(alpha: 0.8),
                   border: Border(
                     top: BorderSide(
-                      color: NovaColors.border(context).withOpacity(0.3),
+                      color: NovaColors.border(context).withValues(alpha: 0.3),
                       width: 0.5,
                     ),
                   ),

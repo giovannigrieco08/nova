@@ -2,6 +2,7 @@
 ///
 /// Manages recent search queries stored locally in Hive.
 /// Privacy-compliant: no server tracking, local-only storage.
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/search_repository.dart';

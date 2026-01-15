@@ -2,6 +2,7 @@
 ///
 /// Provides debounced search functionality with caching and offline support.
 /// Uses StateNotifier pattern with AsyncValue for loading/error states.
+library;
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

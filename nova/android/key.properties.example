@@ -1,0 +1,21 @@
+# Nova Android Upload Keystore Configuration
+# Copy this file to key.properties and fill in your values
+#
+# IMPORTANT:
+# - key.properties should NEVER be committed to version control
+# - Store your keystore file in a secure location outside the repository
+# - Back up your keystore file and these credentials - if lost, you cannot update the app!
+#
+# To generate an upload keystore, run:
+# keytool -genkey -v -keystore nova-upload-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# For Google Play App Signing:
+# 1. Generate the upload key using the command above
+# 2. Fill in this file with your keystore details
+# 3. Upload your first release to Google Play
+# 4. Google Play will generate and manage the actual app signing key
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+storeFile=../nova-upload-key.jks

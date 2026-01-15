@@ -2,6 +2,7 @@
 ///
 /// Compact card for displaying profile search results.
 /// Shows avatar, name, and class.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:nova/core/theme/nova_colors.dart';

@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../domain/entities/subject.dart';
 
@@ -50,7 +51,7 @@ class SubjectCard extends StatelessWidget {
   Widget _buildMaterialCard(BuildContext context, IconData icon) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: NovaRadius.circularM,
       child: _buildCardContent(context, icon),
     );
   }
@@ -59,7 +60,7 @@ class SubjectCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: NovaColors.card(context),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: NovaRadius.circularM,
         border: Border.all(
           color: NovaColors.border(context),
           width: 1,
@@ -67,8 +68,8 @@ class SubjectCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: NovaColors.isDark(context)
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -89,7 +90,7 @@ class SubjectCard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: NovaRadius.circularS,
               ),
               child: Icon(
                 icon,
@@ -152,8 +153,6 @@ class SubjectCard extends StatelessWidget {
         return Icons.biotech_rounded;
       case Subject.arte:
         return Icons.palette_rounded;
-      case Subject.francese:
-        return Icons.translate_rounded;
     }
   }
 }

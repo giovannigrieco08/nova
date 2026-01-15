@@ -148,7 +148,7 @@ class ChatLocalDataSource {
     final keysToDelete = <dynamic>[];
 
     for (final entry in _box.toMap().entries) {
-      final message = Map<String, dynamic>.from(entry.value as Map);
+      final message = Map<String, dynamic>.from(entry.value);
       final createdAt = DateTime.parse(message['created_at'] as String);
 
       if (createdAt.isBefore(cutoff)) {

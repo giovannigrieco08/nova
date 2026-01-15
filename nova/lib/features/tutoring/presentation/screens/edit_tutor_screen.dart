@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../domain/entities/subject.dart';
 import '../../domain/entities/tutor_profile.dart';
@@ -113,7 +114,16 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
   Widget _buildMaterialScreen(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Modifica Profilo Tutor'),
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: NovaColors.textPrimary(context),
+            size: 24,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Indietro',
+        ),
+        title: const Text('Modifica profilo tutor'),
         backgroundColor: NovaColors.surface(context),
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -209,15 +219,15 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
         filled: true,
         fillColor: NovaColors.card(context),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.border(context)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
         ),
       ),
@@ -280,15 +290,15 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
               filled: true,
               fillColor: NovaColors.card(context),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: NovaRadius.circularS,
                 borderSide: BorderSide(color: NovaColors.border(context)),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: NovaRadius.circularS,
                 borderSide: BorderSide(color: NovaColors.border(context)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: NovaRadius.circularS,
                 borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
               ),
             ),
@@ -362,15 +372,15 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
         filled: true,
         fillColor: NovaColors.card(context),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.border(context)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
         ),
       ),
@@ -384,20 +394,20 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
       decoration: InputDecoration(
         hintText: '393201234567',
         labelText: 'WhatsApp',
-        prefixIcon: const Icon(Icons.chat_rounded, color: Color(0xFF25D366)),
+        prefixIcon: Icon(Icons.chat_rounded, color: NovaColors.whatsappGreen),
         helperText: 'Numero con prefisso internazionale (es: 393201234567)',
         filled: true,
         fillColor: NovaColors.card(context),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.border(context)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
         ),
       ),
@@ -411,20 +421,20 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
         hintText: 'username',
         labelText: 'Instagram',
         prefixText: '@',
-        prefixIcon: const Icon(Icons.camera_alt_rounded, color: Color(0xFFE4405F)),
+        prefixIcon: Icon(Icons.camera_alt_rounded, color: NovaColors.instagramPink),
         helperText: 'Username senza @',
         filled: true,
         fillColor: NovaColors.card(context),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.border(context)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
           borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
         ),
       ),
@@ -436,10 +446,10 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
     return Container(
       padding: const EdgeInsets.all(NovaSpacing.l),
       decoration: BoxDecoration(
-        color: NovaColors.error(context).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: NovaColors.error(context).withValues(alpha: 0.1),
+        borderRadius: NovaRadius.circularS,
         border: Border.all(
-          color: NovaColors.error(context).withOpacity(0.3),
+          color: NovaColors.error(context).withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -468,7 +478,7 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
                 ? CupertinoButton(
                     padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
                     color: NovaColors.error(context),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: NovaRadius.circularS,
                     onPressed: _isDeactivating ? null : _showDeactivateConfirmation,
                     child: _isDeactivating
                         ? const CupertinoActivityIndicator(color: Colors.white)
@@ -489,7 +499,7 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: NovaRadius.circularS,
                       ),
                     ),
                     child: _isDeactivating

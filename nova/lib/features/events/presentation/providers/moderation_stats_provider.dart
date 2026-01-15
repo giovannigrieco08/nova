@@ -11,6 +11,7 @@
 // RLS: moderators_view_all_events policy
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/event.dart';
 import './repository_providers.dart';
 import './moderation_queue_provider.dart';
@@ -80,29 +81,85 @@ class ModerationStats {
 /// ```
 final moderationStatsProvider = FutureProvider<ModerationStats>((ref) async {
   final repository = ref.watch(eventRepositoryProvider);
+  final supabase = Supabase.instance.client;
 
   try {
-    // Fetch all events (RLS restricts to moderator-accessible events)
+    // Fetch pending events
     final pendingEvents = await repository.getPendingEvents();
-
-    // Get approved/rejected events from last 30 days for stats
-    // Note: This is client-side filtering. Move to server in Phase 8.
-    // TODO: Add getModeratedEvents(startDate, endDate) to repository
-    // Placeholder variables for future date filtering:
-    // - startOfToday, startOfWeek, startOfMonth, thirtyDaysAgo
     final totalPending = pendingEvents.length;
 
-    // Placeholder stats (requires additional repository methods)
-    // These will be implemented in Phase 8 with proper analytics
+    // Calculate date boundaries
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfWeek = startOfToday.subtract(Duration(days: now.weekday - 1));
+    final startOfMonth = DateTime(now.year, now.month, 1);
+
+    // Fetch moderated events from database
+    final moderatedResponse = await supabase
+        .from('events')
+        .select('id, status, updated_at, created_at')
+        .inFilter('status', ['approved', 'rejected'])
+        .gte('updated_at', startOfMonth.toIso8601String());
+
+    final moderatedEvents = moderatedResponse as List;
+
+    // Calculate stats
+    int approvedToday = 0;
+    int rejectedToday = 0;
+    int approvedThisWeek = 0;
+    int approvedThisMonth = 0;
+    int rejectedThisMonth = 0;
+    double totalModerationTime = 0;
+    int moderationTimeCount = 0;
+
+    for (final event in moderatedEvents) {
+      final status = event['status'] as String;
+      final updatedAt = DateTime.parse(event['updated_at'] as String);
+      final createdAt = DateTime.parse(event['created_at'] as String);
+
+      // Calculate moderation time
+      final moderationTime = updatedAt.difference(createdAt).inHours.toDouble();
+      if (moderationTime >= 0) {
+        totalModerationTime += moderationTime;
+        moderationTimeCount++;
+      }
+
+      final isToday = updatedAt.isAfter(startOfToday);
+      final isThisWeek = updatedAt.isAfter(startOfWeek);
+
+      if (status == 'approved') {
+        approvedThisMonth++;
+        if (isThisWeek) approvedThisWeek++;
+        if (isToday) approvedToday++;
+      } else if (status == 'rejected') {
+        rejectedThisMonth++;
+        if (isToday) rejectedToday++;
+      }
+    }
+
+    // Calculate rates
+    final totalModerated = approvedThisMonth + rejectedThisMonth;
+    final approvalRatePercent = totalModerated > 0
+        ? (approvedThisMonth / totalModerated) * 100
+        : 0.0;
+    final rejectionRatePercent = totalModerated > 0
+        ? (rejectedThisMonth / totalModerated) * 100
+        : 0.0;
+
+    // Calculate average moderation time
+    final averageModerationTimeHours = moderationTimeCount > 0
+        ? totalModerationTime / moderationTimeCount
+        : null;
+
     return ModerationStats(
       totalPending: totalPending,
-      approvedToday: 0, // Requires new repository method
-      rejectedToday: 0, // Requires new repository method
-      approvedThisWeek: 0, // Requires new repository method
-      approvedThisMonth: 0, // Requires new repository method
-      averageModerationTimeHours: null, // Requires moderated_at timestamps
-      approvalRatePercent: 0, // Requires historical data
-      rejectionRatePercent: 0, // Requires historical data
+      approvedToday: approvedToday,
+      rejectedToday: rejectedToday,
+      approvedThisWeek: approvedThisWeek,
+      approvedThisMonth: approvedThisMonth,
+      averageModerationTimeHours: averageModerationTimeHours,
+      approvalRatePercent: approvalRatePercent,
+      rejectionRatePercent: rejectionRatePercent,
     );
   } catch (e) {
     // If user is not a moderator, return empty stats

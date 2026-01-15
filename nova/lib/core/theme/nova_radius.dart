@@ -10,6 +10,10 @@ class NovaRadius {
   // Prevent instantiation
   NovaRadius._();
 
+  /// Extra extra small radius (4px)
+  /// Usage: Micro elements, skeleton placeholders, subtle rounding
+  static const double xxs = 4;
+
   /// Extra small radius (8px)
   /// Usage: Small buttons, chips, tags
   static const double xs = 8;
@@ -37,6 +41,9 @@ class NovaRadius {
   // ----------------------------------------------------------
   // Convenience BorderRadius Helpers (Pre-built for speed)
   // ----------------------------------------------------------
+
+  /// BorderRadius.circular(xxs) - 4px all corners
+  static BorderRadius get circularXxs => BorderRadius.circular(xxs);
 
   /// BorderRadius.circular(xs) - 8px all corners
   static BorderRadius get circularXs => BorderRadius.circular(xs);

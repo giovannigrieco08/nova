@@ -34,7 +34,8 @@ class SchoolClass {
 
 /// Complete list of all classes at Liceo Galilei Moro
 /// Format: "{year}{section} {track}" (e.g., "3A Scientifico")
-/// Total: 35 classes (25 SCIENTIFICO + 10 CLASSICO)
+/// Total: 33 classes (23 SCIENTIFICO + 10 CLASSICO)
+/// Note: Section F exists only for years 1, 2, and 5
 const List<SchoolClass> allClasses = [
   // ============================================================================
   // SCIENTIFICO - Year 1 (5 classes: A, B, C, D, F)
@@ -115,7 +116,7 @@ const List<SchoolClass> allClasses = [
   ),
 
   // ============================================================================
-  // SCIENTIFICO - Year 3 (5 classes: A, B, C, D, F)
+  // SCIENTIFICO - Year 3 (4 classes: A, B, C, D)
   // ============================================================================
   SchoolClass(
     id: '3A Scientifico',
@@ -145,16 +146,9 @@ const List<SchoolClass> allClasses = [
     year: 3,
     section: 'D',
   ),
-  SchoolClass(
-    id: '3F Scientifico',
-    displayName: '3F Scientifico',
-    track: 'SCIENTIFICO',
-    year: 3,
-    section: 'F',
-  ),
 
   // ============================================================================
-  // SCIENTIFICO - Year 4 (5 classes: A, B, C, D, F)
+  // SCIENTIFICO - Year 4 (4 classes: A, B, C, D)
   // ============================================================================
   SchoolClass(
     id: '4A Scientifico',
@@ -183,13 +177,6 @@ const List<SchoolClass> allClasses = [
     track: 'SCIENTIFICO',
     year: 4,
     section: 'D',
-  ),
-  SchoolClass(
-    id: '4F Scientifico',
-    displayName: '4F Scientifico',
-    track: 'SCIENTIFICO',
-    year: 4,
-    section: 'F',
   ),
 
   // ============================================================================

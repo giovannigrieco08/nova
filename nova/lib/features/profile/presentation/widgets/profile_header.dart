@@ -30,12 +30,14 @@ class ProfileHeader extends StatelessWidget {
   final ProfileStats? stats;
   final bool isOwnProfile;
   final VoidCallback? onEditTap;
+  final VoidCallback? onAvatarTap;
 
   const ProfileHeader({
     required this.profile,
     this.stats,
     required this.isOwnProfile,
     this.onEditTap,
+    this.onAvatarTap,
     super.key,
   });
 
@@ -55,11 +57,10 @@ class ProfileHeader extends StatelessWidget {
             children: [
               // Avatar (left)
               _buildAvatar(context),
-              SizedBox(width: NovaSpacing.large),
+              SizedBox(width: NovaSpacing.medium),
               // Stats (right) - expanded to fill remaining space
               Expanded(
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildStatColumn(
                       context,
@@ -123,31 +124,33 @@ class ProfileHeader extends StatelessWidget {
     );
   }
 
-  /// Build stat column (Instagram-style: compact number + single-line label)
+  /// Build stat column (Instagram-style: prominent number + single-line label)
   Widget _buildStatColumn(BuildContext context, {required int count, required String label}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Compact number (smaller than before)
-        Text(
-          count.toString(),
-          style: NovaTypography.labelLarge.copyWith(
-            color: NovaColors.textPrimary(context),
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Prominent number (Instagram-style bold)
+          Text(
+            count.toString(),
+            style: NovaTypography.headingMedium.copyWith(
+              color: NovaColors.textPrimary(context),
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+            ),
           ),
-        ),
-        SizedBox(height: 2),
-        // Single-line label
-        Text(
-          label,
-          style: NovaTypography.labelSmall.copyWith(
-            color: NovaColors.textSecondary(context),
-            fontWeight: FontWeight.w400,
+          SizedBox(height: 4),
+          // Label below
+          Text(
+            label,
+            style: NovaTypography.bodySmall.copyWith(
+              color: NovaColors.textSecondary(context),
+              fontWeight: FontWeight.w400,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -192,6 +195,14 @@ class ProfileHeader extends StatelessWidget {
             : _buildInitialsAvatar(size - 4),
       ),
     );
+
+    // Wrap with GestureDetector if onAvatarTap is provided
+    if (onAvatarTap != null) {
+      return GestureDetector(
+        onTap: onAvatarTap,
+        child: avatar,
+      );
+    }
 
     return avatar;
   }
@@ -243,36 +254,19 @@ class ProfileHeader extends StatelessWidget {
     return profile.username[0].toUpperCase();
   }
 
-  /// Build class badge (e.g., "3A Scientifico")
-  Widget _buildClassBadge(BuildContext context, String classYear) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: NovaSpacing.small,
-        vertical: NovaSpacing.xsmall,
-      ),
-      decoration: BoxDecoration(
-        color: NovaColors.backgroundTertiary(context),
-        borderRadius: BorderRadius.circular(NovaRadius.medium),
-      ),
-      child: Text(
-        classYear,
-        style: NovaTypography.bodySmall.copyWith(
-          color: NovaColors.textPrimary(context),
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  /// Build moderator badge ("Moderatore 🛡️")
+  /// Build moderator/admin badge
   Widget _buildModeratorBadge() {
+    final isAdmin = profile.isAdmin;
+    final label = isAdmin ? 'Admin' : 'Moderatore';
+    final emoji = isAdmin ? '👑' : '🛡️';
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: NovaSpacing.small,
         vertical: NovaSpacing.xsmall,
       ),
       decoration: BoxDecoration(
-        color: NovaColors.brandViolet.withOpacity(0.1),
+        color: NovaColors.brandViolet.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(NovaRadius.medium),
         border: Border.all(
           color: NovaColors.brandViolet,
@@ -283,16 +277,16 @@ class ProfileHeader extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Moderatore',
+            emoji,
+            style: NovaTypography.bodySmall,
+          ),
+          SizedBox(width: NovaSpacing.xsmall),
+          Text(
+            label,
             style: NovaTypography.bodySmall.copyWith(
               color: NovaColors.brandViolet,
               fontWeight: FontWeight.w600,
             ),
-          ),
-          SizedBox(width: NovaSpacing.xsmall),
-          Text(
-            '🛡️',
-            style: NovaTypography.bodySmall,
           ),
         ],
       ),

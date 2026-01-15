@@ -5,7 +5,9 @@ import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
+import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_message_tile.dart';
+import 'package:nova/features/chat/presentation/widgets/failed_message_tile.dart';
 
 /// Scrollable list of chat messages.
 ///
@@ -15,8 +17,10 @@ import 'package:nova/features/chat/presentation/widgets/chat_message_tile.dart';
 /// - Infinite scroll for older messages
 /// - Scroll-to-bottom FAB
 /// - Empty state
+/// - Failed messages with retry
 class ChatMessageList extends ConsumerStatefulWidget {
   final List<ChatMessage> messages;
+  final List<FailedMessage> failedMessages;
   final bool isLoading;
   final bool hasMore;
   final VoidCallback? onLoadMore;
@@ -29,6 +33,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
   const ChatMessageList({
     super.key,
     required this.messages,
+    this.failedMessages = const [],
     this.isLoading = false,
     this.hasMore = false,
     this.onLoadMore,
@@ -101,9 +106,14 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.messages.isEmpty && !widget.isLoading) {
+    if (widget.messages.isEmpty && widget.failedMessages.isEmpty && !widget.isLoading) {
       return _buildEmptyState(context);
     }
+
+    // Total items: failed messages + regular messages + loading indicator
+    final failedCount = widget.failedMessages.length;
+    final messageCount = widget.messages.length;
+    final totalCount = failedCount + messageCount + (widget.isLoading ? 1 : 0);
 
     return Stack(
       children: [
@@ -114,10 +124,24 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
             controller: _scrollController,
             reverse: true, // Newest at bottom
             padding: EdgeInsets.symmetric(vertical: NovaSpacing.m),
-            itemCount: widget.messages.length + (widget.isLoading ? 1 : 0),
+            itemCount: totalCount,
+            // Pre-cache items for smoother scrolling
+            cacheExtent: 500,
             itemBuilder: (context, index) {
+              // Failed messages appear first (at bottom in reversed list)
+              if (index < failedCount) {
+                final failedMessage = widget.failedMessages[index];
+                return FailedMessageTile(
+                  key: ValueKey('failed_${failedMessage.id}'),
+                  failedMessage: failedMessage,
+                );
+              }
+
+              // Adjust index for regular messages
+              final messageIndex = index - failedCount;
+
               // Loading indicator at top (end of reversed list)
-              if (widget.isLoading && index == widget.messages.length) {
+              if (widget.isLoading && messageIndex == messageCount) {
                 return Padding(
                   padding: EdgeInsets.all(NovaSpacing.m),
                   child: Center(
@@ -129,7 +153,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                 );
               }
 
-              final message = widget.messages[index];
+              final message = widget.messages[messageIndex];
               return ChatMessageTile(
                 key: ValueKey(message.id),
                 message: message,

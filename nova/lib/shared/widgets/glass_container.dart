@@ -4,8 +4,8 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../core/theme/nova_colors.dart';
 import '../../core/theme/nova_radius.dart';
+import '../../core/theme/nova_colors.dart';
 
 class GlassContainer extends StatelessWidget {
   final Widget child;
@@ -36,7 +36,7 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final defaultColor = isDark ? Colors.white : Colors.black;
+    final defaultColor = isDark ? NovaColors.backgroundLight : NovaColors.backgroundDark;
 
     return Container(
       width: width,
@@ -49,23 +49,23 @@ class GlassContainer extends StatelessWidget {
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: (color ?? defaultColor).withOpacity(opacity),
+              color: (color ?? defaultColor).withValues(alpha: opacity),
               borderRadius: BorderRadius.circular(borderRadius),
               border: border ??
                   Border.all(
-                    color: (color ?? defaultColor).withOpacity(0.4), // Increased from 0.2
+                    color: (color ?? defaultColor).withValues(alpha: 0.4), // Increased from 0.2
                     width: 2.0, // Increased from 1.5 for more prominent border
                   ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.15),
+                  color: NovaColors.backgroundDark.withValues(alpha: isDark ? 0.3 : 0.15),
                   blurRadius: 30, // Increased for stronger shadow
                   offset: const Offset(0, 12),
                   spreadRadius: 2,
                 ),
                 // Add inner glow for glass effect
                 BoxShadow(
-                  color: (color ?? defaultColor).withOpacity(0.1),
+                  color: (color ?? defaultColor).withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -4),
                 ),

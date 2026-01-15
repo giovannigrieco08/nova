@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../data/repositories/tutor_repository.dart';
 
@@ -52,7 +53,7 @@ class ContactTutorSheet extends StatelessWidget {
               margin: const EdgeInsets.only(top: NovaSpacing.m),
               decoration: BoxDecoration(
                 color: NovaColors.border(context),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: NovaRadius.circularXxs,
               ),
             ),
             // Content
@@ -165,9 +166,9 @@ class ContactTutorSheet extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: tutor.profile.isFree
-                    ? NovaColors.success(context).withOpacity(0.1)
-                    : NovaColors.primary(context).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                    ? NovaColors.success(context).withValues(alpha: 0.1)
+                    : NovaColors.primary(context).withValues(alpha: 0.1),
+                borderRadius: NovaRadius.circularXs,
               ),
               child: Text(
                 tutor.profile.priceDisplay,
@@ -194,7 +195,7 @@ class ContactTutorSheet extends StatelessWidget {
         .join();
 
     return Container(
-      color: NovaColors.primary(context).withOpacity(0.1),
+      color: NovaColors.primary(context).withValues(alpha: 0.1),
       child: Center(
         child: Text(
           initials.isEmpty ? '?' : initials,
@@ -242,7 +243,7 @@ class ContactTutorSheet extends StatelessWidget {
               context,
               label: 'WhatsApp',
               icon: Icons.chat_rounded,
-              color: const Color(0xFF25D366), // WhatsApp green
+              color: NovaColors.whatsappGreen,
               onTap: () => _openWhatsApp(context),
             ),
           ),
@@ -255,7 +256,7 @@ class ContactTutorSheet extends StatelessWidget {
               context,
               label: 'Instagram',
               icon: Icons.camera_alt_rounded,
-              color: const Color(0xFFE4405F), // Instagram pink
+              color: NovaColors.instagramPink,
               onTap: () => _openInstagram(context),
             ),
           ),
@@ -278,7 +279,7 @@ class ContactTutorSheet extends StatelessWidget {
           height: 50,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: NovaRadius.circularS,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -308,7 +309,7 @@ class ContactTutorSheet extends StatelessWidget {
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 50),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: NovaRadius.circularS,
         ),
       ),
     );
