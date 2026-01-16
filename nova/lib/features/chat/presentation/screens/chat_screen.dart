@@ -121,14 +121,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             _buildRateLimitBanner(context, composeState.error!),
 
           // Message list
+          // Use realtime messages for display (receives live updates)
+          // FutureProvider handles initial load and populates realtime state
           Expanded(
             child: messagesAsync.when(
-              data: (messages) => ChatMessageList(
-                messages: messages,
+              data: (_) => ChatMessageList(
+                // Use realtime state for messages (live updates)
+                messages: realtimeState.messages,
                 failedMessages: failedMessages,
                 isLoading: false,
-                hasMore: messages.length >= 50,
-                onLoadMore: () => _loadMoreMessages(messages),
+                hasMore: realtimeState.messages.length >= 50,
+                onLoadMore: () => _loadMoreMessages(realtimeState.messages),
                 onRefresh: () => ref.refresh(chatMessagesStreamProvider),
                 onReply: _setReplyTo,
                 onReport: _showReportDialog,

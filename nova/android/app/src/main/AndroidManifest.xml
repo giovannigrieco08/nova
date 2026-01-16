@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
 
+    <!-- Chat Feature: Microphone for voice messages -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
     <!-- Firebase Cloud Messaging (004-event-creation-moderation) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 

@@ -2,6 +2,7 @@
 // Feature: 002-profile-setup
 // Purpose: Supabase REST API integration for profile operations
 
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile_model.dart';
 import '../../domain/entities/profile_stats.dart';
@@ -188,6 +189,76 @@ class ProfileRemoteDataSource {
       // Return empty stats on error
       return ProfileStats.empty();
     }
+  }
+
+  /// Watch for changes that affect profile stats (events created, participations)
+  /// Returns a stream that emits whenever relevant changes occur
+  Stream<void> watchStatsChanges(String userId) {
+    // Merge streams from events table (created_by) and event_participants table (user_id)
+    final eventsChannel = _supabase
+        .channel('events_stats_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'created_by',
+            value: userId,
+          ),
+          callback: (_) {},
+        )
+        .subscribe();
+
+    final participantsChannel = _supabase
+        .channel('participants_stats_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'event_participants',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (_) {},
+        )
+        .subscribe();
+
+    // Create a combined stream controller
+    final controller = StreamController<void>.broadcast();
+
+    // Set up listeners on both channels
+    _supabase.channel('events_stats_$userId').onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'events',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'created_by',
+        value: userId,
+      ),
+      callback: (_) => controller.add(null),
+    );
+
+    _supabase.channel('participants_stats_$userId').onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'event_participants',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'user_id',
+        value: userId,
+      ),
+      callback: (_) => controller.add(null),
+    );
+
+    controller.onCancel = () {
+      _supabase.removeChannel(eventsChannel);
+      _supabase.removeChannel(participantsChannel);
+    };
+
+    return controller.stream;
   }
 }
 

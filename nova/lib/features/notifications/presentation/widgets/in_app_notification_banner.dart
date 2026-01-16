@@ -6,9 +6,7 @@
 // =====================================================================
 
 import 'dart:async';
-import 'dart:io' show Platform;
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/nova_colors.dart';
@@ -218,9 +216,7 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
               // Chevron
               SizedBox(width: NovaSpacing.s),
               Icon(
-                Platform.isIOS
-                    ? CupertinoIcons.chevron_right
-                    : Icons.chevron_right,
+                Icons.chevron_right,
                 color: NovaColors.textTertiary(context),
                 size: 20,
               ),
@@ -238,19 +234,15 @@ class _InAppNotificationBannerState extends State<_InAppNotificationBanner>
 
     switch (widget.payload.targetType) {
       case 'event':
-        icon = Platform.isIOS ? CupertinoIcons.calendar : Icons.event;
+        icon = Icons.event;
         iconColor = NovaColors.primary(context);
         break;
       case 'comment':
-        icon = Platform.isIOS
-            ? CupertinoIcons.chat_bubble_text
-            : Icons.comment_outlined;
+        icon = Icons.comment_outlined;
         iconColor = NovaColors.info(context);
         break;
       default:
-        icon = Platform.isIOS
-            ? CupertinoIcons.bell_fill
-            : Icons.notifications;
+        icon = Icons.notifications;
         iconColor = NovaColors.primary(context);
     }
 

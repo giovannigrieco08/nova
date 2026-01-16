@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io' show Platform;
 
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
@@ -142,11 +140,7 @@ class _LikeButtonState extends ConsumerState<LikeButton>
                 return Transform.scale(
                   scale: _scaleAnimation.value,
                   child: Icon(
-                    likesState.isLiked
-                        ? (Platform.isIOS ? CupertinoIcons.heart_fill : Icons.favorite)
-                        : (Platform.isIOS
-                            ? CupertinoIcons.heart
-                            : Icons.favorite_border),
+                    likesState.isLiked ? Icons.favorite : Icons.favorite_border,
                     size: 20,
                     color: likesState.isLiked
                         ? NovaColors.primaryLight // Purple Nova brand color

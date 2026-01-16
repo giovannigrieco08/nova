@@ -10,8 +10,6 @@ import '../../domain/entities/profile.dart';
 import '../../domain/entities/profile_stats.dart';
 import '../providers/other_profile_provider.dart';
 import '../widgets/profile_header.dart';
-import '../widgets/profile_stats.dart' as widgets;
-import '../widgets/profile_tabs.dart';
 import '../widgets/events_grid.dart';
 import '../widgets/share_profile_sheet.dart';
 import '../../../../core/theme/nova_colors.dart';
@@ -24,36 +22,23 @@ import '../../../../shared/widgets/adaptive/adaptive_loading_indicator.dart';
 import '../../../tutoring/presentation/providers/tutor_providers.dart';
 import '../../../tutoring/presentation/widgets/tutor_profile_section.dart';
 
-/// Screen for viewing other users' profiles
+/// Screen for viewing other users' profiles (OPTIMIZED)
 ///
 /// **Features**:
-/// - Profile header (avatar, name, username, class, bio, moderator badge)
-/// - Profile stats (eventi creati only - no participations for privacy)
-/// - Only "Eventi" tab visible (no "Partecipazioni" tab for privacy)
-/// - "Condividi Profilo" button (placeholder for US4 - deep link sharing)
-/// - NO "Modifica Profilo" button (read-only view)
+/// - Compact profile header with avatar, name, class, bio, badges
+/// - Share button in app bar (compact)
+/// - Tutor section if user is a tutor
+/// - Events grid only shown if user has events
+///
+/// **Optimizations**:
+/// - Removed duplicate stats (ProfileHeader already shows them)
+/// - Removed ProfileTabs (only one tab was visible anyway)
+/// - Share button moved to app bar as icon
+/// - Events section hidden if empty
 ///
 /// **Privacy Enforcement**:
-/// - RLS policies ensure only public profiles visible (profile_visible=true AND deleted_at IS NULL)
-/// - If profile is hidden/deleted, shows "Profilo non disponibile" error state
+/// - RLS policies ensure only public profiles visible
 /// - Only shows user's created events (no participation history)
-///
-/// **Design**:
-/// - Scrollable: CustomScrollView with SliverAppBar (iOS) or AppBar (Android)
-/// - Pull-to-refresh: Refresh profile data
-/// - Loading state: Shimmer placeholders or CircularProgressIndicator
-/// - Error state: "Profilo non disponibile" with back button
-///
-/// **Usage**:
-/// ```dart
-/// // Navigate from EventCard creator tap or deep link
-/// Navigator.push(
-///   context,
-///   Platform.isIOS
-///     ? CupertinoPageRoute(builder: (_) => OtherProfileScreen(userId: 'uuid-here'))
-///     : MaterialPageRoute(builder: (_) => OtherProfileScreen(userId: 'uuid-here')),
-/// )
-/// ```
 class OtherProfileScreen extends ConsumerStatefulWidget {
   final String userId;
 
@@ -79,94 +64,65 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
     );
   }
 
-  /// Build profile view with data
+  /// Build profile view with data (OPTIMIZED)
   Widget _buildProfileView(Profile? profile, AsyncValue<ProfileStats?> statsAsync) {
     if (profile == null) {
       return _buildErrorView(Exception('Profile not found'));
     }
+
+    // Get stats for conditional rendering
+    final stats = statsAsync.valueOrNull;
+    final hasEvents = stats != null && stats.eventsCreatedCount > 0;
+
     return AdaptiveScaffold(
       appBar: _buildAppBar(profile),
       body: RefreshIndicator(
         onRefresh: () async {
-          // Refresh profile and stats
           ref.invalidate(otherProfileProvider(widget.userId));
           ref.invalidate(otherProfileStatsProvider(widget.userId));
         },
         child: CustomScrollView(
           slivers: [
-            // Profile header
+            // Profile header with stats (no duplicate stats widget needed)
             SliverToBoxAdapter(
               child: ProfileHeader(
                 profile: profile,
-                isOwnProfile: false, // Read-only view
+                stats: statsAsync.valueOrNull,
+                isOwnProfile: false,
               ),
             ),
 
-            // Profile stats
-            SliverToBoxAdapter(
-              child: statsAsync.when(
-                data: (stats) => stats != null
-                    ? widgets.UserProfileStats(stats: stats)
-                    : const SizedBox.shrink(),
-                loading: () => Padding(
-                  padding: EdgeInsets.all(NovaSpacing.medium),
-                  child: const AdaptiveLoadingIndicator(),
-                ),
-                error: (error, stack) => const SizedBox.shrink(),
-              ),
-            ),
-
-            // Tutor profile section (T045-T048: FR-020)
+            // Tutor profile section (if user is a tutor)
             SliverToBoxAdapter(
               child: _buildTutorSection(profile),
             ),
 
-            // "Condividi Profilo" button (placeholder for US4)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
-                child: AdaptiveButton(
-                  type: AdaptiveButtonType.secondary,
-                  onPressed: () => _shareProfile(profile),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Platform.isIOS ? CupertinoIcons.share : Icons.share_rounded,
-                        size: 18,
-                        color: NovaColors.textPrimary(context),
-                      ),
-                      SizedBox(width: NovaSpacing.small),
-                      Text(
-                        'Condividi Profilo',
-                        style: NovaTypography.bodyMedium.copyWith(
-                          color: NovaColors.textPrimary(context),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+            // Events section - only show if user has events
+            if (hasEvents) ...[
+              // Section header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    NovaSpacing.large,
+                    NovaSpacing.medium,
+                    NovaSpacing.large,
+                    NovaSpacing.small,
+                  ),
+                  child: Text(
+                    'Eventi',
+                    style: NovaTypography.headingSmall.copyWith(
+                      color: NovaColors.textPrimary(context),
+                    ),
                   ),
                 ),
               ),
-            ),
-
-            SizedBox(height: NovaSpacing.medium).toSliver(),
-
-            // Only "Eventi" tab (NO Partecipazioni for privacy)
-            SliverToBoxAdapter(
-              child: ProfileTabs(
-                selectedTab: ProfileTab.eventi,
-                onTabChanged: (_) {}, // No-op since only one tab
-                showPartecipazioni: false, // Privacy: only show created events
+              // Events grid
+              SliverToBoxAdapter(
+                child: _buildEventsGrid(profile, statsAsync),
               ),
-            ),
+            ],
 
-            // Events grid (created events only, no separate scroll)
-            SliverToBoxAdapter(
-              child: _buildEventsGrid(profile, statsAsync),
-            ),
-
-            // Bottom padding to prevent content being covered by navbar
+            // Bottom padding
             SliverToBoxAdapter(
               child: SizedBox(height: 100),
             ),
@@ -176,7 +132,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
     );
   }
 
-  /// Build app bar with profile name
+  /// Build app bar with profile name and share action
   PreferredSizeWidget _buildAppBar(Profile profile) {
     final displayName = profile.fullName.isNotEmpty ? profile.fullName : profile.username;
 
@@ -188,6 +144,15 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         previousPageTitle: 'Indietro',
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => _shareProfile(profile),
+          child: Icon(
+            CupertinoIcons.share,
+            color: NovaColors.primary(context),
+            size: 22,
+          ),
+        ),
       );
     } else {
       return AppBar(
@@ -195,7 +160,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
           icon: Icon(
             Icons.arrow_back_ios_new,
             color: NovaColors.textPrimary(context),
-            size: 24,
+            size: 22,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -204,6 +169,17 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
           style: NovaTypography.headingMedium,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.share_rounded,
+              color: NovaColors.primary(context),
+              size: 22,
+            ),
+            onPressed: () => _shareProfile(profile),
+            tooltip: 'Condividi Profilo',
+          ),
+        ],
         backgroundColor: NovaColors.background(context),
         elevation: 0,
       );
@@ -256,18 +232,6 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-
-  /// Show toast message
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: NovaColors.backgroundSecondary(context),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
     );
   }
 

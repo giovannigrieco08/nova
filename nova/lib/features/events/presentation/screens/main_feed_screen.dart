@@ -6,11 +6,9 @@
 // =====================================================================
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_typography.dart';
-import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/animations/page_transitions.dart';
 import '../../../../shared/widgets/nova_bottom_nav_bar.dart';
 import '../../../../shared/widgets/avatar_widget.dart';
@@ -202,7 +200,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
       clipBehavior: Clip.none,
       children: [
         Icon(
-          context.isIOS ? CupertinoIcons.bell : Icons.notifications_outlined,
+          Icons.notifications_outlined,
           color: NovaColors.textPrimary(context),
           size: 24,
         ),
@@ -321,7 +319,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
   }
 
   /// Build the Home screen with Eventi feed
-  /// Uses native pull-to-refresh: CupertinoSliverRefreshControl on iOS, RefreshIndicator on Android
+  /// Uses RefreshIndicator.adaptive for platform-appropriate styling
   Widget _buildHomeScreen() {
     return GestureDetector(
       // Horizontal swipe gestures for navigation
@@ -329,70 +327,33 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
       onHorizontalDragEnd: _onHorizontalDragEnd,
       onHorizontalDragCancel: _onHorizontalDragCancel,
       behavior: HitTestBehavior.translucent,
-      child: context.isIOS ? _buildIOSHomeScreen() : _buildAndroidHomeScreen(),
-    );
-  }
-
-  /// iOS-native home screen with CupertinoSliverRefreshControl
-  Widget _buildIOSHomeScreen() {
-    return CustomScrollView(
-      physics: const AlwaysScrollableScrollPhysics(
-        parent: BouncingScrollPhysics(),
-      ),
-      slivers: [
-        // Native iOS pull-to-refresh control
-        CupertinoSliverRefreshControl(
-          onRefresh: _onRefresh,
-        ),
-        // Floating app bar
-        SliverAppBar(
-          backgroundColor: NovaColors.background(context),
-          elevation: 0,
-          floating: true,
-          snap: true,
-          pinned: false,
-          toolbarHeight: 56,
-          titleSpacing: 0,
-          automaticallyImplyLeading: false,
-          title: _buildAppBarContent(),
-        ),
-        // Feed content as sliver
-        SliverFillRemaining(
-          hasScrollBody: true,
-          child: EventsFeedScreen(
+      child: RefreshIndicator.adaptive(
+        onRefresh: _onRefresh,
+        edgeOffset: 56, // Account for app bar height
+        child: NestedScrollView(
+          floatHeaderSlivers: true,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                backgroundColor: NovaColors.background(context),
+                elevation: 0,
+                floating: true,
+                snap: true,
+                pinned: false,
+                toolbarHeight: 56,
+                titleSpacing: 0,
+                automaticallyImplyLeading: false,
+                title: _buildAppBarContent(),
+              ),
+            ];
+          },
+          body: EventsFeedScreen(
             showAppBar: false,
             disableRefresh: true,
           ),
-        ),
-      ],
-    );
-  }
-
-  /// Android home screen with Material RefreshIndicator
-  Widget _buildAndroidHomeScreen() {
-    return RefreshIndicator(
-      onRefresh: _onRefresh,
-      edgeOffset: 56, // Account for app bar height
-      child: NestedScrollView(
-        floatHeaderSlivers: true,
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              backgroundColor: NovaColors.background(context),
-              elevation: 0,
-              floating: true,
-              snap: true,
-              pinned: false,
-              toolbarHeight: 56,
-              titleSpacing: 0,
-              automaticallyImplyLeading: false,
-              title: _buildAppBarContent(),
-            ),
-          ];
-        },
-        body: EventsFeedScreen(
-          showAppBar: false,
-          disableRefresh: true,
         ),
       ),
     );
@@ -411,7 +372,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
           GestureDetector(
             onTap: _onCreateTap,
             child: Icon(
-              context.isIOS ? CupertinoIcons.plus : Icons.add,
+              Icons.add,
               color: NovaColors.textPrimary(context),
               size: 24,
             ),
@@ -422,7 +383,6 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
             'Eventi',
             style: NovaTypography.headingMedium.copyWith(
               color: NovaColors.textPrimary(context),
-              fontWeight: FontWeight.w800,
             ),
           ),
 

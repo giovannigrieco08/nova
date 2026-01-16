@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.4.1"
+  any_link_preview:
+    dependency: "direct main"
+    description:
+      name: any_link_preview
+      sha256: "0617bd49a58dd0478cd5c4c83bcf7a2d1b7d301aad229817d13693fe86807ea1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.3"
   app_links:
     dependency: "direct main"
     description:
@@ -353,6 +361,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
+  extended_image:
+    dependency: transitive
+    description:
+      name: extended_image
+      sha256: f6cbb1d798f51262ed1a3d93b4f1f2aa0d76128df39af18ecb77fa740f88b2e0
+      url: "https://pub.dev"
+    source: hosted
+    version: "10.0.1"
+  extended_image_library:
+    dependency: transitive
+    description:
+      name: extended_image_library
+      sha256: "1f9a24d3a00c2633891c6a7b5cab2807999eb2d5b597e5133b63f49d113811fe"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.1"
   fake_async:
     dependency: "direct dev"
     description:
@@ -575,6 +599,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.2.0"
+  flutter_localizations:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -623,6 +652,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.28.0"
+  flutter_staggered_grid_view:
+    dependency: transitive
+    description:
+      name: flutter_staggered_grid_view
+      sha256: "19e7abb550c96fbfeb546b23f3ff356ee7c59a019a651f8f102a4ba9b7349395"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.0"
   flutter_svg:
     dependency: "direct main"
     description:
@@ -681,6 +718,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
+  giphy_get:
+    dependency: "direct main"
+    description:
+      name: giphy_get
+      sha256: "2762b2343b78da19248b6aa3302097a51eecd65584c495b5184a8e4ae0a1efc7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.6.1+1"
   glob:
     dependency: transitive
     description:
@@ -769,6 +814,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  http_client_helper:
+    dependency: transitive
+    description:
+      name: http_client_helper
+      sha256: "8a9127650734da86b5c73760de2b404494c968a3fd55602045ffec789dac3cb1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   http_multi_server:
     dependency: transitive
     description:
@@ -885,10 +938,10 @@ packages:
     dependency: "direct main"
     description:
       name: intl
-      sha256: d6f56758b7d3014a48af9701c085700aac781a92a87a62b1333b46d8879661cf
+      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
       url: "https://pub.dev"
     source: hosted
-    version: "0.19.0"
+    version: "0.20.2"
   io:
     dependency: transitive
     description:
@@ -1025,6 +1078,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.4"
+  nested:
+    dependency: transitive
+    description:
+      name: nested
+      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   nm:
     dependency: transitive
     description:
@@ -1225,6 +1286,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.5.0"
+  provider:
+    dependency: transitive
+    description:
+      name: provider
+      sha256: "4e82183fa20e5ca25703ead7e05de9e4cceed1fbd1eadc1ac3cb6f565a09f272"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.5+1"
   pub_semver:
     dependency: transitive
     description:
@@ -1494,6 +1563,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  string_validator:
+    dependency: transitive
+    description:
+      name: string_validator
+      sha256: "240f4c98027dfbe8639c8271ef18cc9de735b47067aa15a720cfed9576a512b1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   supabase:
     dependency: transitive
     description:

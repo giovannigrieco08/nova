@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
@@ -23,17 +24,18 @@ class NavItem {
   });
 }
 
-/// Nova custom bottom navigation bar with BeReal-style liquid glass design.
+/// Nova custom bottom navigation bar with BeReal-style floating liquid glass design.
 ///
 /// Features:
-/// - Edge-to-edge liquid glass effect on iOS
-/// - Strong blur with translucent dark background
+/// - Floating oval/pill shape with rounded corners
+/// - iOS liquid glass effect with strong blur
+/// - Press/scale animation on tap (BeReal-style)
+/// - High contrast for visibility
 /// - Pill-shaped selection indicator behind selected icon
 /// - Material elevation on Android (subtle shadow)
-/// - Dynamic items based on role (students: 5 tabs, moderators: 6 tabs, admins: 7 tabs)
-/// - All icons have equal visual weight (no emphasized center button)
+/// - Dynamic items based on role
+/// - All icons have equal visual weight
 /// - Optional badge support for any tab
-/// - Role-based tab visibility
 ///
 /// Example:
 /// ```dart
@@ -74,38 +76,52 @@ class NovaBottomNavBar extends StatelessWidget {
     return _buildAndroidBottomNav(context);
   }
 
-  /// iOS: BeReal-style liquid glass bottom nav (edge-to-edge)
+  /// iOS: BeReal-style floating liquid glass bottom nav
   Widget _buildIOSBottomNav(BuildContext context) {
     final isDark = NovaColors.isDark(context);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-        child: Container(
-          height: 80, // Taller for better touch targets
-          decoration: BoxDecoration(
-            // Darker translucent background for liquid glass effect
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.65)
-                : Colors.white.withValues(alpha: 0.75),
-            // Subtle top border for definition
-            border: Border(
-              top: BorderSide(
+    return Padding(
+      // Horizontal margins for floating effect + bottom safe area
+      padding: EdgeInsets.only(
+        left: NovaSpacing.m,
+        right: NovaSpacing.m,
+        bottom: bottomPadding + NovaSpacing.s,
+      ),
+      child: ClipRRect(
+        // Fully rounded pill shape
+        borderRadius: BorderRadius.circular(NovaRadius.full),
+        child: BackdropFilter(
+          // Strong blur for liquid glass effect
+          filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+          child: Container(
+            height: 64,
+            decoration: BoxDecoration(
+              // Translucent background with good contrast
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.55)
+                  : Colors.white.withValues(alpha: 0.70),
+              borderRadius: BorderRadius.circular(NovaRadius.full),
+              // Subtle border for definition (liquid glass style)
+              border: Border.all(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.05),
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.black.withValues(alpha: 0.08),
                 width: 0.5,
               ),
+              // Soft shadow for floating effect
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              height: 60,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: _buildNavItems(context),
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: _buildNavItems(context),
             ),
           ),
         ),
@@ -113,34 +129,40 @@ class NovaBottomNavBar extends StatelessWidget {
     );
   }
 
-  /// Android: Material bottom nav with similar styling to iOS
+  /// Android: Material floating bottom nav with similar styling
   Widget _buildAndroidBottomNav(BuildContext context) {
-    return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        color: NovaColors.surface(context),
-        border: Border(
-          top: BorderSide(
-            color: NovaColors.border(context).withValues(alpha: 0.3),
+    final isDark = NovaColors.isDark(context);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: NovaSpacing.m,
+        right: NovaSpacing.m,
+        bottom: bottomPadding + NovaSpacing.s,
+      ),
+      child: Container(
+        height: 64,
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.grey[900]!.withValues(alpha: 0.95)
+              : Colors.white.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(NovaRadius.full),
+          border: Border.all(
+            color: NovaColors.border(context).withValues(alpha: 0.2),
             width: 0.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 20,
+              spreadRadius: 0,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: _buildNavItems(context),
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: _buildNavItems(context),
         ),
       ),
     );
@@ -151,46 +173,102 @@ class NovaBottomNavBar extends StatelessWidget {
     return items.asMap().entries.map((entry) {
       final i = entry.key;
       final item = entry.value;
-      return _buildNavItem(
-        context,
-        i,
-        item,
+      return _NavItemWidget(
+        index: i,
+        item: item,
+        isSelected: currentIndex == i,
+        onTap: () => onTap(i),
       );
     }).toList();
   }
+}
 
-  /// Build a regular navigation item with BeReal-style pill selection indicator
-  Widget _buildNavItem(
-    BuildContext context,
-    int index,
-    NavItem item,
-  ) {
-    final isSelected = currentIndex == index;
+/// Individual navigation item widget with press animation
+class _NavItemWidget extends StatefulWidget {
+  final int index;
+  final NavItem item;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _NavItemWidget({
+    required this.index,
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_NavItemWidget> createState() => _NavItemWidgetState();
+}
+
+class _NavItemWidgetState extends State<_NavItemWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.85).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    _scaleController.forward();
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    _scaleController.reverse();
+  }
+
+  void _onTapCancel() {
+    _scaleController.reverse();
+  }
+
+  void _handleTap() {
+    // Haptic feedback on iOS
+    if (PlatformUtils.isIOS) {
+      HapticFeedback.lightImpact();
+    }
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = NovaColors.isDark(context);
-    final showBadge = item.badgeCount != null && item.badgeCount! > 0;
+    final showBadge = widget.item.badgeCount != null && widget.item.badgeCount! > 0;
 
-    // Colors for selected/unselected states
+    // Colors for selected/unselected states - higher contrast
     final Color iconColor;
-    if (isSelected) {
-      // Selected: use contrasting color based on background
+    if (widget.isSelected) {
       iconColor = isDark ? Colors.white : Colors.black;
     } else {
-      // Unselected: muted gray
       iconColor = isDark
-          ? Colors.white.withValues(alpha: 0.5)
-          : Colors.black.withValues(alpha: 0.5);
+          ? Colors.white.withValues(alpha: 0.55)
+          : Colors.black.withValues(alpha: 0.45);
     }
 
-    // Determine the icon widget to display
+    // Build icon widget
     Widget iconWidget;
-    if (item.customIcon != null) {
+    if (widget.item.customIcon != null) {
       // Custom icon (e.g., profile avatar)
       iconWidget = Container(
         width: 28,
         height: 28,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: isSelected
+          border: widget.isSelected
               ? Border.all(
                   color: isDark ? Colors.white : Colors.black,
                   width: 2,
@@ -198,34 +276,32 @@ class NovaBottomNavBar extends StatelessWidget {
               : null,
         ),
         child: ClipOval(
-          child: item.customIcon!,
+          child: widget.item.customIcon!,
         ),
       );
-    } else if (item.sfSymbol != null && item.materialIcon != null) {
-      // Standard icon
+    } else if (widget.item.sfSymbol != null && widget.item.materialIcon != null) {
       iconWidget = NovaIcons.adaptive(
         context,
-        sfSymbol: item.sfSymbol!,
-        materialIcon: item.materialIcon!,
+        sfSymbol: widget.item.sfSymbol!,
+        materialIcon: widget.item.materialIcon!,
         size: 26,
         color: iconColor,
       );
     } else {
-      // Fallback placeholder
       iconWidget = Icon(Icons.circle, size: 26, color: iconColor);
     }
 
-    // Wrap icon with pill-shaped selection indicator
+    // Selection indicator with pill background
     Widget navContent = AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        // BeReal-style: pill background only on selected item
-        color: isSelected
+        // Pill background on selected item
+        color: widget.isSelected
             ? (isDark
-                ? Colors.white.withValues(alpha: 0.15)
-                : Colors.black.withValues(alpha: 0.08))
+                ? Colors.white.withValues(alpha: 0.18)
+                : Colors.black.withValues(alpha: 0.10))
             : Colors.transparent,
         borderRadius: BorderRadius.circular(NovaRadius.full),
       ),
@@ -234,48 +310,59 @@ class NovaBottomNavBar extends StatelessWidget {
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => onTap(index),
+        onTapDown: _onTapDown,
+        onTapUp: _onTapUp,
+        onTapCancel: _onTapCancel,
+        onTap: _handleTap,
         behavior: HitTestBehavior.opaque,
         child: Center(
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              navContent,
-              // Badge indicator
-              if (showBadge)
-                Positioned(
-                  right: 4,
-                  top: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: NovaColors.errorLight, // Badge notification red
-                      borderRadius: NovaRadius.circularXs,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Center(
-                      child: Text(
-                        item.badgeCount! > 99 ? '99+' : item.badgeCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+          child: AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: child,
+              );
+            },
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                navContent,
+                // Badge indicator
+                if (showBadge)
+                  Positioned(
+                    right: 2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: NovaColors.errorLight,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.item.badgeCount! > 99 ? '99+' : widget.item.badgeCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
 }

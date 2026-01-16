@@ -382,7 +382,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (tutorProfile == null) {
             // Not a tutor - show "Diventa Tutor" (T051)
             return _buildActionTile(
-              icon: Platform.isIOS ? CupertinoIcons.book : Icons.school_rounded,
+              icon: Icons.school_rounded,
               title: 'Diventa Tutor',
               subtitle: 'Offri ripetizioni ai tuoi compagni',
               onTap: _navigateToBecomeTutor,
@@ -392,7 +392,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             return Column(
               children: [
                 _buildActionTile(
-                  icon: Platform.isIOS ? CupertinoIcons.pencil : Icons.edit_rounded,
+                  icon: Icons.edit_rounded,
                   title: 'Gestisci Profilo Tutor',
                   subtitle: tutorProfile.isActive
                       ? '${tutorProfile.subjects.length} materie • ${tutorProfile.priceDisplay}'
@@ -417,7 +417,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: const Center(child: AdaptiveLoadingIndicator()),
         ),
         error: (_, __) => _buildActionTile(
-          icon: Platform.isIOS ? CupertinoIcons.book : Icons.school_rounded,
+          icon: Icons.school_rounded,
           title: 'Diventa Tutor',
           subtitle: 'Offri ripetizioni ai tuoi compagni',
           onTap: _navigateToBecomeTutor,
@@ -526,7 +526,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (currentTheme == ThemeMode.system)
-                    const Icon(CupertinoIcons.checkmark, size: 18),
+                    const Icon(Icons.check, size: 18),
                   const SizedBox(width: 8),
                   const Text('Sistema'),
                 ],
@@ -541,7 +541,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (currentTheme == ThemeMode.light)
-                    const Icon(CupertinoIcons.checkmark, size: 18),
+                    const Icon(Icons.check, size: 18),
                   const SizedBox(width: 8),
                   const Text('Chiaro'),
                 ],
@@ -556,7 +556,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (currentTheme == ThemeMode.dark)
-                    const Icon(CupertinoIcons.checkmark, size: 18),
+                    const Icon(Icons.check, size: 18),
                   const SizedBox(width: 8),
                   const Text('Scuro'),
                 ],
@@ -732,14 +732,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }) {
     return ListTile(
       leading: Icon(icon, color: NovaColors.textSecondary(context)),
-      title: Text(title, style: NovaTypography.bodyMedium),
+      title: Text(
+        title,
+        style: NovaTypography.bodyMedium.copyWith(
+          color: NovaColors.textPrimary(context),
+        ),
+      ),
       trailing: Text(
         value,
         style: NovaTypography.bodySmall.copyWith(
           color: NovaColors.textSecondary(context),
         ),
       ),
-      enabled: false, // Read-only
+      // No onTap = non-interactive, but visually normal
     );
   }
 
@@ -794,9 +799,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             )
           : null,
       trailing: Icon(
-        Platform.isIOS
-            ? CupertinoIcons.chevron_right
-            : Icons.chevron_right_rounded,
+        Icons.chevron_right_rounded,
         color: NovaColors.textTertiary(context),
       ),
       onTap: onTap,

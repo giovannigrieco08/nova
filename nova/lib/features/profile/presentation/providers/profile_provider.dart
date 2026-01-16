@@ -75,6 +75,7 @@ final checkProfileCompleteUseCaseProvider =
 /// Current user's profile provider
 ///
 /// Loads and caches the authenticated user's profile
+/// Automatically converts expired signed URLs to public URLs
 /// Usage:
 /// ```dart
 /// final profileAsync = ref.watch(currentProfileProvider);
@@ -93,7 +94,21 @@ final currentProfileProvider = FutureProvider<Profile>((ref) async {
     throw Exception('User not authenticated');
   }
 
-  return await repository.getProfile(userId);
+  var profile = await repository.getProfile(userId);
+
+  // Convert signed URL to public URL if needed
+  // Signed URLs contain "token=" and expire, causing avatar display issues
+  if (profile.avatarUrl != null && profile.avatarUrl!.contains('token=')) {
+    final avatarService = ref.read(avatarUploadServiceProvider);
+    final publicUrl = avatarService.normalizeAvatarUrl(profile.avatarUrl);
+    if (publicUrl.isNotEmpty && publicUrl != profile.avatarUrl) {
+      // Update profile with new public URL (fire and forget, don't block)
+      repository.updateProfile(userId, {'avatar_url': publicUrl});
+      profile = profile.copyWith(avatarUrl: publicUrl);
+    }
+  }
+
+  return profile;
 });
 
 /// Profile state notifier
@@ -236,9 +251,10 @@ final profileNotifierProvider =
   return ProfileNotifier(repository, userId);
 });
 
-/// Current user's profile stats provider
+/// Current user's profile stats provider (real-time)
 ///
 /// Loads profile statistics (events created, participations count)
+/// Automatically updates when events are created or user participates
 /// Usage:
 /// ```dart
 /// final statsAsync = ref.watch(currentProfileStatsProvider);
@@ -248,7 +264,7 @@ final profileNotifierProvider =
 ///   error: (err, stack) => Text('Error'),
 /// );
 /// ```
-final currentProfileStatsProvider = FutureProvider<ProfileStats>((ref) async {
+final currentProfileStatsProvider = StreamProvider<ProfileStats>((ref) {
   final repository = ref.watch(profileRepositoryProvider);
   final supabase = ref.watch(supabaseClientProvider);
 
@@ -257,7 +273,7 @@ final currentProfileStatsProvider = FutureProvider<ProfileStats>((ref) async {
     throw Exception('User not authenticated');
   }
 
-  return await repository.getProfileStats(userId);
+  return repository.watchProfileStats(userId);
 });
 
 /// Update profile use case provider

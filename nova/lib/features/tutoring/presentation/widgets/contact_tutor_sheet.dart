@@ -80,17 +80,13 @@ class ContactTutorSheet extends StatelessWidget {
                   if (tutor.profile.availabilityDays.isNotEmpty) ...[
                     _buildInfoRow(
                       context,
-                      icon: Platform.isIOS
-                          ? CupertinoIcons.calendar
-                          : Icons.calendar_today_outlined,
+                      icon: Icons.calendar_today_outlined,
                       text: tutor.profile.availabilityDisplay,
                     ),
                     if (tutor.profile.timeSlot != null)
                       _buildInfoRow(
                         context,
-                        icon: Platform.isIOS
-                            ? CupertinoIcons.clock
-                            : Icons.access_time,
+                        icon: Icons.access_time,
                         text: tutor.profile.timeSlot!,
                       ),
                     const SizedBox(height: NovaSpacing.l),
@@ -279,7 +275,7 @@ class ContactTutorSheet extends StatelessWidget {
           height: 50,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: NovaRadius.circularS,
+            borderRadius: NovaRadius.circularFull,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -309,7 +305,7 @@ class ContactTutorSheet extends StatelessWidget {
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 50),
         shape: RoundedRectangleBorder(
-          borderRadius: NovaRadius.circularS,
+          borderRadius: NovaRadius.circularFull,
         ),
       ),
     );
@@ -319,7 +315,7 @@ class ContactTutorSheet extends StatelessWidget {
     return TextButton.icon(
       onPressed: () => _copyContact(context),
       icon: Icon(
-        Platform.isIOS ? CupertinoIcons.doc_on_doc : Icons.copy,
+        Icons.copy,
         size: 18,
         color: NovaColors.textSecondary(context),
       ),

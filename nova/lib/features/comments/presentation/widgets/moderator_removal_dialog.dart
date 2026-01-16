@@ -198,7 +198,7 @@ class _ModeratorRemovalDialogState extends State<ModeratorRemovalDialog> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              CupertinoIcons.shield,
+              Icons.shield,
               color: CupertinoColors.destructiveRed,
               size: 20,
             ),

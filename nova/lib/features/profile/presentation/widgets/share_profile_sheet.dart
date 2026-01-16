@@ -54,7 +54,7 @@ class ShareProfileSheet extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(CupertinoIcons.link, size: 20),
+                const Icon(Icons.link, size: 20),
                 SizedBox(width: NovaSpacing.small),
                 Text('Copia Link', style: NovaTypography.bodyMedium),
               ],
@@ -65,7 +65,7 @@ class ShareProfileSheet extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(CupertinoIcons.chat_bubble, size: 20),
+                const Icon(Icons.chat_bubble_outline, size: 20),
                 SizedBox(width: NovaSpacing.small),
                 Text('Condividi in Chat', style: NovaTypography.bodyMedium),
               ],

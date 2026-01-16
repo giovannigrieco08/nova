@@ -11,6 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'dart:io' show Platform;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -370,8 +371,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   // ===========================================================================
 
   Widget _buildCaption(Event event) {
-    // TODO: Get organizer name from event data
-    final organizerName = 'Organizzatore';
+    final organizerName = event.creatorName ?? 'Organizzatore';
     final description = event.description;
 
     return Padding(
@@ -389,7 +389,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          // Description with organizer inline
+          // Description with organizer inline (tappable name)
           RichText(
             maxLines: _isCaptionExpanded ? null : 3,
             overflow: _isCaptionExpanded
@@ -406,6 +406,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 TextSpan(
                   text: '$organizerName ',
                   style: const TextStyle(fontWeight: FontWeight.w600),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () => _navigateToOrganizerProfile(event),
                 ),
                 TextSpan(text: description),
               ],
@@ -606,7 +608,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                     ),
                   ),
                   Text(
-                    'Organizzatore', // TODO: Get from event data
+                    event.creatorName ?? 'Organizzatore',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

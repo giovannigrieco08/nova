@@ -268,6 +268,20 @@ class ProfileRepository {
     }
   }
 
+  /// Get profile statistics stream (real-time updates)
+  /// Listens to events and event_participants tables for changes
+  Stream<ProfileStats> watchProfileStats(String userId) async* {
+    // Emit initial value
+    yield await getProfileStats(userId);
+
+    // Listen to events table changes (for events_created_count)
+    // Listen to event_participants table changes (for participations_count)
+    // We use a simple approach: whenever any change happens, re-fetch stats
+    await for (final _ in _remoteDataSource.watchStatsChanges(userId)) {
+      yield await getProfileStats(userId);
+    }
+  }
+
   /// Get public profile by userId (for other users)
   Future<Profile?> getPublicProfile(String userId) async {
     try {

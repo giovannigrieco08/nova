@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/nova_colors.dart';
@@ -224,9 +222,7 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
                   ),
                   // Arrow
                   Icon(
-                    Platform.isIOS
-                        ? CupertinoIcons.chevron_right
-                        : Icons.chevron_right,
+                    Icons.chevron_right,
                     color: NovaColors.border(context).withValues(alpha: _animation.value),
                   ),
                 ],

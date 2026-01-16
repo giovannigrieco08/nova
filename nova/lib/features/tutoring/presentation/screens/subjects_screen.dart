@@ -2,8 +2,6 @@
 // Feature: 012-tutoring-system (Sistema Ripetizioni)
 // Purpose: Fiverr-style vertical list of school subjects for tutor search
 
-import 'dart:io' show Platform;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,52 +22,30 @@ class SubjectsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Platform.isIOS
-        ? _buildCupertinoScreen(context, ref)
-        : _buildMaterialScreen(context, ref);
-  }
-
-  Widget _buildCupertinoScreen(BuildContext context, WidgetRef ref) {
-    return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(
-          'Ripetizioni',
-          style: NovaTypography.headingMedium,
-        ),
-        backgroundColor: NovaColors.surface(context),
-        border: null,
-      ),
-      backgroundColor: NovaColors.background(context),
-      child: SafeArea(
-        child: _buildContent(context),
-      ),
-    );
-  }
-
-  Widget _buildMaterialScreen(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: NovaColors.textPrimary(context),
-            size: 24,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Ripetizioni',
-          style: NovaTypography.headingMedium.copyWith(
-            color: NovaColors.textPrimary(context),
-          ),
-        ),
-        backgroundColor: NovaColors.surface(context),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
       backgroundColor: NovaColors.background(context),
       body: SafeArea(
-        child: _buildContent(context),
+        child: Column(
+          children: [
+            // Custom app bar matching MainFeedScreen style
+            Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: Text(
+                  'Ripetizioni',
+                  style: NovaTypography.headingMedium.copyWith(
+                    color: NovaColors.textPrimary(context),
+                  ),
+                ),
+              ),
+            ),
+            // Content
+            Expanded(
+              child: _buildContent(context),
+            ),
+          ],
+        ),
       ),
     );
   }

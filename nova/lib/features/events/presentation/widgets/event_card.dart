@@ -24,6 +24,8 @@ import '../../../../core/providers/core_providers.dart';
 import '../../domain/entities/event.dart';
 import '../providers/events_feed_provider.dart';
 import '../../../comments/presentation/screens/comments_sheet.dart';
+import '../../../profile/presentation/screens/other_profile_screen.dart';
+import '../../../../core/animations/page_transitions.dart';
 import 'offer_help_sheet.dart';
 import 'help_requests_picker_sheet.dart';
 import 'invite_users_sheet.dart';
@@ -157,9 +159,11 @@ class _EventCardState extends ConsumerState<EventCard> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       child: Row(
         children: [
-          // Avatar(s) - overlapping if collaborative, tappable to show all
+          // Avatar(s) - overlapping if collaborative, tappable to show all or navigate to profile
           GestureDetector(
-            onTap: hasCollaborators ? () => _showOrganizersSheet(organizerName, organizerClass) : null,
+            onTap: hasCollaborators
+                ? () => _showOrganizersSheet(organizerName, organizerClass)
+                : () => _navigateToCreatorProfile(),
             child: hasCollaborators
                 ? _buildCollaboratorAvatars(organizerName)
                 : _buildAvatar(organizerName),
@@ -171,9 +175,11 @@ class _EventCardState extends ConsumerState<EventCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Names row - tappable if there are "altri"
+                // Names row - tappable to show organizers sheet or navigate to profile
                 GestureDetector(
-                  onTap: hasTappableOthers ? () => _showOrganizersSheet(organizerName, organizerClass) : null,
+                  onTap: hasTappableOthers
+                      ? () => _showOrganizersSheet(organizerName, organizerClass)
+                      : () => _navigateToCreatorProfile(),
                   child: Text(
                     namesInfo.text,
                     style: TextStyle(
@@ -575,7 +581,7 @@ class _EventCardState extends ConsumerState<EventCard> {
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
-                  borderRadius: NovaRadius.circularXs,
+                  borderRadius: NovaRadius.circularFull,
                 ),
               ),
               child: Text(
@@ -595,7 +601,7 @@ class _EventCardState extends ConsumerState<EventCard> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: NovaColors.grayLight,
-                borderRadius: NovaRadius.circularXs,
+                borderRadius: NovaRadius.circularFull,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -780,7 +786,7 @@ class _EventCardState extends ConsumerState<EventCard> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 shape: RoundedRectangleBorder(
-                  borderRadius: NovaRadius.circularXs,
+                  borderRadius: NovaRadius.circularFull,
                 ),
               ),
               child: const Text(
@@ -1263,6 +1269,16 @@ class _EventCardState extends ConsumerState<EventCard> {
         });
       }
     }
+  }
+
+  /// Navigate to the event creator's profile
+  void _navigateToCreatorProfile() {
+    Navigator.push(
+      context,
+      NovaPageRoute.swipeBack(
+        page: OtherProfileScreen(userId: widget.event.creatorId),
+      ),
+    );
   }
 
   /// Show bottom sheet with all organizers (main + collaborators)

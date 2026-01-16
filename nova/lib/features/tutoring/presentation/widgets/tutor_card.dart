@@ -184,9 +184,7 @@ class TutorCard extends StatelessWidget {
                       // Contact icon
                       const SizedBox(width: NovaSpacing.m),
                       Icon(
-                        Platform.isIOS
-                            ? CupertinoIcons.chat_bubble_text
-                            : Icons.chat_bubble_outline_rounded,
+                        Icons.chat_bubble_outline_rounded,
                         size: 20,
                         color: NovaColors.primary(context),
                       ),

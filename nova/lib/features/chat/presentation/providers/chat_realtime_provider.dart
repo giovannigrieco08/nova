@@ -169,11 +169,15 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
     }
   }
 
-  /// Broadcast a reaction added event
+  /// Add reaction locally and broadcast to other clients
   Future<void> broadcastReactionAdded({
     required String messageId,
     required String emoji,
   }) async {
+    // Update local state immediately (optimistic update)
+    _handleReactionAdded(messageId, emoji, _currentUserId);
+
+    // Broadcast to other clients
     await _reactionsChannel?.sendBroadcastMessage(
       event: 'reaction_added',
       payload: {
@@ -184,11 +188,15 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
     );
   }
 
-  /// Broadcast a reaction removed event
+  /// Remove reaction locally and broadcast to other clients
   Future<void> broadcastReactionRemoved({
     required String messageId,
     required String emoji,
   }) async {
+    // Update local state immediately (optimistic update)
+    _handleReactionRemoved(messageId, emoji, _currentUserId);
+
+    // Broadcast to other clients
     await _reactionsChannel?.sendBroadcastMessage(
       event: 'reaction_removed',
       payload: {

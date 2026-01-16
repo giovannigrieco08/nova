@@ -248,7 +248,7 @@ class _EditInputFieldState extends ConsumerState<EditInputField> {
               }
             : null,
         icon: Icon(
-          Platform.isIOS ? CupertinoIcons.check_mark_circled_solid : Icons.check_circle,
+          Icons.check_circle,
           color: editState.canSave
               ? NovaColors.successLight
               : NovaColors.textTertiaryLight,

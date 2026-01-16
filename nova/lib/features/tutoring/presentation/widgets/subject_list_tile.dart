@@ -107,9 +107,7 @@ class SubjectListTile extends StatelessWidget {
           ),
           // Chevron indicator
           Icon(
-            Platform.isIOS
-                ? CupertinoIcons.chevron_right
-                : Icons.chevron_right,
+            Icons.chevron_right,
             color: NovaColors.textSecondary(context),
             size: 20,
           ),

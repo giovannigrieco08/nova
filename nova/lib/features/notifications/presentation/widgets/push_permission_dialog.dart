@@ -174,6 +174,9 @@ class _MaterialPermissionDialog extends StatelessWidget {
               Navigator.of(context).pop(PushPermissionDialogResult.allow),
           style: FilledButton.styleFrom(
             backgroundColor: NovaColors.primary(context),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(NovaRadius.full),
+            ),
           ),
           child: const Text('Attiva notifiche'),
         ),
@@ -201,7 +204,7 @@ Widget _buildBenefitsList(BuildContext context, {required bool isCupertino}) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(
-                CupertinoIcons.checkmark_circle_fill,
+                Icons.check_circle,
                 size: 18,
                 color: CupertinoColors.activeGreen,
               ),

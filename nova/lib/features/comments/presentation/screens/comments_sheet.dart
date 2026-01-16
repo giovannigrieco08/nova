@@ -153,19 +153,24 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
               // Divider
               Divider(height: 1, color: NovaColors.divider(context)),
 
-              // Input field
-              SafeArea(
-                child: editModeState.isEditing
-                    ? EditInputField(
-                        eventId: widget.eventId,
-                        onSaveSuccess: () {
-                          _showFeedback('Commento modificato');
-                        },
-                      )
-                    : CommentInputField(
-                        eventId: widget.eventId,
-                        replyModeState: replyModeState,
-                      ),
+              // Input field with keyboard padding
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SafeArea(
+                  child: editModeState.isEditing
+                      ? EditInputField(
+                          eventId: widget.eventId,
+                          onSaveSuccess: () {
+                            _showFeedback('Commento modificato');
+                          },
+                        )
+                      : CommentInputField(
+                          eventId: widget.eventId,
+                          replyModeState: replyModeState,
+                        ),
+                ),
               ),
             ],
           ),

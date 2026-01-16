@@ -3,9 +3,7 @@
 // Purpose: Own profile view with header, stats, tabs, edit button, settings icon
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io' show Platform;
 import '../../../../core/animations/page_transitions.dart';
 import '../../domain/entities/profile.dart';
 import '../../domain/entities/profile_stats.dart';
@@ -20,7 +18,6 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
-import '../../../../shared/widgets/adaptive/adaptive_scaffold.dart';
 import '../../../../shared/widgets/adaptive/adaptive_button.dart';
 import '../../../../shared/widgets/adaptive/adaptive_loading_indicator.dart';
 // Tutoring feature imports
@@ -86,9 +83,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildProfileView(Profile profile, AsyncValue<ProfileStats> statsAsync) {
     final stats = statsAsync.valueOrNull;
 
-    return AdaptiveScaffold(
-      appBar: _buildAppBar(profile),
-      body: RefreshIndicator(
+    return Scaffold(
+      backgroundColor: NovaColors.background(context),
+      body: SafeArea(
+        child: RefreshIndicator(
         onRefresh: () async {
           // Refresh profile, stats, and events
           ref.invalidate(currentProfileProvider);
@@ -98,6 +96,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         },
         child: CustomScrollView(
           slivers: [
+            // Custom app bar matching MainFeedScreen style
+            SliverToBoxAdapter(
+              child: _buildCustomAppBar(profile),
+            ),
+
             // Profile header with integrated stats (Instagram-style)
             SliverToBoxAdapter(
               child: ProfileHeader(
@@ -129,7 +132,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             backgroundColor: NovaColors.surface(context),
                             foregroundColor: NovaColors.textPrimary(context),
                             shape: RoundedRectangleBorder(
-                              borderRadius: NovaRadius.circularXs,
+                              borderRadius: NovaRadius.circularFull,
                             ),
                             padding: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
                           ),
@@ -137,6 +140,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             'Modifica profilo',
                             style: NovaTypography.bodyMedium.copyWith(
                               color: NovaColors.textPrimary(context),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -177,46 +181,45 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ],
         ),
+        ),
       ),
     );
   }
 
-  /// Build app bar with username and settings icon
-  PreferredSizeWidget _buildAppBar([Profile? profile]) {
+  /// Build custom app bar matching MainFeedScreen style
+  Widget _buildCustomAppBar([Profile? profile]) {
     final username = profile?.username ?? 'Profilo';
 
-    if (Platform.isIOS) {
-      return CupertinoNavigationBar(
-        middle: Text(
-          username,
-          style: NovaTypography.headingSmall,
-        ),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: _navigateToSettings,
-          child: const Icon(
-            CupertinoIcons.line_horizontal_3,
-            size: 24,
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Sinistra: placeholder per mantenere il titolo centrato
+          const SizedBox(width: 24),
+
+          // Centro: Username
+          Text(
+            username,
+            style: NovaTypography.headingMedium.copyWith(
+              color: NovaColors.textPrimary(context),
+            ),
           ),
-        ),
-      );
-    } else {
-      return AppBar(
-        centerTitle: true,
-        title: Text(
-          username,
-          style: NovaTypography.headingSmall.copyWith(
-            color: NovaColors.textPrimary(context),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu_rounded, size: 24),
-            onPressed: _navigateToSettings,
+
+          // Destra: Menu icon
+          GestureDetector(
+            onTap: _navigateToSettings,
+            child: Icon(
+              Icons.menu_rounded,
+              color: NovaColors.textPrimary(context),
+              size: 24,
+            ),
           ),
         ],
-      );
-    }
+      ),
+    );
   }
 
   /// Build events grid based on selected tab
@@ -366,7 +369,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         backgroundColor: NovaColors.brandViolet.withValues(alpha: 0.1),
         foregroundColor: NovaColors.brandViolet,
         shape: RoundedRectangleBorder(
-          borderRadius: NovaRadius.circularXs,
+          borderRadius: NovaRadius.circularFull,
           side: BorderSide(color: NovaColors.brandViolet),
         ),
         padding: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
@@ -416,61 +419,79 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   /// Build loading view
   Widget _buildLoadingView() {
-    return AdaptiveScaffold(
-      appBar: _buildAppBar(),
-      body: const Center(
-        child: AdaptiveLoadingIndicator(),
+    return Scaffold(
+      backgroundColor: NovaColors.background(context),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildCustomAppBar(),
+            const Expanded(
+              child: Center(
+                child: AdaptiveLoadingIndicator(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   /// Build error view
   Widget _buildErrorView(Object error) {
-    return AdaptiveScaffold(
-      appBar: _buildAppBar(),
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(NovaSpacing.large),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: 64,
-                color: NovaColors.error(context),
-              ),
-              SizedBox(height: NovaSpacing.medium),
-              Text(
-                'Errore nel caricare il profilo',
-                style: NovaTypography.headingSmall.copyWith(
-                  color: NovaColors.textPrimary(context),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: NovaSpacing.small),
-              Text(
-                error.toString(),
-                style: NovaTypography.bodySmall.copyWith(
-                  color: NovaColors.textSecondary(context),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: NovaSpacing.large),
-              AdaptiveButton(
-                type: AdaptiveButtonType.primary,
-                onPressed: () {
-                  ref.invalidate(currentProfileProvider);
-                },
-                child: Text(
-                  'Riprova',
-                  style: NovaTypography.bodyMedium.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+    return Scaffold(
+      backgroundColor: NovaColors.background(context),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildCustomAppBar(),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(NovaSpacing.large),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 64,
+                        color: NovaColors.error(context),
+                      ),
+                      SizedBox(height: NovaSpacing.medium),
+                      Text(
+                        'Errore nel caricare il profilo',
+                        style: NovaTypography.headingSmall.copyWith(
+                          color: NovaColors.textPrimary(context),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: NovaSpacing.small),
+                      Text(
+                        error.toString(),
+                        style: NovaTypography.bodySmall.copyWith(
+                          color: NovaColors.textSecondary(context),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: NovaSpacing.large),
+                      AdaptiveButton(
+                        type: AdaptiveButtonType.primary,
+                        onPressed: () {
+                          ref.invalidate(currentProfileProvider);
+                        },
+                        child: Text(
+                          'Riprova',
+                          style: NovaTypography.bodyMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

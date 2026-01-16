@@ -17,7 +17,6 @@ import 'package:nova/features/chat/presentation/widgets/chat_reaction_detail_she
 import 'package:nova/features/chat/presentation/widgets/chat_reply_preview.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_media_bubble.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_message_context_overlay.dart';
-import 'package:nova/features/chat/presentation/widgets/chat_animations.dart';
 import 'package:nova/features/chat/presentation/widgets/link_preview_bubble.dart';
 import 'package:nova/features/chat/presentation/widgets/edit_message_dialog.dart';
 import 'package:nova/features/chat/presentation/widgets/gif_picker.dart';
@@ -128,28 +127,12 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
     _dragStartX = null;
   }
 
-  /// Handle double-tap for quick react (Instagram-style heart)
+  /// Handle double-tap for quick react (heart emoji)
   void _handleDoubleTap(BuildContext context) {
     // Haptic feedback
-    HapticFeedback.mediumImpact();
+    HapticFeedback.lightImpact();
 
-    // Get the center of the message for animation
-    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox != null) {
-      final size = renderBox.size;
-      final position = renderBox.localToGlobal(Offset(size.width / 2, size.height / 2));
-
-      // Show heart animation overlay
-      HeartAnimationOverlay.show(
-        context,
-        globalPosition: position,
-        onComplete: () {
-          // Animation complete
-        },
-      );
-    }
-
-    // Toggle heart reaction
+    // Toggle heart reaction (no animation - just add/remove the reaction)
     const heartEmoji = '❤️';
     widget.onReact?.call(heartEmoji);
   }

@@ -169,7 +169,7 @@ class AvatarPicker extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(CupertinoIcons.camera, size: 20),
+                  const Icon(Icons.camera_alt, size: 20),
                   SizedBox(width: NovaSpacing.small),
                   Text('Scatta foto', style: NovaTypography.bodyMedium),
                 ],
@@ -183,7 +183,7 @@ class AvatarPicker extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(CupertinoIcons.photo, size: 20),
+                  const Icon(Icons.photo_library, size: 20),
                   SizedBox(width: NovaSpacing.small),
                   Text('Scegli dalla galleria', style: NovaTypography.bodyMedium),
                 ],
@@ -199,7 +199,7 @@ class AvatarPicker extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(CupertinoIcons.delete, size: 20),
+                    const Icon(Icons.delete_outline, size: 20),
                     SizedBox(width: NovaSpacing.small),
                     Text('Rimuovi foto', style: NovaTypography.bodyMedium),
                   ],

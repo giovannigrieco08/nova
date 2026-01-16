@@ -262,7 +262,7 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
               }
             : null,
         icon: Icon(
-          Platform.isIOS ? CupertinoIcons.arrow_up_circle_fill : Icons.send,
+          Icons.send,
           color: inputState.canSend
               ? NovaColors.primaryLight
               : NovaColors.textTertiaryLight,

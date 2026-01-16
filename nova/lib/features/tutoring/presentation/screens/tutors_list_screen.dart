@@ -297,9 +297,7 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Platform.isIOS
-                  ? CupertinoIcons.book
-                  : Icons.school_outlined,
+              Icons.school_outlined,
               size: 64,
               color: NovaColors.textTertiary(context),
             ),
@@ -335,9 +333,7 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Platform.isIOS
-                  ? CupertinoIcons.exclamationmark_triangle
-                  : Icons.error_outline,
+              Icons.error_outline,
               size: 64,
               color: NovaColors.error(context),
             ),

@@ -57,10 +57,11 @@ class ProfileHeader extends StatelessWidget {
             children: [
               // Avatar (left)
               _buildAvatar(context),
-              SizedBox(width: NovaSpacing.medium),
-              // Stats (right) - expanded to fill remaining space
+              SizedBox(width: NovaSpacing.large),
+              // Stats (right) - expanded to fill remaining space, centered
               Expanded(
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildStatColumn(
                       context,
@@ -80,6 +81,12 @@ class ProfileHeader extends StatelessWidget {
 
           SizedBox(height: NovaSpacing.medium),
 
+          // Moderator badge ABOVE name (if applicable)
+          if (profile.isModerator) ...[
+            _buildModeratorBadge(),
+            SizedBox(height: NovaSpacing.xsmall),
+          ],
+
           // Row 2: Name (bold, left-aligned) - Instagram style
           if (profile.fullName.isNotEmpty)
             Text(
@@ -90,7 +97,7 @@ class ProfileHeader extends StatelessWidget {
               ),
             ),
 
-          // Row 3: Class as plain text (not badge) + moderator badge
+          // Row 3: Class as plain text (not badge)
           if (profile.classYear != null && profile.classYear!.isNotEmpty) ...[
             SizedBox(height: 2),
             Text(
@@ -99,12 +106,6 @@ class ProfileHeader extends StatelessWidget {
                 color: NovaColors.textSecondary(context),
               ),
             ),
-          ],
-
-          // Moderator badge (if applicable)
-          if (profile.isModerator) ...[
-            SizedBox(height: NovaSpacing.xsmall),
-            _buildModeratorBadge(),
           ],
 
           // Row 4: Bio (if exists)
@@ -126,31 +127,29 @@ class ProfileHeader extends StatelessWidget {
 
   /// Build stat column (Instagram-style: prominent number + single-line label)
   Widget _buildStatColumn(BuildContext context, {required int count, required String label}) {
-    return Expanded(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Prominent number (Instagram-style bold)
-          Text(
-            count.toString(),
-            style: NovaTypography.headingMedium.copyWith(
-              color: NovaColors.textPrimary(context),
-              fontWeight: FontWeight.w700,
-              fontSize: 20,
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Prominent number (Instagram-style bold)
+        Text(
+          count.toString(),
+          style: NovaTypography.headingMedium.copyWith(
+            color: NovaColors.textPrimary(context),
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
           ),
-          SizedBox(height: 4),
-          // Label below
-          Text(
-            label,
-            style: NovaTypography.bodySmall.copyWith(
-              color: NovaColors.textSecondary(context),
-              fontWeight: FontWeight.w400,
-            ),
-            textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 4),
+        // Label below
+        Text(
+          label,
+          style: NovaTypography.bodySmall.copyWith(
+            color: NovaColors.textSecondary(context),
+            fontWeight: FontWeight.w400,
           ),
-        ],
-      ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 

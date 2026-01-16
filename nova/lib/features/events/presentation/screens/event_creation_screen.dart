@@ -173,26 +173,29 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     BuildContext context,
     EventCreationNotifier notifier,
   ) async {
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     final event = await notifier.createEvent();
 
-    if (event != null && mounted) {
+    if (event != null) {
       // Refresh the feed to show the new event (or pending events banner)
       ref.invalidate(eventsFeedProvider);
       ref.invalidate(userPendingEventsProvider);
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      // Navigate back to feed immediately
+      navigator.pop();
+
+      // Show success message after navigation
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: const Text(
             'Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
           ),
-          backgroundColor: NovaColors.success(context),
+          backgroundColor: NovaColors.successLight,
           duration: const Duration(seconds: 3),
         ),
       );
-
-      // Navigate back to feed
-      Navigator.pop(context);
     }
     // Error is already shown in bottom bar via submitError
   }

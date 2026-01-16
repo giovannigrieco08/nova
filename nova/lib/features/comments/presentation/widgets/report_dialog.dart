@@ -195,8 +195,8 @@ class _ReportDialogState extends State<ReportDialog> {
                     children: [
                       Icon(
                         isSelected
-                            ? CupertinoIcons.check_mark_circled_solid
-                            : CupertinoIcons.circle,
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
                         color: isSelected
                             ? NovaColors.primaryLight
                             : NovaColors.textTertiaryLight,

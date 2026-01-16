@@ -13,8 +13,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// - Image compression (max 200KB per constitution)
 /// - WebP format conversion for optimal size
 /// - Supabase Storage integration (avatars bucket)
-/// - Signed URL generation (1-hour expiry for security)
+/// - Public URL generation (permanent, no expiry)
 /// - Automatic cleanup of old avatars
+/// - Legacy signed URL to public URL conversion
 class AvatarUploadService {
   final SupabaseClient _supabase;
 
@@ -24,11 +25,11 @@ class AvatarUploadService {
   ///
   /// Steps:
   /// 1. Compress image to <200KB
-  /// 2. Convert to WebP format
+  /// 2. Convert to PNG format
   /// 3. Upload to avatars bucket with user ID path
-  /// 4. Return signed URL (1-hour expiry)
+  /// 4. Return public URL (permanent, no expiry)
   ///
-  /// Returns: Public signed URL for avatar
+  /// Returns: Public URL for avatar (requires bucket to be public)
   /// Throws: AvatarUploadException on failure
   Future<String> uploadAvatar({
     required String userId,
@@ -66,14 +67,15 @@ class AvatarUploadService {
 
       if (onProgress != null) onProgress(0.9);
 
-      // Step 5: Get signed URL (1-hour expiry for security)
-      final signedUrl = await _supabase.storage
+      // Step 5: Get public URL (permanent, no expiry)
+      // Note: The 'avatars' bucket must be configured as public in Supabase
+      final publicUrl = _supabase.storage
           .from('avatars')
-          .createSignedUrl(filePath, 3600); // 1 hour
+          .getPublicUrl(filePath);
 
       if (onProgress != null) onProgress(1.0);
 
-      return signedUrl;
+      return publicUrl;
     } catch (e) {
       throw AvatarUploadException('Failed to upload avatar: ${e.toString()}');
     }
@@ -146,7 +148,46 @@ class AvatarUploadService {
     }
   }
 
-  /// Get avatar URL for user (with signed URL for security)
+  /// Convert a signed URL to a public URL
+  ///
+  /// Signed URLs contain "token=" and expire after 1 hour.
+  /// This extracts the path and returns a permanent public URL.
+  /// Returns the original URL if it's already public or invalid.
+  String normalizeAvatarUrl(String? signedUrl) {
+    if (signedUrl == null || signedUrl.isEmpty) return '';
+
+    // If URL doesn't contain token, it's already public
+    if (!signedUrl.contains('token=')) return signedUrl;
+
+    try {
+      // Extract the path from the signed URL
+      // Format: .../storage/v1/object/sign/avatars/userId/filename?token=...
+      // Target: .../storage/v1/object/public/avatars/userId/filename
+      final uri = Uri.parse(signedUrl);
+      final pathSegments = uri.pathSegments.toList();
+
+      // Find 'sign' and replace with 'public'
+      final signIndex = pathSegments.indexOf('sign');
+      if (signIndex != -1) {
+        pathSegments[signIndex] = 'public';
+
+        // Reconstruct URL without query parameters
+        final publicUrl = Uri(
+          scheme: uri.scheme,
+          host: uri.host,
+          pathSegments: pathSegments,
+        ).toString();
+
+        return publicUrl;
+      }
+    } catch (e) {
+      // If parsing fails, return original URL
+    }
+
+    return signedUrl;
+  }
+
+  /// Get avatar URL for user (public URL, no expiry)
   Future<String?> getAvatarUrl(String userId) async {
     try {
       // List files in user's folder
@@ -160,12 +201,12 @@ class AvatarUploadService {
       final latestFile = files.reduce((a, b) =>
           a.name.compareTo(b.name) > 0 ? a : b);
 
-      // Get signed URL
-      final signedUrl = await _supabase.storage
+      // Get public URL (permanent, no expiry)
+      final publicUrl = _supabase.storage
           .from('avatars')
-          .createSignedUrl('$userId/${latestFile.name}', 3600); // 1 hour
+          .getPublicUrl('$userId/${latestFile.name}');
 
-      return signedUrl;
+      return publicUrl;
     } catch (e) {
       return null;
     }

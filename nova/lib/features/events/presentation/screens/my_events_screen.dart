@@ -8,7 +8,10 @@
 // - Show rejection_reason if status='rejected' (expandable)
 // - Empty state: "Nessun evento creato"
 // - Pull-to-refresh
+// - Delete own events
 
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/nova_colors.dart';
@@ -17,14 +20,20 @@ import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/event.dart';
 import '../providers/my_events_provider.dart';
+import '../providers/events_feed_provider.dart';
 import '../widgets/event_status_badge.dart';
 
 /// My Events screen showing user's created events
-class MyEventsScreen extends ConsumerWidget {
+class MyEventsScreen extends ConsumerStatefulWidget {
   const MyEventsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyEventsScreen> createState() => _MyEventsScreenState();
+}
+
+class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
+  @override
+  Widget build(BuildContext context) {
     final myEventsAsync = ref.watch(myEventsProvider);
 
     return Scaffold(
@@ -36,17 +45,17 @@ class MyEventsScreen extends ConsumerWidget {
         foregroundColor: NovaColors.textPrimary(context),
       ),
       body: myEventsAsync.when(
-        data: (events) => _buildEventsList(context, ref, events),
+        data: (events) => _buildEventsList(events),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => _buildError(context, error.toString()),
+        error: (error, stack) => _buildError(error.toString()),
       ),
     );
   }
 
   /// Build events list
-  Widget _buildEventsList(BuildContext context, WidgetRef ref, List<Event> events) {
+  Widget _buildEventsList(List<Event> events) {
     if (events.isEmpty) {
-      return _buildEmptyState(context);
+      return _buildEmptyState();
     }
 
     return RefreshIndicator(
@@ -58,13 +67,13 @@ class MyEventsScreen extends ConsumerWidget {
         padding: EdgeInsets.all(NovaSpacing.medium),
         itemCount: events.length,
         separatorBuilder: (context, index) => SizedBox(height: NovaSpacing.medium),
-        itemBuilder: (context, index) => _buildEventCard(context, events[index]),
+        itemBuilder: (context, index) => _buildEventCard(events[index]),
       ),
     );
   }
 
   /// Build event card
-  Widget _buildEventCard(BuildContext context, Event event) {
+  Widget _buildEventCard(Event event) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -81,7 +90,7 @@ class MyEventsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: Title + Status Badge
+              // Header: Title + Status Badge + Menu
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -97,6 +106,16 @@ class MyEventsScreen extends ConsumerWidget {
                   EventStatusBadge(
                     status: event.status,
                     compact: true,
+                  ),
+                  SizedBox(width: NovaSpacing.xsmall),
+                  // Menu button
+                  GestureDetector(
+                    onTap: () => _showEventMenu(event),
+                    child: Icon(
+                      Icons.more_vert,
+                      size: 20,
+                      color: NovaColors.textSecondary(context),
+                    ),
                   ),
                 ],
               ),
@@ -192,8 +211,99 @@ class MyEventsScreen extends ConsumerWidget {
     );
   }
 
+  /// Show event menu with delete option
+  void _showEventMenu(Event event) {
+    if (Platform.isIOS) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          actions: [
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.pop(ctx);
+                _confirmDeleteEvent(event);
+              },
+              child: const Text('Elimina evento'),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annulla'),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        builder: (ctx) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: NovaColors.error(context)),
+                title: Text(
+                  'Elimina evento',
+                  style: TextStyle(color: NovaColors.error(context)),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDeleteEvent(event);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Confirm and delete event
+  void _confirmDeleteEvent(Event event) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Elimina evento'),
+        content: const Text(
+          'Sei sicuro di voler eliminare questo evento? Questa azione non può essere annullata.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: NovaColors.error(context)),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(eventsRepositoryProvider).deleteEvent(event.id);
+        if (mounted) {
+          // Refresh the list
+          ref.invalidate(myEventsProvider);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Evento eliminato')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Errore: ${e.toString()}')),
+          );
+        }
+      }
+    }
+  }
+
   /// Empty state
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState() {
     return Center(
       child: Padding(
         padding: EdgeInsets.all(NovaSpacing.large),
@@ -247,7 +357,7 @@ class MyEventsScreen extends ConsumerWidget {
   }
 
   /// Error state
-  Widget _buildError(BuildContext context, String error) {
+  Widget _buildError(String error) {
     return Center(
       child: Padding(
         padding: EdgeInsets.all(NovaSpacing.large),

@@ -2,8 +2,6 @@
 // Feature: 012-tutoring-system (Sistema Ripetizioni)
 // Purpose: CTA card encouraging users to become tutors
 
-import 'dart:io' show Platform;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/nova_colors.dart';
@@ -65,9 +63,7 @@ class BecomeTutorCard extends StatelessWidget {
                     borderRadius: NovaRadius.circularS,
                   ),
                   child: Icon(
-                    Platform.isIOS
-                        ? CupertinoIcons.book_fill
-                        : Icons.school_rounded,
+                    Icons.school_rounded,
                     color: Colors.white,
                     size: 24,
                   ),
@@ -99,9 +95,7 @@ class BecomeTutorCard extends StatelessWidget {
                 ),
                 // Arrow icon
                 Icon(
-                  Platform.isIOS
-                      ? CupertinoIcons.chevron_forward
-                      : Icons.arrow_forward_ios_rounded,
+                  Icons.arrow_forward_ios_rounded,
                   color: Colors.white,
                   size: 20,
                 ),
