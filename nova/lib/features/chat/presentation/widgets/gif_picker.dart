@@ -38,7 +38,6 @@ class GifPicker {
       debounceTimeInMilliseconds: 350,
       searchText: 'Cerca GIF...',
       modal: true,
-      showPreview: true,
       showGIFs: true,
       showStickers: true,
       showEmojis: false,

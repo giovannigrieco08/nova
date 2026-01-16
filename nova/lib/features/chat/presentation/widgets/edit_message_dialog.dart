@@ -123,7 +123,7 @@ class _EditMessageDialogState extends ConsumerState<EditMessageDialog> {
           Expanded(
             child: Text(
               'Modifica messaggio',
-              style: NovaTypography.headlineSmall.copyWith(
+              style: NovaTypography.headingSmall.copyWith(
                 color: NovaColors.textPrimary(context),
               ),
             ),
