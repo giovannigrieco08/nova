@@ -49,7 +49,8 @@ class SwipeBackPageRoute<T> extends PageRoute<T> {
   Duration get reverseTransitionDuration => const Duration(milliseconds: 300);
 
   /// Width of the area from the left edge where the gesture is detected.
-  static const double _kEdgeWidth = 20.0;
+  /// Increased from 20 to 30 for easier swipe-to-go-back gesture.
+  static const double _kEdgeWidth = 30.0;
 
   /// The minimum velocity to trigger a pop (pixels per second).
   static const double _kMinFlingVelocity = 300.0;

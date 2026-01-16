@@ -20,16 +20,41 @@ import '../../../../core/theme/nova_typography.dart';
 import '../providers/event_creation_provider.dart';
 import '../providers/events_feed_provider.dart';
 import '../widgets/event_form.dart';
+import '../../domain/entities/event.dart';
 
-/// Event creation screen
+/// Event creation/edit screen
 class EventCreationScreen extends ConsumerStatefulWidget {
-  const EventCreationScreen({super.key});
+  /// If provided, the screen will be in edit mode with this event's data
+  final Event? eventToEdit;
+
+  const EventCreationScreen({
+    super.key,
+    this.eventToEdit,
+  });
 
   @override
   ConsumerState<EventCreationScreen> createState() => _EventCreationScreenState();
 }
 
 class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
+  bool _initialized = false;
+
+  bool get isEditMode => widget.eventToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize form with event data if in edit mode
+    if (widget.eventToEdit != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_initialized) {
+          _initialized = true;
+          ref.read(eventCreationProvider.notifier).loadEventForEdit(widget.eventToEdit!);
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(eventCreationProvider);
@@ -47,7 +72,7 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
           tooltip: 'Indietro',
         ),
         title: Text(
-          'Crea evento',
+          isEditMode ? 'Modifica evento' : 'Crea evento',
           style: TextStyle(
             fontWeight: FontWeight.w700,
           ),
@@ -153,9 +178,9 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
                           valueColor: const AlwaysStoppedAnimation<Color>(NovaColors.onPrimaryLight),
                         ),
                       )
-                    : const Text(
-                        'Crea evento',
-                        style: TextStyle(
+                    : Text(
+                        isEditMode ? 'Salva modifiche' : 'Crea evento',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -168,7 +193,7 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     );
   }
 
-  /// Submit form
+  /// Submit form (create or update)
   Future<void> _submitForm(
     BuildContext context,
     EventCreationNotifier notifier,
@@ -176,21 +201,28 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    final event = await notifier.createEvent();
+    Event? event;
+    if (isEditMode) {
+      event = await notifier.updateEvent(widget.eventToEdit!.id);
+    } else {
+      event = await notifier.createEvent();
+    }
 
     if (event != null) {
-      // Refresh the feed to show the new event (or pending events banner)
+      // Refresh the feed to show the new/updated event
       ref.invalidate(eventsFeedProvider);
       ref.invalidate(userPendingEventsProvider);
 
-      // Navigate back to feed immediately
-      navigator.pop();
+      // Navigate back immediately
+      navigator.pop(event); // Return the updated event
 
       // Show success message after navigation
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: const Text(
-            'Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
+          content: Text(
+            isEditMode
+              ? 'Evento modificato con successo'
+              : 'Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
           ),
           backgroundColor: NovaColors.successLight,
           duration: const Duration(seconds: 3),

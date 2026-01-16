@@ -222,6 +222,7 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
             event: event,
             organizerName: event.creatorName ?? 'Organizzatore',
             organizerClass: event.creatorClass ?? '',
+            organizerAvatarUrl: event.creatorAvatarUrl,
             likeCount: engagement.likeCount,
             commentCount: engagement.commentCount,
             participantCount: engagement.participantCount,

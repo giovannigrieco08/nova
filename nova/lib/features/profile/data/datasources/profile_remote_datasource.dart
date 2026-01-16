@@ -171,6 +171,17 @@ class ProfileRemoteDataSource {
     return result as String?;
   }
 
+  /// Check if username is available (case-insensitive)
+  /// Returns true if username is available, false if already taken
+  Future<bool> isUsernameAvailable(String username) async {
+    final result = await _supabase.rpc(
+      'check_username_available',
+      params: {'p_username': username},
+    );
+
+    return result as bool;
+  }
+
   /// Get profile statistics (events created, participations)
   /// Uses Supabase RPC function
   Future<ProfileStats> getProfileStats(String userId) async {
@@ -215,7 +226,7 @@ class ProfileRemoteDataSource {
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
-          table: 'event_participants',
+          table: 'participations',
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
             column: 'user_id',
@@ -235,7 +246,7 @@ class ProfileRemoteDataSource {
       table: 'events',
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
-        column: 'created_by',
+        column: 'creator_id',
         value: userId,
       ),
       callback: (_) => controller.add(null),
@@ -244,7 +255,7 @@ class ProfileRemoteDataSource {
     _supabase.channel('participants_stats_$userId').onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'event_participants',
+      table: 'participations',
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
         column: 'user_id',

@@ -2,6 +2,7 @@
 // Feature: 002-profile-setup
 // Purpose: First-time profile setup with Instagram-inspired UX
 
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,6 +47,7 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
 
   String? _selectedClass;
   String? _avatarUrl;
@@ -54,6 +56,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   bool _isSaving = false;
   bool _isUploadingAvatar = false;
   double _uploadProgress = 0.0;
+
+  // Username availability check state
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable;
+  Timer? _usernameDebounceTimer;
 
   @override
   void initState() {
@@ -64,7 +71,89 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
+    _usernameDebounceTimer?.cancel();
     super.dispose();
+  }
+
+  /// Check username availability with debounce
+  void _onUsernameChanged(String value) {
+    // Reset availability state
+    setState(() {
+      _isUsernameAvailable = null;
+    });
+
+    // Cancel previous timer
+    _usernameDebounceTimer?.cancel();
+
+    // Validate locally first
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed.length < 3 || trimmed.contains(' ')) {
+      return; // Don't check availability for invalid usernames
+    }
+
+    // Debounce the API call (300ms)
+    _usernameDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _checkUsernameAvailability(trimmed);
+    });
+  }
+
+  /// Check if username is available via API
+  Future<void> _checkUsernameAvailability(String username) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isCheckingUsername = true;
+    });
+
+    try {
+      final repository = ref.read(profileRepositoryProvider);
+      final isAvailable = await repository.isUsernameAvailable(username);
+
+      if (mounted) {
+        setState(() {
+          _isUsernameAvailable = isAvailable;
+          _isCheckingUsername = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUsernameAvailable = null;
+          _isCheckingUsername = false;
+        });
+      }
+    }
+  }
+
+  /// Build suffix icon for username field showing availability status
+  Widget? _buildUsernameStatusIcon() {
+    if (_isCheckingUsername) {
+      return const Padding(
+        padding: EdgeInsets.all(12.0),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_isUsernameAvailable == true) {
+      return const Padding(
+        padding: EdgeInsets.all(12.0),
+        child: Icon(Icons.check_circle, color: Colors.green),
+      );
+    }
+
+    if (_isUsernameAvailable == false) {
+      return const Padding(
+        padding: EdgeInsets.all(12.0),
+        child: Icon(Icons.cancel, color: Colors.red),
+      );
+    }
+
+    return null;
   }
 
   /// Handle avatar selection and upload
@@ -181,6 +270,15 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       return;
     }
 
+    // Check if username is available
+    if (_isUsernameAvailable == false) {
+      NovaToast.showError(
+        context,
+        'Lo username scelto non è disponibile',
+      );
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -200,6 +298,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         userId: userId,
         email: email,
         fullName: _nameController.text.trim(),
+        username: _usernameController.text.trim(),
         classYear: _selectedClass!,
         avatarUrl: _avatarUrl, // Include avatar URL if uploaded
       );
@@ -230,6 +329,19 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   /// Skip setup (navigate to Feed with incomplete profile)
   Future<void> _skipSetup() async {
+    // Username is still required even when skipping
+    final usernameError = Validators.validateUsername(_usernameController.text);
+    if (usernameError != null) {
+      NovaToast.showError(context, 'Inserisci uno username valido prima di continuare');
+      return;
+    }
+
+    // Check if username is available
+    if (_isUsernameAvailable == false) {
+      NovaToast.showError(context, 'Lo username scelto non è disponibile');
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -251,6 +363,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         fullName: _nameController.text.trim().isNotEmpty
             ? _nameController.text.trim()
             : 'Utente Nova',
+        username: _usernameController.text.trim(),
         classYear: null, // Incomplete profile
       );
 
@@ -321,7 +434,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
               // Subtitle
               Text(
-                'Solo 2 informazioni richieste',
+                'Pochi passaggi per iniziare',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: NovaColors.textSecondary(context),
                     ),
@@ -445,6 +558,35 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 validator: Validators.validateName,
                 textCapitalization: TextCapitalization.words,
                 enabled: !_isSaving,
+              ),
+
+              SizedBox(height: NovaSpacing.l),
+
+              // Username field
+              TextFormField(
+                controller: _usernameController,
+                decoration: InputDecoration(
+                  labelText: 'Username *',
+                  hintText: 'Es: giovanni_rossi',
+                  prefixIcon: const Icon(Icons.alternate_email),
+                  suffixIcon: _buildUsernameStatusIcon(),
+                  helperText: _isUsernameAvailable == false
+                      ? 'Username non disponibile'
+                      : null,
+                  helperStyle: TextStyle(
+                    color: Colors.red,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(NovaRadius.m),
+                  ),
+                  filled: true,
+                  fillColor: NovaColors.surface(context),
+                ),
+                validator: Validators.validateUsername,
+                onChanged: _onUsernameChanged,
+                enabled: !_isSaving,
+                autocorrect: false,
+                textInputAction: TextInputAction.next,
               ),
 
               SizedBox(height: NovaSpacing.l),

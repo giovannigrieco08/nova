@@ -65,6 +65,7 @@ class EventCard extends ConsumerStatefulWidget {
   // TODO: Add these fields to Event model or fetch from joined data
   final String? organizerName;
   final String? organizerClass;
+  final String? organizerAvatarUrl;
   final String? emoji;
   final int likeCount;
   final int commentCount;
@@ -87,6 +88,7 @@ class EventCard extends ConsumerStatefulWidget {
     // Temporary props until data layer updated
     this.organizerName,
     this.organizerClass,
+    this.organizerAvatarUrl,
     this.emoji,
     this.likeCount = 0,
     this.commentCount = 0,
@@ -151,6 +153,7 @@ class _EventCardState extends ConsumerState<EventCard> {
     // Use creator info from event entity (joined from profiles table)
     final organizerName = widget.event.creatorName ?? widget.organizerName ?? 'Organizer';
     final organizerClass = widget.event.creatorClass ?? widget.organizerClass ?? '';
+    final organizerAvatarUrl = widget.event.creatorAvatarUrl ?? widget.organizerAvatarUrl;
     final hasCollaborators = widget.collaborators.isNotEmpty;
     final namesInfo = _buildCollaboratorNamesWithCount(organizerName);
     final hasTappableOthers = namesInfo.othersCount > 0;
@@ -165,8 +168,8 @@ class _EventCardState extends ConsumerState<EventCard> {
                 ? () => _showOrganizersSheet(organizerName, organizerClass)
                 : () => _navigateToCreatorProfile(),
             child: hasCollaborators
-                ? _buildCollaboratorAvatars(organizerName)
-                : _buildAvatar(organizerName),
+                ? _buildCollaboratorAvatars(organizerName, avatarUrl: organizerAvatarUrl)
+                : _buildAvatar(organizerName, avatarUrl: organizerAvatarUrl),
           ),
           const SizedBox(width: 10),
           // Username(s) + Class stacked
@@ -221,10 +224,30 @@ class _EventCardState extends ConsumerState<EventCard> {
     );
   }
 
-  /// Avatar: 32x32px circle with brand gradient and initials
-  Widget _buildAvatar(String name) {
+  /// Avatar: 32x32px circle with image or brand gradient with initials
+  Widget _buildAvatar(String name, {String? avatarUrl}) {
     final initials = _getInitials(name);
 
+    // If avatar URL is available, show the image
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: avatarUrl,
+          width: 32,
+          height: 32,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => _buildInitialsAvatar(initials),
+          errorWidget: (context, url, error) => _buildInitialsAvatar(initials),
+        ),
+      );
+    }
+
+    // Fallback to initials
+    return _buildInitialsAvatar(initials);
+  }
+
+  /// Build initials avatar with gradient background
+  Widget _buildInitialsAvatar(String initials) {
     return Container(
       width: 32,
       height: 32,
@@ -261,7 +284,7 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Build overlapping avatars for collaborative events
-  Widget _buildCollaboratorAvatars(String mainOrganizerName) {
+  Widget _buildCollaboratorAvatars(String mainOrganizerName, {String? avatarUrl}) {
     final totalCount = 1 + widget.collaborators.length; // Main + collaborators
     final maxShow = 3; // Max avatars to show
     final showCount = totalCount > maxShow ? maxShow : totalCount;
@@ -282,7 +305,7 @@ class _EventCardState extends ConsumerState<EventCard> {
           Positioned(
             left: 0,
             top: borderWidth, // Center vertically accounting for border
-            child: _buildAvatar(mainOrganizerName),
+            child: _buildAvatar(mainOrganizerName, avatarUrl: avatarUrl),
           ),
           // Collaborator avatars (overlapping)
           for (int i = 0; i < widget.collaborators.length && i < maxShow - 1; i++)
@@ -294,7 +317,7 @@ class _EventCardState extends ConsumerState<EventCard> {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: borderWidth),
                 ),
-                child: _buildAvatar(widget.collaborators[i].name),
+                child: _buildAvatar(widget.collaborators[i].name, avatarUrl: widget.collaborators[i].avatarUrl),
               ),
             ),
           // "+N" indicator if more than maxShow

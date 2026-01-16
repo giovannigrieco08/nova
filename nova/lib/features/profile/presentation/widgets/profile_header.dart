@@ -3,6 +3,7 @@
 // Purpose: Displays avatar + stats (Instagram-style), name, class, bio, moderator badge
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/entities/profile.dart';
 import '../../domain/entities/profile_stats.dart';
 import '../../../../core/theme/nova_colors.dart';
@@ -61,7 +62,7 @@ class ProfileHeader extends StatelessWidget {
               // Stats (right) - expanded to fill remaining space, centered
               Expanded(
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _buildStatColumn(
                       context,
@@ -127,29 +128,31 @@ class ProfileHeader extends StatelessWidget {
 
   /// Build stat column (Instagram-style: prominent number + single-line label)
   Widget _buildStatColumn(BuildContext context, {required int count, required String label}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Prominent number (Instagram-style bold)
-        Text(
-          count.toString(),
-          style: NovaTypography.headingMedium.copyWith(
-            color: NovaColors.textPrimary(context),
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Prominent number (Instagram-style bold)
+          Text(
+            count.toString(),
+            style: NovaTypography.headingLarge.copyWith(
+              color: NovaColors.textPrimary(context),
+              fontWeight: FontWeight.w700,
+              fontSize: 22,
+            ),
           ),
-        ),
-        SizedBox(height: 4),
-        // Label below
-        Text(
-          label,
-          style: NovaTypography.bodySmall.copyWith(
-            color: NovaColors.textSecondary(context),
-            fontWeight: FontWeight.w400,
+          SizedBox(height: 2),
+          // Label below
+          Text(
+            label,
+            style: NovaTypography.bodySmall.copyWith(
+              color: NovaColors.textSecondary(context),
+              fontWeight: FontWeight.w400,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -181,14 +184,13 @@ class ProfileHeader extends StatelessWidget {
         ),
         child: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
             ? ClipOval(
-                child: Image.network(
-                  profile.avatarUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: profile.avatarUrl!,
                   width: size - 4,
                   height: size - 4,
                   fit: BoxFit.cover,
-                  errorBuilder: (ctx, error, stackTrace) {
-                    return _buildInitialsAvatar(size - 4);
-                  },
+                  placeholder: (context, url) => _buildInitialsAvatar(size - 4),
+                  errorWidget: (context, url, error) => _buildInitialsAvatar(size - 4),
                 ),
               )
             : _buildInitialsAvatar(size - 4),

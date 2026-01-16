@@ -19,7 +19,6 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
-import '../../../../core/services/share_service.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/animations/heart_explosion_animation.dart';
 import '../../../../core/animations/animated_like_button.dart';
@@ -31,6 +30,7 @@ import '../../domain/entities/event_status.dart';
 import '../../../comments/presentation/screens/comments_sheet.dart';
 import '../../../profile/presentation/screens/other_profile_screen.dart';
 import '../widgets/offers_management_section.dart';
+import 'event_creation_screen.dart';
 
 class EventDetailScreen extends ConsumerStatefulWidget {
   /// Event ID to display
@@ -321,21 +321,6 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             onPressed: () => _openCommentsSheet(event),
-          ),
-          const Spacer(),
-          // Share icon - rounded style for softer look
-          IconButton(
-            icon: Transform.rotate(
-              angle: -0.4, // ~-23 degrees for Instagram-style tilt
-              child: const Icon(
-                Icons.send_rounded,
-                size: 24,
-              ),
-            ),
-            color: NovaColors.textPrimaryLight,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () => _handleShare(event),
           ),
         ],
       ),
@@ -635,57 +620,23 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   // ===========================================================================
 
   Widget _buildCommentsPreview(Event event) {
+    // Only show "View all comments" if there are comments
+    if (_commentCount == 0) {
+      return const SizedBox.shrink();
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // View all comments button
-          if (_commentCount > 0)
-            GestureDetector(
-              onTap: () => _openCommentsSheet(event),
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'Vedi tutti i $_commentCount commenti',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: NovaColors.grayDark,
-                  ),
-                ),
-              ),
-            ),
-          // Add comment prompt
-          GestureDetector(
-            onTap: () => _openCommentsSheet(event),
-            child: Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: NovaColors.brandViolet.withValues(alpha: 0.2),
-                  ),
-                  child: Icon(
-                    Icons.person,
-                    size: 16,
-                    color: NovaColors.brandViolet,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Aggiungi un commento...',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: NovaColors.grayDark,
-                  ),
-                ),
-              ],
-            ),
+      child: GestureDetector(
+        onTap: () => _openCommentsSheet(event),
+        child: Text(
+          'Vedi tutti i $_commentCount commenti',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: NovaColors.grayDark,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -931,18 +882,6 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     }
   }
 
-  void _handleShare(Event event) async {
-    try {
-      await ShareService.shareEvent(event);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Errore durante la condivisione')),
-        );
-      }
-    }
-  }
-
   void _openCommentsSheet(Event event) {
     showCommentsSheet(
       context: context,
@@ -1032,25 +971,35 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
+  /// Check if event can be edited (within 30 minutes of creation)
+  bool _canEditEvent(Event event) {
+    final now = DateTime.now();
+    final createdAt = event.createdAt;
+    final difference = now.difference(createdAt);
+    return difference.inMinutes < 30;
+  }
+
   void _showMenuSheet(Event? event) {
     if (event == null) return;
 
     final currentUserId = ref.read(currentUserIdProvider);
     final isOwner = event.creatorId == currentUserId;
+    final canEdit = isOwner && _canEditEvent(event);
 
     if (Platform.isIOS) {
       showCupertinoModalPopup(
         context: context,
         builder: (context) => CupertinoActionSheet(
           actions: [
-            // Share option
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                _handleShare(event);
-              },
-              child: const Text('Condividi'),
-            ),
+            // Edit option (only for owner within 30 minutes)
+            if (canEdit)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _navigateToEditEvent(event);
+                },
+                child: const Text('Modifica evento'),
+              ),
             // Delete option (only for owner)
             if (isOwner)
               CupertinoActionSheetAction(
@@ -1086,15 +1035,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Share option
-              ListTile(
-                leading: const Icon(Icons.share_outlined),
-                title: const Text('Condividi'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleShare(event);
-                },
-              ),
+              // Edit option (only for owner within 30 minutes)
+              if (canEdit)
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Modifica evento'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToEditEvent(event);
+                  },
+                ),
               // Delete option (only for owner)
               if (isOwner)
                 ListTile(
@@ -1166,6 +1116,26 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Funzionalità di segnalazione in arrivo')),
     );
+  }
+
+  /// Navigate to edit event screen
+  void _navigateToEditEvent(Event event) async {
+    final result = await Navigator.push<Event>(
+      context,
+      NovaPageRoute.swipeBack(
+        page: EventCreationScreen(eventToEdit: event),
+      ),
+    );
+
+    // If event was updated, refresh the detail view
+    if (result != null && mounted) {
+      // Invalidate the event detail provider to refresh the data
+      ref.invalidate(eventDetailProvider(event.id));
+      setState(() {
+        _event = result;
+        _stateInitialized = false;
+      });
+    }
   }
 
   // ===========================================================================

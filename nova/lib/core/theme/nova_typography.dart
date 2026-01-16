@@ -1,6 +1,8 @@
 // lib/core/theme/nova_typography.dart
 
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Nova typography system with consistent text styles.
 ///
@@ -9,10 +11,51 @@ import 'package:flutter/material.dart';
 /// - Proper hierarchy and readability
 /// - Easy maintenance and updates
 ///
+/// Uses SF Pro on iOS (system font) and Inter on Android for platform-native feel.
+///
 /// Never use hardcoded TextStyle values - always use NovaTypography.
 class NovaTypography {
   // Prevent instantiation
   NovaTypography._();
+
+  /// Check if running on iOS
+  static bool get _isIOS {
+    try {
+      return Platform.isIOS;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Create a TextStyle with the appropriate font for the platform.
+  /// iOS: SF Pro (system font via .AppleSystemUIFont)
+  /// Android: Inter (via Google Fonts)
+  static TextStyle _style({
+    required double fontSize,
+    required FontWeight fontWeight,
+    required double height,
+    required double letterSpacing,
+  }) {
+    if (_isIOS) {
+      // Use SF Pro system font on iOS
+      // .AppleSystemUIFont triggers the proper SF Pro variant
+      return TextStyle(
+        fontFamily: '.SF Pro Text',
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+    } else {
+      // Use Inter on Android
+      return GoogleFonts.inter(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+    }
+  }
 
   // ============================================
   // HEADING STYLES
@@ -21,7 +64,7 @@ class NovaTypography {
   /// Display text style (42px, black, -0.05em tracking)
   /// Usage: Hero headlines, splash screen titles
   /// Maximum visual impact with aggressive sizing
-  static const TextStyle display = TextStyle(
+  static TextStyle get display => _style(
     fontSize: 42,
     fontWeight: FontWeight.w900, // Black weight for maximum impact
     height: 1.0,
@@ -31,7 +74,7 @@ class NovaTypography {
   /// Heading Large / H1 text style (36px, black, -0.05em tracking)
   /// Usage: Screen titles
   /// Maximum visual impact with aggressive sizing
-  static const TextStyle headingLarge = TextStyle(
+  static TextStyle get headingLarge => _style(
     fontSize: 36,
     fontWeight: FontWeight.w900, // Black weight for maximum impact
     height: 1.05,
@@ -41,7 +84,7 @@ class NovaTypography {
   /// Heading Medium / H2 text style (28px, black, -0.04em)
   /// Usage: Section headers
   /// Strong visual presence with tight tracking
-  static const TextStyle headingMedium = TextStyle(
+  static TextStyle get headingMedium => _style(
     fontSize: 28,
     fontWeight: FontWeight.w900, // Black for maximum impact
     height: 1.1,
@@ -51,7 +94,7 @@ class NovaTypography {
   /// Heading Small / H3 text style (24px, extra-bold, -0.04em)
   /// Usage: Subsection headers, card titles
   /// Strong visual presence with tight tracking
-  static const TextStyle headingSmall = TextStyle(
+  static TextStyle get headingSmall => _style(
     fontSize: 24,
     fontWeight: FontWeight.w800, // Extra-bold for emphasis
     height: 1.15,
@@ -65,7 +108,7 @@ class NovaTypography {
   /// Body Large text style (16px, medium)
   /// Usage: Emphasized paragraphs, important body text
   /// Medium weight for readable emphasis
-  static const TextStyle bodyLarge = TextStyle(
+  static TextStyle get bodyLarge => _style(
     fontSize: 16,
     fontWeight: FontWeight.w500, // Medium for readable emphasis
     height: 1.5,
@@ -75,7 +118,7 @@ class NovaTypography {
   /// Body Medium text style (15px, regular)
   /// Usage: Primary body text, descriptions, comments, chat messages
   /// Regular weight for comfortable reading
-  static const TextStyle bodyMedium = TextStyle(
+  static TextStyle get bodyMedium => _style(
     fontSize: 15,
     fontWeight: FontWeight.w400, // Regular for easy reading
     height: 1.45,
@@ -85,7 +128,7 @@ class NovaTypography {
   /// Body Small text style (13px, regular)
   /// Usage: Timestamps, metadata, secondary labels, placeholders
   /// Light weight for subtle secondary information
-  static const TextStyle bodySmall = TextStyle(
+  static TextStyle get bodySmall => _style(
     fontSize: 13,
     fontWeight: FontWeight.w400, // Regular for subtle presence
     height: 1.4,
@@ -99,7 +142,7 @@ class NovaTypography {
   /// Section Title text style (15px, bold)
   /// Usage: Section headers in lists, settings, feeds
   /// Title Case format (e.g., "Eventi In Arrivo")
-  static const TextStyle sectionTitle = TextStyle(
+  static TextStyle get sectionTitle => _style(
     fontSize: 15,
     fontWeight: FontWeight.w700, // Bold for section emphasis
     height: 1.4,
@@ -108,7 +151,7 @@ class NovaTypography {
 
   /// Label Large text style (15px, bold)
   /// Usage: Usernames, inline emphasis
-  static const TextStyle labelLarge = TextStyle(
+  static TextStyle get labelLarge => _style(
     fontSize: 15,
     fontWeight: FontWeight.w700, // Bold for emphasis
     height: 1.4,
@@ -117,7 +160,7 @@ class NovaTypography {
 
   /// Label Medium text style (14px, semibold)
   /// Usage: Buttons, chips, badges
-  static const TextStyle labelMedium = TextStyle(
+  static TextStyle get labelMedium => _style(
     fontSize: 14,
     fontWeight: FontWeight.w600, // SemiBold for buttons
     height: 1.35,
@@ -126,7 +169,7 @@ class NovaTypography {
 
   /// Label Small text style (12px, medium)
   /// Usage: Legal text, micro labels, hints (use sparingly)
-  static const TextStyle labelSmall = TextStyle(
+  static TextStyle get labelSmall => _style(
     fontSize: 12,
     fontWeight: FontWeight.w500, // Medium for subtle presence
     height: 1.3,
@@ -135,7 +178,7 @@ class NovaTypography {
 
   /// Button text style (15px, semibold, tight line height)
   /// Usage: All buttons and CTAs
-  static const TextStyle button = TextStyle(
+  static TextStyle get button => _style(
     fontSize: 15,
     fontWeight: FontWeight.w600, // SemiBold for buttons
     height: 1.0, // Tight for vertical centering
@@ -144,7 +187,7 @@ class NovaTypography {
 
   /// Overline text style (10px, semibold, uppercase, tracked)
   /// Usage: Category labels, badges, eyebrows
-  static const TextStyle overline = TextStyle(
+  static TextStyle get overline => _style(
     fontSize: 10,
     fontWeight: FontWeight.w600,
     height: 1.2,
@@ -156,25 +199,25 @@ class NovaTypography {
   // ============================================
 
   /// @deprecated Use [headingLarge] instead
-  static const TextStyle h1 = headingLarge;
+  static TextStyle get h1 => headingLarge;
 
   /// @deprecated Use [headingMedium] instead
-  static const TextStyle h2 = headingMedium;
+  static TextStyle get h2 => headingMedium;
 
   /// @deprecated Use [headingSmall] instead
-  static const TextStyle h3 = headingSmall;
+  static TextStyle get h3 => headingSmall;
 
   /// @deprecated Use [bodyMedium] instead
-  static const TextStyle body = bodyMedium;
+  static TextStyle get body => bodyMedium;
 
   /// @deprecated Use [labelLarge] instead
-  static const TextStyle bodyBold = labelLarge;
+  static TextStyle get bodyBold => labelLarge;
 
   /// @deprecated Use [bodySmall] instead
-  static const TextStyle caption = bodySmall;
+  static TextStyle get caption => bodySmall;
 
   /// @deprecated Use [labelSmall] instead
-  static const TextStyle small = labelSmall;
+  static TextStyle get small => labelSmall;
 }
 
 /// Legacy alias for backward compatibility

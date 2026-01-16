@@ -330,6 +330,9 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
       child: RefreshIndicator.adaptive(
         onRefresh: _onRefresh,
         edgeOffset: 56, // Account for app bar height
+        // Accept scroll notifications from inner scroll view (NestedScrollView body)
+        // Default predicate only accepts depth == 0, but inner scroll has depth == 1
+        notificationPredicate: (notification) => notification.depth <= 1,
         child: NestedScrollView(
           floatHeaderSlivers: true,
           physics: const AlwaysScrollableScrollPhysics(

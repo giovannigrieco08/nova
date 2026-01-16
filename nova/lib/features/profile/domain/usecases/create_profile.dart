@@ -10,7 +10,7 @@ import '../../data/repositories/profile_repository.dart';
 /// **Business Rules**:
 /// - `fullName` is required (minimum 2 characters)
 /// - `email` is required (auto-populated from auth)
-/// - `username` is auto-generated from email (nome.cognome format)
+/// - `username` is required (chosen by user, 3-20 chars, no spaces, globally unique)
 /// - `classYear` is required for complete profile
 /// - If `classYear` is null, profile is incomplete (skip flow)
 /// - Avatar and bio are optional
@@ -31,22 +31,25 @@ class CreateProfile {
     required String userId,
     required String email,
     required String fullName,
+    required String username,
     String? classYear,
     String? avatarUrl,
     String? bio,
   }) async {
     // Validate required fields
-    _validate(fullName: fullName, email: email, classYear: classYear);
-
-    // Generate username from email (nome.cognome@galileimoro.edu.it → nome.cognome)
-    final username = _generateUsername(email);
+    _validate(
+      fullName: fullName,
+      email: email,
+      username: username,
+      classYear: classYear,
+    );
 
     // Create profile entity
     final profile = Profile(
       userId: userId,
       email: email,
       fullName: fullName.trim(),
-      username: username,
+      username: username.trim(),
       classYear: classYear,
       avatarUrl: avatarUrl,
       bio: bio?.trim(),
@@ -61,20 +64,11 @@ class CreateProfile {
     return await _repository.createProfile(profile);
   }
 
-  /// Generate username from email
-  /// e.g., "marco.rossi@galileimoro.edu.it" → "marco.rossi"
-  String _generateUsername(String email) {
-    final atIndex = email.indexOf('@');
-    if (atIndex > 0) {
-      return email.substring(0, atIndex).toLowerCase();
-    }
-    return email.toLowerCase();
-  }
-
   /// Validate profile fields
   void _validate({
     required String fullName,
     required String email,
+    required String username,
     String? classYear,
   }) {
     // Validate email
@@ -100,8 +94,27 @@ class CreateProfile {
       throw ValidationException('Il nome non può superare 50 caratteri');
     }
 
+    // Validate username
+    if (username.trim().isEmpty) {
+      throw ValidationException('Lo username è obbligatorio');
+    }
+
+    if (username.contains(' ')) {
+      throw ValidationException('Lo username non può contenere spazi');
+    }
+
+    if (username.trim().length < 3) {
+      throw ValidationException(
+          'Lo username deve contenere almeno 3 caratteri');
+    }
+
+    if (username.trim().length > 20) {
+      throw ValidationException('Lo username non può superare 20 caratteri');
+    }
+
     // Note: classYear can be null (incomplete profile / skip flow)
     // Validation for complete profile is handled by CheckProfileComplete use case
+    // Note: Username uniqueness is validated by the database (unique constraint)
   }
 }
 

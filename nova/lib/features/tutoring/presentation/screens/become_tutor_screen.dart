@@ -56,6 +56,9 @@ class _BecomeTutorScreenState extends ConsumerState<BecomeTutorScreen> {
   Widget _buildCupertinoScreen(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
+        leading: CupertinoNavigationBarBackButton(
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         middle: const Text('Diventa Tutor'),
         backgroundColor: NovaColors.surface(context),
         border: null,

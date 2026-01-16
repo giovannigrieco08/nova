@@ -33,6 +33,9 @@ class ChatMessageList extends ConsumerStatefulWidget {
   final void Function(ChatMessage message, String emoji)? onReact;
   final void Function(String messageId)? onScrollToMessage;
 
+  /// Optional external scroll controller for programmatic scroll control
+  final ScrollController? scrollController;
+
   const ChatMessageList({
     super.key,
     required this.messages,
@@ -45,6 +48,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.onReport,
     this.onReact,
     this.onScrollToMessage,
+    this.scrollController,
   });
 
   @override
@@ -52,9 +56,12 @@ class ChatMessageList extends ConsumerStatefulWidget {
 }
 
 class _ChatMessageListState extends ConsumerState<ChatMessageList> {
-  final ScrollController _scrollController = ScrollController();
+  ScrollController? _internalScrollController;
   bool _showScrollToBottom = false;
-  Set<String> _animatedMessageIds = {};  // Track which messages have been animated
+  final Set<String> _animatedMessageIds = {};  // Track which messages have been animated
+
+  ScrollController get _scrollController =>
+      widget.scrollController ?? (_internalScrollController ??= ScrollController());
 
   @override
   void initState() {
@@ -63,9 +70,20 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
   }
 
   @override
+  void didUpdateWidget(ChatMessageList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Handle scroll controller changes
+    if (oldWidget.scrollController != widget.scrollController) {
+      oldWidget.scrollController?.removeListener(_onScroll);
+      _scrollController.addListener(_onScroll);
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    // Only dispose internal controller (not external one)
+    _internalScrollController?.dispose();
     super.dispose();
   }
 
@@ -83,14 +101,6 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
         widget.onLoadMore?.call();
       }
     }
-  }
-
-  void _scrollToBottom() {
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
   }
 
   void scrollToMessage(String messageId) {
@@ -193,7 +203,15 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
             right: NovaSpacing.m,
             bottom: NovaSpacing.m,
             child: FloatingActionButton.small(
-              onPressed: _scrollToBottom,
+              onPressed: () {
+                if (_scrollController.hasClients) {
+                  _scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                  );
+                }
+              },
               backgroundColor: NovaColors.card(context),
               child: Icon(
                 Icons.keyboard_arrow_down,

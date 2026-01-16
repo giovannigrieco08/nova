@@ -13,6 +13,7 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../domain/entities/tutor_profile.dart';
 import '../../data/repositories/tutor_repository.dart';
 import '../providers/tutor_providers.dart';
+import '../screens/edit_tutor_screen.dart';
 import 'contact_tutor_sheet.dart';
 
 /// TutorProfileSection - Displays tutor profile in user profile screens
@@ -54,7 +55,7 @@ class TutorProfileSection extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Container(
+    final card = Container(
       margin: const EdgeInsets.symmetric(
         horizontal: NovaSpacing.l,
         vertical: NovaSpacing.m,
@@ -95,6 +96,25 @@ class TutorProfileSection extends ConsumerWidget {
             _buildActionButton(context, ref),
           ],
         ),
+      ),
+    );
+
+    // Wrap in GestureDetector for own profile to enable editing
+    if (isOwnProfile) {
+      return GestureDetector(
+        onTap: () => _navigateToEdit(context),
+        child: card,
+      );
+    }
+
+    return card;
+  }
+
+  /// Navigate to EditTutorScreen
+  void _navigateToEdit(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => EditTutorScreen(profile: profile),
       ),
     );
   }
@@ -155,6 +175,15 @@ class TutorProfileSection extends ConsumerWidget {
             ),
           ),
         ),
+        // Edit indicator for own profile
+        if (isOwnProfile) ...[
+          const SizedBox(width: NovaSpacing.s),
+          Icon(
+            Icons.edit_rounded,
+            size: 18,
+            color: NovaColors.textSecondary(context),
+          ),
+        ],
       ],
     );
   }
@@ -294,68 +323,76 @@ class TutorProfileSection extends ConsumerWidget {
 
   /// Build inactive profile card for own profile
   Widget _buildInactiveCard(BuildContext context, WidgetRef ref) {
-    return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: NovaSpacing.l,
-        vertical: NovaSpacing.m,
-      ),
-      decoration: BoxDecoration(
-        color: NovaColors.card(context).withValues(alpha: 0.6),
-        borderRadius: NovaRadius.circularM,
-        border: Border.all(
-          color: NovaColors.border(context),
-          width: 1,
+    return GestureDetector(
+      onTap: () => _navigateToEdit(context),
+      child: Container(
+        margin: const EdgeInsets.symmetric(
+          horizontal: NovaSpacing.l,
+          vertical: NovaSpacing.m,
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(NovaSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // Grayed icon
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: NovaColors.textSecondary(context).withValues(alpha: 0.2),
-                    borderRadius: NovaRadius.circularXs,
+        decoration: BoxDecoration(
+          color: NovaColors.card(context).withValues(alpha: 0.6),
+          borderRadius: NovaRadius.circularM,
+          border: Border.all(
+            color: NovaColors.border(context),
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(NovaSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // Grayed icon
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: NovaColors.textSecondary(context).withValues(alpha: 0.2),
+                      borderRadius: NovaRadius.circularXs,
+                    ),
+                    child: Icon(
+                      Icons.school_rounded,
+                      color: NovaColors.textSecondary(context),
+                      size: 20,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.school_rounded,
+                  const SizedBox(width: NovaSpacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Profilo Tutor Disattivato',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: NovaColors.textSecondary(context),
+                          ),
+                        ),
+                        const SizedBox(height: NovaSpacing.xxs),
+                        Text(
+                          'Il tuo profilo non è visibile agli altri studenti',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: NovaColors.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Edit indicator
+                  Icon(
+                    Icons.edit_rounded,
+                    size: 18,
                     color: NovaColors.textSecondary(context),
-                    size: 20,
                   ),
-                ),
-                const SizedBox(width: NovaSpacing.m),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Profilo Tutor Disattivato',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: NovaColors.textSecondary(context),
-                        ),
-                      ),
-                      const SizedBox(height: NovaSpacing.xxs),
-                      Text(
-                        'Il tuo profilo non è visibile agli altri studenti',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: NovaColors.textSecondary(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: NovaSpacing.l),
-            // Reactivate button
+                ],
+              ),
+              const SizedBox(height: NovaSpacing.l),
+              // Reactivate button
             SizedBox(
               width: double.infinity,
               child: Platform.isIOS
@@ -394,6 +431,7 @@ class TutorProfileSection extends ConsumerWidget {
                     ),
             ),
           ],
+        ),
         ),
       ),
     );

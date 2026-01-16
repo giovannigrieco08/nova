@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
@@ -29,13 +28,13 @@ import 'package:nova/core/animations/page_transitions.dart';
 /// Displays:
 /// - Author avatar (for others' messages)
 /// - Message content with mention highlighting
-/// - Swipe left to reveal timestamp (Instagram style)
 /// - Reply preview (if replying to another message)
 /// - Reaction row with counts
 ///
 /// Supports:
 /// - Long-press for context menu (report, react)
-/// - Swipe left to reveal timestamp
+/// - Swipe right to reply (with spring animation and haptic feedback)
+/// - Double-tap to add heart reaction
 /// - Tap on reactions to toggle
 class ChatMessageTile extends ConsumerStatefulWidget {
   final ChatMessage message;
@@ -57,19 +56,50 @@ class ChatMessageTile extends ConsumerStatefulWidget {
   ConsumerState<ChatMessageTile> createState() => _ChatMessageTileState();
 }
 
-class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
+class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
+    with SingleTickerProviderStateMixin {
   double _dragExtent = 0;
-  static const double _maxDragExtent = 60;
-  static const double _replyThreshold = 50; // Threshold to trigger reply
+  static const double _maxDragExtent = 80;
+  static const double _replyThreshold = 60; // Threshold to trigger reply
   static const double _edgeSwipeThreshold = 30; // Left edge zone for back navigation
   bool _replyTriggered = false;
   bool _isDragActive = false; // Track if we should handle this drag
   double? _dragStartX; // Track where the drag started
 
+  late AnimationController _animationController;
+  late Animation<double> _snapBackAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _animationController.addListener(_onAnimationTick);
+  }
+
+  @override
+  void dispose() {
+    _animationController.removeListener(_onAnimationTick);
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _onAnimationTick() {
+    setState(() {
+      _dragExtent = _snapBackAnimation.value;
+    });
+  }
+
   void _onHorizontalDragStart(DragStartDetails details) {
     _dragStartX = details.globalPosition.dx;
     // Only handle drags that don't start from the left edge (allow back navigation)
     _isDragActive = _dragStartX! > _edgeSwipeThreshold;
+    // Stop any running animation
+    if (_isDragActive && _animationController.isAnimating) {
+      _animationController.stop();
+    }
   }
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
@@ -77,14 +107,17 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
     if (!_isDragActive) return;
     setState(() {
       _dragExtent += details.delta.dx;
-      // Allow swipe left (timestamp) and right (reply)
-      _dragExtent = _dragExtent.clamp(-_maxDragExtent, _maxDragExtent);
+      // Only allow swipe right (reply) - remove left swipe
+      _dragExtent = _dragExtent.clamp(0.0, _maxDragExtent);
     });
 
     // Haptic feedback when crossing reply threshold
     if (_dragExtent > _replyThreshold && !_replyTriggered) {
       _replyTriggered = true;
-      // Light haptic feedback
+      HapticFeedback.mediumImpact();
+    } else if (_dragExtent <= _replyThreshold && _replyTriggered) {
+      // Reset if user drags back below threshold
+      _replyTriggered = false;
     }
   }
 
@@ -97,34 +130,27 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
 
     // Check if swipe right triggered reply
     if (_dragExtent >= _replyThreshold) {
+      HapticFeedback.lightImpact();
       widget.onReply?.call();
     }
 
-    // Reset state
-    _replyTriggered = false;
+    // Animate snap back with spring curve
+    _snapBackAnimation = Tween<double>(
+      begin: _dragExtent,
+      end: 0.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.elasticOut,
+    ));
 
-    // Snap back with animation
-    if (_dragExtent < 0 && _dragExtent.abs() >= _maxDragExtent / 2) {
-      // Swiped left far enough - show timestamp briefly then snap back
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() {
-            _dragExtent = 0;
-          });
-        }
-      });
-    } else {
-      // Snap back immediately
-      setState(() {
-        _dragExtent = 0;
-      });
-    }
+    _animationController.forward(from: 0.0);
     _resetDragState();
   }
 
   void _resetDragState() {
     _isDragActive = false;
     _dragStartX = null;
+    _replyTriggered = false;
   }
 
   /// Handle double-tap for quick react (heart emoji)
@@ -137,32 +163,15 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
     widget.onReact?.call(heartEmoji);
   }
 
-  String _formatTimestamp(DateTime dateTime) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
-
-    final timeFormat = DateFormat('HH:mm');
-
-    if (messageDate == today) {
-      return timeFormat.format(dateTime);
-    } else if (messageDate == today.subtract(const Duration(days: 1))) {
-      return 'Ieri ${timeFormat.format(dateTime)}';
-    } else {
-      return DateFormat('dd/MM HH:mm').format(dateTime);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentUserId = ref.watch(currentUserIdProvider);
     final isOwnMessage = widget.message.userId == currentUserId;
 
-    // Calculate opacity for timestamp based on drag
-    final timestampOpacity = (_dragExtent.abs() / _maxDragExtent).clamp(0.0, 1.0);
-
-    // Calculate opacity for reply icon based on right drag
+    // Calculate opacity and scale for reply icon based on right drag
     final replyIconOpacity = (_dragExtent / _replyThreshold).clamp(0.0, 1.0);
+    final replyIconScale = 0.5 + (replyIconOpacity * 0.5); // Scale from 0.5 to 1.0
+    final isTriggered = _dragExtent >= _replyThreshold;
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -181,53 +190,32 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
               Positioned(
                 left: isOwnMessage ? null : 0,
                 right: isOwnMessage ? 0 : null,
-                child: AnimatedOpacity(
-                  opacity: replyIconOpacity,
-                  duration: const Duration(milliseconds: 50),
-                  child: Container(
-                    width: 32,
-                    height: 32,
+                child: Transform.scale(
+                  scale: replyIconScale,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: NovaColors.primary(context).withValues(alpha: 0.15),
+                      color: isTriggered
+                          ? NovaColors.primary(context)
+                          : NovaColors.primary(context).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.reply,
-                      size: 18,
-                      color: NovaColors.primary(context),
+                      size: 20,
+                      color: isTriggered
+                          ? Colors.white
+                          : NovaColors.primary(context),
                     ),
                   ),
                 ),
               ),
 
-            // Timestamp (revealed on swipe left)
-            if (_dragExtent < 0)
-              Positioned(
-                right: isOwnMessage ? 0 : null,
-                left: isOwnMessage ? null : 0,
-                child: AnimatedOpacity(
-                  opacity: timestampOpacity,
-                  duration: const Duration(milliseconds: 50),
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: isOwnMessage ? 8 : 0,
-                      left: isOwnMessage ? 0 : 8,
-                    ),
-                    child: Text(
-                      _formatTimestamp(widget.message.createdAt),
-                      style: NovaTypography.bodySmall.copyWith(
-                        color: NovaColors.textTertiary(context),
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-            // Message content (slides on drag)
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 50),
-              transform: Matrix4.translationValues(_dragExtent, 0, 0),
+            // Message content (slides on drag with smooth transform)
+            Transform.translate(
+              offset: Offset(_dragExtent, 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisAlignment: isOwnMessage
@@ -806,7 +794,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
           ),
         );
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       // Dismiss loading indicator
       if (context.mounted) {
         Navigator.pop(context);

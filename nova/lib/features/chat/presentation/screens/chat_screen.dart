@@ -31,6 +31,24 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   ChatMessage? _replyToMessage;
+  final ScrollController _chatScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _chatScrollController.dispose();
+    super.dispose();
+  }
+
+  /// Scrolls the chat list to the bottom (newest messages)
+  void _scrollToBottom() {
+    if (_chatScrollController.hasClients) {
+      _chatScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +144,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Expanded(
             child: messagesAsync.when(
               data: (_) => ChatMessageList(
+                scrollController: _chatScrollController,
                 // Use realtime state for messages (live updates)
                 messages: realtimeState.messages,
                 failedMessages: failedMessages,
@@ -171,6 +190,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _onMessageSent() {
     _clearReplyTo();
+    // Scroll to bottom after sending a message
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
   }
 
   Future<void> _loadMoreMessages(List<ChatMessage> currentMessages) async {

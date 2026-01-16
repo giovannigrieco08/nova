@@ -48,6 +48,9 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
   Widget _buildCupertinoScreen(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
+        leading: CupertinoNavigationBarBackButton(
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         middle: Text(widget.subject.displayName),
         backgroundColor: NovaColors.surface(context),
         border: null,

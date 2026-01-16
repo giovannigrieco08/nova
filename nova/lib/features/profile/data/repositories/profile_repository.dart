@@ -235,6 +235,11 @@ class ProfileRepository {
     return await _remoteDataSource.parseNameFromEmail(email);
   }
 
+  /// Check if username is available (case-insensitive)
+  Future<bool> isUsernameAvailable(String username) async {
+    return await _remoteDataSource.isUsernameAvailable(username);
+  }
+
   /// Helper: Apply updates to profile model
   ProfileModel _applyUpdates(
     ProfileModel current,

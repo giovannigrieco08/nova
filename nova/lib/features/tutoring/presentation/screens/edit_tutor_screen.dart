@@ -87,6 +87,9 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
   Widget _buildCupertinoScreen(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
+        leading: CupertinoNavigationBarBackButton(
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         middle: const Text('Modifica Profilo Tutor'),
         backgroundColor: NovaColors.surface(context),
         border: null,

@@ -514,11 +514,12 @@ class _LoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Show same UI as splash screen - no spinner, just the logo
-    // Using 160px for splash to be prominent and sharp on all screen sizes
+    // Using 200px for splash to be prominent and sharp on all screen sizes
+    // SVG scales perfectly at any size since it's vector-based
     return const Scaffold(
       backgroundColor: NovaColors.backgroundDark,
       body: Center(
-        child: NovaLogo(height: 160, color: NovaColors.backgroundLight),
+        child: NovaLogo(height: 200, color: NovaColors.backgroundLight),
       ),
     );
   }

@@ -11,10 +11,11 @@ import AVFoundation
     GeneratedPluginRegistrant.register(with: self)
 
     // Configure AVAudioSession for recording (required for flutter_sound on iOS 17+)
+    // .mixWithOthers allows background audio (music, podcasts) to continue playing
     do {
       let audioSession = AVAudioSession.sharedInstance()
-      try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
-      try audioSession.setActive(true)
+      try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
+      try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
     } catch {
       print("Failed to configure audio session: \(error)")
     }

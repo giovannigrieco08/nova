@@ -4,6 +4,35 @@
 
 class Validators {
   // ============================================================================
+  // USERNAME VALIDATION
+  // ============================================================================
+
+  /// Validates username
+  /// Rules: 3-20 characters, no spaces, any other character allowed
+  /// Returns null if valid, error message if invalid
+  static String? validateUsername(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Lo username è obbligatorio';
+    }
+
+    final trimmed = value.trim();
+
+    if (trimmed.contains(' ')) {
+      return 'Lo username non può contenere spazi';
+    }
+
+    if (trimmed.length < 3) {
+      return 'Lo username deve contenere almeno 3 caratteri';
+    }
+
+    if (trimmed.length > 20) {
+      return 'Lo username non può superare 20 caratteri';
+    }
+
+    return null; // Valid
+  }
+
+  // ============================================================================
   // NAME VALIDATION
   // ============================================================================
 

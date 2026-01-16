@@ -504,7 +504,12 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
   Future<Event?> createEvent() async {
     // Validate form before submission
     validateForm();
-    if (!state.isValid) return null;
+    if (!state.isValid) {
+      state = state.copyWith(
+        submitError: 'Correggi gli errori nel form prima di continuare',
+      );
+      return null;
+    }
 
     state = state.copyWith(isSubmitting: true, clearSubmitError: true);
 
@@ -547,6 +552,77 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
       state = state.copyWith(
         isSubmitting: false,
         submitError: 'Errore durante la creazione: ${e.toString()}',
+      );
+      return null;
+    }
+  }
+
+  /// Load event data for editing
+  void loadEventForEdit(Event event) {
+    state = EventFormState(
+      title: event.title,
+      description: event.description,
+      eventDate: event.eventDate,
+      location: event.location,
+      imagePath: event.imageUrl, // Use existing image URL
+      latitude: event.latitude,
+      longitude: event.longitude,
+      placeId: event.placeId,
+    );
+  }
+
+  /// Update existing event
+  Future<Event?> updateEvent(String eventId) async {
+    // Validate form before submission
+    validateForm();
+
+    // For edit mode, we allow updating without new image if one already exists (imagePath set)
+    final titleValid = state.titleError == null && state.title.trim().length >= 5;
+    final descValid = state.descriptionError == null && state.description.trim().length >= 20;
+    final dateValid = state.eventDateError == null && state.eventDate != null;
+
+    if (!titleValid || !descValid || !dateValid) {
+      state = state.copyWith(
+        submitError: 'Correggi gli errori nel form prima di continuare',
+      );
+      return null;
+    }
+
+    state = state.copyWith(isSubmitting: true, clearSubmitError: true);
+
+    try {
+      // Build updates map
+      final Map<String, dynamic> updates = {
+        'title': state.title.trim(),
+        'description': state.description.trim(),
+        'event_date': state.eventDate!.toIso8601String(),
+        'location': state.location?.trim(),
+        'latitude': state.latitude,
+        'longitude': state.longitude,
+        'place_id': state.placeId,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // If new image was selected, upload it first
+      if (state.imageFile != null) {
+        final imageUrl = await _repository.uploadEventImage(
+          state.imageFile!,
+          eventId,
+        );
+        updates['image_url'] = imageUrl;
+      }
+
+      // Call repository to update event
+      final result = await _repository.updateEvent(eventId, updates);
+
+      // Clear form on success
+      state = const EventFormState();
+
+      return result;
+    } catch (e) {
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError: 'Errore durante la modifica: ${e.toString()}',
       );
       return null;
     }

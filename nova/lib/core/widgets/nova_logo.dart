@@ -1,10 +1,12 @@
 // lib/core/widgets/nova_logo.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 
 /// Nova logo widget with support for light/dark themes and custom sizes
+///
+/// Uses high-resolution PNG (6000x6000) for crisp rendering at any size.
+/// Supports dynamic color theming via ColorFiltered widget.
 ///
 /// Usage:
 /// ```dart
@@ -68,16 +70,23 @@ class NovaLogo extends StatelessWidget {
     final logoColor = color ??
         (isDark ? NovaColors.textPrimaryDark : NovaColors.textPrimaryLight);
 
-    return SvgPicture.asset(
-      'assets/logos/nova_logo.svg',
+    final image = Image.asset(
+      'assets/logos/nova_logo.png',
       height: height,
       width: width,
       fit: fit,
+      semanticLabel: 'Nova Logo',
+      // High quality filtering for downscaling from 6000x6000
+      filterQuality: FilterQuality.high,
+    );
+
+    // Apply color filter to tint the white logo
+    return ColorFiltered(
       colorFilter: ColorFilter.mode(
         logoColor,
         BlendMode.srcIn,
       ),
-      semanticsLabel: 'Nova Logo',
+      child: image,
     );
   }
 }

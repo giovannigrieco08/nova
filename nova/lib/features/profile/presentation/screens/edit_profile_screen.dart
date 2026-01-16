@@ -5,6 +5,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/constants/classes.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
@@ -44,6 +45,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   String? _selectedClass;
   String? _avatarUrl;
+  String? _originalAvatarUrl; // Track original URL for cache eviction
   File? _selectedAvatarFile;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -159,6 +161,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               _nameController.text = profile.fullName;
               _selectedClass = profile.classYear;
               _avatarUrl = profile.avatarUrl;
+              _originalAvatarUrl = profile.avatarUrl; // Save for cache eviction
               _bioController.text = profile.bio ?? '';
               _bioCharCount = profile.bio?.length ?? 0;
               _isLoading = false;
@@ -219,8 +222,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             : null,
       });
 
-      // Invalidate profile provider to refresh data on profile screen
+      // Clear CachedNetworkImage cache for avatar to force refresh
+      // Evict BOTH old and new URLs to ensure fresh image display
+      if (_originalAvatarUrl != null && _originalAvatarUrl!.isNotEmpty) {
+        await CachedNetworkImage.evictFromCache(_originalAvatarUrl!);
+      }
+      if (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != _originalAvatarUrl) {
+        await CachedNetworkImage.evictFromCache(_avatarUrl!);
+      }
+
+      // Invalidate BOTH profile providers to refresh data everywhere
       ref.invalidate(currentProfileProvider);
+      ref.invalidate(profileNotifierProvider);
 
       if (mounted) {
         NovaToast.showSuccess(context, 'Profilo aggiornato ✓');
@@ -403,6 +416,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         hintText: 'Giovanni Rossi',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide: BorderSide(color: NovaColors.border(context)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide: BorderSide(color: NovaColors.border(context)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
                         ),
                       ),
                       validator: Validators.validateName,
@@ -471,6 +493,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         hintText: 'Racconta qualcosa di te...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide: BorderSide(color: NovaColors.border(context)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide: BorderSide(color: NovaColors.border(context)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
                         ),
                         helperText: '$_bioCharCount/150 caratteri',
                         helperStyle: TextStyle(
