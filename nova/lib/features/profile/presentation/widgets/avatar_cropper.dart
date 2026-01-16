@@ -183,13 +183,19 @@ class _AvatarCropperState extends State<AvatarCropper> {
       final cropCenterX = screenSize.width / 2;
       final cropCenterY = screenSize.height / 2;
 
-      // Calculate displayed image position and size
+      // The Center widget positions the image at this offset (before any transform)
+      // This is crucial: the image is centered within the screen before transform is applied
+      final baseOffsetX = (screenSize.width - _displayedImageSize.width) / 2;
+      final baseOffsetY = (screenSize.height - _displayedImageSize.height) / 2;
+
+      // After transform, the image's top-left position in screen coordinates
+      // The transform scales the base offset and then applies translation
+      final imageLeft = scale * baseOffsetX + translationX;
+      final imageTop = scale * baseOffsetY + translationY;
+
+      // Calculate displayed image size after scaling
       final scaledWidth = _displayedImageSize.width * scale;
       final scaledHeight = _displayedImageSize.height * scale;
-
-      // Image top-left corner position
-      final imageLeft = translationX;
-      final imageTop = translationY;
 
       // Crop area in displayed (scaled) image coordinates
       final cropLeftInImage = (cropCenterX - _cropSize / 2 - imageLeft);
