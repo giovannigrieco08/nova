@@ -411,8 +411,9 @@ final deleteMessageProvider = FutureProvider.autoDispose.family<bool, String>(
 ///
 /// [maxViews] determines how many times the media can be viewed (1 or 2).
 /// [durationSeconds] is the duration for audio messages.
+/// [caption] is an optional caption for images/videos.
 final uploadMediaProvider = FutureProvider.autoDispose
-    .family<ChatMediaInfo, ({String filePath, ChatMediaType mediaType, int maxViews, int? durationSeconds})>(
+    .family<ChatMediaInfo, ({String filePath, ChatMediaType mediaType, int maxViews, int? durationSeconds, String? caption})>(
         (ref, params) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.uploadMedia(
@@ -420,6 +421,7 @@ final uploadMediaProvider = FutureProvider.autoDispose
     mediaType: params.mediaType,
     maxViews: params.maxViews,
     durationSeconds: params.durationSeconds,
+    caption: params.caption,
   );
 });
 
@@ -469,3 +471,58 @@ class ReactionWithUserInfo {
     this.avatarUrl,
   });
 }
+
+// =============================================================================
+// GIF Message Providers
+// =============================================================================
+
+/// Send a GIF message
+final sendGifMessageProvider = FutureProvider.autoDispose
+    .family<ChatMessage, ({String gifUrl, String gifId, String? replyToId})>(
+        (ref, params) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.sendGifMessage(
+    gifUrl: params.gifUrl,
+    gifId: params.gifId,
+    replyToId: params.replyToId,
+  );
+});
+
+// =============================================================================
+// Edit Message Providers
+// =============================================================================
+
+/// Edit a message
+final editMessageProvider = FutureProvider.autoDispose
+    .family<ChatMessage, ({String messageId, String newContent})>(
+        (ref, params) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.editMessage(
+    messageId: params.messageId,
+    newContent: params.newContent,
+  );
+});
+
+// =============================================================================
+// Pin Message Providers
+// =============================================================================
+
+/// Pin a message
+final pinMessageProvider = FutureProvider.autoDispose
+    .family<ChatMessage, String>((ref, messageId) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.pinMessage(messageId);
+});
+
+/// Unpin a message
+final unpinMessageProvider = FutureProvider.autoDispose
+    .family<void, String>((ref, messageId) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.unpinMessage(messageId);
+});
+
+/// Get currently pinned message
+final pinnedMessageProvider = FutureProvider.autoDispose<ChatMessage?>((ref) async {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.getPinnedMessage();
+});

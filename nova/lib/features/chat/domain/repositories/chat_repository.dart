@@ -118,6 +118,7 @@ abstract class ChatRepository {
   ///
   /// [maxViews] determines how many times the media can be viewed (1 or 2).
   /// [durationSeconds] is the duration for audio messages.
+  /// [caption] is an optional caption for images/videos.
   /// Returns the media info on success.
   /// Throws [ChatMediaLimitException] if daily limit exceeded (5/day).
   Future<ChatMediaInfo> uploadMedia({
@@ -125,6 +126,7 @@ abstract class ChatRepository {
     required ChatMediaType mediaType,
     int maxViews = 1,
     int? durationSeconds,
+    String? caption,
   });
 
   /// Get a signed URL for viewing media (expires in 60 seconds).
@@ -142,6 +144,49 @@ abstract class ChatRepository {
 
   /// Check today's media upload count for the current user.
   Future<int> getTodayMediaCount();
+
+  // =========================================================================
+  // GIF Messages
+  // =========================================================================
+
+  /// Send a GIF message.
+  ///
+  /// [gifUrl] is the URL of the GIF to display.
+  /// [gifId] is the GIPHY/Tenor ID for tracking.
+  Future<ChatMessage> sendGifMessage({
+    required String gifUrl,
+    required String gifId,
+    String? replyToId,
+  });
+
+  // =========================================================================
+  // Edit Messages
+  // =========================================================================
+
+  /// Edit a message (within 5-minute window).
+  ///
+  /// Returns updated message on success.
+  /// Throws [ChatEditNotAllowedException] if edit window expired.
+  Future<ChatMessage> editMessage({
+    required String messageId,
+    required String newContent,
+  });
+
+  // =========================================================================
+  // Pin Messages
+  // =========================================================================
+
+  /// Pin a message to the chat.
+  ///
+  /// Only one message can be pinned at a time.
+  /// Pinning a new message unpins the previous one.
+  Future<ChatMessage> pinMessage(String messageId);
+
+  /// Unpin the currently pinned message.
+  Future<void> unpinMessage(String messageId);
+
+  /// Get the currently pinned message, if any.
+  Future<ChatMessage?> getPinnedMessage();
 
   // =========================================================================
   // Offline Support
@@ -234,4 +279,14 @@ class ChatDeleteNotAllowedException implements Exception {
 
   @override
   String toString() => 'ChatDeleteNotAllowedException: $message';
+}
+
+/// Exception thrown when message edit is not allowed
+class ChatEditNotAllowedException implements Exception {
+  final String message;
+  const ChatEditNotAllowedException(
+      [this.message = 'Message edit not allowed after 5 minutes']);
+
+  @override
+  String toString() => 'ChatEditNotAllowedException: $message';
 }

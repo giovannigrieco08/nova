@@ -21,6 +21,22 @@ class ChatMessageModel {
   final String? hiddenReason;
   final DateTime createdAt;
 
+  // Edit support
+  final DateTime? editedAt;
+  final String? originalContent;
+
+  // Pin support
+  final bool isPinned;
+  final DateTime? pinnedAt;
+  final String? pinnedByUserId;
+
+  // GIF support
+  final String? gifUrl;
+  final String? gifId;
+
+  // Media caption
+  final String? mediaCaption;
+
   // Joined data from profiles
   final Map<String, dynamic>? authorJson;
 
@@ -45,6 +61,14 @@ class ChatMessageModel {
     this.hiddenAt,
     this.hiddenReason,
     required this.createdAt,
+    this.editedAt,
+    this.originalContent,
+    this.isPinned = false,
+    this.pinnedAt,
+    this.pinnedByUserId,
+    this.gifUrl,
+    this.gifId,
+    this.mediaCaption,
     this.authorJson,
     this.replyToJson,
     this.reactionsJson,
@@ -67,6 +91,18 @@ class ChatMessageModel {
           : null,
       hiddenReason: json['hidden_reason'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
+      editedAt: json['edited_at'] != null
+          ? DateTime.parse(json['edited_at'] as String)
+          : null,
+      originalContent: json['original_content'] as String?,
+      isPinned: json['is_pinned'] as bool? ?? false,
+      pinnedAt: json['pinned_at'] != null
+          ? DateTime.parse(json['pinned_at'] as String)
+          : null,
+      pinnedByUserId: json['pinned_by_user_id'] as String?,
+      gifUrl: json['gif_url'] as String?,
+      gifId: json['gif_id'] as String?,
+      mediaCaption: json['media_caption'] as String?,
       authorJson: json['profiles'] as Map<String, dynamic>?,
       replyToJson: json['reply_to'] as Map<String, dynamic>?,
       reactionsJson: _parseReactionsJson(json['chat_reactions']),
@@ -136,6 +172,14 @@ class ChatMessageModel {
       hiddenAt: hiddenAt,
       hiddenReason: hiddenReason,
       createdAt: createdAt,
+      editedAt: editedAt,
+      originalContent: originalContent,
+      isPinned: isPinned,
+      pinnedAt: pinnedAt,
+      pinnedByUserId: pinnedByUserId,
+      gifUrl: gifUrl,
+      gifId: gifId,
+      mediaCaption: mediaCaption,
       author: resolvedAuthor,
       replyTo: resolvedReplyTo,
       reactionCounts: reactionCounts,

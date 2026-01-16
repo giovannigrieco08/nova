@@ -414,6 +414,142 @@ class ChatRemoteDataSource {
         return 'aac';
     }
   }
+
+  // =========================================================================
+  // GIF Messages
+  // =========================================================================
+
+  /// Send a GIF message.
+  Future<ChatMessageModel> sendGifMessage({
+    required String userId,
+    required String gifUrl,
+    required String gifId,
+    String? replyToId,
+  }) async {
+    final response = await _supabase
+        .from('chat_messages')
+        .insert({
+          'user_id': userId,
+          'content': '[GIF]',
+          'gif_url': gifUrl,
+          'gif_id': gifId,
+          'reply_to_id': replyToId,
+        })
+        .select('''
+          *,
+          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+        ''')
+        .single();
+
+    return ChatMessageModel.fromJson(response);
+  }
+
+  // =========================================================================
+  // Edit Messages
+  // =========================================================================
+
+  /// Edit a message content.
+  Future<ChatMessageModel> editMessage({
+    required String messageId,
+    required String newContent,
+  }) async {
+    final response = await _supabase
+        .from('chat_messages')
+        .update({
+          'content': newContent,
+          'edited_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', messageId)
+        .select('''
+          *,
+          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
+          reply_to:reply_to_id(
+            id, user_id, content, created_at,
+            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+          ),
+          chat_reactions(message_id, user_id, emoji),
+          chat_media(*)
+        ''')
+        .single();
+
+    return ChatMessageModel.fromJson(response);
+  }
+
+  // =========================================================================
+  // Pin Messages
+  // =========================================================================
+
+  /// Pin a message.
+  Future<ChatMessageModel> pinMessage({
+    required String messageId,
+    required String pinnedByUserId,
+  }) async {
+    // First, unpin any currently pinned message
+    await _supabase
+        .from('chat_messages')
+        .update({
+          'is_pinned': false,
+          'pinned_at': null,
+          'pinned_by_user_id': null,
+        })
+        .eq('is_pinned', true);
+
+    // Then pin the new message
+    final response = await _supabase
+        .from('chat_messages')
+        .update({
+          'is_pinned': true,
+          'pinned_at': DateTime.now().toIso8601String(),
+          'pinned_by_user_id': pinnedByUserId,
+        })
+        .eq('id', messageId)
+        .select('''
+          *,
+          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
+          reply_to:reply_to_id(
+            id, user_id, content, created_at,
+            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+          ),
+          chat_reactions(message_id, user_id, emoji),
+          chat_media(*)
+        ''')
+        .single();
+
+    return ChatMessageModel.fromJson(response);
+  }
+
+  /// Unpin a message.
+  Future<void> unpinMessage(String messageId) async {
+    await _supabase
+        .from('chat_messages')
+        .update({
+          'is_pinned': false,
+          'pinned_at': null,
+          'pinned_by_user_id': null,
+        })
+        .eq('id', messageId);
+  }
+
+  /// Get the currently pinned message.
+  Future<ChatMessageModel?> getPinnedMessage() async {
+    final response = await _supabase
+        .from('chat_messages')
+        .select('''
+          *,
+          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
+          reply_to:reply_to_id(
+            id, user_id, content, created_at,
+            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+          ),
+          chat_reactions(message_id, user_id, emoji),
+          chat_media(*)
+        ''')
+        .eq('is_pinned', true)
+        .maybeSingle();
+
+    if (response == null) return null;
+    return ChatMessageModel.fromJson(response);
+  }
 }
 
 /// Reaction with user profile information.

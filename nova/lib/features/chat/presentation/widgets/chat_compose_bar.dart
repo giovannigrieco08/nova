@@ -19,6 +19,7 @@ import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_reply_preview.dart';
 import 'package:nova/features/chat/presentation/widgets/mention_autocomplete.dart';
+import 'package:nova/features/chat/presentation/widgets/gif_picker.dart';
 import 'package:nova/features/chat/presentation/screens/photo_editor_screen.dart';
 import 'package:nova/features/chat/presentation/screens/camera_screen.dart';
 import 'package:nova/features/chat/presentation/screens/video_preview_screen.dart';
@@ -287,8 +288,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
           NovaPageRoute.swipeBack(
             page: PhotoEditorScreen(
               imageFile: file,
-              onSend: (File editedFile, {bool allowReplay = true}) {
-                _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay);
+              onSend: (File editedFile, {bool allowReplay = true, String? caption}) {
+                _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay, caption: caption);
                 Navigator.pop(context);
               },
             ),
@@ -301,8 +302,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
           NovaPageRoute.swipeBack(
             page: VideoPreviewScreen(
               videoFile: file,
-              onSend: (File videoFile, {bool allowReplay = true}) {
-                _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay);
+              onSend: (File videoFile, {bool allowReplay = true, String? caption}) {
+                _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay, caption: caption);
                 Navigator.pop(context);
               },
             ),
@@ -322,9 +323,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   }
 
   /// Handle media from photo/video editor screens
-  Future<void> _handleMediaFromEditor(File file, ChatMediaType mediaType, bool allowReplay) async {
+  Future<void> _handleMediaFromEditor(File file, ChatMediaType mediaType, bool allowReplay, {String? caption}) async {
     final maxViews = allowReplay ? 2 : 1;
-    await _uploadMedia(file.path, mediaType, maxViews: maxViews);
+    await _uploadMedia(file.path, mediaType, maxViews: maxViews, caption: caption);
   }
 
   /// Open gallery to pick an image
@@ -352,6 +353,47 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     }
   }
 
+  /// Open GIF picker and send selected GIF
+  Future<void> _openGifPicker() async {
+    final gif = await GifPicker.show(context);
+
+    if (gif != null && mounted) {
+      // Send GIF message
+      await _sendGifMessage(gif.url, gif.id);
+    }
+  }
+
+  /// Send a GIF message
+  Future<void> _sendGifMessage(String gifUrl, String gifId) async {
+    try {
+      final state = ref.read(composeStateProvider);
+
+      // Send GIF message using the provider
+      await ref.read(sendGifMessageProvider((
+        gifUrl: gifUrl,
+        gifId: gifId,
+        replyToId: state.replyToId,
+      )).future);
+
+      // Clear reply state
+      ref.read(composeStateProvider.notifier).clearReply();
+
+      // Invalidate messages stream to refresh with new GIF
+      ref.invalidate(chatMessagesStreamProvider);
+
+      widget.onSent?.call();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Errore nell\'invio della GIF'),
+            backgroundColor: NovaColors.error(context),
+          ),
+        );
+      }
+    }
+  }
+
   /// Handle selected media file - opens PhotoEditorScreen for preview
   Future<void> _handleSelectedMedia(XFile file) async {
     if (!mounted) return;
@@ -362,8 +404,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       NovaPageRoute.swipeBack(
         page: PhotoEditorScreen(
           imageFile: file,
-          onSend: (editedFile, {bool allowReplay = true}) {
-            _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay);
+          onSend: (editedFile, {bool allowReplay = true, String? caption}) {
+            _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay, caption: caption);
             Navigator.pop(context);
           },
         ),
@@ -411,12 +453,14 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       // Get temp directory for recording
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      _recordingPath = '${tempDir.path}/voice_$timestamp.aac';
+      // Use .m4a for iOS (aacMP4 codec) and .aac for Android (aacADTS codec)
+      final extension = Platform.isIOS ? 'm4a' : 'aac';
+      _recordingPath = '${tempDir.path}/voice_$timestamp.$extension';
 
-      // Start recording
+      // Start recording (use aacMP4 for better iOS compatibility)
       await _audioRecorder.startRecorder(
         toFile: _recordingPath,
-        codec: Codec.aacADTS,
+        codec: Platform.isIOS ? Codec.aacMP4 : Codec.aacADTS,
       );
 
       setState(() {
@@ -568,11 +612,13 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   ///
   /// [maxViews] determines how many times the media can be viewed (1 or 2).
   /// [durationSeconds] is the duration for audio messages.
+  /// [caption] is an optional caption for images/videos.
   Future<void> _uploadMedia(
     String filePath,
     ChatMediaType mediaType, {
     int maxViews = 1,
     int? durationSeconds,
+    String? caption,
   }) async {
     try {
       await ref.read(uploadMediaProvider((
@@ -580,6 +626,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         mediaType: mediaType,
         maxViews: maxViews,
         durationSeconds: durationSeconds,
+        caption: caption,
       )).future);
 
       // Invalidate messages stream to refresh with new media
@@ -993,6 +1040,18 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                           padding: EdgeInsets.only(left: 2, right: 4),
                           child: Icon(
                             Icons.image_outlined,
+                            color: NovaColors.textSecondary(context),
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                      // GIF picker
+                      GestureDetector(
+                        onTap: _openGifPicker,
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 2, right: 4),
+                          child: Icon(
+                            Icons.gif_box_outlined,
                             color: NovaColors.textSecondary(context),
                             size: 26,
                           ),

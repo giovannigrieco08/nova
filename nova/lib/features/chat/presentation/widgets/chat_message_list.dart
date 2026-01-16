@@ -7,6 +7,7 @@ import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_message_tile.dart';
+import 'package:nova/features/chat/presentation/widgets/chat_animations.dart';
 import 'package:nova/features/chat/presentation/widgets/failed_message_tile.dart';
 
 /// Scrollable list of chat messages.
@@ -18,6 +19,8 @@ import 'package:nova/features/chat/presentation/widgets/failed_message_tile.dart
 /// - Scroll-to-bottom FAB
 /// - Empty state
 /// - Failed messages with retry
+/// - Animated message appearance (slide + fade)
+/// - RepaintBoundary for performance
 class ChatMessageList extends ConsumerStatefulWidget {
   final List<ChatMessage> messages;
   final List<FailedMessage> failedMessages;
@@ -51,6 +54,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
 class _ChatMessageListState extends ConsumerState<ChatMessageList> {
   final ScrollController _scrollController = ScrollController();
   bool _showScrollToBottom = false;
+  Set<String> _animatedMessageIds = {};  // Track which messages have been animated
 
   @override
   void initState() {
@@ -154,15 +158,30 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
               }
 
               final message = widget.messages[messageIndex];
-              return ChatMessageTile(
-                key: ValueKey(message.id),
-                message: message,
-                onReply: () => widget.onReply?.call(message),
-                onReport: () => widget.onReport?.call(message),
-                onReact: (emoji) => widget.onReact?.call(message, emoji),
-                onTapReplyPreview: message.replyToId != null
-                    ? () => scrollToMessage(message.replyToId!)
-                    : null,
+
+              // Check if this message should be animated (only new messages)
+              final shouldAnimate = !_animatedMessageIds.contains(message.id);
+              if (shouldAnimate) {
+                _animatedMessageIds.add(message.id);
+              }
+
+              // Wrap with RepaintBoundary for performance
+              return RepaintBoundary(
+                child: AnimatedMessageTile(
+                  key: ValueKey('animated_${message.id}'),
+                  animate: shouldAnimate && messageIndex < 5,  // Only animate first 5 new messages
+                  index: messageIndex,
+                  child: ChatMessageTile(
+                    key: ValueKey(message.id),
+                    message: message,
+                    onReply: () => widget.onReply?.call(message),
+                    onReport: () => widget.onReport?.call(message),
+                    onReact: (emoji) => widget.onReact?.call(message, emoji),
+                    onTapReplyPreview: message.replyToId != null
+                        ? () => scrollToMessage(message.replyToId!)
+                        : null,
+                  ),
+                ),
               );
             },
           ),

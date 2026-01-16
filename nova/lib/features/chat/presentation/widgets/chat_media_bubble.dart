@@ -94,20 +94,24 @@ class ChatMediaBubble extends ConsumerWidget {
     bool isExpired,
   ) {
     // Expired media - show timer icon for all types
+    // Use high contrast colors: white on purple (own), dark gray on light (others)
     if (isExpired) {
       return Icon(
         Icons.timer_off_outlined,
         size: 18,
-        color: NovaColors.grayDark,
+        color: isOwnMessage
+            ? NovaColors.onPrimaryLight.withValues(alpha: 0.7)
+            : NovaColors.textSecondary(context),
       );
     }
 
     // For images, use ViewOnceIcon with 2 states:
     // - Viewable: white solid outline
-    // - Not viewable: gray dashed
+    // - Not viewable: high contrast dashed circle
     if (media.mediaType == ChatMediaType.image) {
       return ViewOnceIcon(
         isViewable: canView,
+        isOwnMessage: isOwnMessage,
         size: 24,
       );
     }
@@ -219,8 +223,17 @@ class ChatMediaBubble extends ConsumerWidget {
     bool canView,
     bool isViewed,
   ) {
-    // Match icon colors: white when viewable, gray when not
-    return canView ? NovaColors.onPrimaryLight : NovaColors.grayDark;
+    // High contrast text colors based on background:
+    // - Own message (purple bg): white when viewable, light gray when expired/viewed
+    // - Other message (light bg): purple when viewable, dark gray when expired/viewed
+    if (canView) {
+      return isOwnMessage ? NovaColors.onPrimaryLight : NovaColors.primary(context);
+    } else {
+      // Expired or fully viewed - use muted but readable colors
+      return isOwnMessage
+          ? NovaColors.onPrimaryLight.withValues(alpha: 0.7)
+          : NovaColors.textSecondary(context);
+    }
   }
 }
 
@@ -249,6 +262,11 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   String? _audioUrl;
+
+  // Playback speed control (WhatsApp-style)
+  static const List<double> _speeds = [1.0, 1.5, 2.0];
+  int _speedIndex = 0;
+  double get _currentSpeed => _speeds[_speedIndex];
 
   /// Get the saved duration from media metadata (if available)
   Duration get _savedDuration =>
@@ -346,6 +364,22 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
+  /// Cycle through playback speeds (1x -> 1.5x -> 2x -> 1x)
+  Future<void> _cycleSpeed() async {
+    setState(() {
+      _speedIndex = (_speedIndex + 1) % _speeds.length;
+    });
+
+    // Apply new speed if currently playing
+    if (_isPlaying && _isInitialized) {
+      try {
+        await _player.setSpeed(_currentSpeed);
+      } catch (e) {
+        // Ignore speed change errors
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isOwn = widget.isOwnMessage;
@@ -419,41 +453,49 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
           ),
           SizedBox(width: NovaSpacing.s),
 
-          // 2. Waveform visualization (progress)
-          // WHITE = played, GRAY = unplayed
+          // 2. Waveform visualization (progress) - optimized with CustomPainter
           Expanded(
             child: SizedBox(
               height: 28,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: List.generate(24, (index) {
-                  // Generate pseudo-random heights for waveform effect
-                  final heights = [
-                    0.35, 0.7, 0.5, 0.9, 0.4, 0.85, 0.55, 1.0, 0.5, 0.75,
-                    0.4, 0.8, 0.6, 0.95, 0.35, 0.7, 0.5, 0.85, 0.45, 0.65,
-                    0.5, 0.75, 0.4, 0.6
-                  ];
-                  final barProgress = (index + 1) / 24;
-                  final isPlayed = barProgress <= progress;
-
-                  return Container(
-                    width: 3,
-                    height: 28 * heights[index],
-                    decoration: BoxDecoration(
-                      // Played part = WHITE (or purple for others)
-                      // Unplayed part = GRAY
-                      color: isPlayed ? waveformPlayedColor : waveformUnplayedColor,
-                      borderRadius: NovaRadius.circularXxs,
-                    ),
-                  );
-                }),
+              child: CustomPaint(
+                painter: _WaveformPainter(
+                  progress: progress,
+                  playedColor: waveformPlayedColor,
+                  unplayedColor: waveformUnplayedColor,
+                ),
+                size: Size.infinite,
               ),
             ),
           ),
-          SizedBox(width: NovaSpacing.m),
+          SizedBox(width: NovaSpacing.s),
 
-          // 3. Duration display - clearly readable!
+          // 3. Speed control button (WhatsApp-style)
+          GestureDetector(
+            onTap: _cycleSpeed,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: NovaSpacing.xs,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.15),
+                borderRadius: NovaRadius.circularXs,
+              ),
+              child: Text(
+                '${_currentSpeed}x',
+                style: NovaTypography.bodySmall.copyWith(
+                  color: iconColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+
+          SizedBox(width: NovaSpacing.xs),
+
+          // 4. Duration display - clearly readable!
           // Show: position if playing, saved duration if not played yet
           Text(
             _isPlaying || _position > Duration.zero
@@ -469,5 +511,65 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
         ],
       ),
     );
+  }
+}
+
+/// Optimized waveform painter using CustomPainter instead of multiple Containers.
+/// This reduces widget tree complexity and improves performance.
+class _WaveformPainter extends CustomPainter {
+  final double progress;
+  final Color playedColor;
+  final Color unplayedColor;
+
+  // Precomputed waveform heights (pseudo-random pattern)
+  static const List<double> _heights = [
+    0.35, 0.7, 0.5, 0.9, 0.4, 0.85, 0.55, 1.0, 0.5, 0.75,
+    0.4, 0.8, 0.6, 0.95, 0.35, 0.7, 0.5, 0.85, 0.45, 0.65,
+    0.5, 0.75, 0.4, 0.6
+  ];
+
+  _WaveformPainter({
+    required this.progress,
+    required this.playedColor,
+    required this.unplayedColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final barCount = _heights.length;
+    final barWidth = 3.0;
+    final totalBarsWidth = barCount * barWidth;
+    final spacing = (size.width - totalBarsWidth) / (barCount - 1);
+
+    final playedPaint = Paint()
+      ..color = playedColor
+      ..style = PaintingStyle.fill;
+
+    final unplayedPaint = Paint()
+      ..color = unplayedColor
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < barCount; i++) {
+      final barProgress = (i + 1) / barCount;
+      final isPlayed = barProgress <= progress;
+
+      final x = i * (barWidth + spacing);
+      final barHeight = size.height * _heights[i];
+      final y = (size.height - barHeight) / 2;
+
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, barWidth, barHeight),
+        const Radius.circular(1.5),
+      );
+
+      canvas.drawRRect(rect, isPlayed ? playedPaint : unplayedPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveformPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.playedColor != playedColor ||
+        oldDelegate.unplayedColor != unplayedColor;
   }
 }

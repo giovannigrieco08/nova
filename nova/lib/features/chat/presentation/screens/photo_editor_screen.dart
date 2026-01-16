@@ -20,10 +20,10 @@ import 'package:nova/features/profile/presentation/providers/profile_provider.da
 /// Features:
 /// - Full screen photo preview with rounded corners
 /// - Top toolbar: close, text, link, sticker, music, download
-/// - Bottom bar: replay toggle, send button with profile picture
+/// - Bottom bar: caption field, replay toggle, send button with profile picture
 class PhotoEditorScreen extends ConsumerStatefulWidget {
   final XFile imageFile;
-  final Function(File editedImage, {bool allowReplay})? onSend;
+  final Function(File editedImage, {bool allowReplay, String? caption})? onSend;
 
   const PhotoEditorScreen({
     super.key,
@@ -37,9 +37,18 @@ class PhotoEditorScreen extends ConsumerStatefulWidget {
 
 class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   final GlobalKey _repaintKey = GlobalKey();
+  final TextEditingController _captionController = TextEditingController();
+  final FocusNode _captionFocusNode = FocusNode();
 
   /// Whether recipient can replay the media (true = unlimited, false = 1 view)
   bool _allowReplay = true;
+
+  @override
+  void dispose() {
+    _captionController.dispose();
+    _captionFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,92 +150,128 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
         vertical: NovaSpacing.m,
       ),
       color: NovaColors.editorBackground,
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Replay toggle (tappable)
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _allowReplay = !_allowReplay;
-                });
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white54, width: 1),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        _allowReplay ? Icons.play_arrow : Icons.looks_one,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: NovaSpacing.s),
-                  Flexible(
-                    child: Text(
-                      _allowReplay
-                          ? 'Consenti di riprodurre di nuovo'
-                          : 'Consenti 1 sola visualizzazione',
-                      style: NovaTypography.bodySmall.copyWith(
-                        color: Colors.white,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+          // Caption input field (Instagram style)
+          Container(
+            margin: EdgeInsets.only(bottom: NovaSpacing.m),
+            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.m),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: NovaRadius.circularXl,
+            ),
+            child: TextField(
+              controller: _captionController,
+              focusNode: _captionFocusNode,
+              style: NovaTypography.bodyMedium.copyWith(
+                color: Colors.white,
+              ),
+              maxLines: 2,
+              minLines: 1,
+              maxLength: 150,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Aggiungi una didascalia...',
+                hintStyle: NovaTypography.bodyMedium.copyWith(
+                  color: Colors.white60,
+                ),
+                border: InputBorder.none,
+                counterText: '',
+                contentPadding: EdgeInsets.symmetric(vertical: NovaSpacing.s),
               ),
             ),
           ),
 
-          SizedBox(width: NovaSpacing.m),
+          // Bottom row with replay toggle and send button
+          Row(
+            children: [
+              // Replay toggle (tappable)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _allowReplay = !_allowReplay;
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white54, width: 1),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            _allowReplay ? Icons.play_arrow : Icons.looks_one,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: NovaSpacing.s),
+                      Flexible(
+                        child: Text(
+                          _allowReplay
+                              ? 'Consenti di riprodurre di nuovo'
+                              : 'Consenti 1 sola visualizzazione',
+                          style: NovaTypography.bodySmall.copyWith(
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-          // Send button with profile picture
-          GestureDetector(
-            onTap: _sendPhoto,
-            child: Container(
-              padding: EdgeInsets.only(
-                left: 4,
-                right: NovaSpacing.m,
-                top: 4,
-                bottom: 4,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: NovaRadius.circularXl,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Profile picture
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: NovaColors.primary(context),
-                    backgroundImage: profileImageUrl != null
-                        ? NetworkImage(profileImageUrl)
-                        : null,
-                    child: profileImageUrl == null
-                        ? Icon(Icons.person, size: 16, color: Colors.white)
-                        : null,
+              SizedBox(width: NovaSpacing.m),
+
+              // Send button with profile picture
+              GestureDetector(
+                onTap: _sendPhoto,
+                child: Container(
+                  padding: EdgeInsets.only(
+                    left: 4,
+                    right: NovaSpacing.m,
+                    top: 4,
+                    bottom: 4,
                   ),
-                  SizedBox(width: NovaSpacing.s),
-                  Text(
-                    'Invia',
-                    style: NovaTypography.bodyMedium.copyWith(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: NovaRadius.circularXl,
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Profile picture
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: NovaColors.primary(context),
+                        backgroundImage: profileImageUrl != null
+                            ? NetworkImage(profileImageUrl)
+                            : null,
+                        child: profileImageUrl == null
+                            ? Icon(Icons.person, size: 16, color: Colors.white)
+                            : null,
+                      ),
+                      SizedBox(width: NovaSpacing.s),
+                      Text(
+                        'Invia',
+                        style: NovaTypography.bodyMedium.copyWith(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -323,7 +368,13 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   Future<void> _sendPhoto() async {
     final file = await _captureImage();
     if (file != null && widget.onSend != null) {
-      widget.onSend!(file, allowReplay: _allowReplay);
+      // Get caption if provided
+      final caption = _captionController.text.trim();
+      widget.onSend!(
+        file,
+        allowReplay: _allowReplay,
+        caption: caption.isNotEmpty ? caption : null,
+      );
       // Navigator.pop is handled by the callback
     } else if (file == null) {
       // Show error if capture failed

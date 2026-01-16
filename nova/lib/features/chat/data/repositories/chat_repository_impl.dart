@@ -215,10 +215,12 @@ class ChatRepositoryImpl implements ChatRepository {
     required ChatMediaType mediaType,
     int maxViews = 1,
     int? durationSeconds,
+    String? caption,
   }) async {
     // Create a message for the media (content will be hidden when media is attached)
-    // Use a placeholder that passes DB validation - will be replaced by ChatMediaBubble in UI
-    final message = await sendMessage(content: '[media]');
+    // Use caption as content if provided, otherwise use placeholder
+    final messageContent = caption ?? '[media]';
+    final message = await sendMessage(content: messageContent);
 
     // Upload media
     final model = await _remoteDataSource.uploadMedia(
@@ -229,6 +231,14 @@ class ChatRepositoryImpl implements ChatRepository {
       maxViews: maxViews,
       durationSeconds: durationSeconds,
     );
+
+    // Update message with media_caption field if caption provided
+    if (caption != null && caption.isNotEmpty) {
+      await _supabase
+          .from('chat_messages')
+          .update({'media_caption': caption})
+          .eq('id', message.id);
+    }
 
     return model.toEntity();
   }
@@ -317,5 +327,93 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<void> clearPendingMessage(String localId) async {
     await _pendingMessagesBox.delete(localId);
+  }
+
+  // =========================================================================
+  // GIF Messages
+  // =========================================================================
+
+  @override
+  Future<ChatMessage> sendGifMessage({
+    required String gifUrl,
+    required String gifId,
+    String? replyToId,
+  }) async {
+    try {
+      final model = await _remoteDataSource.sendGifMessage(
+        userId: _currentUserId,
+        gifUrl: gifUrl,
+        gifId: gifId,
+        replyToId: replyToId,
+      );
+      return model.toEntity(currentUserId: _currentUserId);
+    } on PostgrestException catch (e) {
+      if (e.code == 'P0001') {
+        throw const ChatRateLimitException(
+            'Troppi messaggi. Attendi qualche secondo.');
+      }
+      rethrow;
+    }
+  }
+
+  // =========================================================================
+  // Edit Messages
+  // =========================================================================
+
+  @override
+  Future<ChatMessage> editMessage({
+    required String messageId,
+    required String newContent,
+  }) async {
+    // First, get the message to check if edit is allowed
+    final message = await getMessage(messageId);
+    if (message == null) {
+      throw const ChatEditNotAllowedException('Messaggio non trovato.');
+    }
+
+    // Check if user owns the message
+    if (message.userId != _currentUserId) {
+      throw const ChatEditNotAllowedException(
+        'Puoi modificare solo i tuoi messaggi.',
+      );
+    }
+
+    // Check if within 5-minute window
+    if (!message.canEdit) {
+      throw const ChatEditNotAllowedException(
+        'Puoi modificare un messaggio solo entro 5 minuti dall\'invio.',
+      );
+    }
+
+    // Proceed with edit
+    final model = await _remoteDataSource.editMessage(
+      messageId: messageId,
+      newContent: newContent,
+    );
+    return model.toEntity(currentUserId: _currentUserId);
+  }
+
+  // =========================================================================
+  // Pin Messages
+  // =========================================================================
+
+  @override
+  Future<ChatMessage> pinMessage(String messageId) async {
+    final model = await _remoteDataSource.pinMessage(
+      messageId: messageId,
+      pinnedByUserId: _currentUserId,
+    );
+    return model.toEntity(currentUserId: _currentUserId);
+  }
+
+  @override
+  Future<void> unpinMessage(String messageId) async {
+    await _remoteDataSource.unpinMessage(messageId);
+  }
+
+  @override
+  Future<ChatMessage?> getPinnedMessage() async {
+    final model = await _remoteDataSource.getPinnedMessage();
+    return model?.toEntity(currentUserId: _currentUserId);
   }
 }

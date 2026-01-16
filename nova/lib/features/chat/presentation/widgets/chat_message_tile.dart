@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -16,6 +17,10 @@ import 'package:nova/features/chat/presentation/widgets/chat_reaction_detail_she
 import 'package:nova/features/chat/presentation/widgets/chat_reply_preview.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_media_bubble.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_message_context_overlay.dart';
+import 'package:nova/features/chat/presentation/widgets/chat_animations.dart';
+import 'package:nova/features/chat/presentation/widgets/link_preview_bubble.dart';
+import 'package:nova/features/chat/presentation/widgets/edit_message_dialog.dart';
+import 'package:nova/features/chat/presentation/widgets/gif_picker.dart';
 import 'package:nova/features/chat/presentation/screens/media_viewer_screen.dart';
 import 'package:nova/shared/widgets/avatar_widget.dart';
 import 'package:nova/core/animations/page_transitions.dart';
@@ -57,9 +62,20 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
   double _dragExtent = 0;
   static const double _maxDragExtent = 60;
   static const double _replyThreshold = 50; // Threshold to trigger reply
+  static const double _edgeSwipeThreshold = 30; // Left edge zone for back navigation
   bool _replyTriggered = false;
+  bool _isDragActive = false; // Track if we should handle this drag
+  double? _dragStartX; // Track where the drag started
+
+  void _onHorizontalDragStart(DragStartDetails details) {
+    _dragStartX = details.globalPosition.dx;
+    // Only handle drags that don't start from the left edge (allow back navigation)
+    _isDragActive = _dragStartX! > _edgeSwipeThreshold;
+  }
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    // Ignore drags that started from the edge (for back navigation)
+    if (!_isDragActive) return;
     setState(() {
       _dragExtent += details.delta.dx;
       // Allow swipe left (timestamp) and right (reply)
@@ -74,6 +90,12 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
   }
 
   void _onHorizontalDragEnd(DragEndDetails details) {
+    // Ignore drags that started from the edge (for back navigation)
+    if (!_isDragActive) {
+      _resetDragState();
+      return;
+    }
+
     // Check if swipe right triggered reply
     if (_dragExtent >= _replyThreshold) {
       widget.onReply?.call();
@@ -98,6 +120,38 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
         _dragExtent = 0;
       });
     }
+    _resetDragState();
+  }
+
+  void _resetDragState() {
+    _isDragActive = false;
+    _dragStartX = null;
+  }
+
+  /// Handle double-tap for quick react (Instagram-style heart)
+  void _handleDoubleTap(BuildContext context) {
+    // Haptic feedback
+    HapticFeedback.mediumImpact();
+
+    // Get the center of the message for animation
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox != null) {
+      final size = renderBox.size;
+      final position = renderBox.localToGlobal(Offset(size.width / 2, size.height / 2));
+
+      // Show heart animation overlay
+      HeartAnimationOverlay.show(
+        context,
+        globalPosition: position,
+        onComplete: () {
+          // Animation complete
+        },
+      );
+    }
+
+    // Toggle heart reaction
+    const heartEmoji = '❤️';
+    widget.onReact?.call(heartEmoji);
   }
 
   String _formatTimestamp(DateTime dateTime) {
@@ -133,6 +187,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
         vertical: 3,
       ),
       child: GestureDetector(
+        onHorizontalDragStart: _onHorizontalDragStart,
         onHorizontalDragUpdate: _onHorizontalDragUpdate,
         onHorizontalDragEnd: _onHorizontalDragEnd,
         child: Stack(
@@ -169,7 +224,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
                 left: isOwnMessage ? null : 0,
                 child: AnimatedOpacity(
                   opacity: timestampOpacity,
-                  duration: const Duration(milliseconds: 100),
+                  duration: const Duration(milliseconds: 50),
                   child: Padding(
                     padding: EdgeInsets.only(
                       right: isOwnMessage ? 8 : 0,
@@ -188,7 +243,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
 
             // Message content (slides on drag)
             AnimatedContainer(
-              duration: const Duration(milliseconds: 100),
+              duration: const Duration(milliseconds: 50),
               transform: Matrix4.translationValues(_dragExtent, 0, 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -226,23 +281,65 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
                             ),
                           ),
 
-                        // Media message: show ChatMediaBubble directly (no wrapper bubble)
-                        if (widget.message.hasMedia && widget.message.media != null)
+                        // GIF message: show GifBubble directly
+                        if (widget.message.isGif && widget.message.gifUrl != null)
                           GestureDetector(
+                            onDoubleTap: () => _handleDoubleTap(context),
                             onLongPress: () => _showContextMenu(context),
-                            // Audio plays inline - don't open MediaViewerScreen
-                            // Images/videos open full-screen viewer
-                            onTap: widget.message.media!.mediaType.isAudio
-                                ? null  // Audio: no tap handler (plays inline in bubble)
-                                : () => _openMediaViewer(context, widget.message.media!),
-                            child: ChatMediaBubble(
-                              media: widget.message.media!,
+                            child: GifBubble(
+                              gifUrl: widget.message.gifUrl!,
                               isOwnMessage: isOwnMessage,
                             ),
+                          )
+                        // Media message: show ChatMediaBubble directly (no wrapper bubble)
+                        else if (widget.message.hasMedia && widget.message.media != null)
+                          Column(
+                            crossAxisAlignment: isOwnMessage
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onDoubleTap: () => _handleDoubleTap(context),
+                                onLongPress: () => _showContextMenu(context),
+                                // Audio plays inline - don't open MediaViewerScreen
+                                // Images/videos open full-screen viewer
+                                onTap: widget.message.media!.mediaType.isAudio
+                                    ? null  // Audio: no tap handler (plays inline in bubble)
+                                    : () => _openMediaViewer(context, widget.message.media!),
+                                child: ChatMediaBubble(
+                                  media: widget.message.media!,
+                                  isOwnMessage: isOwnMessage,
+                                ),
+                              ),
+                              // Caption for media (if provided)
+                              if (widget.message.mediaCaption != null &&
+                                  widget.message.mediaCaption!.isNotEmpty)
+                                Container(
+                                  constraints: BoxConstraints(
+                                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                                  ),
+                                  margin: EdgeInsets.only(top: NovaSpacing.xxs),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: NovaSpacing.s,
+                                    vertical: NovaSpacing.xxs,
+                                  ),
+                                  child: Text(
+                                    widget.message.mediaCaption!,
+                                    style: NovaTypography.bodyMedium.copyWith(
+                                      color: isOwnMessage
+                                          ? NovaColors.textPrimary(context)
+                                          : NovaColors.textPrimary(context),
+                                    ),
+                                    textAlign: isOwnMessage ? TextAlign.right : TextAlign.left,
+                                  ),
+                                ),
+                            ],
                           )
                         // Text message: show in normal bubble
                         else
                           GestureDetector(
+                            onDoubleTap: () => _handleDoubleTap(context),
                             onLongPress: () => _showContextMenu(context),
                             child: Container(
                               constraints: BoxConstraints(
@@ -304,7 +401,6 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
               ? Colors.white70
               : NovaColors.textTertiary(context),
           fontStyle: FontStyle.italic,
-          fontWeight: FontWeight.w700,
         ),
       );
     }
@@ -318,18 +414,64 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
       return const SizedBox.shrink();
     }
 
+    // Check for URL in message content
+    final extractedUrl = LinkPreviewBubble.extractUrl(widget.message.content);
+    final hasLinkPreview = LinkPreviewBubble.isValidUrl(extractedUrl);
+
     // For messages with mentions, highlight them
+    Widget textWidget;
     if (widget.message.hasMentions) {
-      return _buildHighlightedContent(context, isOwnMessage);
+      textWidget = _buildHighlightedContent(context, isOwnMessage);
+    } else {
+      textWidget = Text(
+        widget.message.content,
+        style: NovaTypography.bodyMedium.copyWith(
+          color: textColor,
+        ),
+      );
     }
 
-    return Text(
-      widget.message.content,
-      style: NovaTypography.bodyMedium.copyWith(
-        color: textColor,
-        fontWeight: FontWeight.w700, // Bold for chat bubbles
-      ),
-    );
+    // Build the content widget
+    Widget contentWidget = textWidget;
+
+    // Add link preview if URL found
+    if (hasLinkPreview && extractedUrl != null) {
+      contentWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          textWidget,
+          LinkPreviewBubble(
+            url: extractedUrl,
+            isOwnMessage: isOwnMessage,
+          ),
+        ],
+      );
+    }
+
+    // Add edited indicator if message was edited
+    if (widget.message.isEdited) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          contentWidget,
+          SizedBox(height: NovaSpacing.xxs),
+          Text(
+            'modificato',
+            style: NovaTypography.bodySmall.copyWith(
+              color: isOwnMessage
+                  ? Colors.white60
+                  : NovaColors.textTertiary(context),
+              fontSize: 10,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return contentWidget;
   }
 
   Widget _buildHighlightedContent(BuildContext context, bool isOwnMessage) {
@@ -358,7 +500,6 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
           text: content.substring(currentIndex, mention.startIndex),
           style: NovaTypography.bodyMedium.copyWith(
             color: textColor,
-            fontWeight: FontWeight.w700, // Bold for chat bubbles
           ),
         ));
       }
@@ -368,7 +509,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
         text: content.substring(mention.startIndex, mention.endIndex),
         style: NovaTypography.bodyMedium.copyWith(
           color: mentionColor,
-          fontWeight: FontWeight.w700, // Bold for mentions
+          fontWeight: FontWeight.w600, // SemiBold for mentions
         ),
       ));
 
@@ -381,7 +522,6 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
         text: content.substring(currentIndex),
         style: NovaTypography.bodyMedium.copyWith(
           color: textColor,
-          fontWeight: FontWeight.w700, // Bold for chat bubbles
         ),
       ));
     }
@@ -399,6 +539,9 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
     // Only show delete option if message can be deleted (within 30 minutes)
     final canDelete = isOwnMessage && widget.message.canDelete;
 
+    // Only show edit option if message can be edited (within 5 minutes)
+    final canEdit = isOwnMessage && widget.message.canEdit && !widget.message.hasMedia;
+
     // Don't show copy option for audio messages (can't copy audio)
     final isAudioMessage = widget.message.hasMedia &&
         widget.message.media?.mediaType.isAudio == true;
@@ -413,6 +556,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
       onReport: widget.onReport,
       messageContent: isAudioMessage ? null : widget.message.content,
       onDelete: canDelete ? () => _deleteMessage(context) : null,
+      onEdit: canEdit ? () => _editMessage(context) : null,
+      canEdit: canEdit,
     );
   }
 
@@ -491,9 +636,67 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile> {
     }
   }
 
+  Future<void> _editMessage(BuildContext context) async {
+    await EditMessageDialog.show(
+      context,
+      message: widget.message,
+      onSave: (newContent) async {
+        try {
+          await ref.read(editMessageProvider((
+            messageId: widget.message.id,
+            newContent: newContent,
+          )).future);
+
+          // Refresh the messages list
+          ref.invalidate(chatMessagesStreamProvider);
+          return true;
+        } on ChatEditNotAllowedException catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(e.message),
+                backgroundColor: NovaColors.error(context),
+              ),
+            );
+          }
+          return false;
+        } catch (e) {
+          return false;
+        }
+      },
+    );
+  }
+
   /// Build a standalone message bubble for the context overlay
   Widget _buildMessageBubbleForOverlay(BuildContext context, bool isOwnMessage) {
     final currentUserId = ref.read(currentUserIdProvider);
+
+    // For GIF messages, show the GIF bubble
+    if (widget.message.isGif && widget.message.gifUrl != null) {
+      return Column(
+        crossAxisAlignment: isOwnMessage
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Reply preview (Instagram style - ABOVE the bubble)
+          if (widget.message.isReply && widget.message.replyTo != null)
+            Padding(
+              padding: EdgeInsets.only(bottom: NovaSpacing.xxs),
+              child: ChatReplyPreview(
+                replyTo: widget.message.replyTo!,
+                isCompact: true,
+                currentUserId: currentUserId,
+                isOwnMessage: isOwnMessage,
+              ),
+            ),
+          GifBubble(
+            gifUrl: widget.message.gifUrl!,
+            isOwnMessage: isOwnMessage,
+          ),
+        ],
+      );
+    }
 
     // For media messages, show the media bubble
     if (widget.message.hasMedia && widget.message.media != null) {

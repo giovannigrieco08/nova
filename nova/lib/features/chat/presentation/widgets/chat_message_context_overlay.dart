@@ -39,8 +39,14 @@ class ChatMessageContextOverlay extends StatefulWidget {
   /// Callback when user taps Report
   final VoidCallback? onReport;
 
+  /// Callback when user taps Edit
+  final VoidCallback? onEdit;
+
   /// The message content for copying
   final String? messageContent;
+
+  /// Whether the message can be edited (within 5-min window)
+  final bool canEdit;
 
   const ChatMessageContextOverlay({
     super.key,
@@ -52,7 +58,9 @@ class ChatMessageContextOverlay extends StatefulWidget {
     this.onCopy,
     this.onDelete,
     this.onReport,
+    this.onEdit,
     this.messageContent,
+    this.canEdit = false,
   });
 
   /// Show the context overlay as a modal route
@@ -66,7 +74,9 @@ class ChatMessageContextOverlay extends StatefulWidget {
     VoidCallback? onCopy,
     VoidCallback? onDelete,
     VoidCallback? onReport,
+    VoidCallback? onEdit,
     String? messageContent,
+    bool canEdit = false,
   }) {
     // Haptic feedback on open
     HapticFeedback.mediumImpact();
@@ -86,17 +96,25 @@ class ChatMessageContextOverlay extends StatefulWidget {
             onCopy: onCopy,
             onDelete: onDelete,
             onReport: onReport,
+            onEdit: onEdit,
             messageContent: messageContent,
+            canEdit: canEdit,
           );
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Fast, snappy transition with combined fade and scale
+          final curvedAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
           return FadeTransition(
-            opacity: animation,
+            opacity: curvedAnimation,
             child: child,
           );
         },
-        transitionDuration: const Duration(milliseconds: 200),
-        reverseTransitionDuration: const Duration(milliseconds: 150),
+        transitionDuration: const Duration(milliseconds: 100),
+        reverseTransitionDuration: const Duration(milliseconds: 80),
       ),
     );
   }
@@ -126,10 +144,11 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 100),
     );
-    _scaleAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    // Start from 0.95 for a subtler but snappier scale effect
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
     _animationController.forward();
   }
@@ -178,6 +197,11 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
   void _handleReport() {
     _close();
     widget.onReport?.call();
+  }
+
+  void _handleEdit() {
+    _close();
+    widget.onEdit?.call();
   }
 
   @override
@@ -345,6 +369,17 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
               icon: Icons.copy_outlined,
               label: 'Copia',
               onTap: _handleCopy,
+            ),
+            _buildDivider(context),
+          ],
+
+          // Edit (only for own messages within 5-minute window)
+          if (widget.isOwnMessage && widget.canEdit && widget.onEdit != null) ...[
+            _buildActionItem(
+              context: context,
+              icon: Icons.edit_outlined,
+              label: 'Modifica',
+              onTap: _handleEdit,
             ),
             _buildDivider(context),
           ],

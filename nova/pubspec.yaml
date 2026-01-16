@@ -84,6 +84,12 @@ dependencies:
   # HTTP Client (for Nominatim geocoding API)
   http: ^1.2.0                          # HTTP requests for location search
 
+  # GIF Support (Chat Feature)
+  giphy_get: ^3.5.7                     # GIPHY/Tenor GIF picker
+
+  # Link Preview (Chat Feature)
+  any_link_preview: ^3.0.2              # OpenGraph link previews
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

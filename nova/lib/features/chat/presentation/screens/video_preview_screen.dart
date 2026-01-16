@@ -16,10 +16,11 @@ import 'package:nova/core/theme/nova_typography.dart';
 /// - Full screen video preview with playback controls
 /// - Download to gallery
 /// - View-once toggle
+/// - Caption input
 /// - Send functionality
 class VideoPreviewScreen extends StatefulWidget {
   final XFile videoFile;
-  final Function(File videoFile, {bool allowReplay})? onSend;
+  final Function(File videoFile, {bool allowReplay, String? caption})? onSend;
 
   const VideoPreviewScreen({
     super.key,
@@ -33,6 +34,7 @@ class VideoPreviewScreen extends StatefulWidget {
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   late VideoPlayerController _videoController;
+  final TextEditingController _captionController = TextEditingController();
   bool _isInitialized = false;
   bool _isPlaying = false;
 
@@ -48,6 +50,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   @override
   void dispose() {
     _videoController.dispose();
+    _captionController.dispose();
     super.dispose();
   }
 
@@ -240,76 +243,118 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   Widget _buildBottomBar() {
     return Container(
       padding: EdgeInsets.all(NovaSpacing.m),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Replay toggle (tappable)
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _allowReplay = !_allowReplay;
-              });
-            },
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: NovaSpacing.s,
-                vertical: NovaSpacing.xs,
+          // Caption input field
+          Container(
+            margin: EdgeInsets.only(bottom: NovaSpacing.m),
+            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.m),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.5),
+              borderRadius: NovaRadius.circularXl,
+            ),
+            child: TextField(
+              controller: _captionController,
+              style: NovaTypography.bodyMedium.copyWith(
+                color: Colors.white,
               ),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(NovaRadius.m),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _allowReplay ? Icons.replay : Icons.looks_one_outlined,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    _allowReplay
-                        ? 'Consenti di riprodurre di nuovo'
-                        : 'Consenti la visualizzazione solo 1 volta',
-                    style: NovaTypography.bodySmall.copyWith(color: Colors.white),
-                  ),
-                ],
+              maxLines: 2,
+              minLines: 1,
+              maxLength: 150,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Aggiungi una didascalia...',
+                hintStyle: NovaTypography.bodyMedium.copyWith(
+                  color: Colors.white60,
+                ),
+                border: InputBorder.none,
+                counterText: '',
+                contentPadding: EdgeInsets.symmetric(vertical: NovaSpacing.s),
               ),
             ),
           ),
 
-          // Send button
-          GestureDetector(
-            onTap: _sendVideo,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: NovaSpacing.m,
-                vertical: NovaSpacing.s,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(NovaRadius.xl),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: NovaColors.primary(context),
-                    child: Icon(Icons.send, size: 14, color: Colors.white),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Invia',
-                    style: NovaTypography.bodyMedium.copyWith(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
+          // Bottom row with replay toggle and send button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Replay toggle (tappable)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _allowReplay = !_allowReplay;
+                    });
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: NovaSpacing.s,
+                      vertical: NovaSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(NovaRadius.m),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _allowReplay ? Icons.replay : Icons.looks_one_outlined,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _allowReplay
+                                ? 'Consenti di riprodurre di nuovo'
+                                : 'Consenti 1 sola visualizzazione',
+                            style: NovaTypography.bodySmall.copyWith(color: Colors.white),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+
+              SizedBox(width: NovaSpacing.m),
+
+              // Send button
+              GestureDetector(
+                onTap: _sendVideo,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: NovaSpacing.m,
+                    vertical: NovaSpacing.s,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(NovaRadius.xl),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: NovaColors.primary(context),
+                        child: Icon(Icons.send, size: 14, color: Colors.white),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Invia',
+                        style: NovaTypography.bodyMedium.copyWith(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -342,7 +387,12 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
   Future<void> _sendVideo() async {
     if (widget.onSend != null) {
-      widget.onSend!(File(widget.videoFile.path), allowReplay: _allowReplay);
+      final caption = _captionController.text.trim();
+      widget.onSend!(
+        File(widget.videoFile.path),
+        allowReplay: _allowReplay,
+        caption: caption.isNotEmpty ? caption : null,
+      );
       Navigator.pop(context);
     } else {
       // Just close if no callback

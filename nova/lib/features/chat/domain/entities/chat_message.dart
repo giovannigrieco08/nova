@@ -9,6 +9,9 @@ import 'package:nova/features/profile/domain/entities/profile.dart';
 /// - Emoji reactions (6 types)
 /// - Single-level reply threading
 /// - View-once media attachments
+/// - Edit (within 5 minutes)
+/// - Pin messages
+/// - GIF support
 class ChatMessage {
   final String id;
   final String userId;
@@ -21,6 +24,22 @@ class ChatMessage {
   final DateTime? hiddenAt;
   final String? hiddenReason;
   final DateTime createdAt;
+
+  // Edit support
+  final DateTime? editedAt;
+  final String? originalContent;
+
+  // Pin support
+  final bool isPinned;
+  final DateTime? pinnedAt;
+  final String? pinnedByUserId;
+
+  // GIF support
+  final String? gifUrl;
+  final String? gifId;
+
+  // Media caption
+  final String? mediaCaption;
 
   // Joined data (populated from related tables/profiles)
   final Profile author;
@@ -41,7 +60,15 @@ class ChatMessage {
     this.hiddenAt,
     this.hiddenReason,
     required this.createdAt,
-    required this.author,  // Profile entity
+    this.editedAt,
+    this.originalContent,
+    this.isPinned = false,
+    this.pinnedAt,
+    this.pinnedByUserId,
+    this.gifUrl,
+    this.gifId,
+    this.mediaCaption,
+    required this.author,
     this.replyTo,
     required this.reactionCounts,
     required this.currentUserReactions,
@@ -74,6 +101,30 @@ class ChatMessage {
     final remaining = 30 - difference.inMinutes;
     return remaining > 0 ? remaining : 0;
   }
+
+  /// Whether the message has been edited
+  bool get isEdited => editedAt != null;
+
+  /// Whether the message can be edited (only within 5 minutes of sending)
+  bool get canEdit {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+    return difference.inMinutes < 5;
+  }
+
+  /// Minutes remaining until message can no longer be edited
+  int get editWindowMinutesRemaining {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+    final remaining = 5 - difference.inMinutes;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  /// Whether this is a GIF message
+  bool get isGif => gifUrl != null && gifUrl!.isNotEmpty;
+
+  /// Whether this message has a media caption
+  bool get hasCaption => mediaCaption != null && mediaCaption!.isNotEmpty;
 
   /// Display text - returns placeholder if hidden
   String get displayContent {
@@ -109,6 +160,14 @@ class ChatMessage {
     DateTime? hiddenAt,
     String? hiddenReason,
     DateTime? createdAt,
+    DateTime? editedAt,
+    String? originalContent,
+    bool? isPinned,
+    DateTime? pinnedAt,
+    String? pinnedByUserId,
+    String? gifUrl,
+    String? gifId,
+    String? mediaCaption,
     Profile? author,
     ChatMessage? replyTo,
     Map<String, int>? reactionCounts,
@@ -127,6 +186,14 @@ class ChatMessage {
       hiddenAt: hiddenAt ?? this.hiddenAt,
       hiddenReason: hiddenReason ?? this.hiddenReason,
       createdAt: createdAt ?? this.createdAt,
+      editedAt: editedAt ?? this.editedAt,
+      originalContent: originalContent ?? this.originalContent,
+      isPinned: isPinned ?? this.isPinned,
+      pinnedAt: pinnedAt ?? this.pinnedAt,
+      pinnedByUserId: pinnedByUserId ?? this.pinnedByUserId,
+      gifUrl: gifUrl ?? this.gifUrl,
+      gifId: gifId ?? this.gifId,
+      mediaCaption: mediaCaption ?? this.mediaCaption,
       author: author ?? this.author,
       replyTo: replyTo ?? this.replyTo,
       reactionCounts: reactionCounts ?? this.reactionCounts,
