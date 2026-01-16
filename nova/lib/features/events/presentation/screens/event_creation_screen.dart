@@ -18,6 +18,7 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/event_creation_provider.dart';
+import '../providers/events_feed_provider.dart';
 import '../widgets/event_form.dart';
 
 /// Event creation screen
@@ -45,7 +46,12 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
           onPressed: () => Navigator.of(context).pop(),
           tooltip: 'Indietro',
         ),
-        title: const Text('Crea evento'),
+        title: Text(
+          'Crea evento',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         centerTitle: true,
         elevation: 0,
         backgroundColor: NovaColors.background(context),
@@ -170,11 +176,15 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     final event = await notifier.createEvent();
 
     if (event != null && mounted) {
+      // Refresh the feed to show the new event (or pending events banner)
+      ref.invalidate(eventsFeedProvider);
+      ref.invalidate(userPendingEventsProvider);
+
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            '✅ Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
+            'Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
           ),
           backgroundColor: NovaColors.success(context),
           duration: const Duration(seconds: 3),

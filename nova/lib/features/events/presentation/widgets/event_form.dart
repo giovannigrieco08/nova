@@ -17,6 +17,8 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
+import '../../../../shared/widgets/adaptive/adaptive_date_picker.dart';
+import '../../../../shared/widgets/adaptive/adaptive_time_picker.dart';
 import '../providers/event_creation_provider.dart';
 import '../../../search/presentation/providers/search_provider.dart';
 import '../../../search/domain/entities/search_results.dart';
@@ -32,8 +34,11 @@ class EventForm extends ConsumerWidget {
     final state = ref.watch(eventCreationProvider);
     final notifier = ref.read(eventCreationProvider.notifier);
 
-    return SingleChildScrollView(
-      child: Column(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Image picker (Instagram-style: FIRST and PROMINENT)
@@ -81,6 +86,7 @@ class EventForm extends ConsumerWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -850,49 +856,32 @@ class EventForm extends ConsumerWidget {
     );
   }
 
-  /// Show date and time picker
+  /// Show date and time picker (platform-adaptive)
+  ///
+  /// - iOS: CupertinoDatePicker wheel picker
+  /// - Android: Material date/time dialogs
   Future<void> _showDateTimePicker(
     BuildContext context,
     EventFormState state,
     EventCreationNotifier notifier,
   ) async {
-    // Pick date
-    final date = await showDatePicker(
+    // Pick date (adaptive: iOS wheel picker, Android Material dialog)
+    final date = await showAdaptiveDatePicker(
       context: context,
       initialDate: state.eventDate ?? DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: NovaColors.primary(context),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (date == null) return;
 
-    // Pick time
+    // Pick time (adaptive: iOS wheel picker, Android Material dialog)
     if (!context.mounted) return;
-    final time = await showTimePicker(
+    final time = await showAdaptiveTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(
         state.eventDate ?? DateTime.now().add(const Duration(hours: 1)),
       ),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: NovaColors.primary(context),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (time == null) return;

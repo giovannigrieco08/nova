@@ -256,7 +256,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6.375),
       child: AspectRatio(
-        aspectRatio: 1.0,
+        aspectRatio: 3 / 4, // 3:4 portrait (BeReal-style)
         child: ClipRRect(
           borderRadius: NovaRadius.circularS,
           child: DoubleTapLikeOverlay(

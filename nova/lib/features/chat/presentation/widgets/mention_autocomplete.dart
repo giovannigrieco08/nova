@@ -133,7 +133,7 @@ class _MentionResultTile extends StatelessWidget {
               '@',
               style: NovaTypography.bodyMedium.copyWith(
                 color: NovaColors.primary(context),
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],

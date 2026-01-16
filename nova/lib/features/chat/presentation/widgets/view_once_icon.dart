@@ -7,10 +7,13 @@ import 'package:nova/core/theme/nova_colors.dart';
 ///
 /// Shows 2 states:
 /// - Viewable: Solid white outline circle
-/// - Not viewable: Dashed gray circle
+/// - Not viewable: Dashed circle with high contrast color based on background
 class ViewOnceIcon extends StatelessWidget {
   /// Whether the media can still be viewed
   final bool isViewable;
+
+  /// Whether this is displayed on the current user's message (purple background)
+  final bool isOwnMessage;
 
   /// Size of the icon
   final double size;
@@ -18,6 +21,7 @@ class ViewOnceIcon extends StatelessWidget {
   const ViewOnceIcon({
     super.key,
     required this.isViewable,
+    this.isOwnMessage = true,
     this.size = 24,
   });
 
@@ -27,8 +31,13 @@ class ViewOnceIcon extends StatelessWidget {
       // Viewable: filled white circle
       return _buildFilledCircle(NovaColors.onPrimaryLight);
     } else {
-      // Not viewable: dashed gray
-      return _buildDashedCircle(NovaColors.grayDark);
+      // Not viewable: dashed circle with high contrast color
+      // Own message (purple bg): light color for contrast
+      // Other message (light bg): dark gray for contrast
+      final color = isOwnMessage
+          ? NovaColors.onPrimaryLight.withValues(alpha: 0.7)
+          : NovaColors.textSecondary(context);
+      return _buildDashedCircle(color);
     }
   }
 
@@ -47,7 +56,7 @@ class ViewOnceIcon extends StatelessWidget {
           style: TextStyle(
             color: NovaColors.textPrimaryLight.withValues(alpha: 0.8),
             fontSize: size * 0.5,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             height: 1,
             decoration: TextDecoration.none,
           ),
@@ -77,7 +86,7 @@ class ViewOnceIcon extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: size * 0.5,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               height: 1,
               decoration: TextDecoration.none,
             ),

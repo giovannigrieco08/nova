@@ -20,7 +20,6 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/animations/heart_explosion_animation.dart';
 import '../../../../core/animations/animated_like_button.dart';
-import '../../../../core/services/share_service.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../domain/entities/event.dart';
 import '../providers/events_feed_provider.dart';
@@ -365,7 +364,7 @@ class _EventCardState extends ConsumerState<EventCard> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6.375), // EXACT per specs
       child: AspectRatio(
-        aspectRatio: 1.0, // 1:1 square
+        aspectRatio: 3 / 4, // 3:4 portrait (BeReal-style)
         child: ClipRRect(
           borderRadius: NovaRadius.circularS,
           child: DoubleTapLikeOverlay(
@@ -489,22 +488,6 @@ class _EventCardState extends ConsumerState<EventCard> {
             constraints: const BoxConstraints(),
             onPressed: _handleComment,
             tooltip: 'Commenti',
-          ),
-          const Spacer(),
-          // Share icon (right side) - outlined style matching other icons
-          IconButton(
-            icon: Transform.rotate(
-              angle: -0.4, // ~-23 degrees for Instagram-style tilt
-              child: const Icon(
-                Icons.send_outlined,
-                size: 24,
-              ),
-            ),
-            color: Colors.black,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: _handleShare,
-            tooltip: 'Condividi',
           ),
         ],
       ),
@@ -990,21 +973,6 @@ class _EventCardState extends ConsumerState<EventCard> {
     );
   }
 
-  void _handleShare() async {
-    // Haptic feedback
-    HapticFeedback.selectionClick();
-
-    try {
-      await ShareService.shareEvent(widget.event);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Errore durante la condivisione')),
-        );
-      }
-    }
-  }
-
   void _handleInvite() {
     Navigator.pop(context);
     showModalBottomSheet(
@@ -1336,7 +1304,7 @@ class _EventCardState extends ConsumerState<EventCard> {
                     'Organizzatori',
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: Colors.black,
                     ),
                   ),
@@ -1453,13 +1421,6 @@ class _EventCardState extends ConsumerState<EventCard> {
         builder: (context) => CupertinoActionSheet(
           actions: [
             CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                _handleShare();
-              },
-              child: const Text('Condividi'),
-            ),
-            CupertinoActionSheetAction(
               isDestructiveAction: true,
               onPressed: () {
                 Navigator.pop(context);
@@ -1482,14 +1443,6 @@ class _EventCardState extends ConsumerState<EventCard> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.share),
-                title: const Text('Condividi'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleShare();
-                },
-              ),
               ListTile(
                 leading: const Icon(Icons.flag),
                 title: const Text('Segnala'),

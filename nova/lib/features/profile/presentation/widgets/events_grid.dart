@@ -170,7 +170,6 @@ class EventsGrid extends StatelessWidget {
           event.title.isNotEmpty ? event.title[0].toUpperCase() : '?',
           style: NovaTypography.headingLarge.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
             fontSize: 24,
           ),
         ),

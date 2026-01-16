@@ -1,5 +1,5 @@
 // =====================================================================
-// Nova - Image Gallery Widget (Instagram-style)
+// Nova - Image Gallery Widget (BeReal-style)
 // =====================================================================
 // Purpose: Swipeable image gallery with dot indicators
 // Architecture: PageView with native Material components
@@ -10,10 +10,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_radius.dart';
 
-/// Swipeable image gallery with pagination indicators (Instagram-style)
+/// Swipeable image gallery with pagination indicators (BeReal-style)
 ///
 /// Features:
-/// - 1:1 aspect ratio images (square, Instagram-style)
+/// - 3:4 aspect ratio images (portrait, BeReal-style)
 /// - Horizontal swipe gesture
 /// - Dot indicators (active/inactive states)
 /// - Cached image loading with placeholder
@@ -39,14 +39,14 @@ class ImageGallery extends StatefulWidget {
   /// Optional Hero tag for animation from feed
   final String? heroTag;
 
-  /// Optional aspect ratio (default: 1.0 for Instagram-style square)
+  /// Optional aspect ratio (default: 3/4 for BeReal-style portrait)
   final double aspectRatio;
 
   const ImageGallery({
     super.key,
     required this.images,
     this.heroTag,
-    this.aspectRatio = 1.0, // Changed to 1:1 (Instagram square)
+    this.aspectRatio = 3 / 4, // 3:4 portrait (BeReal-style)
   });
 
   @override

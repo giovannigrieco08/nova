@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'dart:io' show Platform;
 
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
@@ -12,7 +10,7 @@ import '../../../../core/theme/nova_typography.dart';
 /// Platform-adaptive design with centered content.
 ///
 /// Layout:
-/// - Icon: 💬 (chat bubble emoji or platform icon)
+/// - Icon: chat bubble (Material Icons)
 /// - Title: "Nessun commento ancora"
 /// - Subtitle: "Sii il primo a commentare!"
 ///
@@ -33,8 +31,12 @@ class EmptyCommentsState extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon
-              _buildIcon(context),
+              // Icon - using Material Icons for cross-platform compatibility
+              Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 64,
+                color: NovaColors.textTertiary(context),
+              ),
 
               SizedBox(height: NovaSpacing.m),
 
@@ -62,25 +64,5 @@ class EmptyCommentsState extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// Build platform-adaptive icon
-  ///
-  /// iOS: CupertinoIcons.chat_bubble_2
-  /// Android: Icons.comment_outlined
-  Widget _buildIcon(BuildContext context) {
-    if (Platform.isIOS) {
-      return Icon(
-        CupertinoIcons.chat_bubble_2,
-        size: 64,
-        color: NovaColors.textTertiary(context),
-      );
-    } else {
-      return Icon(
-        Icons.comment_outlined,
-        size: 64,
-        color: NovaColors.textTertiary(context),
-      );
-    }
   }
 }

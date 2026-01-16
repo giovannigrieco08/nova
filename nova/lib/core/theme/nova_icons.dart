@@ -1,8 +1,11 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:nova/core/utils/platform_utils.dart';
 
-/// Platform-adaptive icons using CupertinoIcons (iOS) and Material Icons (Android).
+/// Cross-platform icons using Material Icons for consistent rendering.
+///
+/// Note: CupertinoIcons were causing rendering issues on iOS (showing numbers
+/// instead of icons due to font loading problems with cupertino_native package).
+/// Material Icons work reliably on both platforms.
 ///
 /// Usage:
 /// ```dart
@@ -13,28 +16,18 @@ class NovaIcons {
   // Prevent instantiation
   NovaIcons._();
 
-  /// Helper to create adaptive icons
+  /// Helper to create icons
   ///
-  /// - iOS: CupertinoIcons (SF Symbols compatible)
-  /// - Android: Material Icon
+  /// Uses Material Icons for cross-platform compatibility
   static Widget adaptive(
     BuildContext context, {
-    required String sfSymbol, // Kept for reference, but using cupertinoIcon instead
+    required String sfSymbol, // Kept for reference/documentation
     required IconData materialIcon,
-    IconData? cupertinoIcon, // Optional CupertinoIcons fallback
+    IconData? cupertinoIcon, // Deprecated: no longer used due to rendering issues
     double? size,
     Color? color,
   }) {
-    if (context.isIOS) {
-      // iOS: Use CupertinoIcons (guaranteed to work)
-      return Icon(
-        cupertinoIcon ?? materialIcon,
-        size: size,
-        color: color,
-      );
-    }
-
-    // Android: Material Icon
+    // Always use Material Icons for consistent cross-platform rendering
     return Icon(
       materialIcon,
       size: size,

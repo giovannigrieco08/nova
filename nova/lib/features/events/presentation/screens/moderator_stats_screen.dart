@@ -216,7 +216,6 @@ class ModeratorStatsScreen extends ConsumerWidget {
                   count.toString(),
                   style: NovaTextStyles.h1.copyWith(
                     color: NovaColors.onPrimaryLight,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
@@ -261,9 +260,7 @@ class ModeratorStatsScreen extends ConsumerWidget {
           SizedBox(height: NovaSpacing.s),
           Text(
             value,
-            style: NovaTextStyles.h2.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: NovaTextStyles.h2,
           ),
           SizedBox(height: NovaSpacing.xs),
           Text(
@@ -344,9 +341,7 @@ class ModeratorStatsScreen extends ConsumerWidget {
         ),
         Text(
           value,
-          style: NovaTextStyles.button.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: NovaTextStyles.button,
         ),
       ],
     );

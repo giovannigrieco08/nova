@@ -25,7 +25,6 @@ import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/utils/deep_link_handler.dart';
 import 'package:nova/core/models/auth_state.dart';
 import 'package:nova/core/services/deep_link_service.dart';
-import 'package:nova/core/widgets/splash_screen.dart';
 import 'package:nova/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:nova/features/auth/presentation/screens/login_screen.dart';
 import 'package:nova/features/events/presentation/screens/main_feed_screen.dart';
@@ -336,8 +335,7 @@ class _NovaAppState extends ConsumerState<NovaApp> {
         // Cupertino theme based on user selection
         theme: cupertinoTheme,
 
-        // Splash screen shown first, then navigates to AuthGuard
-        home: const SplashScreen(),
+        home: const AuthGuard(),
 
         // Material localizations for compatibility
         localizationsDelegates: const [
@@ -359,8 +357,7 @@ class _NovaAppState extends ConsumerState<NovaApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: ref.watch(themeModeProvider), // User-selectable theme
 
-      // Splash screen shown first, then navigates to AuthGuard
-      home: const SplashScreen(),
+      home: const AuthGuard(),
     );
   }
 }
@@ -454,7 +451,7 @@ class _ProfileCheckGuard extends ConsumerWidget {
                   const SizedBox(height: 16),
                   const Text(
                     'DEV MODE: No Session',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -551,7 +548,7 @@ class _ErrorScreen extends StatelessWidget {
                 'Authentication Error',
                 style: TextStyle(
                   fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 16),

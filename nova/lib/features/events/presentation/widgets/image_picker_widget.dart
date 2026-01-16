@@ -4,7 +4,7 @@
 //
 // Features:
 // - Show placeholder if no image selected
-// - Show selected image preview (16:9 aspect ratio)
+// - Show selected image preview (3:4 aspect ratio, BeReal-style)
 // - Buttons: "Camera" and "Gallery"
 // - Tap image to change/remove
 // - Loading indicator during compression
@@ -46,15 +46,15 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   Widget build(BuildContext context) {
     final hasImage = widget.imageFile != null || widget.imagePath != null;
 
-    // Instagram-style: image takes prominent space at top, 4:5 aspect ratio
+    // BeReal-style: image takes prominent space at top, 3:4 aspect ratio
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image preview or placeholder (Instagram-style: full width, 4:5 ratio)
+        // Image preview or placeholder (BeReal-style: full width, 3:4 ratio)
         GestureDetector(
           onTap: _showPickerOptions, // Both with/without image use same picker
           child: AspectRatio(
-            aspectRatio: 4 / 5, // Instagram post ratio
+            aspectRatio: 3 / 4, // BeReal-style portrait ratio
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -240,9 +240,9 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
 
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        maxWidth: 1920, // Limit resolution before compression
-        maxHeight: 1080,
-        imageQuality: 85, // Pre-compression quality
+        maxWidth: 1200, // Limit resolution before compression (3:4 ratio)
+        maxHeight: 1600,
+        imageQuality: 92, // Higher pre-compression quality for better final result
       );
 
       if (pickedFile != null) {

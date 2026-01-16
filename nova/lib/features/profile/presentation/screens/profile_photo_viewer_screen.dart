@@ -312,7 +312,6 @@ class _ProfilePhotoViewerScreenState
           initials,
           style: NovaTypography.headingLarge.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
             fontSize: size * 0.35,
           ),
         ),

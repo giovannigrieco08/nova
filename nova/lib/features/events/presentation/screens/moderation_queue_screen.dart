@@ -19,6 +19,7 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/animations/page_transitions.dart';
 import '../providers/moderation_queue_provider.dart';
+import '../providers/events_feed_provider.dart';
 import '../widgets/moderation_card.dart';
 import '../widgets/rejection_dialog.dart';
 import 'moderator_stats_screen.dart';
@@ -224,10 +225,14 @@ class _ModerationQueueScreenState
     try {
       await ref.read(moderationQueueProvider.notifier).approveEvent(eventId);
 
+      // Refresh the main feed so the approved event appears
+      ref.invalidate(eventsFeedProvider);
+      ref.invalidate(userPendingEventsProvider);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Evento approvato con successo'),
+            content: Text('Evento approvato con successo'),
             backgroundColor: NovaColors.approveGreen,
           ),
         );
@@ -263,6 +268,10 @@ class _ModerationQueueScreenState
 
     try {
       await ref.read(moderationQueueProvider.notifier).rejectEvent(eventId, rejectionReason);
+
+      // Refresh the feed (removes from pending events banner if creator is viewing)
+      ref.invalidate(eventsFeedProvider);
+      ref.invalidate(userPendingEventsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -271,7 +271,7 @@ class ActivityLogWidget extends ConsumerWidget {
                   entry.actionDescription,
                   style: NovaTextStyles.caption.copyWith(
                     color: NovaColors.onPrimaryLight,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

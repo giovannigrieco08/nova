@@ -228,7 +228,6 @@ class ProfileHeader extends StatelessWidget {
           initials,
           style: NovaTypography.headingLarge.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
           ),
         ),
       ),

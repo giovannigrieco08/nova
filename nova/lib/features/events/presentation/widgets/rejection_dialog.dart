@@ -114,7 +114,7 @@ class _RejectionDialogState extends State<RejectionDialog> {
                     widget.eventTitle,
                     style: NovaTextStyles.caption.copyWith(
                       color: NovaColors.textSecondary(context),
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

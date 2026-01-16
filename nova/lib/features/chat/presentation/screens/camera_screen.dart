@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:nova/core/theme/nova_spacing.dart';
@@ -162,12 +166,36 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     await _setupCamera(_isFrontCamera ? 1 : 0);
   }
 
+  /// Flip image horizontally to un-mirror front camera photos
+  Future<XFile> _flipImageHorizontally(XFile originalFile) async {
+    final bytes = await File(originalFile.path).readAsBytes();
+    final image = img.decodeImage(bytes);
+    if (image == null) return originalFile;
+
+    final flipped = img.flipHorizontal(image);
+    final flippedBytes = img.encodeJpg(flipped, quality: 95);
+
+    final directory = await getTemporaryDirectory();
+    final newPath =
+        '${directory.path}/flipped_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final newFile = File(newPath);
+    await newFile.writeAsBytes(flippedBytes);
+
+    return XFile(newPath);
+  }
+
   Future<void> _takePhoto() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
     if (_controller!.value.isTakingPicture) return;
 
     try {
-      final XFile file = await _controller!.takePicture();
+      XFile file = await _controller!.takePicture();
+
+      // Flip horizontal if front camera to un-mirror the image
+      if (_isFrontCamera) {
+        file = await _flipImageHorizontally(file);
+      }
+
       if (mounted) {
         Navigator.pop(context, {'type': 'photo', 'file': file});
       }
@@ -430,7 +458,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           label,
           style: NovaTypography.labelMedium.copyWith(
             color: isSelected ? Colors.black : Colors.white,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ),

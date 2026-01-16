@@ -262,7 +262,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Text(
           _emailController.text.trim(),
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: NovaColors.primary(context),
               ),
           textAlign: TextAlign.center,

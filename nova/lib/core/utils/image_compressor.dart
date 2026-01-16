@@ -2,10 +2,10 @@
 // Feature: 004-event-creation-moderation
 // Purpose: Compress event images to WebP/JPEG with size and dimension limits
 //
-// Requirements (from spec.md NFR-001):
-// - Target dimensions: 800x450px (16:9 aspect ratio)
-// - Max file size: 200KB
-// - Format priority: WebP (85% quality) → JPEG fallback (70% quality)
+// Requirements (BeReal-style 3:4 portrait images):
+// - Target dimensions: 1080x1440px (3:4 aspect ratio)
+// - Max file size: 500KB
+// - Format priority: WebP (88% quality) → JPEG fallback (82% quality)
 // - EXIF metadata removal (automatic with flutter_image_compress)
 
 import 'dart:io';
@@ -20,16 +20,16 @@ class ImageCompressor {
   // Prevent instantiation - static utility class
   ImageCompressor._();
 
-  /// Target dimensions (16:9 aspect ratio for Instagram-style feed)
-  static const int targetWidth = 800;
-  static const int targetHeight = 450;
+  /// Target dimensions (3:4 aspect ratio for BeReal-style portrait images)
+  static const int targetWidth = 1080;
+  static const int targetHeight = 1440;
 
-  /// Maximum file size in bytes (200KB)
-  static const int maxFileSizeBytes = 200 * 1024; // 200KB
+  /// Maximum file size in bytes (500KB)
+  static const int maxFileSizeBytes = 500 * 1024; // 500KB
 
   /// Compression quality settings
-  static const int webpQuality = 85;
-  static const int jpegQuality = 70;
+  static const int webpQuality = 88;
+  static const int jpegQuality = 82;
 
   /// Compress image file to WebP format with fallback to JPEG
   ///
@@ -59,7 +59,7 @@ class ImageCompressor {
       // If still too large, compress JPEG more aggressively
       final aggressiveJpegBytes = await _compressToJPEG(
         imageFile,
-        quality: 60, // More aggressive compression
+        quality: 72, // More aggressive compression (minimum acceptable quality)
       );
 
       if (aggressiveJpegBytes != null &&

@@ -59,14 +59,14 @@ class ImageOptimizer {
     );
   }
 
-  /// Build optimized event card image (16:9 aspect ratio)
+  /// Build optimized event card image (3:4 aspect ratio, BeReal-style)
   /// Used in EventCard widget
   static Widget buildEventCardImage({
     required String imageUrl,
     required double width,
     BorderRadius? borderRadius,
   }) {
-    final height = width * (9 / 16); // 16:9 aspect ratio
+    final height = width * (4 / 3); // 3:4 aspect ratio (BeReal-style)
 
     return buildOptimizedImage(
       imageUrl: imageUrl,
@@ -135,7 +135,7 @@ class ImageOptimizer {
           style: TextStyle(
             color: Colors.white,
             fontSize: size * 0.4,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -164,16 +164,16 @@ class ImageOptimizer {
     return '$imageUrl?width=$width${height != null ? '&height=$height' : ''}';
   }
 
-  /// Get thumbnail version of image (400px wide)
+  /// Get thumbnail version of image (540px wide for 2x density)
   /// Used for event card images to save bandwidth
   static String getThumbnail(String imageUrl) {
-    return toWebP(resize(imageUrl, width: 400), quality: 80);
+    return toWebP(resize(imageUrl, width: 540), quality: 82);
   }
 
-  /// Get full-size version of image (1200px wide)
+  /// Get full-size version of image (1080px wide, matches stored resolution)
   /// Used for event detail screen gallery
   static String getFullSize(String imageUrl) {
-    return toWebP(resize(imageUrl, width: 1200), quality: 90);
+    return toWebP(resize(imageUrl, width: 1080), quality: 90);
   }
 
   /// Preload images for faster display

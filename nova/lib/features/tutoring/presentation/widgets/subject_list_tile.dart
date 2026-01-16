@@ -94,30 +94,15 @@ class SubjectListTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: NovaSpacing.m),
-          // Title and description
+          // Title only
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subject.displayName,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: NovaColors.textPrimary(context),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subject.description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: NovaColors.textSecondary(context),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+            child: Text(
+              subject.displayName,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: NovaColors.textPrimary(context),
+              ),
             ),
           ),
           // Chevron indicator

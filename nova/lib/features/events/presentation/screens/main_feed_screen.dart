@@ -12,7 +12,6 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../core/animations/page_transitions.dart';
-import '../../../../core/animations/instagram_refresh_indicator.dart';
 import '../../../../shared/widgets/nova_bottom_nav_bar.dart';
 import '../../../../shared/widgets/avatar_widget.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
@@ -45,11 +44,6 @@ class MainFeedScreen extends ConsumerStatefulWidget {
 
 class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
   int _currentNavIndex = 0; // Bottom nav index (0=Home, 1=Search, 2=Tutoring, 3=Chat, 4=Profile)
-
-  // Instagram-style refresh state
-  bool _isRefreshing = false;
-  // Use ValueNotifier to avoid setState on every scroll frame (60fps = 60 rebuilds/sec)
-  final ValueNotifier<double> _pullProgressNotifier = ValueNotifier(0.0);
 
   // Swipe gesture tracking
   bool _isHorizontalDragActive = false;
@@ -107,7 +101,6 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
     // Clear the callback when disposing
     final pushService = ref.read(pushNotificationServiceProvider);
     pushService.onForegroundNotification = null;
-    _pullProgressNotifier.dispose();
     super.dispose();
   }
 
@@ -232,7 +225,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -324,55 +317,11 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
 
   /// Handle pull-to-refresh for events feed
   Future<void> _onRefresh() async {
-    setState(() {
-      _isRefreshing = true;
-    });
-
-    try {
-      await ref.read(eventsFeedProvider.notifier).refresh();
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRefreshing = false;
-        });
-        _pullProgressNotifier.value = 0.0;
-      }
-    }
-  }
-
-  /// Handle scroll notifications for pull-to-refresh
-  /// Uses ValueNotifier to avoid setState on every scroll frame
-  bool _handleScrollNotification(ScrollNotification notification) {
-    if (_isRefreshing) return false;
-
-    if (notification is ScrollUpdateNotification) {
-      final pixels = notification.metrics.pixels;
-
-      // Detect overscroll (negative pixels with BouncingScrollPhysics)
-      if (pixels < 0) {
-        // Calculate progress based on how far user pulled
-        final progress = (-pixels / 100.0).clamp(0.0, 1.0);
-        if (progress != _pullProgressNotifier.value) {
-          _pullProgressNotifier.value = progress;
-        }
-      } else if (_pullProgressNotifier.value > 0 && pixels >= 0) {
-        // Reset when scrolling back to normal position
-        _pullProgressNotifier.value = 0.0;
-      }
-    } else if (notification is ScrollEndNotification) {
-      if (_pullProgressNotifier.value >= 1.0) {
-        // Trigger refresh when pulled enough
-        _onRefresh();
-      } else if (_pullProgressNotifier.value > 0) {
-        // Reset if not pulled enough
-        _pullProgressNotifier.value = 0.0;
-      }
-    }
-
-    return false;
+    await ref.read(eventsFeedProvider.notifier).refresh();
   }
 
   /// Build the Home screen with Eventi feed
+  /// Uses native pull-to-refresh: CupertinoSliverRefreshControl on iOS, RefreshIndicator on Android
   Widget _buildHomeScreen() {
     return GestureDetector(
       // Horizontal swipe gestures for navigation
@@ -380,9 +329,51 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
       onHorizontalDragEnd: _onHorizontalDragEnd,
       onHorizontalDragCancel: _onHorizontalDragCancel,
       behavior: HitTestBehavior.translucent,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: _handleScrollNotification,
-        child: NestedScrollView(
+      child: context.isIOS ? _buildIOSHomeScreen() : _buildAndroidHomeScreen(),
+    );
+  }
+
+  /// iOS-native home screen with CupertinoSliverRefreshControl
+  Widget _buildIOSHomeScreen() {
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      slivers: [
+        // Native iOS pull-to-refresh control
+        CupertinoSliverRefreshControl(
+          onRefresh: _onRefresh,
+        ),
+        // Floating app bar
+        SliverAppBar(
+          backgroundColor: NovaColors.background(context),
+          elevation: 0,
+          floating: true,
+          snap: true,
+          pinned: false,
+          toolbarHeight: 56,
+          titleSpacing: 0,
+          automaticallyImplyLeading: false,
+          title: _buildAppBarContent(),
+        ),
+        // Feed content as sliver
+        SliverFillRemaining(
+          hasScrollBody: true,
+          child: EventsFeedScreen(
+            showAppBar: false,
+            disableRefresh: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Android home screen with Material RefreshIndicator
+  Widget _buildAndroidHomeScreen() {
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      edgeOffset: 56, // Account for app bar height
+      child: NestedScrollView(
         floatHeaderSlivers: true,
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -395,70 +386,52 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
               toolbarHeight: 56,
               titleSpacing: 0,
               automaticallyImplyLeading: false,
-              title: Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Sinistra: Pulsante + (schermata slide da sinistra)
-                    GestureDetector(
-                      onTap: _onCreateTap,
-                      child: Icon(
-                        context.isIOS ? CupertinoIcons.plus : Icons.add,
-                        color: NovaColors.textPrimary(context),
-                        size: 24,
-                      ),
-                    ),
-
-                    // Centro: Titolo "Eventi" (statico, senza dropdown)
-                    Text(
-                      'Eventi',
-                      style: NovaTypography.headingMedium.copyWith(
-                        color: NovaColors.textPrimary(context),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-
-                    // Destra: Campanella (schermata slide da destra)
-                    GestureDetector(
-                      onTap: _onNotificationsTap,
-                      child: _buildNotificationBell(context),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Instagram-style refresh indicator (below header)
-            // Use ValueListenableBuilder to only rebuild this widget, not entire screen
-            SliverToBoxAdapter(
-              child: ValueListenableBuilder<double>(
-                valueListenable: _pullProgressNotifier,
-                builder: (context, pullProgress, _) {
-                  if (!_isRefreshing && pullProgress == 0) {
-                    return const SizedBox.shrink();
-                  }
-                  return Container(
-                    height: 40,
-                    alignment: Alignment.center,
-                    child: InstagramRefreshIndicator(
-                      size: 24,
-                      isRefreshing: _isRefreshing,
-                      pullProgress: pullProgress,
-                    ),
-                  );
-                },
-              ),
+              title: _buildAppBarContent(),
             ),
           ];
         },
         body: EventsFeedScreen(
           showAppBar: false,
-          disableRefresh: true, // Disable built-in refresh since we handle it here
+          disableRefresh: true,
         ),
-        ),
+      ),
+    );
+  }
+
+  /// Build app bar content (shared between iOS and Android)
+  Widget _buildAppBarContent() {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Sinistra: Pulsante + (schermata slide da sinistra)
+          GestureDetector(
+            onTap: _onCreateTap,
+            child: Icon(
+              context.isIOS ? CupertinoIcons.plus : Icons.add,
+              color: NovaColors.textPrimary(context),
+              size: 24,
+            ),
+          ),
+
+          // Centro: Titolo "Eventi" (statico, senza dropdown)
+          Text(
+            'Eventi',
+            style: NovaTypography.headingMedium.copyWith(
+              color: NovaColors.textPrimary(context),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+
+          // Destra: Campanella (schermata slide da destra)
+          GestureDetector(
+            onTap: _onNotificationsTap,
+            child: _buildNotificationBell(context),
+          ),
+        ],
       ),
     );
   }
@@ -475,16 +448,15 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
           _buildMainContent(),
 
           // Bottom navigation overlay (sempre visibile)
+          // Edge-to-edge liquid glass effect - navbar handles SafeArea internally
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: SafeArea(
-              child: NovaBottomNavBar(
-                currentIndex: _currentNavIndex,
-                items: navItems,
-                onTap: _onNavItemSelected,
-              ),
+            child: NovaBottomNavBar(
+              currentIndex: _currentNavIndex,
+              items: navItems,
+              onTap: _onNavItemSelected,
             ),
           ),
         ],

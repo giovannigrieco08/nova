@@ -140,7 +140,7 @@ class ContactTutorSheet extends StatelessWidget {
           tutor.authorName,
           style: TextStyle(
             fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: NovaColors.textPrimary(context),
           ),
         ),

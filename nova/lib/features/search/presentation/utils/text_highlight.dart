@@ -21,7 +21,7 @@ TextSpan highlightText({
 
   final effectiveHighlightStyle = highlightStyle ??
       baseStyle.copyWith(
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w700,
       );
 
   final lowerText = text.toLowerCase();

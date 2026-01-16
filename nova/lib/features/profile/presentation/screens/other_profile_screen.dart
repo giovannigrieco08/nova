@@ -165,6 +165,11 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
             SliverToBoxAdapter(
               child: _buildEventsGrid(profile, statsAsync),
             ),
+
+            // Bottom padding to prevent content being covered by navbar
+            SliverToBoxAdapter(
+              child: SizedBox(height: 100),
+            ),
           ],
         ),
       ),

@@ -3,7 +3,7 @@
 // Purpose: Display tutor profile info in ProfileScreen/OtherProfileScreen
 
 import 'dart:io' show Platform;
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' show CupertinoButton, CupertinoAlertDialog, CupertinoDialogAction, showCupertinoDialog;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -114,8 +114,8 @@ class TutorProfileSection extends ConsumerWidget {
             ),
             borderRadius: NovaRadius.circularXs,
           ),
-          child: Icon(
-            Platform.isIOS ? CupertinoIcons.book_fill : Icons.school_rounded,
+          child: const Icon(
+            Icons.school_rounded,
             color: Colors.white,
             size: 20,
           ),
@@ -127,7 +127,7 @@ class TutorProfileSection extends ConsumerWidget {
             'Ripetizioni',
             style: TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: NovaColors.textPrimary(context),
             ),
           ),
@@ -200,7 +200,7 @@ class TutorProfileSection extends ConsumerWidget {
     return Row(
       children: [
         Icon(
-          Platform.isIOS ? CupertinoIcons.calendar : Icons.calendar_today_rounded,
+          Icons.calendar_today_rounded,
           size: 16,
           color: NovaColors.textSecondary(context),
         ),
@@ -323,7 +323,7 @@ class TutorProfileSection extends ConsumerWidget {
                     borderRadius: NovaRadius.circularXs,
                   ),
                   child: Icon(
-                    Platform.isIOS ? CupertinoIcons.book_fill : Icons.school_rounded,
+                    Icons.school_rounded,
                     color: NovaColors.textSecondary(context),
                     size: 20,
                   ),
