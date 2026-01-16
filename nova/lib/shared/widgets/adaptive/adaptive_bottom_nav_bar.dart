@@ -1,6 +1,6 @@
 import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:cupertino_native/cupertino_native.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
@@ -11,22 +11,22 @@ class BottomNavItem {
   /// Item label
   final String label;
 
-  /// iOS: SF Symbol name
-  final String? iconSystemName;
+  /// iOS: CupertinoIcons icon
+  final IconData? cupertinoIcon;
 
   /// Android: Material icon
   final IconData? androidIcon;
 
   const BottomNavItem({
     required this.label,
-    this.iconSystemName,
+    this.cupertinoIcon,
     this.androidIcon,
   });
 }
 
 /// Platform-adaptive bottom navigation bar.
 ///
-/// - iOS: [CNTabBar] (native UIKit tab bar) with blur background
+/// - iOS: [CupertinoTabBar] with blur background
 /// - Android: [NavigationBar] Material 3
 ///
 /// Example:
@@ -37,8 +37,8 @@ class BottomNavItem {
 ///   items: [
 ///     BottomNavItem(
 ///       label: 'Home',
-///       iconSystemName: 'house.fill',  // iOS SF Symbol
-///       androidIcon: Icons.home,        // Android Material
+///       cupertinoIcon: CupertinoIcons.house_fill,  // iOS
+///       androidIcon: Icons.home,                    // Android
 ///     ),
 ///     // ... more items
 ///   ],
@@ -69,7 +69,7 @@ class AdaptiveBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (context.isIOS) {
-      // iOS: Native CNTabBar with glassmorphic background
+      // iOS: CupertinoTabBar with glassmorphic background
       return Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.bottomCenter,
@@ -92,17 +92,17 @@ class AdaptiveBottomNavBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                child: CNTabBar(
+                child: CupertinoTabBar(
                   currentIndex: currentIndex,
                   items: items.map((item) {
-                    return CNTabBarItem(
+                    return BottomNavigationBarItem(
+                      icon: Icon(item.cupertinoIcon ?? item.androidIcon),
                       label: item.label,
-                      icon: item.iconSystemName != null
-                          ? CNSymbol(item.iconSystemName!)
-                          : null,
                     );
                   }).toList(),
                   onTap: onTap,
+                  backgroundColor: Colors.transparent,
+                  border: const Border(),
                 ),
               ),
             ),

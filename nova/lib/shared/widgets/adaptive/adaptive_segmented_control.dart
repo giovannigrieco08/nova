@@ -1,10 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:cupertino_native/cupertino_native.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 
 /// Platform-adaptive segmented control.
 ///
-/// - iOS: [CNSegmentedControl] (native UIKit segmented control from cupertino_native)
+/// - iOS: [CupertinoSegmentedControl] (standard Cupertino segmented control)
 /// - Android: [SegmentedButton] Material 3
 ///
 /// Example:
@@ -18,7 +18,7 @@ import 'package:nova/core/utils/platform_utils.dart';
 ///   },
 /// )
 /// ```
-class AdaptiveSegmentedControl<T> extends StatelessWidget {
+class AdaptiveSegmentedControl<T extends Object> extends StatelessWidget {
   /// Segment options (value -> label)
   final Map<T, String> children;
 
@@ -38,21 +38,18 @@ class AdaptiveSegmentedControl<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (context.isIOS) {
-      // iOS: Native CNSegmentedControl from cupertino_native
-      // Convert Map<T, String> to List<String> and index-based selection
-      final labels = children.values.toList();
-      final values = children.keys.toList();
-      final selectedIndex = groupValue != null
-          ? values.indexOf(groupValue as T)
-          : 0;
-
-      return CNSegmentedControl(
-        labels: labels,
-        selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
-        onValueChanged: (index) {
-          if (index >= 0 && index < values.length && onValueChanged != null) {
-            onValueChanged!(values[index]);
-          }
+      // iOS: Standard CupertinoSegmentedControl
+      return CupertinoSegmentedControl<T>(
+        children: children.map((key, value) => MapEntry(
+          key,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(value),
+          ),
+        )),
+        groupValue: groupValue,
+        onValueChanged: (T value) {
+          onValueChanged?.call(value);
         },
       );
     }

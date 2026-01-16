@@ -1,11 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:cupertino_native/cupertino_native.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 
 /// Platform-adaptive slider.
 ///
-/// - iOS: [CNSlider] (native UIKit slider from cupertino_native)
+/// - iOS: [CupertinoSlider] (standard Cupertino slider)
 /// - Android: [Slider] Material
 ///
 /// Example:
@@ -45,12 +45,14 @@ class AdaptiveSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (context.isIOS) {
-      // iOS: Native CNSlider from cupertino_native
-      return CNSlider(
+      // iOS: Standard CupertinoSlider
+      return CupertinoSlider(
         value: value,
         min: min,
         max: max,
-        onChanged: onChanged ?? (_) {},
+        divisions: divisions,
+        onChanged: onChanged,
+        activeColor: NovaColors.primary(context),
       );
     }
 

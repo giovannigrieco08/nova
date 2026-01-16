@@ -1,11 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:cupertino_native/cupertino_native.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 
 /// Platform-adaptive switch.
 ///
-/// - iOS: [CNSwitch] (native UIKit switch from cupertino_native)
+/// - iOS: [CupertinoSwitch] (standard Cupertino switch)
 /// - Android: [Switch] Material
 ///
 /// Example:
@@ -35,10 +35,11 @@ class AdaptiveSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (context.isIOS) {
-      // iOS: Native CNSwitch from cupertino_native
-      return CNSwitch(
+      // iOS: Standard CupertinoSwitch
+      return CupertinoSwitch(
         value: value,
-        onChanged: onChanged ?? (_) {},
+        onChanged: onChanged,
+        activeTrackColor: activeColor ?? NovaColors.primary(context),
       );
     }
 
