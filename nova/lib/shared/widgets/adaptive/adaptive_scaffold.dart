@@ -48,10 +48,14 @@ class AdaptiveScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     if (context.isIOS) {
       // iOS: CupertinoPageScaffold
+      // Use systemBackground as default to ensure proper light/dark mode handling
       return CupertinoPageScaffold(
         navigationBar: appBar as ObstructingPreferredSizeWidget?,
-        backgroundColor: backgroundColor,
-        child: body ?? const SizedBox.shrink(),
+        backgroundColor: backgroundColor ?? CupertinoColors.systemBackground,
+        child: SafeArea(
+          top: false, // Navigation bar handles top safe area
+          child: body ?? const SizedBox.shrink(),
+        ),
       );
     }
 

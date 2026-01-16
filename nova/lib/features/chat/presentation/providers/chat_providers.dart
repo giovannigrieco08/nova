@@ -7,6 +7,7 @@ import 'package:nova/features/chat/domain/entities/chat_media_info.dart';
 import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 import 'package:nova/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:nova/features/chat/data/datasources/chat_remote_datasource.dart';
+import 'package:nova/features/chat/presentation/providers/chat_realtime_provider.dart';
 
 // =============================================================================
 // Core Providers (imported from core_providers.dart)
@@ -50,31 +51,26 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
 
 /// Stream of chat messages with full joins (profiles, media, reactions).
 ///
-/// Uses a hybrid approach:
-/// - Listen to real-time stream for change detection
-/// - Re-fetch with full joins when changes occur
-/// This ensures media and other joined data are always included.
+/// Fetches initial messages with full profile/media data.
+/// Real-time updates are handled by [chatRealtimeProvider].
+/// Use pull-to-refresh to get updated data with full joins.
 final chatMessagesStreamProvider =
-    StreamProvider.autoDispose<List<ChatMessage>>((ref) async* {
-  final repository = ref.watch(chatRepositoryProvider);
+    FutureProvider.autoDispose<List<ChatMessage>>((ref) async {
   final dataSource = ref.watch(chatRemoteDataSourceProvider);
-
-  // Initial fetch with full joins
-  final initialMessages = await dataSource.getMessages(limit: 50);
   final currentUserId = ref.read(currentUserIdProvider);
 
-  yield initialMessages
+  // Fetch messages with full joins (profiles, media, reactions)
+  final messages = await dataSource.getMessages(limit: 50);
+
+  // Also initialize the realtime provider with these messages
+  // so it has the full data for incremental updates
+  final realtimeNotifier = ref.read(chatRealtimeProvider.notifier);
+  final entities = messages
       .map((m) => m.toEntity(currentUserId: currentUserId))
       .toList();
+  realtimeNotifier.setMessages(entities);
 
-  // Listen to real-time changes and re-fetch with joins
-  await for (final _ in repository.watchMessages(limit: 50)) {
-    // Re-fetch with full joins when any change is detected
-    final updatedMessages = await dataSource.getMessages(limit: 50);
-    yield updatedMessages
-        .map((m) => m.toEntity(currentUserId: currentUserId))
-        .toList();
-  }
+  return entities;
 });
 
 /// Load more messages (pagination)

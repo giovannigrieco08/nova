@@ -32,7 +32,8 @@ class NovaGlass {
       case GlassLevel.medium:
         return (
           blur: isDark ? 7.0 : 6.0,  // Reduced from 14/12
-          glassColor: isDark ? NovaColors.glassTintDarkMedium : NovaColors.glassTintMedium,
+          // Light mode uses more opaque white for brighter glass effect
+          glassColor: isDark ? NovaColors.glassTintDarkMedium : const Color(0xCCFFFFFF),
           borderColor: isDark ? NovaColors.glassBorderDarkMedium : NovaColors.glassBorderMedium,
         );
 

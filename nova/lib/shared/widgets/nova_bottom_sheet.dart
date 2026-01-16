@@ -34,6 +34,8 @@ class NovaBottomSheet {
   }) {
     final isIOS = Platform.isIOS;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
@@ -41,7 +43,8 @@ class NovaBottomSheet {
       enableDrag: true,
       // Transparent on iOS for glass effect, solid on Android
       backgroundColor: isIOS ? Colors.transparent : NovaColors.background(context),
-      barrierColor: Colors.black54,
+      // Use lighter barrier in light mode for better glass effect visibility
+      barrierColor: isDark ? Colors.black54 : Colors.black38,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(NovaRadius.xl),
