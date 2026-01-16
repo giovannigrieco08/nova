@@ -78,20 +78,27 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     }
   }
 
-  /// Load the current user's participation state from database
+  /// Load the current user's participation state and count from database
   Future<void> _loadParticipationState(String eventId) async {
     final userId = ref.read(currentUserIdProvider);
-    if (userId == null) return;
+    final repository = ref.read(eventsRepositoryProvider);
 
     try {
-      final repository = ref.read(eventsRepositoryProvider);
-      final isParticipating = await repository.isUserParticipating(
-        eventId: eventId,
-        userId: userId,
-      );
+      // Load participation count
+      final count = await repository.getParticipationCount(eventId);
+
+      // Load user participation state if logged in
+      bool isParticipating = false;
+      if (userId.isNotEmpty) {
+        isParticipating = await repository.isUserParticipating(
+          eventId: eventId,
+          userId: userId,
+        );
+      }
 
       if (mounted) {
         setState(() {
+          _participantCount = count;
           _isParticipating = isParticipating;
         });
       }
@@ -108,50 +115,78 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     if (widget.eventId != null) {
       final eventAsync = ref.watch(eventDetailProvider(widget.eventId!));
 
-      return Scaffold(
-        backgroundColor: NovaColors.backgroundLight,
-        appBar: _buildAppBar(context, null),
-        body: eventAsync.when(
-          data: (event) {
-            if (event == null) {
-              return _buildErrorState(
+      return eventAsync.when(
+        data: (event) {
+          if (event == null) {
+            return Scaffold(
+              backgroundColor: NovaColors.backgroundLight,
+              appBar: _buildAppBar(context),
+              body: _buildErrorState(
                 context,
                 'Evento non trovato',
                 'Questo evento non esiste o è stato eliminato.',
-              );
-            }
+              ),
+            );
+          }
 
-            // Handle pending event (only creator and moderators can see)
-            if (event.status == EventStatus.pending &&
-                event.creatorId != currentUserId) {
-              return _buildErrorState(
+          // Handle pending event (only creator and moderators can see)
+          if (event.status == EventStatus.pending &&
+              event.creatorId != currentUserId) {
+            return Scaffold(
+              backgroundColor: NovaColors.backgroundLight,
+              appBar: _buildAppBar(context),
+              body: _buildErrorState(
                 context,
                 'Evento in attesa',
                 'Questo evento è in attesa di moderazione.',
-              );
-            }
+              ),
+            );
+          }
 
-            // Handle rejected event (only creator can see)
-            if (event.status == EventStatus.rejected &&
-                event.creatorId != currentUserId) {
-              return _buildErrorState(
+          // Handle rejected event (only creator can see)
+          if (event.status == EventStatus.rejected &&
+              event.creatorId != currentUserId) {
+            return Scaffold(
+              backgroundColor: NovaColors.backgroundLight,
+              appBar: _buildAppBar(context),
+              body: _buildErrorState(
                 context,
                 'Evento non disponibile',
                 'Questo evento non è disponibile.',
-              );
-            }
+              ),
+            );
+          }
 
-            _initializeState(event);
-            return _buildEventContent(context, event, currentUserId);
-          },
-          loading: () => Center(
+          _initializeState(event);
+          return Scaffold(
+            backgroundColor: NovaColors.backgroundLight,
+            appBar: _buildAppBar(context),
+            body: _buildEventContent(context, event, currentUserId),
+          );
+        },
+        loading: () => Scaffold(
+          backgroundColor: NovaColors.backgroundLight,
+          appBar: AppBar(
+            backgroundColor: NovaColors.backgroundLight,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new, color: NovaColors.textPrimaryLight, size: 24),
+              onPressed: () => Navigator.of(context).pop(),
+              tooltip: 'Indietro',
+            ),
+          ),
+          body: Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(
                 NovaColors.primary(context),
               ),
             ),
           ),
-          error: (error, stack) => _buildErrorState(
+        ),
+        error: (error, stack) => Scaffold(
+          backgroundColor: NovaColors.backgroundLight,
+          appBar: _buildAppBar(context),
+          body: _buildErrorState(
             context,
             'Errore',
             'Impossibile caricare l\'evento: $error',
@@ -166,12 +201,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
     return Scaffold(
       backgroundColor: NovaColors.backgroundLight,
-      appBar: _buildAppBar(context, event),
+      appBar: _buildAppBar(context),
       body: _buildEventContent(context, event, currentUserId),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, Event? event) {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: NovaColors.backgroundLight,
       elevation: 0,
@@ -183,7 +218,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       actions: [
         IconButton(
           icon: Icon(Icons.more_vert, color: NovaColors.textPrimaryLight),
-          onPressed: () => _showMenuSheet(event),
+          onPressed: () => _showMenuSheet(_event),
           tooltip: 'Altre opzioni',
         ),
       ],
@@ -445,32 +480,49 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
       child: Row(
         children: [
-          // Partecipo button
+          // Partecipo button (toggle)
           Expanded(
             child: ElevatedButton(
-              onPressed: _isParticipating ? null : _handleParticipate,
+              onPressed: _isParticipateLoading ? null : _handleParticipateToggle,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isParticipating
                     ? NovaColors.grayMedium
                     : NovaColors.brandViolet,
                 foregroundColor: _isParticipating
-                    ? NovaColors.textSecondaryLight
+                    ? NovaColors.textPrimaryLight
                     : NovaColors.onPrimaryLight,
-                disabledBackgroundColor: NovaColors.grayMedium,
-                disabledForegroundColor: NovaColors.textSecondaryLight,
+                disabledBackgroundColor: _isParticipating
+                    ? NovaColors.grayMedium
+                    : NovaColors.brandViolet.withAlpha(180),
+                disabledForegroundColor: _isParticipating
+                    ? NovaColors.textSecondaryLight
+                    : NovaColors.onPrimaryLight.withAlpha(180),
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: NovaRadius.circularXs,
                 ),
               ),
-              child: Text(
-                _isParticipating ? 'Partecipo già' : 'Partecipo',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: _isParticipateLoading
+                  ? SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _isParticipating
+                              ? NovaColors.textSecondaryLight
+                              : NovaColors.onPrimaryLight,
+                        ),
+                      ),
+                    )
+                  : Text(
+                      _isParticipating ? 'Non partecipo più' : 'Partecipo',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 8),
@@ -848,29 +900,47 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     }
   }
 
-  void _handleParticipate() async {
-    if (_isParticipating || _isParticipateLoading) return;
+  void _handleParticipateToggle() async {
+    if (_isParticipateLoading) return;
 
     final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
     if (userId == null) return;
 
+    final wasParticipating = _isParticipating;
+
+    // Optimistic update
     setState(() {
-      _isParticipating = true;
-      _participantCount = _participantCount + 1;
+      _isParticipating = !wasParticipating;
+      _participantCount = wasParticipating
+          ? (_participantCount > 0 ? _participantCount - 1 : 0)
+          : _participantCount + 1;
       _isParticipateLoading = true;
     });
 
     try {
       final repository = ref.read(eventsRepositoryProvider);
-      await repository.participateInEvent(eventId: _event!.id, userId: userId);
+      if (wasParticipating) {
+        await repository.unparticipateFromEvent(
+            eventId: _event!.id, userId: userId);
+      } else {
+        await repository.participateInEvent(
+            eventId: _event!.id, userId: userId);
+      }
     } catch (e) {
+      // Revert on error
       if (mounted) {
         setState(() {
-          _isParticipating = false;
-          _participantCount = _participantCount - 1;
+          _isParticipating = wasParticipating;
+          _participantCount = wasParticipating
+              ? _participantCount + 1
+              : (_participantCount > 0 ? _participantCount - 1 : 0);
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Errore durante la partecipazione')),
+          SnackBar(
+            content: Text(wasParticipating
+                ? 'Errore durante l\'annullamento'
+                : 'Errore durante la partecipazione'),
+          ),
         );
       }
     } finally {

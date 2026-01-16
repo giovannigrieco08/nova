@@ -465,9 +465,10 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       _progressSubscription?.cancel();
 
       // Start playback from URL
+      // Don't specify codec - let flutter_sound auto-detect from file
+      // iOS uses aacMP4 (.m4a), Android uses aacADTS (.aac)
       await _audioPlayer!.startPlayer(
         fromURI: widget.signedUrl,
-        codec: Codec.aacADTS,
         whenFinished: () {
           if (mounted) {
             setState(() {

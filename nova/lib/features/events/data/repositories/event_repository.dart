@@ -79,7 +79,8 @@ class EventRepositoryImpl implements EventRepository {
       // Step 1: Upload image if provided
       String? imageUrl;
       if (imageFile != null) {
-        imageUrl = await uploadEventImage(imageFile, event.id);
+        // Pass both userId and eventId - storage path uses userId for RLS
+        imageUrl = await uploadEventImage(imageFile, event.id, userId: event.creatorId);
       }
 
       // Step 2: Create event model with image URL
@@ -201,7 +202,7 @@ class EventRepositoryImpl implements EventRepository {
   // =========================================================================
 
   @override
-  Future<String> uploadEventImage(File imageFile, String eventId) async {
+  Future<String> uploadEventImage(File imageFile, String eventId, {String? userId}) async {
     try {
       // Step 1: Compress image (WebP → JPEG fallback, max 200KB)
       final compressedBytes = await ImageCompressor.compressImage(imageFile);
@@ -210,8 +211,11 @@ class EventRepositoryImpl implements EventRepository {
       final extension = ImageCompressor.getImageExtension(compressedBytes);
 
       // Step 3: Generate unique filename with timestamp
+      // Use userId as first path segment to comply with RLS policy
+      // Path format: {userId}/{eventId}/{timestamp}.{ext}
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = '$eventId/$timestamp.$extension';
+      final uploadUserId = userId ?? _supabase.auth.currentUser?.id ?? 'unknown';
+      final fileName = '$uploadUserId/$eventId/$timestamp.$extension';
 
       // Step 4: Upload to Supabase Storage bucket 'event-images'
       await _supabase.storage.from('event-images').uploadBinary(

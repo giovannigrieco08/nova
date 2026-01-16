@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,10 +62,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
   double _dragExtent = 0;
   static const double _maxDragExtent = 80;
   static const double _replyThreshold = 60; // Threshold to trigger reply
-  static const double _edgeSwipeThreshold = 30; // Left edge zone for back navigation
+  static const double _edgeSwipeThreshold = 50; // Left edge zone for back navigation
   bool _replyTriggered = false;
-  bool _isDragActive = false; // Track if we should handle this drag
-  double? _dragStartX; // Track where the drag started
 
   late AnimationController _animationController;
   late Animation<double> _snapBackAnimation;
@@ -93,21 +92,16 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
   }
 
   void _onHorizontalDragStart(DragStartDetails details) {
-    _dragStartX = details.globalPosition.dx;
-    // Only handle drags that don't start from the left edge (allow back navigation)
-    _isDragActive = _dragStartX! > _edgeSwipeThreshold;
-    // Stop any running animation
-    if (_isDragActive && _animationController.isAnimating) {
+    // Stop any running animation when starting a new drag
+    if (_animationController.isAnimating) {
       _animationController.stop();
     }
   }
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
-    // Ignore drags that started from the edge (for back navigation)
-    if (!_isDragActive) return;
     setState(() {
       _dragExtent += details.delta.dx;
-      // Only allow swipe right (reply) - remove left swipe
+      // Only allow swipe right (reply) - clamp to valid range
       _dragExtent = _dragExtent.clamp(0.0, _maxDragExtent);
     });
 
@@ -122,12 +116,6 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
   }
 
   void _onHorizontalDragEnd(DragEndDetails details) {
-    // Ignore drags that started from the edge (for back navigation)
-    if (!_isDragActive) {
-      _resetDragState();
-      return;
-    }
-
     // Check if swipe right triggered reply
     if (_dragExtent >= _replyThreshold) {
       HapticFeedback.lightImpact();
@@ -144,12 +132,6 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
     ));
 
     _animationController.forward(from: 0.0);
-    _resetDragState();
-  }
-
-  void _resetDragState() {
-    _isDragActive = false;
-    _dragStartX = null;
     _replyTriggered = false;
   }
 
@@ -178,10 +160,21 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
         horizontal: NovaSpacing.m,
         vertical: 3,
       ),
-      child: GestureDetector(
-        onHorizontalDragStart: _onHorizontalDragStart,
-        onHorizontalDragUpdate: _onHorizontalDragUpdate,
-        onHorizontalDragEnd: _onHorizontalDragEnd,
+      child: RawGestureDetector(
+        gestures: <Type, GestureRecognizerFactory>{
+          _EdgeAwareHorizontalDragGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<_EdgeAwareHorizontalDragGestureRecognizer>(
+            () => _EdgeAwareHorizontalDragGestureRecognizer(
+              edgeThreshold: _edgeSwipeThreshold,
+            ),
+            (_EdgeAwareHorizontalDragGestureRecognizer instance) {
+              instance
+                ..onStart = _onHorizontalDragStart
+                ..onUpdate = _onHorizontalDragUpdate
+                ..onEnd = _onHorizontalDragEnd;
+            },
+          ),
+        },
         child: Stack(
           alignment: isOwnMessage ? Alignment.centerRight : Alignment.centerLeft,
           children: [
@@ -806,5 +799,24 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
         );
       }
     }
+  }
+}
+
+/// Custom horizontal drag gesture recognizer that ignores drags
+/// starting from the left edge of the screen to allow back navigation.
+class _EdgeAwareHorizontalDragGestureRecognizer extends HorizontalDragGestureRecognizer {
+  _EdgeAwareHorizontalDragGestureRecognizer({
+    required this.edgeThreshold,
+  });
+
+  final double edgeThreshold;
+
+  @override
+  void addPointer(PointerDownEvent event) {
+    // Don't track pointers that start in the edge zone to allow back navigation
+    if (event.position.dx < edgeThreshold) {
+      return;
+    }
+    super.addPointer(event);
   }
 }

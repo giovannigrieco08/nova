@@ -157,9 +157,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Build app bar
   PreferredSizeWidget _buildAppBar() {
     if (Platform.isIOS) {
-      return const CupertinoNavigationBar(
-        middle: Text('Impostazioni'),
+      return CupertinoNavigationBar(
+        middle: const Text('Impostazioni'),
         previousPageTitle: 'Profilo',
+        leading: CupertinoNavigationBarBackButton(
+          previousPageTitle: 'Profilo',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       );
     } else {
       return AppBar(
@@ -209,7 +213,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: Column(
         children: [
@@ -241,7 +245,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: Column(
         children: [
@@ -276,7 +280,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: Column(
         children: [
@@ -375,7 +379,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: tutorAsync.when(
         data: (tutorProfile) {
@@ -458,7 +462,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: Column(
         children: [
@@ -494,7 +498,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: Column(
         children: [
@@ -632,7 +636,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: Column(
         children: [
@@ -673,7 +677,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: Column(
         children: [
@@ -708,7 +712,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
       decoration: BoxDecoration(
         color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularS,
+        borderRadius: NovaRadius.circularM,
       ),
       child: _buildActionTile(
         icon: Icons.logout_rounded,

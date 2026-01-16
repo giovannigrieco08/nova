@@ -31,10 +31,14 @@ class AvatarWidget extends StatelessWidget {
     if (avatarUrl != null && avatarUrl!.isNotEmpty) {
       return ClipOval(
         child: CachedNetworkImage(
+          key: ValueKey(avatarUrl),
           imageUrl: avatarUrl!,
+          cacheKey: avatarUrl!,
           width: size,
           height: size,
           fit: BoxFit.cover,
+          fadeInDuration: Duration.zero,
+          fadeOutDuration: Duration.zero,
           placeholder: (context, url) => _buildInitialsFallback(
             initials,
             bgColor,

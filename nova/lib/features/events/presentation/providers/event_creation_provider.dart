@@ -608,6 +608,7 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
         final imageUrl = await _repository.uploadEventImage(
           state.imageFile!,
           eventId,
+          userId: _currentUserId,
         );
         updates['image_url'] = imageUrl;
       }

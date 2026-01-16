@@ -185,12 +185,16 @@ class ProfileHeader extends StatelessWidget {
         child: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
             ? ClipOval(
                 child: CachedNetworkImage(
+                  key: ValueKey(profile.avatarUrl),
                   imageUrl: profile.avatarUrl!,
+                  cacheKey: profile.avatarUrl!,
                   width: size - 4,
                   height: size - 4,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => _buildInitialsAvatar(size - 4),
                   errorWidget: (context, url, error) => _buildInitialsAvatar(size - 4),
+                  fadeInDuration: Duration.zero,
+                  fadeOutDuration: Duration.zero,
                 ),
               )
             : _buildInitialsAvatar(size - 4),

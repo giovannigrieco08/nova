@@ -332,9 +332,10 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
         }
 
         if (_player.isStopped) {
+          // Don't specify codec - let flutter_sound auto-detect from file
+          // iOS uses aacMP4 (.m4a), Android uses aacADTS (.aac)
           await _player.startPlayer(
             fromURI: _audioUrl,
-            codec: Codec.aacADTS,
             whenFinished: () {
               if (mounted) {
                 setState(() {

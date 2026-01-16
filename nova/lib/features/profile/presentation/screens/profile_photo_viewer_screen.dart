@@ -7,6 +7,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/entities/profile.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/avatar_picker_bottom_sheet.dart';
@@ -91,13 +92,19 @@ class _ProfilePhotoViewerScreenState
         throw Exception('User not authenticated');
       }
 
+      // Evict avatar from cache before removing
+      if (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty) {
+        await CachedNetworkImage.evictFromCache(_currentAvatarUrl!);
+      }
+
       // Update profile to remove avatar
       await repository.updateProfile(userId, {
         'avatar_url': null,
       });
 
-      // Invalidate profile provider to refresh data
+      // Invalidate profile providers to refresh data everywhere
       ref.invalidate(currentProfileProvider);
+      ref.invalidate(profileNotifierProvider);
 
       if (mounted) {
         HapticFeedback.heavyImpact();
@@ -150,14 +157,23 @@ class _ProfilePhotoViewerScreenState
         },
       );
 
+      // Evict old avatar from cache before updating
+      if (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty) {
+        await CachedNetworkImage.evictFromCache(_currentAvatarUrl!);
+      }
+
       // Update profile with new avatar URL
       final repository = ref.read(profileRepositoryProvider);
       await repository.updateProfile(userId, {
         'avatar_url': avatarUrl,
       });
 
-      // Invalidate profile provider to refresh data
+      // Evict new URL from cache too (in case it was prefetched)
+      await CachedNetworkImage.evictFromCache(avatarUrl);
+
+      // Invalidate profile providers to refresh data everywhere
       ref.invalidate(currentProfileProvider);
+      ref.invalidate(profileNotifierProvider);
 
       if (mounted) {
         HapticFeedback.heavyImpact();
@@ -278,14 +294,17 @@ class _ProfilePhotoViewerScreenState
       ),
       child: ClipOval(
         child: hasAvatar
-            ? Image.network(
-                _currentAvatarUrl!,
+            ? CachedNetworkImage(
+                key: ValueKey(_currentAvatarUrl),
+                imageUrl: _currentAvatarUrl!,
+                cacheKey: _currentAvatarUrl!,
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
-                errorBuilder: (ctx, error, stackTrace) {
-                  return _buildInitialsAvatar(size);
-                },
+                fadeInDuration: Duration.zero,
+                fadeOutDuration: Duration.zero,
+                placeholder: (ctx, url) => _buildInitialsAvatar(size),
+                errorWidget: (ctx, url, error) => _buildInitialsAvatar(size),
               )
             : _buildInitialsAvatar(size),
       ),

@@ -81,7 +81,7 @@ class CommentActionsMenu extends StatelessWidget {
   bool get _isOwnComment => currentUserId != null && comment.userId == currentUserId;
   bool get _canEdit => _isOwnComment && comment.canEdit(DateTime.now());
   bool get _canDelete => _isOwnComment && !comment.isDeleted;
-  bool get _canReply => comment.isTopLevel && !comment.isDeleted;
+  bool get _canReply => !comment.isDeleted;
   bool get _canReport => !_isOwnComment && !comment.isDeleted;
   bool get _canCopy => !comment.isDeleted;
   bool get _canModeratorRemove => isModerator && !comment.isDeleted && !comment.isHidden;

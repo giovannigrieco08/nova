@@ -46,7 +46,9 @@
       "Bash(magick identify:*)",
       "Bash(python:*)",
       "Bash(powershell -command:*)",
-      "Bash(copy \"c:\\\\Users\\\\grigi\\\\nova_def\\\\nova\\\\assets\\\\icons\\\\app_icon_foreground.png\" \"c:\\\\Users\\\\grigi\\\\nova_def\\\\nova\\\\ios\\\\Runner\\\\Assets.xcassets\\\\LaunchLogo.imageset\\\\LaunchLogo.png\")"
+      "Bash(copy \"c:\\\\Users\\\\grigi\\\\nova_def\\\\nova\\\\assets\\\\icons\\\\app_icon_foreground.png\" \"c:\\\\Users\\\\grigi\\\\nova_def\\\\nova\\\\ios\\\\Runner\\\\Assets.xcassets\\\\LaunchLogo.imageset\\\\LaunchLogo.png\")",
+      "Bash(cmd /c \"cd /d c:\\\\Users\\\\grigi\\\\nova_def\\\\nova && flutter analyze lib\\\\features\\\\profile\\\\presentation\\\\screens\\\\settings_screen.dart\")",
+      "Bash(pushd:*)"
     ],
     "deny": [],
     "ask": []

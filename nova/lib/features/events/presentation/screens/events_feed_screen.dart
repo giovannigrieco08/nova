@@ -190,7 +190,7 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
       padding: const EdgeInsets.only(
         left: 2.0,
         right: 2.0,
-        top: NovaSpacing.m,
+        top: NovaSpacing.xs,
         bottom: 100, // Account for bottom navbar + safe area
       ),
       itemCount: itemCount,

@@ -10,6 +10,7 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/theme/nova_radius.dart';
+import '../../../../core/utils/image_orientation_fixer.dart';
 import 'avatar_cropper.dart';
 
 /// Avatar picker widget with image selection and circular cropping
@@ -221,77 +222,74 @@ class AvatarPicker extends StatelessWidget {
   void _showAndroidBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: NovaColors.backgroundPrimary(context),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(NovaRadius.large),
-        ),
-      ),
+      isDismissible: true,
+      enableDrag: true,
       builder: (BuildContext ctx) {
         return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(NovaSpacing.medium),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Text(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle indicator (matches comment actions menu style)
+              Container(
+                width: 40,
+                height: 4,
+                margin: EdgeInsets.symmetric(vertical: NovaSpacing.s),
+                decoration: BoxDecoration(
+                  color: NovaColors.dividerLight,
+                  borderRadius: NovaRadius.circularXxs,
+                ),
+              ),
+
+              // Header title
+              Padding(
+                padding: EdgeInsets.only(bottom: NovaSpacing.s),
+                child: Text(
                   'Cambia foto profilo',
                   style: NovaTypography.headingSmall.copyWith(
                     color: NovaColors.textPrimary(ctx),
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                SizedBox(height: NovaSpacing.medium),
+              ),
 
-                // Camera option
+              // Camera option
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded),
+                title: Text('Scatta foto', style: NovaTypography.bodyMedium),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(context, ImageSource.camera);
+                },
+              ),
+
+              // Gallery option
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded),
+                title: Text('Scegli dalla galleria', style: NovaTypography.bodyMedium),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(context, ImageSource.gallery);
+                },
+              ),
+
+              // Remove photo option (if avatar exists)
+              if (currentAvatarUrl != null && onRemoveAvatar != null)
                 ListTile(
-                  leading: const Icon(Icons.camera_alt_rounded),
-                  title: Text('Scatta foto', style: NovaTypography.bodyMedium),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(context, ImageSource.camera);
-                  },
-                ),
-
-                // Gallery option
-                ListTile(
-                  leading: const Icon(Icons.photo_library_rounded),
-                  title: Text('Scegli dalla galleria', style: NovaTypography.bodyMedium),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(context, ImageSource.gallery);
-                  },
-                ),
-
-                // Remove photo option (if avatar exists)
-                if (currentAvatarUrl != null && onRemoveAvatar != null)
-                  ListTile(
-                    leading: Icon(Icons.delete_rounded, color: NovaColors.error(ctx)),
-                    title: Text(
-                      'Rimuovi foto',
-                      style: NovaTypography.bodyMedium.copyWith(
-                        color: NovaColors.error(ctx),
-                      ),
-                    ),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      onRemoveAvatar!();
-                    },
-                  ),
-
-                // Cancel button
-                SizedBox(height: NovaSpacing.small),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(
-                    'Annulla',
+                  leading: Icon(Icons.delete_rounded, color: NovaColors.error(ctx)),
+                  title: Text(
+                    'Rimuovi foto',
                     style: NovaTypography.bodyMedium.copyWith(
-                      color: NovaColors.textSecondary(ctx),
+                      color: NovaColors.error(ctx),
                     ),
                   ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    onRemoveAvatar!();
+                  },
                 ),
-              ],
-            ),
+
+              SizedBox(height: NovaSpacing.m),
+            ],
           ),
         );
       },
@@ -311,8 +309,14 @@ class AvatarPicker extends StatelessWidget {
 
       if (image == null) return; // User cancelled
 
+      // Fix orientation issues on iOS
+      final fixedPath = await ImageOrientationFixer.fixOrientation(
+        image.path,
+        isFrontCamera: source == ImageSource.camera,
+      );
+
       // Validate file size (max 2MB)
-      final file = File(image.path);
+      final file = File(fixedPath);
       final fileSize = await file.length();
       if (fileSize > 2 * 1024 * 1024) {
         if (context.mounted) {
@@ -323,7 +327,7 @@ class AvatarPicker extends StatelessWidget {
 
       // Crop image to circular aspect using custom cropper
       if (!context.mounted) return;
-      final croppedFile = await _cropImage(context, image.path);
+      final croppedFile = await _cropImage(context, fixedPath);
 
       if (croppedFile != null) {
         onImageSelected(croppedFile);

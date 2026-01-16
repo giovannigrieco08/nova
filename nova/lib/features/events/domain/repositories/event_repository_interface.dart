@@ -130,9 +130,12 @@ abstract class EventRepository {
   /// Upload event image to Supabase Storage
   ///
   /// Bucket: event-images
-  /// Path: {event_id}/{timestamp}.{ext}
+  /// Path: {user_id}/{event_id}/{timestamp}.{ext}
   /// Returns public URL
-  Future<String> uploadEventImage(File imageFile, String eventId);
+  ///
+  /// [userId] - Optional user ID for folder path (required for RLS compliance).
+  /// If not provided, uses current authenticated user.
+  Future<String> uploadEventImage(File imageFile, String eventId, {String? userId});
 
   /// Delete event image from Supabase Storage
   Future<void> deleteEventImage(String imageUrl);

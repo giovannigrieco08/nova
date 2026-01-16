@@ -11,6 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Cupertino Icons (required for iOS native icons)
+  cupertino_icons: ^1.0.8
+
   # State Management
   flutter_riverpod: ^2.4.0
 

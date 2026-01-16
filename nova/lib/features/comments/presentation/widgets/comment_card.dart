@@ -10,6 +10,7 @@ import '../../domain/entities/comment.dart';
 import '../providers/reply_mode_notifier.dart';
 import '../providers/report_comment_provider.dart';
 import '../providers/mention_navigation_provider.dart';
+import '../providers/comment_likes_notifier.dart';
 import 'comment_actions_menu.dart';
 import 'report_dialog.dart';
 import 'mention_text.dart';
@@ -327,6 +328,27 @@ class _CommentCardState extends ConsumerState<CommentCard>
   /// Like button column with heart icon and count below
   /// Instagram-style: consistent size for all comments
   Widget _buildLikeColumn() {
+    final likesState = ref.watch(commentLikesNotifierProvider(widget.comment.id));
+    final likesNotifier = ref.read(commentLikesNotifierProvider(widget.comment.id).notifier);
+
+    // Initialize likes state if needed (first render)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (likesState.likeCount == 0 && !likesState.isLiked && widget.comment.likeCount > 0) {
+        likesNotifier.initialize(
+          isLiked: widget.comment.isLikedByCurrentUser,
+          likeCount: widget.comment.likeCount,
+        );
+      }
+    });
+
+    // Use state from notifier, fallback to comment data if not initialized
+    final isLiked = likesState.likeCount > 0 || likesState.isLiked
+        ? likesState.isLiked
+        : widget.comment.isLikedByCurrentUser;
+    final likeCount = likesState.likeCount > 0 || likesState.isLiked
+        ? likesState.likeCount
+        : widget.comment.likeCount;
+
     return Padding(
       padding: EdgeInsets.only(left: NovaSpacing.s),
       child: Column(
@@ -334,29 +356,34 @@ class _CommentCardState extends ConsumerState<CommentCard>
         children: [
           // Heart icon
           GestureDetector(
-            onTap: () {
-              // Haptic feedback on like
-              HapticFeedback.lightImpact();
-              widget.onLikeTap?.call();
-            },
+            onTap: likesState.isProcessing
+                ? null
+                : () {
+                    // Haptic feedback on like
+                    HapticFeedback.lightImpact();
+                    // Initialize if first interaction
+                    if (likesState.likeCount == 0 && !likesState.isLiked) {
+                      likesNotifier.initialize(
+                        isLiked: widget.comment.isLikedByCurrentUser,
+                        likeCount: widget.comment.likeCount,
+                      );
+                    }
+                    likesNotifier.toggleLike();
+                  },
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.all(4),
               child: Icon(
-                widget.comment.isLikedByCurrentUser
-                    ? Icons.favorite
-                    : Icons.favorite_border,
+                isLiked ? Icons.favorite : Icons.favorite_border,
                 size: 14,
-                color: widget.comment.isLikedByCurrentUser
-                    ? Colors.red
-                    : NovaColors.textTertiaryLight,
+                color: isLiked ? Colors.red : NovaColors.textTertiaryLight,
               ),
             ),
           ),
           // Like count (only show if > 0)
-          if (widget.comment.likeCount > 0)
+          if (likeCount > 0)
             Text(
-              _formatCount(widget.comment.likeCount),
+              _formatCount(likeCount),
               style: NovaTextStyles.caption.copyWith(
                 fontSize: 11,
                 color: NovaColors.textTertiaryLight,

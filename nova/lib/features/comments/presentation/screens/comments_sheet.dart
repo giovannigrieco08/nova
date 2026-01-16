@@ -199,7 +199,8 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
       child: Text(
         'Commenti',
         style: NovaTextStyles.h3.copyWith(
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
+          color: NovaColors.textPrimary(context),
         ),
       ),
     );

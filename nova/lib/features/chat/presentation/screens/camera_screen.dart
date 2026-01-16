@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:nova/core/theme/nova_spacing.dart';
+import 'package:nova/core/utils/image_orientation_fixer.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 
@@ -169,8 +170,14 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     try {
       final XFile file = await _controller!.takePicture();
 
+      // Fix orientation issues on iOS (both front and rear cameras)
+      final fixedPath = await ImageOrientationFixer.fixOrientation(
+        file.path,
+        isFrontCamera: _isFrontCamera,
+      );
+
       if (mounted) {
-        Navigator.pop(context, {'type': 'photo', 'file': file});
+        Navigator.pop(context, {'type': 'photo', 'file': XFile(fixedPath)});
       }
     } catch (e) {
       if (mounted) {
@@ -231,7 +238,12 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           imageQuality: 90,
         );
         if (image != null && mounted) {
-          Navigator.pop(context, {'type': 'photo', 'file': image});
+          // Fix orientation issues on iOS for gallery images
+          final fixedPath = await ImageOrientationFixer.fixOrientation(
+            image.path,
+            isFrontCamera: false,
+          );
+          Navigator.pop(context, {'type': 'photo', 'file': XFile(fixedPath)});
         }
       } else {
         // Video mode

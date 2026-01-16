@@ -16,6 +16,7 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
+import '../../../../core/utils/image_orientation_fixer.dart';
 
 /// Image picker widget for event creation
 class ImagePickerWidget extends StatefulWidget {
@@ -94,27 +95,25 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   void _showPickerOptions() {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(NovaRadius.l),
-        ),
-      ),
+      isDismissible: true,
+      enableDrag: true,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Handle indicator (matches comment actions menu style)
             Container(
               margin: EdgeInsets.symmetric(vertical: NovaSpacing.s),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: NovaColors.border(context),
+                color: NovaColors.dividerLight,
                 borderRadius: NovaRadius.circularXxs,
               ),
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Scatta Foto'),
+              title: Text('Scatta Foto', style: NovaTypography.bodyMedium),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.camera);
@@ -122,7 +121,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Scegli dalla Galleria'),
+              title: Text('Scegli dalla Galleria', style: NovaTypography.bodyMedium),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.gallery);
@@ -246,7 +245,12 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       );
 
       if (pickedFile != null) {
-        final imageFile = File(pickedFile.path);
+        // Fix orientation issues on iOS
+        final fixedPath = await ImageOrientationFixer.fixOrientation(
+          pickedFile.path,
+          isFrontCamera: source == ImageSource.camera, // Assume front for selfies
+        );
+        final imageFile = File(fixedPath);
         widget.onImagePicked(imageFile);
       }
     } catch (e) {

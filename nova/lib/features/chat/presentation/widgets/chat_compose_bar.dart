@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:image_picker/image_picker.dart';
@@ -14,12 +15,12 @@ import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
+import 'package:nova/core/utils/image_orientation_fixer.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_reply_preview.dart';
 import 'package:nova/features/chat/presentation/widgets/mention_autocomplete.dart';
-import 'package:nova/features/chat/presentation/widgets/gif_picker.dart';
 import 'package:nova/features/chat/presentation/screens/photo_editor_screen.dart';
 import 'package:nova/features/chat/presentation/screens/camera_screen.dart';
 import 'package:nova/features/chat/presentation/screens/video_preview_screen.dart';
@@ -72,6 +73,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   // Emoji picker state
   bool _showEmojiPicker = false;
 
+  // Gallery state
+  bool _isOpeningGallery = false;
+
   static const int _maxCharacters = 500;
 
   @override
@@ -79,6 +83,18 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     super.initState();
     _controller.addListener(_onTextChanged);
     _initRecorder();
+    // Pre-request photo permissions for faster gallery opening
+    _preRequestPhotoPermissions();
+  }
+
+  /// Pre-request photo permissions to avoid delay when opening gallery
+  Future<void> _preRequestPhotoPermissions() async {
+    // Request permission in background - don't wait for result
+    if (Platform.isIOS) {
+      Permission.photos.request();
+    } else {
+      Permission.storage.request();
+    }
   }
 
   Future<bool> _initRecorder() async {
@@ -328,18 +344,32 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     await _uploadMedia(file.path, mediaType, maxViews: maxViews, caption: caption);
   }
 
-  /// Open gallery to pick an image
+  /// Open gallery to pick an image - optimized for speed
   Future<void> _openGallery() async {
+    // Prevent double-tap
+    if (_isOpeningGallery) return;
+
+    // Immediate haptic feedback for responsiveness
+    HapticFeedback.selectionClick();
+
+    setState(() => _isOpeningGallery = true);
+
     try {
+      // Use requestFullMetadata: false for faster gallery opening
+      // Skip imageQuality/maxWidth/maxHeight for faster picker response
+      // (we process the image later in PhotoEditorScreen anyway)
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1920,
+        requestFullMetadata: false,
       );
 
       if (image != null && mounted) {
-        _handleSelectedMedia(image);
+        // Fix orientation issues on iOS for gallery images
+        final fixedPath = await ImageOrientationFixer.fixOrientation(
+          image.path,
+          isFrontCamera: false,
+        );
+        _handleSelectedMedia(XFile(fixedPath));
       }
     } catch (e) {
       if (mounted) {
@@ -350,46 +380,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
           ),
         );
       }
-    }
-  }
-
-  /// Open GIF picker and send selected GIF
-  Future<void> _openGifPicker() async {
-    final gif = await GifPicker.show(context);
-
-    if (gif != null && mounted) {
-      // Send GIF message
-      await _sendGifMessage(gif.url, gif.id);
-    }
-  }
-
-  /// Send a GIF message
-  Future<void> _sendGifMessage(String gifUrl, String gifId) async {
-    try {
-      final state = ref.read(composeStateProvider);
-
-      // Send GIF message using the provider
-      await ref.read(sendGifMessageProvider((
-        gifUrl: gifUrl,
-        gifId: gifId,
-        replyToId: state.replyToId,
-      )).future);
-
-      // Clear reply state
-      ref.read(composeStateProvider.notifier).clearReply();
-
-      // Invalidate messages stream to refresh with new GIF
-      ref.invalidate(chatMessagesStreamProvider);
-
-      widget.onSent?.call();
-    } catch (e) {
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Errore nell\'invio della GIF'),
-            backgroundColor: NovaColors.error(context),
-          ),
-        );
+        setState(() => _isOpeningGallery = false);
       }
     }
   }
@@ -1038,23 +1031,20 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                         onTap: _openGallery,
                         child: Padding(
                           padding: EdgeInsets.only(left: 2, right: 4),
-                          child: Icon(
-                            Icons.image_outlined,
-                            color: NovaColors.textSecondary(context),
-                            size: 26,
-                          ),
-                        ),
-                      ),
-                      // GIF picker
-                      GestureDetector(
-                        onTap: _openGifPicker,
-                        child: Padding(
-                          padding: EdgeInsets.only(left: 2, right: 4),
-                          child: Icon(
-                            Icons.gif_box_outlined,
-                            color: NovaColors.textSecondary(context),
-                            size: 26,
-                          ),
+                          child: _isOpeningGallery
+                              ? SizedBox(
+                                  width: 26,
+                                  height: 26,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: NovaColors.textSecondary(context),
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.image_outlined,
+                                  color: NovaColors.textSecondary(context),
+                                  size: 26,
+                                ),
                         ),
                       ),
                     ],
