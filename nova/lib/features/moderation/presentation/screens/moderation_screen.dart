@@ -14,6 +14,7 @@ import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../shared/widgets/adaptive/adaptive_scaffold.dart';
 import '../../../../shared/widgets/adaptive/adaptive_loading_indicator.dart';
+import '../../../events/presentation/providers/events_feed_provider.dart';
 import '../../data/models/moderation_event.dart';
 import '../providers/pending_events_provider.dart';
 
@@ -50,7 +51,7 @@ class _ModerationScreenState extends ConsumerState<ModerationScreen> {
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: () => Navigator.pop(context),
-          child: const Icon(CupertinoIcons.back),
+          child: const Icon(Icons.arrow_back_ios),
         ),
       );
     }
@@ -316,6 +317,11 @@ class _ModerationScreenState extends ConsumerState<ModerationScreen> {
         'p_action': 'approved',
       });
 
+      // Force refresh to update UI immediately
+      ref.invalidate(pendingEventsProvider);
+      // Also refresh the events feed so the approved event appears there
+      ref.read(eventsFeedProvider.notifier).refresh();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -387,6 +393,9 @@ class _ModerationScreenState extends ConsumerState<ModerationScreen> {
         'p_action': 'rejected',
         'p_rejection_reason': reason,
       });
+
+      // Force refresh to update UI immediately
+      ref.invalidate(pendingEventsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

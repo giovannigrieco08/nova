@@ -212,21 +212,33 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
 }
 
 // ========================================================================
-// USER PENDING EVENTS PROVIDER
+// USER PENDING EVENTS PROVIDER (Realtime)
 // ========================================================================
 
-/// Provider for fetching the current user's pending events.
+/// Provider for the current user's pending events with real-time updates.
 /// Used to show a compact banner at the top of the feed.
-final userPendingEventsProvider = FutureProvider.autoDispose<List<Event>>((ref) async {
+/// Updates automatically when event status changes (approved/rejected).
+final userPendingEventsProvider = StreamProvider.autoDispose<List<Event>>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
   final userId = supabase.auth.currentUser?.id;
 
   if (userId == null || userId.isEmpty) {
-    return [];
+    return Stream.value([]);
   }
 
-  final repository = ref.watch(eventsRepositoryProvider);
-  return repository.getUserPendingEvents(userId);
+  // Real-time subscription to user's events, filtered client-side for pending
+  // Note: Supabase stream only supports single .eq() filter, so we filter status client-side
+  return supabase
+      .from('events')
+      .stream(primaryKey: ['id'])
+      .eq('creator_id', userId)
+      .order('created_at', ascending: false)
+      .map((data) {
+        return data
+            .where((json) => json['status'] == 'pending')
+            .map((json) => EventModel.fromJson(json).toEntity())
+            .toList();
+      });
 });
 
 // ========================================================================
