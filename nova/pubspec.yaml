@@ -46,7 +46,7 @@ dependencies:
 
   # Events Feed Feature Dependencies (003-events-feed)
   cached_network_image: ^3.3.0       # Progressive image loading with caching
-  intl: ^0.19.0                       # Date/time formatting for event details
+  intl: ^0.20.2                       # Date/time formatting for event details
 
   # Event Creation & Moderation Feature Dependencies (004-event-creation-moderation)
   firebase_core: ^3.8.0              # Firebase initialization (upgraded for Xcode 26 compatibility)
