@@ -12,6 +12,7 @@ class CommentModel {
   final String eventId;
   final String userId;
   final String? parentCommentId;
+  final int depth; // Nesting level: 0=top-level, 1-3=replies
   final String text;
   final int likeCount;
   final int replyCount;
@@ -41,6 +42,7 @@ class CommentModel {
     required this.eventId,
     required this.userId,
     this.parentCommentId,
+    this.depth = 0,
     required this.text,
     this.likeCount = 0,
     this.replyCount = 0,
@@ -74,6 +76,9 @@ class CommentModel {
       eventId: json['event_id'] as String,
       userId: json['user_id'] as String,
       parentCommentId: json['parent_comment_id'] as String?,
+      // Fallback for existing comments without depth column
+      depth: json['depth'] as int? ??
+          (json['parent_comment_id'] != null ? 1 : 0),
       text: json['text'] as String,
       likeCount: json['like_count'] as int? ?? 0,
       replyCount: json['reply_count'] as int? ?? 0,
@@ -150,6 +155,7 @@ class CommentModel {
       'event_id': eventId,
       'user_id': userId,
       'parent_comment_id': parentCommentId,
+      'depth': depth,
       'text': text,
       'like_count': likeCount,
       'reply_count': replyCount,
@@ -184,6 +190,7 @@ class CommentModel {
       eventId: eventId,
       userId: userId,
       parentCommentId: parentCommentId,
+      depth: depth,
       text: text,
       likeCount: likeCount,
       replyCount: replyCount,
@@ -217,6 +224,7 @@ class CommentModel {
       eventId: entity.eventId,
       userId: entity.userId,
       parentCommentId: entity.parentCommentId,
+      depth: entity.depth,
       text: entity.text,
       likeCount: entity.likeCount,
       replyCount: entity.replyCount,

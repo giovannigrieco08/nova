@@ -17,17 +17,18 @@ import 'mention_text.dart';
 
 /// CommentCard Widget - Instagram-style design
 ///
-/// Layout for TOP-LEVEL comments:
+/// Layout for TOP-LEVEL comments (depth=0):
 /// [Avatar 32px] [Name · Timestamp        ] [Heart]
 ///               [Comment text...         ] [Count]
 ///               [Rispondi                ]
 ///
-/// Layout for NESTED replies (indented, same size as parent):
+/// Layout for NESTED replies (depth 1-3, indented based on depth):
 ///     [Indent] [Avatar 32px] [Name · Timestamp ] [Heart]
 ///                            [Comment text...  ] [Count]
-///                            [Rispondi         ]
+///                            [Rispondi         ] (hidden at depth 3)
 ///
 /// Instagram-style: replies are same size as parent, just indented.
+/// Supports up to 3 levels of nesting (depth 0-3).
 /// Swipe left to reveal reply icon (fast, smooth animation).
 class CommentCard extends ConsumerStatefulWidget {
   final Comment comment;
@@ -35,11 +36,12 @@ class CommentCard extends ConsumerStatefulWidget {
   final String? currentUserId;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
-  final bool isNested;
+  /// Nesting depth: 0=top-level, 1-3=replies
+  final int depth;
   final VoidCallback? onLikeTap;
 
-  // Instagram-style indent for nested replies (avatar width + spacing)
-  static const double _replyIndent = 48.0;
+  // Indent per nesting level (reduced from 48 for mobile UX)
+  static const double _indentPerLevel = 32.0;
   // Maximum swipe distance
   static const double _maxSwipeOffset = 60.0;
   // Threshold to trigger reply
@@ -52,9 +54,12 @@ class CommentCard extends ConsumerStatefulWidget {
     this.currentUserId,
     this.onDelete,
     this.onEdit,
-    this.isNested = false,
+    this.depth = 0,
     this.onLikeTap,
   });
+
+  /// Whether this comment can receive replies (depth < maxDepth)
+  bool get canReply => depth < Comment.maxDepth && !comment.isDeleted;
 
   @override
   ConsumerState<CommentCard> createState() => _CommentCardState();
@@ -108,8 +113,9 @@ class _CommentCardState extends ConsumerState<CommentCard>
 
   void _onHorizontalDragEnd(DragEndDetails details) {
     // Check if threshold was reached to trigger reply
+    // Only allow reply if depth < maxDepth
     if (_dragOffset.abs() >= CommentCard._swipeThreshold &&
-        !widget.comment.isDeleted) {
+        widget.canReply) {
       ref
           .read(replyModeNotifierProvider(widget.eventId).notifier)
           .startReply(widget.comment);
@@ -144,21 +150,23 @@ class _CommentCardState extends ConsumerState<CommentCard>
     return CommentActionsMenu(
       comment: widget.comment,
       currentUserId: widget.currentUserId,
-      onReply: () {
-        ref
-            .read(replyModeNotifierProvider(widget.eventId).notifier)
-            .startReply(widget.comment);
-      },
+      onReply: widget.canReply
+          ? () {
+              ref
+                  .read(replyModeNotifierProvider(widget.eventId).notifier)
+                  .startReply(widget.comment);
+            }
+          : null,
       onReport: () => _showReportDialog(context),
       onCopy: () => copyCommentToClipboard(context, widget.comment),
       onDelete: widget.onDelete,
       onEdit: widget.onEdit,
       child: GestureDetector(
-        onHorizontalDragUpdate: widget.comment.isDeleted
-            ? null
-            : _onHorizontalDragUpdate,
+        onHorizontalDragUpdate: widget.canReply
+            ? _onHorizontalDragUpdate
+            : null,
         onHorizontalDragEnd:
-            widget.comment.isDeleted ? null : _onHorizontalDragEnd,
+            widget.canReply ? _onHorizontalDragEnd : null,
         child: Stack(
           children: [
             // Reply icon (revealed on swipe)
@@ -205,9 +213,9 @@ class _CommentCardState extends ConsumerState<CommentCard>
                 child: Container(
                   color: NovaColors.background(context),
                   padding: EdgeInsets.only(
-                    left: widget.isNested
-                        ? CommentCard._replyIndent
-                        : NovaSpacing.m,
+                    // Calculate indent: base margin + (depth * indent per level)
+                    left: NovaSpacing.m +
+                        (widget.depth * CommentCard._indentPerLevel),
                     right: NovaSpacing.m,
                     top: NovaSpacing.xs,
                     bottom: NovaSpacing.xs,
@@ -303,8 +311,8 @@ class _CommentCardState extends ConsumerState<CommentCard>
 
         SizedBox(height: 4),
 
-        // Reply button
-        if (!widget.comment.isDeleted)
+        // Reply button (hidden when at max depth)
+        if (widget.canReply)
           GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();

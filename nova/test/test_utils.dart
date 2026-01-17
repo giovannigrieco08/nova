@@ -21,14 +21,12 @@ import 'package:flutter_test/flutter_test.dart';
 Widget testableWidget({
   required Widget child,
   List<Override> overrides = const [],
-  ThemeMode themeMode = ThemeMode.light,
 }) {
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
-      themeMode: themeMode,
+      themeMode: ThemeMode.light,
       theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
       home: Material(child: child),
     ),
   );

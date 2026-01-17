@@ -9,7 +9,8 @@ import 'package:nova/features/profile/domain/entities/profile.dart';
 /// - Emoji reactions (6 types)
 /// - Single-level reply threading
 /// - View-once media attachments
-/// - Edit (within 5 minutes)
+/// - Edit (within 15 minutes)
+/// - Delete (soft delete, shows "Messaggio eliminato" placeholder)
 /// - Pin messages
 /// - GIF support
 class ChatMessage {
@@ -41,6 +42,10 @@ class ChatMessage {
   // Media caption
   final String? mediaCaption;
 
+  // Soft delete support
+  final DateTime? deletedAt;
+  final bool deletedByUser;
+
   // Joined data (populated from related tables/profiles)
   final Profile author;
   final ChatMessage? replyTo;
@@ -68,6 +73,8 @@ class ChatMessage {
     this.gifUrl,
     this.gifId,
     this.mediaCaption,
+    this.deletedAt,
+    this.deletedByUser = false,
     required this.author,
     this.replyTo,
     required this.reactionCounts,
@@ -78,6 +85,9 @@ class ChatMessage {
   /// Whether the message is hidden by moderation
   bool get isHidden => hiddenAt != null;
 
+  /// Whether the message has been soft-deleted by the user
+  bool get isDeleted => deletedAt != null;
+
   /// Whether this is a reply to another message
   bool get isReply => replyToId != null;
 
@@ -87,36 +97,29 @@ class ChatMessage {
   /// Whether this message contains @mentions
   bool get hasMentions => mentions.isNotEmpty;
 
-  /// Whether the message can be deleted (only within 30 minutes of sending)
-  bool get canDelete {
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
-    return difference.inMinutes < 30;
-  }
-
-  /// Minutes remaining until message can no longer be deleted
-  int get deleteWindowMinutesRemaining {
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
-    final remaining = 30 - difference.inMinutes;
-    return remaining > 0 ? remaining : 0;
-  }
+  /// Whether the message can be deleted (always true unless already deleted)
+  bool get canDelete => !isDeleted;
 
   /// Whether the message has been edited
   bool get isEdited => editedAt != null;
 
-  /// Whether the message can be edited (only within 5 minutes of sending)
+  /// Edit window in minutes (15 minutes per spec)
+  static const int editWindowMinutes = 15;
+
+  /// Whether the message can be edited (within 15 minutes, not deleted)
   bool get canEdit {
+    if (isDeleted) return false;
     final now = DateTime.now();
     final difference = now.difference(createdAt);
-    return difference.inMinutes < 5;
+    return difference.inMinutes < editWindowMinutes;
   }
 
   /// Minutes remaining until message can no longer be edited
   int get editWindowMinutesRemaining {
+    if (!canEdit) return 0;
     final now = DateTime.now();
     final difference = now.difference(createdAt);
-    final remaining = 5 - difference.inMinutes;
+    final remaining = editWindowMinutes - difference.inMinutes;
     return remaining > 0 ? remaining : 0;
   }
 
@@ -126,8 +129,9 @@ class ChatMessage {
   /// Whether this message has a media caption
   bool get hasCaption => mediaCaption != null && mediaCaption!.isNotEmpty;
 
-  /// Display text - returns placeholder if hidden
+  /// Display text - returns placeholder if hidden or deleted
   String get displayContent {
+    if (isDeleted) return 'Messaggio eliminato';
     if (isHidden) return '[Messaggio nascosto]';
     return content;
   }
@@ -168,6 +172,8 @@ class ChatMessage {
     String? gifUrl,
     String? gifId,
     String? mediaCaption,
+    DateTime? deletedAt,
+    bool? deletedByUser,
     Profile? author,
     ChatMessage? replyTo,
     Map<String, int>? reactionCounts,
@@ -194,6 +200,8 @@ class ChatMessage {
       gifUrl: gifUrl ?? this.gifUrl,
       gifId: gifId ?? this.gifId,
       mediaCaption: mediaCaption ?? this.mediaCaption,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deletedByUser: deletedByUser ?? this.deletedByUser,
       author: author ?? this.author,
       replyTo: replyTo ?? this.replyTo,
       reactionCounts: reactionCounts ?? this.reactionCounts,

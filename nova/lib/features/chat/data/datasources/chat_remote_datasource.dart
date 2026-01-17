@@ -128,9 +128,10 @@ class ChatRemoteDataSource {
     return ChatMessageModel.fromJson(response);
   }
 
-  /// Delete a message.
+  /// Soft-delete a message.
   ///
-  /// Also deletes associated reactions, reports, and media.
+  /// Sets deleted_at timestamp instead of hard delete.
+  /// Media files are deleted from storage but message record remains.
   Future<void> deleteMessage(String messageId) async {
     // Delete related media files from storage first
     final mediaResponse = await _supabase
@@ -149,8 +150,14 @@ class ChatRemoteDataSource {
       }
     }
 
-    // Delete message (cascade will handle reactions, reports, media records)
-    await _supabase.from('chat_messages').delete().eq('id', messageId);
+    // Soft delete: set deleted_at timestamp
+    await _supabase
+        .from('chat_messages')
+        .update({
+          'deleted_at': DateTime.now().toUtc().toIso8601String(),
+          'deleted_by_user': true,
+        })
+        .eq('id', messageId);
   }
 
   // =========================================================================

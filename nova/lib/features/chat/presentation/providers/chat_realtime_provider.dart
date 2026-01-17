@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
-import 'package:nova/features/chat/data/models/chat_message_model.dart';
+import 'package:nova/features/chat/data/datasources/chat_remote_datasource.dart';
 
 /// Manages Supabase Realtime subscriptions for the chat feature.
 ///
@@ -16,6 +16,7 @@ import 'package:nova/features/chat/data/models/chat_message_model.dart';
 class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
   final SupabaseClient _supabase;
   final String _currentUserId;
+  final ChatRemoteDataSource _dataSource;
 
   RealtimeChannel? _messagesChannel;
   RealtimeChannel? _reactionsChannel;
@@ -23,8 +24,10 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
   ChatRealtimeNotifier({
     required SupabaseClient supabase,
     required String currentUserId,
+    required ChatRemoteDataSource dataSource,
   })  : _supabase = supabase,
         _currentUserId = currentUserId,
+        _dataSource = dataSource,
         super(const ChatRealtimeState());
 
   /// Initialize realtime subscriptions
@@ -42,20 +45,29 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'chat_messages',
-          callback: (payload) {
-            final model = ChatMessageModel.fromJson(payload.newRecord);
-            final message = model.toEntity(currentUserId: _currentUserId);
-            _addMessage(message);
+          callback: (payload) async {
+            // Postgres Changes only returns raw row data without joins.
+            // We need to re-fetch the message to get full data (profiles, media, etc.)
+            final messageId = payload.newRecord['id'] as String;
+            final fullMessage = await _dataSource.getMessage(messageId);
+            if (fullMessage != null) {
+              final message = fullMessage.toEntity(currentUserId: _currentUserId);
+              _addMessage(message);
+            }
           },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.update,
           schema: 'public',
           table: 'chat_messages',
-          callback: (payload) {
-            final model = ChatMessageModel.fromJson(payload.newRecord);
-            final message = model.toEntity(currentUserId: _currentUserId);
-            _updateMessage(message);
+          callback: (payload) async {
+            // Re-fetch to get full joined data
+            final messageId = payload.newRecord['id'] as String;
+            final fullMessage = await _dataSource.getMessage(messageId);
+            if (fullMessage != null) {
+              final message = fullMessage.toEntity(currentUserId: _currentUserId);
+              _updateMessage(message);
+            }
           },
         )
         .onPostgresChanges(
@@ -103,7 +115,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
     final messages = [...state.messages];
     // Insert at beginning (newest first)
     messages.insert(0, message);
-    state = state.copyWith(messages: messages);
+    state = state.copyWith(messages: messages, incrementCounter: true);
   }
 
   void _updateMessage(ChatMessage message) {
@@ -111,13 +123,13 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
     final index = messages.indexWhere((m) => m.id == message.id);
     if (index >= 0) {
       messages[index] = message;
-      state = state.copyWith(messages: messages);
+      state = state.copyWith(messages: messages, incrementCounter: true);
     }
   }
 
   void _removeMessage(String messageId) {
     final messages = state.messages.where((m) => m.id != messageId).toList();
-    state = state.copyWith(messages: messages);
+    state = state.copyWith(messages: messages, incrementCounter: true);
   }
 
   void _handleReactionAdded(String messageId, String emoji, String userId) {
@@ -138,7 +150,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
         currentUserReactions: newUserReactions,
         reactionCount: message.reactionCount + 1,
       );
-      state = state.copyWith(messages: messages);
+      state = state.copyWith(messages: messages, incrementCounter: true);
     }
   }
 
@@ -165,7 +177,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
         currentUserReactions: newUserReactions,
         reactionCount: (message.reactionCount - 1).clamp(0, 999999),
       );
-      state = state.copyWith(messages: messages);
+      state = state.copyWith(messages: messages, incrementCounter: true);
     }
   }
 
@@ -209,7 +221,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
 
   /// Set initial messages (from API load)
   void setMessages(List<ChatMessage> messages) {
-    state = state.copyWith(messages: messages);
+    state = state.copyWith(messages: messages, incrementCounter: true);
   }
 
   @override
@@ -225,22 +237,27 @@ class ChatRealtimeState {
   final List<ChatMessage> messages;
   final bool isConnected;
   final String? error;
+  /// Counter that increments on every state change to ensure UI rebuilds
+  final int updateCounter;
 
   const ChatRealtimeState({
     this.messages = const [],
     this.isConnected = false,
     this.error,
+    this.updateCounter = 0,
   });
 
   ChatRealtimeState copyWith({
     List<ChatMessage>? messages,
     bool? isConnected,
     String? error,
+    bool incrementCounter = false,
   }) {
     return ChatRealtimeState(
       messages: messages ?? this.messages,
       isConnected: isConnected ?? this.isConnected,
       error: error,
+      updateCounter: incrementCounter ? updateCounter + 1 : updateCounter,
     );
   }
 }
@@ -251,10 +268,12 @@ final chatRealtimeProvider =
         (ref) {
   final supabase = ref.watch(supabaseClientProvider);
   final currentUserId = ref.watch(currentUserIdProvider);
+  final dataSource = ChatRemoteDataSource(supabase);
 
   final notifier = ChatRealtimeNotifier(
     supabase: supabase,
     currentUserId: currentUserId,
+    dataSource: dataSource,
   );
 
   // Initialize on creation

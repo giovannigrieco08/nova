@@ -1,0 +1,248 @@
+# Chat Message Actions API Contract
+# Feature: 013-chat-message-actions
+# Description: Edit and Delete message operations
+
+openapi: 3.0.3
+info:
+  title: Chat Message Actions API
+  version: 1.0.0
+  description: |
+    API per la modifica e eliminazione dei messaggi nella chat.
+    Utilizza Supabase PostgREST per le operazioni CRUD.
+
+servers:
+  - url: https://{project}.supabase.co/rest/v1
+    variables:
+      project:
+        default: your-project-ref
+
+paths:
+  /chat_messages:
+    patch:
+      operationId: softDeleteMessage
+      summary: Soft delete a message
+      description: |
+        Imposta deleted_at sul messaggio per soft delete.
+        Richiede autenticazione. L'utente può eliminare solo i propri messaggi.
+      tags:
+        - Messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID del messaggio da eliminare
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - deleted_at
+                - deleted_by_user
+              properties:
+                deleted_at:
+                  type: string
+                  format: date-time
+                  description: Timestamp di eliminazione
+                deleted_by_user:
+                  type: boolean
+                  default: true
+                  description: TRUE se eliminato dall'utente
+            example:
+              deleted_at: "2026-01-17T10:30:00Z"
+              deleted_by_user: true
+      responses:
+        '200':
+          description: Messaggio eliminato con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+        '401':
+          description: Non autenticato
+        '403':
+          description: Non autorizzato (non è il tuo messaggio)
+        '404':
+          description: Messaggio non trovato
+
+  /chat_messages/{id}:
+    patch:
+      operationId: editMessage
+      summary: Edit a message
+      description: |
+        Modifica il contenuto di un messaggio entro 15 minuti dall'invio.
+        Imposta edited_at e salva original_content se prima modifica.
+      tags:
+        - Messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID del messaggio da modificare
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 500
+                  description: Nuovo contenuto del messaggio
+                edited_at:
+                  type: string
+                  format: date-time
+                  description: Timestamp di modifica (impostato automaticamente)
+                original_content:
+                  type: string
+                  description: Contenuto originale (impostato solo alla prima modifica)
+            example:
+              content: "Messaggio corretto"
+              edited_at: "2026-01-17T10:25:00Z"
+      responses:
+        '200':
+          description: Messaggio modificato con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+        '400':
+          description: |
+            Errore di validazione:
+            - Contenuto troppo lungo (>500 caratteri)
+            - Tempo limite superato (>15 minuti)
+        '401':
+          description: Non autenticato
+        '403':
+          description: Non autorizzato (non è il tuo messaggio)
+        '404':
+          description: Messaggio non trovato
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+          maxLength: 500
+          description: Contenuto del messaggio (NULL se eliminato)
+        created_at:
+          type: string
+          format: date-time
+        edited_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp ultima modifica
+        original_content:
+          type: string
+          nullable: true
+          description: Contenuto originale prima della modifica
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp eliminazione (soft delete)
+        deleted_by_user:
+          type: boolean
+          default: false
+          description: TRUE se eliminato dall'utente
+        reaction_count:
+          type: integer
+        reply_count:
+          type: integer
+        is_pinned:
+          type: boolean
+        gif_url:
+          type: string
+          nullable: true
+        media_caption:
+          type: string
+          nullable: true
+      required:
+        - id
+        - user_id
+        - content
+        - created_at
+
+    ChatMessageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        content:
+          type: string
+          description: "Contenuto o 'Messaggio eliminato' se deleted_at != null"
+        is_edited:
+          type: boolean
+          description: TRUE se edited_at != null
+        is_deleted:
+          type: boolean
+          description: TRUE se deleted_at != null
+        created_at:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/Author'
+
+    Author:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        photo_url:
+          type: string
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - EDIT_WINDOW_EXPIRED
+            - NOT_OWNER
+            - ALREADY_DELETED
+            - CONTENT_TOO_LONG
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+      example:
+        code: EDIT_WINDOW_EXPIRED
+        message: "Puoi modificare un messaggio solo entro 15 minuti dall'invio."
+        details:
+          created_at: "2026-01-17T10:00:00Z"
+          edit_window_minutes: 15

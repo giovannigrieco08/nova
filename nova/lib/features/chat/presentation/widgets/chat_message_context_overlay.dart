@@ -45,7 +45,7 @@ class ChatMessageContextOverlay extends StatefulWidget {
   /// The message content for copying
   final String? messageContent;
 
-  /// Whether the message can be edited (within 5-min window)
+  /// Whether the message can be edited (within 15-min window)
   final bool canEdit;
 
   const ChatMessageContextOverlay({
@@ -374,7 +374,7 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
             _buildDivider(context),
           ],
 
-          // Edit (only for own messages within 5-minute window)
+          // Edit (only for own messages within 15-minute window)
           if (widget.isOwnMessage && widget.canEdit && widget.onEdit != null) ...[
             _buildActionItem(
               context: context,

@@ -37,6 +37,10 @@ class ChatMessageModel {
   // Media caption
   final String? mediaCaption;
 
+  // Soft delete support
+  final DateTime? deletedAt;
+  final bool deletedByUser;
+
   // Joined data from profiles
   final Map<String, dynamic>? authorJson;
 
@@ -69,6 +73,8 @@ class ChatMessageModel {
     this.gifUrl,
     this.gifId,
     this.mediaCaption,
+    this.deletedAt,
+    this.deletedByUser = false,
     this.authorJson,
     this.replyToJson,
     this.reactionsJson,
@@ -103,6 +109,10 @@ class ChatMessageModel {
       gifUrl: json['gif_url'] as String?,
       gifId: json['gif_id'] as String?,
       mediaCaption: json['media_caption'] as String?,
+      deletedAt: json['deleted_at'] != null
+          ? DateTime.parse(json['deleted_at'] as String)
+          : null,
+      deletedByUser: json['deleted_by_user'] as bool? ?? false,
       authorJson: json['profiles'] as Map<String, dynamic>?,
       replyToJson: json['reply_to'] as Map<String, dynamic>?,
       reactionsJson: _parseReactionsJson(json['chat_reactions']),
@@ -119,6 +129,8 @@ class ChatMessageModel {
       'content': content,
       'mentions': mentionsJson,
       'created_at': createdAt.toIso8601String(),
+      if (deletedAt != null) 'deleted_at': deletedAt!.toIso8601String(),
+      if (deletedByUser) 'deleted_by_user': deletedByUser,
     };
   }
 
@@ -180,6 +192,8 @@ class ChatMessageModel {
       gifUrl: gifUrl,
       gifId: gifId,
       mediaCaption: mediaCaption,
+      deletedAt: deletedAt,
+      deletedByUser: deletedByUser,
       author: resolvedAuthor,
       replyTo: resolvedReplyTo,
       reactionCounts: reactionCounts,

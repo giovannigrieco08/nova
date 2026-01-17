@@ -239,7 +239,7 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
             comment: comment,
             eventId: widget.eventId,
             currentUserId: currentUserId,
-            isNested: item.isNested,
+            depth: item.depth,
             onDelete: comment.userId == currentUserId
                 ? () => _handleDeleteComment(comment.id)
                 : null,
@@ -257,18 +257,23 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
     final items = <_CommentItem>[];
 
     for (final comment in comments) {
-      // Add top-level comment
-      items.add(_CommentItem(comment: comment, isNested: false));
-
-      // Add nested replies if present
-      if (comment.replies != null && comment.replies!.isNotEmpty) {
-        for (final reply in comment.replies!) {
-          items.add(_CommentItem(comment: reply, isNested: true));
-        }
-      }
+      // Add top-level comment and all nested replies recursively
+      _addCommentAndReplies(items, comment, 0);
     }
 
     return items;
+  }
+
+  /// Recursively add a comment and its replies with correct depth
+  void _addCommentAndReplies(List<_CommentItem> items, Comment comment, int depth) {
+    items.add(_CommentItem(comment: comment, depth: depth));
+
+    // Add nested replies if present
+    if (comment.replies != null && comment.replies!.isNotEmpty) {
+      for (final reply in comment.replies!) {
+        _addCommentAndReplies(items, reply, depth + 1);
+      }
+    }
   }
 
   Widget _buildLoadingIndicator() {
@@ -450,10 +455,11 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
 /// Helper class for building flat comment list with nested replies
 class _CommentItem {
   final Comment comment;
-  final bool isNested;
+  /// Nesting depth: 0=top-level, 1-3=replies
+  final int depth;
 
   const _CommentItem({
     required this.comment,
-    required this.isNested,
+    required this.depth,
   });
 }

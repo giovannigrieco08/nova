@@ -96,7 +96,9 @@ class ChatRepositoryImpl implements ChatRepository {
     // First, get the message to check if deletion is allowed
     final message = await getMessage(messageId);
     if (message == null) {
-      return false;
+      throw const ChatDeleteNotAllowedException(
+        'Messaggio non trovato.',
+      );
     }
 
     // Check if user owns the message
@@ -106,14 +108,14 @@ class ChatRepositoryImpl implements ChatRepository {
       );
     }
 
-    // Check if within 30-minute window
-    if (!message.canDelete) {
+    // Check if already deleted
+    if (message.isDeleted) {
       throw const ChatDeleteNotAllowedException(
-        'Puoi eliminare un messaggio solo entro 30 minuti dall\'invio.',
+        'Questo messaggio è già stato eliminato.',
       );
     }
 
-    // Proceed with deletion
+    // Proceed with soft deletion (no time limit)
     await _remoteDataSource.deleteMessage(messageId);
     return true;
   }
@@ -378,10 +380,17 @@ class ChatRepositoryImpl implements ChatRepository {
       );
     }
 
-    // Check if within 5-minute window
+    // Check if message is deleted
+    if (message.isDeleted) {
+      throw const ChatEditNotAllowedException(
+        'Non puoi modificare un messaggio eliminato.',
+      );
+    }
+
+    // Check if within 15-minute window
     if (!message.canEdit) {
       throw const ChatEditNotAllowedException(
-        'Puoi modificare un messaggio solo entro 5 minuti dall\'invio.',
+        'Puoi modificare un messaggio solo entro 15 minuti dall\'invio.',
       );
     }
 

@@ -292,7 +292,7 @@ class EventsRemoteDataSource {
   Future<List<CommentModel>> fetchComments(String eventId) async {
     final response = await _supabase
         .from('comments')
-        .select('*, author:users!author_id(id, name, avatar_url, class)')
+        .select('*, author:profiles!user_id(user_id, full_name, avatar_url, class)')
         .eq('event_id', eventId)
         .order('created_at', ascending: true); // Oldest first (chronological)
 
@@ -320,11 +320,11 @@ class EventsRemoteDataSource {
         .from('comments')
         .insert({
           'event_id': eventId,
-          'author_id': authorId,
+          'user_id': authorId,
           'text': text,
           'created_at': DateTime.now().toIso8601String(),
         })
-        .select('*, author:users!author_id(id, name, avatar_url, class)')
+        .select('*, author:profiles!user_id(user_id, full_name, avatar_url, class)')
         .single();
 
     return CommentModel.fromJson(response);

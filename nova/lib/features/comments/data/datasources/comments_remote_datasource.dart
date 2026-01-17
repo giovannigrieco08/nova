@@ -321,7 +321,8 @@ class CommentsRemoteDataSource {
 
   /// Reply to an existing comment
   ///
-  /// System enforces 1-level max threading server-side.
+  /// System enforces max 3-level threading server-side via trigger.
+  /// depth 0 = top-level, depth 1-3 = replies
   Future<CommentModel> replyToComment({
     required String commentId,
     required String text,
@@ -332,12 +333,23 @@ class CommentsRemoteDataSource {
         throw const UnauthorizedException('User not authenticated');
       }
 
-      // First, get the parent comment to get event_id
+      // First, get the parent comment to get event_id and check depth
       final parentComment = await _supabase
           .from('comments')
-          .select('event_id')
+          .select('event_id, depth')
           .eq('id', commentId)
           .single();
+
+      // Client-side validation for better UX (server also enforces this)
+      final parentDepth = parentComment['depth'] as int? ?? 0;
+      if (parentDepth >= Comment.maxDepth) {
+        throw ValidationException(
+          'Non puoi rispondere a questo commento. Profondità massima raggiunta.',
+          'depth',
+          parentDepth.toString(),
+          StackTrace.current,
+        );
+      }
 
       final eventId = parentComment['event_id'] as String;
 
@@ -365,19 +377,38 @@ class CommentsRemoteDataSource {
       return _parseCommentWithProfileData(normalizedJson, profileResponse);
     } on PostgrestException catch (e, stackTrace) {
       if (e.code == '23514') {
+        // CHECK constraint violation - could be profanity or max_nesting_depth
+        if (e.message.contains('max_nesting_depth')) {
+          throw ValidationException(
+            'Non puoi rispondere a questo commento. Profondità massima raggiunta.',
+            'depth',
+            '',
+            stackTrace,
+          );
+        }
         throw ValidationException(
           'Reply contains inappropriate language',
           'text',
           text,
           stackTrace,
         );
-      } else if (e.code == 'P0001' &&
-          e.message.contains('Rate limit exceeded')) {
-        throw RateLimitException(
-          'Too many comments. Please wait before replying again.',
-          const Duration(minutes: 5),
-          stackTrace,
-        );
+      } else if (e.code == 'P0001') {
+        // Trigger exception
+        if (e.message.contains('Maximum comment nesting depth')) {
+          throw ValidationException(
+            'Non puoi rispondere a questo commento. Profondità massima raggiunta.',
+            'depth',
+            '',
+            stackTrace,
+          );
+        } else if (e.message.contains('Rate limit exceeded')) {
+          throw RateLimitException(
+            'Too many comments. Please wait before replying again.',
+            const Duration(minutes: 5),
+            stackTrace,
+          );
+        }
+        throw _mapSupabaseError(e, stackTrace);
       } else if (e.code == '23503') {
         throw NotFoundException(
           'Parent comment not found or deleted',
@@ -387,6 +418,8 @@ class CommentsRemoteDataSource {
         );
       }
       throw _mapSupabaseError(e, stackTrace);
+    } on ValidationException {
+      rethrow; // Client-side depth validation
     } catch (e, stackTrace) {
       throw NetworkException('Failed to post reply: $e', stackTrace);
     }

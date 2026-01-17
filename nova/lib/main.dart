@@ -19,7 +19,6 @@ import 'package:nova/core/theme/app_theme.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/widgets/nova_logo.dart';
 import 'package:nova/core/theme/cupertino_theme.dart';
-import 'package:nova/core/providers/theme_provider.dart';
 import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/core/utils/platform_utils.dart';
 import 'package:nova/core/utils/deep_link_handler.dart';
@@ -245,12 +244,29 @@ class _NovaAppState extends ConsumerState<NovaApp> {
         if (uri.scheme == 'novaapp' &&
             uri.host == 'auth' &&
             uri.path == '/callback') {
+          // Wait for app to be fully initialized before processing magic link
+          // This prevents race conditions where the deep link is processed
+          // before Riverpod providers are ready
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          // Ensure we're on the main thread and widget tree is built
+          if (!mounted) return;
+
           // Verify magic link token via auth notifier
-          await ref
+          final success = await ref
               .read(authNotifierProvider.notifier)
               .verifyMagicLink(uri);
-          // Navigation handled automatically by AuthGuard
-          // when auth state changes to AuthStateAuthenticated
+
+          // Force refresh auth state to trigger AuthGuard rebuild
+          if (success && mounted) {
+            // Invalidate profile provider to ensure fresh data
+            ref.invalidate(currentProfileProvider);
+
+            // Force a frame rebuild to ensure UI updates
+            if (mounted) {
+              setState(() {});
+            }
+          }
         } else {
           // Try parsing as Nova event/profile deep link (nova://events/{id})
           final deepLinkInfo = _deepLinkHandler.parse(uri);
@@ -302,38 +318,16 @@ class _NovaAppState extends ConsumerState<NovaApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch theme mode for both platforms
-    final themeMode = ref.watch(themeModeProvider);
-
-    // Platform-adaptive app wrapper
+    // Platform-adaptive app wrapper - always use light theme
     if (PlatformUtils.isIOS) {
-      // Determine Cupertino theme based on user selection
-      final CupertinoThemeData cupertinoTheme;
-      switch (themeMode) {
-        case ThemeMode.light:
-          cupertinoTheme = NovaCupertinoTheme.light;
-          break;
-        case ThemeMode.dark:
-          cupertinoTheme = NovaCupertinoTheme.dark;
-          break;
-        case ThemeMode.system:
-          // Follow system brightness
-          final brightness =
-              WidgetsBinding.instance.platformDispatcher.platformBrightness;
-          cupertinoTheme = brightness == Brightness.dark
-              ? NovaCupertinoTheme.dark
-              : NovaCupertinoTheme.light;
-          break;
-      }
-
-      // iOS: CupertinoApp with native theme
+      // iOS: CupertinoApp with light theme only
       return CupertinoApp(
         title: 'Nova',
         debugShowCheckedModeBanner: false,
         navigatorKey: _navigatorKey, // For deep link navigation
 
-        // Cupertino theme based on user selection
-        theme: cupertinoTheme,
+        // Always use light theme
+        theme: NovaCupertinoTheme.light,
 
         home: const AuthGuard(),
 
@@ -346,16 +340,15 @@ class _NovaAppState extends ConsumerState<NovaApp> {
       );
     }
 
-    // Android: MaterialApp with Material 3 theme
+    // Android: MaterialApp with light theme only
     return MaterialApp(
       title: 'Nova - School Events Platform',
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigatorKey, // For deep link navigation
 
-      // Material 3 theme configuration
+      // Always use light theme
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ref.watch(themeModeProvider), // User-selectable theme
+      themeMode: ThemeMode.light,
 
       home: const AuthGuard(),
     );

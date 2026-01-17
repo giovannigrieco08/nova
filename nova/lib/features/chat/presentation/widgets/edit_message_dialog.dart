@@ -7,7 +7,7 @@ import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 
-/// Dialog for editing a message (within 5-minute window).
+/// Dialog for editing a message (within 15-minute window).
 ///
 /// Shows:
 /// - Original message content

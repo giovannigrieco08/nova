@@ -99,10 +99,14 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
   Future<bool> _initRecorder() async {
     try {
+      debugPrint('[VoiceRecorder] Opening recorder...');
       await _audioRecorder.openRecorder();
       _recorderInitialized = true;
+      debugPrint('[VoiceRecorder] Recorder opened successfully');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('[VoiceRecorder] ERROR opening recorder: $e');
+      debugPrint('[VoiceRecorder] Stack trace: $stackTrace');
       _recorderInitialized = false;
       return false;
     }
@@ -412,9 +416,12 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
   /// Start recording voice message
   Future<void> _startRecording() async {
+    debugPrint('[VoiceRecorder] _startRecording called');
     try {
       // Check microphone permission
+      debugPrint('[VoiceRecorder] Requesting microphone permission...');
       final status = await Permission.microphone.request();
+      debugPrint('[VoiceRecorder] Permission status: $status');
       if (status != PermissionStatus.granted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -429,7 +436,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
       // Initialize recorder if needed
       if (!_recorderInitialized) {
+        debugPrint('[VoiceRecorder] Initializing recorder...');
         final initialized = await _initRecorder();
+        debugPrint('[VoiceRecorder] Recorder initialized: $initialized');
         if (!initialized) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -449,12 +458,15 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       // Use .m4a for iOS (aacMP4 codec) and .aac for Android (aacADTS codec)
       final extension = Platform.isIOS ? 'm4a' : 'aac';
       _recordingPath = '${tempDir.path}/voice_$timestamp.$extension';
+      debugPrint('[VoiceRecorder] Recording path: $_recordingPath');
 
       // Start recording (use aacMP4 for better iOS compatibility)
+      debugPrint('[VoiceRecorder] Starting recorder with codec: ${Platform.isIOS ? "aacMP4" : "aacADTS"}');
       await _audioRecorder.startRecorder(
         toFile: _recordingPath,
         codec: Platform.isIOS ? Codec.aacMP4 : Codec.aacADTS,
       );
+      debugPrint('[VoiceRecorder] Recorder started successfully');
 
       setState(() {
         _isRecording = true;
@@ -480,7 +492,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
           timer.cancel();
         }
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('[VoiceRecorder] ERROR in _startRecording: $e');
+      debugPrint('[VoiceRecorder] Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1016,7 +1030,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                       SizedBox(width: NovaSpacing.xs),
                       // Microphone - tap to start recording
                       GestureDetector(
-                        onTap: _startRecording,
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          debugPrint('[VoiceRecorder] Microphone button TAPPED!');
+                          _startRecording();
+                        },
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 6),
                           child: Icon(

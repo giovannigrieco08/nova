@@ -1,15 +1,25 @@
 /// Comment Entity
 ///
 /// Business entity representing a comment on an event.
-/// Supports 1-level threading, soft deletion, and moderation.
+/// Supports up to 3-level threading, soft deletion, and moderation.
+///
+/// Nesting structure:
+/// - depth 0: Top-level comment
+/// - depth 1: Reply to top-level
+/// - depth 2: Reply to depth 1
+/// - depth 3: Reply to depth 2 (max, cannot have replies)
 ///
 /// Constitutional Principle 5 (SPEC_FIRST): Domain layer is framework-agnostic
 /// and can be tested without Flutter.
 class Comment {
+  /// Maximum allowed nesting depth for comments
+  static const int maxDepth = 3;
+
   final String id;
   final String eventId;
   final String userId;
   final String? parentCommentId;
+  final int depth; // Nesting level: 0=top-level, 1-3=replies
   final String text;
 
   // Denormalized counters
@@ -43,6 +53,7 @@ class Comment {
     required this.eventId,
     required this.userId,
     this.parentCommentId,
+    this.depth = 0,
     required this.text,
     this.likeCount = 0,
     this.replyCount = 0,
@@ -77,6 +88,9 @@ class Comment {
 
   /// Returns true if this is a top-level comment (no parent)
   bool get isTopLevel => parentCommentId == null;
+
+  /// Returns true if this comment can receive replies (depth < maxDepth)
+  bool get canHaveReplies => depth < maxDepth;
 
   /// Returns true if this comment has been edited (updated_at != created_at)
   bool get isEdited => updatedAt != null && updatedAt != createdAt;
@@ -180,6 +194,7 @@ class Comment {
     String? eventId,
     String? userId,
     String? parentCommentId,
+    int? depth,
     String? text,
     int? likeCount,
     int? replyCount,
@@ -203,6 +218,7 @@ class Comment {
       eventId: eventId ?? this.eventId,
       userId: userId ?? this.userId,
       parentCommentId: parentCommentId ?? this.parentCommentId,
+      depth: depth ?? this.depth,
       text: text ?? this.text,
       likeCount: likeCount ?? this.likeCount,
       replyCount: replyCount ?? this.replyCount,

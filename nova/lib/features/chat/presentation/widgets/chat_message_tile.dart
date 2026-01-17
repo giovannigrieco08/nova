@@ -18,6 +18,7 @@ import 'package:nova/features/chat/presentation/widgets/chat_reply_preview.dart'
 import 'package:nova/features/chat/presentation/widgets/chat_media_bubble.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_message_context_overlay.dart';
 import 'package:nova/features/chat/presentation/widgets/link_preview_bubble.dart';
+import 'package:nova/features/chat/presentation/widgets/delete_message_confirmation_dialog.dart';
 import 'package:nova/features/chat/presentation/widgets/edit_message_dialog.dart';
 import 'package:nova/features/chat/presentation/widgets/gif_picker.dart';
 import 'package:nova/features/chat/presentation/screens/media_viewer_screen.dart';
@@ -245,8 +246,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                             ),
                           ),
 
-                        // GIF message: show GifBubble directly
-                        if (widget.message.isGif && widget.message.gifUrl != null)
+                        // GIF message: show GifBubble directly (unless deleted)
+                        if (widget.message.isGif && widget.message.gifUrl != null && !widget.message.isDeleted)
                           GestureDetector(
                             onDoubleTap: () => _handleDoubleTap(context),
                             onLongPress: () => _showContextMenu(context),
@@ -255,8 +256,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                               isOwnMessage: isOwnMessage,
                             ),
                           )
-                        // Media message: show ChatMediaBubble directly (no wrapper bubble)
-                        else if (widget.message.hasMedia && widget.message.media != null)
+                        // Media message: show ChatMediaBubble directly (unless deleted)
+                        else if (widget.message.hasMedia && widget.message.media != null && !widget.message.isDeleted)
                           Column(
                             crossAxisAlignment: isOwnMessage
                                 ? CrossAxisAlignment.end
@@ -303,8 +304,9 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                         // Text message: show in normal bubble
                         else
                           GestureDetector(
-                            onDoubleTap: () => _handleDoubleTap(context),
-                            onLongPress: () => _showContextMenu(context),
+                            // T016-T017: Disable interactions for deleted messages
+                            onDoubleTap: widget.message.isDeleted ? null : () => _handleDoubleTap(context),
+                            onLongPress: widget.message.isDeleted ? null : () => _showContextMenu(context),
                             child: Container(
                               constraints: BoxConstraints(
                                 maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -314,9 +316,12 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                                 vertical: NovaSpacing.s + 2,
                               ),
                               decoration: BoxDecoration(
-                                color: isOwnMessage
-                                    ? NovaColors.primary(context)
-                                    : NovaColors.card(context),
+                                // T017: Grey background for deleted messages
+                                color: widget.message.isDeleted
+                                    ? NovaColors.card(context)
+                                    : isOwnMessage
+                                        ? NovaColors.primary(context)
+                                        : NovaColors.card(context),
                                 borderRadius: NovaRadius.circularL,
                               ),
                               child: _buildMessageContent(context, isOwnMessage),
@@ -356,6 +361,28 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
     final textColor = isOwnMessage
         ? Colors.white
         : NovaColors.textPrimary(context);
+
+    // T016-T017: Deleted message placeholder with grey background, italic text, and block icon
+    if (widget.message.isDeleted) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.block,
+            size: 16,
+            color: NovaColors.textTertiary(context),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Messaggio eliminato',
+            style: NovaTypography.bodyMedium.copyWith(
+              color: NovaColors.textTertiary(context),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      );
+    }
 
     if (widget.message.isHidden) {
       return Text(
@@ -500,10 +527,10 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
     // Build the message bubble to display in overlay
     final messageBubble = _buildMessageBubbleForOverlay(context, isOwnMessage);
 
-    // Only show delete option if message can be deleted (within 30 minutes)
+    // Only show delete option if message can be deleted (unlimited time, unless already deleted)
     final canDelete = isOwnMessage && widget.message.canDelete;
 
-    // Only show edit option if message can be edited (within 5 minutes)
+    // Only show edit option if message can be edited (within 15 minutes, not deleted)
     final canEdit = isOwnMessage && widget.message.canEdit && !widget.message.hasMedia;
 
     // Don't show copy option for audio messages (can't copy audio)
@@ -526,46 +553,10 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
   }
 
   Future<void> _deleteMessage(BuildContext context) async {
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: NovaColors.surface(context),
-        shape: RoundedRectangleBorder(
-          borderRadius: NovaRadius.circularM,
-        ),
-        title: Text(
-          'Elimina messaggio',
-          style: NovaTypography.headingSmall.copyWith(
-            color: NovaColors.textPrimary(context),
-          ),
-        ),
-        content: Text(
-          'Vuoi eliminare questo messaggio? Questa azione non può essere annullata.',
-          style: NovaTypography.bodyMedium.copyWith(
-            color: NovaColors.textSecondary(context),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(
-              'Annulla',
-              style: TextStyle(color: NovaColors.textSecondary(context)),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              'Elimina',
-              style: TextStyle(color: NovaColors.error(context)),
-            ),
-          ),
-        ],
-      ),
-    );
+    // T026-T029: Show confirmation dialog using extracted widget
+    final confirmed = await DeleteMessageConfirmationDialog.show(context);
 
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       final repository = ref.read(chatRepositoryProvider);

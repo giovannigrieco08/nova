@@ -16,7 +16,6 @@ import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../../../shared/widgets/adaptive/adaptive_switch.dart';
 import '../../../../shared/widgets/adaptive/adaptive_loading_indicator.dart';
 import '../../../notifications/presentation/screens/notification_preferences_screen.dart';
@@ -41,13 +40,12 @@ final packageInfoProvider = FutureProvider<PackageInfo>((ref) async {
 /// **Sections**:
 /// 1. **Account** (read-only): Email, username, data iscrizione
 /// 2. **Privacy**: Toggle "Profilo visibile", "Elimina account"
-/// 3. **Aspetto**: Theme selection (Sistema/Chiaro/Scuro)
-/// 4. **Notifiche**: Toggles for eventi, chat, moderazione (if moderator)
-/// 5. **Ripetizioni**: Tutor settings
-/// 6. **Moderazione** (only if role=moderator): Link to dashboard, stats
-/// 7. **Info**: App version, privacy policy, terms, open source licenses
-/// 8. **Supporto**: Report problem, FAQ, contact
-/// 9. **Esci**: Logout button
+/// 3. **Notifiche**: Toggles for eventi, chat, moderazione (if moderator)
+/// 4. **Ripetizioni**: Tutor settings
+/// 5. **Moderazione** (only if role=moderator): Link to dashboard, stats
+/// 6. **Info**: App version, privacy policy, terms, open source licenses
+/// 7. **Supporto**: Report problem, FAQ, contact
+/// 8. **Esci**: Logout button
 ///
 /// **GDPR Compliance**:
 /// - Right to Erasure: "Elimina account" soft-deletes with 30-day grace period
@@ -127,13 +125,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           SizedBox(height: NovaSpacing.large),
 
-          // Section 3: Aspetto (Theme)
-          _buildSectionHeader('Aspetto'),
-          _buildAppearanceSection(),
-
-          SizedBox(height: NovaSpacing.large),
-
-          // Section 4: Notifiche
+          // Section 3: Notifiche
           _buildSectionHeader('Notifiche'),
           _buildNotificationsSection(profile),
 
@@ -152,19 +144,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           SizedBox(height: NovaSpacing.large),
 
-          // Section 7: Info
+          // Section 6: Info
           _buildSectionHeader('Info'),
           _buildInfoSection(),
 
           SizedBox(height: NovaSpacing.large),
 
-          // Section 8: Supporto
+          // Section 7: Supporto
           _buildSectionHeader('Supporto'),
           _buildSupportSection(),
 
           SizedBox(height: NovaSpacing.large),
 
-          // Section 9: Esci
+          // Section 8: Esci
           _buildLogoutSection(),
 
           SizedBox(height: NovaSpacing.xxlarge),
@@ -497,140 +489,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
-  }
-
-  /// Section: Aspetto (Theme)
-  Widget _buildAppearanceSection() {
-    final currentTheme = ref.watch(themeModeProvider);
-    final themeNotifier = ref.read(themeModeProvider.notifier);
-
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
-      decoration: BoxDecoration(
-        color: NovaColors.backgroundSecondary(context),
-        borderRadius: NovaRadius.circularM,
-      ),
-      child: Column(
-        children: [
-          _buildActionTile(
-            icon: Icons.palette_rounded,
-            title: 'Tema',
-            subtitle: themeModeDisplayName(currentTheme),
-            onTap: () => _showThemeSelector(currentTheme, themeNotifier),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Show theme selection bottom sheet
-  void _showThemeSelector(ThemeMode currentTheme, ThemeModeNotifier notifier) {
-    if (Platform.isIOS) {
-      showCupertinoModalPopup(
-        context: context,
-        builder: (context) => CupertinoActionSheet(
-          title: const Text('Seleziona Tema'),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                notifier.setThemeMode(ThemeMode.system);
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (currentTheme == ThemeMode.system)
-                    const Icon(Icons.check, size: 18),
-                  const SizedBox(width: 8),
-                  const Text('Sistema'),
-                ],
-              ),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                notifier.setThemeMode(ThemeMode.light);
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (currentTheme == ThemeMode.light)
-                    const Icon(Icons.check, size: 18),
-                  const SizedBox(width: 8),
-                  const Text('Chiaro'),
-                ],
-              ),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                notifier.setThemeMode(ThemeMode.dark);
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (currentTheme == ThemeMode.dark)
-                    const Icon(Icons.check, size: 18),
-                  const SizedBox(width: 8),
-                  const Text('Scuro'),
-                ],
-              ),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
-          ),
-        ),
-      );
-    } else {
-      showModalBottomSheet(
-        context: context,
-        builder: (context) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: EdgeInsets.all(NovaSpacing.medium),
-                child: Text(
-                  'Seleziona Tema',
-                  style: NovaTypography.headingSmall,
-                ),
-              ),
-              RadioListTile<ThemeMode>(
-                title: const Text('Sistema'),
-                subtitle: const Text('Segue le impostazioni del dispositivo'),
-                value: ThemeMode.system,
-                groupValue: currentTheme,
-                onChanged: (value) {
-                  Navigator.pop(context);
-                  notifier.setThemeMode(ThemeMode.system);
-                },
-              ),
-              RadioListTile<ThemeMode>(
-                title: const Text('Chiaro'),
-                value: ThemeMode.light,
-                groupValue: currentTheme,
-                onChanged: (value) {
-                  Navigator.pop(context);
-                  notifier.setThemeMode(ThemeMode.light);
-                },
-              ),
-              RadioListTile<ThemeMode>(
-                title: const Text('Scuro'),
-                value: ThemeMode.dark,
-                groupValue: currentTheme,
-                onChanged: (value) {
-                  Navigator.pop(context);
-                  notifier.setThemeMode(ThemeMode.dark);
-                },
-              ),
-              SizedBox(height: NovaSpacing.medium),
-            ],
-          ),
-        ),
-      );
-    }
   }
 
   /// Section: Info
