@@ -63,8 +63,8 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
 
       InAppNotificationBanner.show(
         context: context,
-        title: payload.title ?? 'Nova',
-        body: payload.body ?? '',
+        title: payload.title,
+        body: payload.body,
         onTap: () {
           // Navigate based on payload type
           final targetType = payload.targetType;
@@ -78,12 +78,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
           } else if (targetType == 'chat') {
             Navigator.push(
               context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    const ChatScreen(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-              ),
+              NovaPageRoute.swipeBack(page: const ChatScreen()),
             );
           } else {
             // Default: go to notifications
@@ -120,12 +115,7 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
   Future<void> _openChatScreen() async {
     await Navigator.push(
       context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const ChatScreen(),
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
+      NovaPageRoute.swipeBack(page: const ChatScreen()),
     );
   }
 
@@ -168,27 +158,11 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
     ];
   }
 
-  /// Handle create button tap - Open event/bacheca creation screen (slide from left)
+  /// Handle create button tap - Open event/bacheca creation screen (slide from left with swipe-back from right)
   void _onCreateTap() {
     Navigator.push(
       context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const EventCreationScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Slide from left (starts off-screen left, slides to center)
-          const begin = Offset(-1.0, 0.0);
-          const end = Offset.zero;
-          final tween = Tween(begin: begin, end: end)
-              .chain(CurveTween(curve: Curves.easeInOut));
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 300),
-      ),
+      NovaPageRoute.swipeBackFromRight(page: const EventCreationScreen()),
     );
   }
 
@@ -233,27 +207,11 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
     );
   }
 
-  /// Handle notifications icon tap (slide from right)
+  /// Handle notifications icon tap (slide from right with swipe-back support)
   void _onNotificationsTap() {
     Navigator.push(
       context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const NotificationListScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Slide from right (starts off-screen right, slides to center)
-          const begin = Offset(1.0, 0.0);
-          const end = Offset.zero;
-          final tween = Tween(begin: begin, end: end)
-              .chain(CurveTween(curve: Curves.easeInOut));
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 300),
-      ),
+      NovaPageRoute.swipeBack(page: const NotificationListScreen()),
     );
   }
 

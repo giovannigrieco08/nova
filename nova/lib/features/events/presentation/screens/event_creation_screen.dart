@@ -106,6 +106,20 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     EventFormState state,
     EventCreationNotifier notifier,
   ) {
+    // Debug: log validation state
+    debugPrint('=== EVENT FORM VALIDATION ===');
+    debugPrint('Title: "${state.title}" (${state.title.trim().length} chars, needs 5-100)');
+    debugPrint('Description: "${state.description.length > 50 ? state.description.substring(0, 50) + '...' : state.description}" (${state.description.trim().length} chars, needs 20-500)');
+    debugPrint('Event date: ${state.eventDate} (needs future date)');
+    debugPrint('Has image: ${state.imageFile != null || state.imagePath != null}');
+    debugPrint('Title error: ${state.titleError}');
+    debugPrint('Description error: ${state.descriptionError}');
+    debugPrint('Date error: ${state.eventDateError}');
+    debugPrint('Image error: ${state.imageError}');
+    debugPrint('isValid: ${state.isValid}');
+    debugPrint('isSubmitting: ${state.isSubmitting}');
+    debugPrint('=============================');
+
     return Container(
       padding: EdgeInsets.all(NovaSpacing.l),
       decoration: BoxDecoration(
@@ -121,6 +135,36 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Validation status (debug info for user)
+            if (!state.isValid && !state.isSubmitting) ...[
+              Container(
+                padding: EdgeInsets.all(NovaSpacing.m),
+                margin: EdgeInsets.only(bottom: NovaSpacing.m),
+                decoration: BoxDecoration(
+                  color: NovaColors.warning(context).withValues(alpha: 0.1),
+                  borderRadius: NovaRadius.circularM,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: NovaColors.warning(context),
+                      size: 20,
+                    ),
+                    SizedBox(width: NovaSpacing.s),
+                    Expanded(
+                      child: Text(
+                        _getValidationMessage(state),
+                        style: NovaTextStyles.caption.copyWith(
+                          color: NovaColors.warning(context),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Error message (if any)
             if (state.submitError != null) ...[
               Container(
@@ -230,6 +274,39 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
       );
     }
     // Error is already shown in bottom bar via submitError
+  }
+
+  /// Get human-readable validation message
+  String _getValidationMessage(EventFormState state) {
+    final issues = <String>[];
+
+    if (state.title.trim().length < 5) {
+      issues.add('Titolo troppo corto (min 5 caratteri)');
+    } else if (state.title.trim().length > 100) {
+      issues.add('Titolo troppo lungo (max 100 caratteri)');
+    }
+
+    if (state.description.trim().length < 20) {
+      issues.add('Descrizione troppo corta (min 20 caratteri)');
+    } else if (state.description.trim().length > 500) {
+      issues.add('Descrizione troppo lunga (max 500 caratteri)');
+    }
+
+    if (state.eventDate == null) {
+      issues.add('Seleziona una data');
+    } else if (state.eventDate!.isBefore(DateTime.now())) {
+      issues.add('La data deve essere futura');
+    }
+
+    if (state.imageFile == null && state.imagePath == null) {
+      issues.add('Aggiungi un\'immagine');
+    }
+
+    if (issues.isEmpty) {
+      return 'Tutti i campi sono validi';
+    }
+
+    return issues.join(' • ');
   }
 
   /// Show confirmation dialog before clearing form

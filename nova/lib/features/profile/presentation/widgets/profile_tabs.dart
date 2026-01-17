@@ -3,9 +3,9 @@
 // Purpose: Platform-adaptive tabs for Eventi / Partecipazioni
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'dart:io' show Platform;
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 
@@ -60,7 +60,7 @@ class ProfileTabs extends StatelessWidget {
     }
   }
 
-  /// Build iOS tabs with CupertinoSegmentedControl
+  /// Build iOS tabs with custom segmented control using NovaRadius.circularFull
   Widget _buildIOSTabs(BuildContext context) {
     // If showPartecipazioni is false, only show Eventi tab (no segmented control needed)
     if (!showPartecipazioni) {
@@ -83,33 +83,64 @@ class ProfileTabs extends StatelessWidget {
         horizontal: NovaSpacing.large,
         vertical: NovaSpacing.medium,
       ),
-      child: CupertinoSegmentedControl<ProfileTab>(
-        children: {
-          ProfileTab.eventi: Padding(
-            padding: EdgeInsets.symmetric(vertical: NovaSpacing.small),
-            child: Text(
-              'Eventi',
-              style: NovaTypography.bodyMedium.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: NovaColors.backgroundSecondary(context),
+          borderRadius: NovaRadius.circularFull,
+          border: Border.all(
+            color: NovaColors.borderPrimary(context),
+            width: 1,
           ),
-          ProfileTab.partecipazioni: Padding(
-            padding: EdgeInsets.symmetric(vertical: NovaSpacing.small),
-            child: Text(
-              'Partecipazioni',
-              style: NovaTypography.bodyMedium.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+        ),
+        child: Row(
+          children: [
+            _buildIOSTab(
+              context,
+              label: 'Eventi',
+              isSelected: selectedTab == ProfileTab.eventi,
+              onTap: () => onTabChanged(ProfileTab.eventi),
+              isFirst: true,
             ),
+            _buildIOSTab(
+              context,
+              label: 'Partecipazioni',
+              isSelected: selectedTab == ProfileTab.partecipazioni,
+              onTap: () => onTabChanged(ProfileTab.partecipazioni),
+              isFirst: false,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build individual iOS tab with pill-shaped selection
+  Widget _buildIOSTab(
+    BuildContext context, {
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required bool isFirst,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: NovaSpacing.small + 2),
+          margin: EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: isSelected ? NovaColors.brandViolet : Colors.transparent,
+            borderRadius: NovaRadius.circularFull,
           ),
-        },
-        groupValue: selectedTab,
-        onValueChanged: onTabChanged,
-        selectedColor: NovaColors.brandViolet,
-        unselectedColor: NovaColors.backgroundSecondary(context),
-        borderColor: NovaColors.borderPrimary(context),
-        pressedColor: NovaColors.brandViolet.withValues(alpha: 0.3),
+          child: Text(
+            label,
+            style: NovaTypography.bodyMedium.copyWith(
+              color: isSelected ? Colors.white : NovaColors.textPrimary(context),
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
       ),
     );
   }

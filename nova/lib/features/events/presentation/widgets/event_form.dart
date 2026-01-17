@@ -26,13 +26,63 @@ import './image_picker_widget.dart';
 import './location_picker_sheet.dart';
 
 /// Complete event creation form
-class EventForm extends ConsumerWidget {
+class EventForm extends ConsumerStatefulWidget {
   const EventForm({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EventForm> createState() => _EventFormState();
+}
+
+class _EventFormState extends ConsumerState<EventForm> {
+  late TextEditingController _titleController;
+  late TextEditingController _descriptionController;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController();
+    _descriptionController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _syncControllersWithState(EventFormState state) {
+    // Sync on first build, draft restore, or form reset
+    final shouldSyncTitle = !_initialized ||
+        (_titleController.text.isEmpty && state.title.isNotEmpty) ||
+        (_titleController.text.isNotEmpty && state.title.isEmpty);
+    final shouldSyncDescription = !_initialized ||
+        (_descriptionController.text.isEmpty && state.description.isNotEmpty) ||
+        (_descriptionController.text.isNotEmpty && state.description.isEmpty);
+
+    if (shouldSyncTitle && _titleController.text != state.title) {
+      _titleController.text = state.title;
+      if (state.title.isNotEmpty) {
+        _titleController.selection = TextSelection.collapsed(offset: state.title.length);
+      }
+    }
+    if (shouldSyncDescription && _descriptionController.text != state.description) {
+      _descriptionController.text = state.description;
+      if (state.description.isNotEmpty) {
+        _descriptionController.selection = TextSelection.collapsed(offset: state.description.length);
+      }
+    }
+    _initialized = true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(eventCreationProvider);
     final notifier = ref.read(eventCreationProvider.notifier);
+
+    // Sync controllers with state (for draft restoration)
+    _syncControllersWithState(state);
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -117,6 +167,7 @@ class EventForm extends ConsumerWidget {
         ),
         SizedBox(height: NovaSpacing.s),
         TextField(
+          controller: _titleController,
           onChanged: notifier.updateTitle,
           maxLength: 100,
           decoration: InputDecoration(
@@ -174,6 +225,7 @@ class EventForm extends ConsumerWidget {
         ),
         SizedBox(height: NovaSpacing.s),
         TextField(
+          controller: _descriptionController,
           onChanged: notifier.updateDescription,
           maxLength: 500,
           maxLines: 5,

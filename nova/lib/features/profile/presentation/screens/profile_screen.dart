@@ -108,6 +108,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 stats: stats,
                 isOwnProfile: true,
                 onAvatarTap: () => _navigateToPhotoViewer(profile),
+                onEventiTap: () => setState(() => _selectedTab = ProfileTab.eventi),
+                onPartecipazioniTap: () => setState(() => _selectedTab = ProfileTab.partecipazioni),
               ),
             ),
 

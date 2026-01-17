@@ -196,7 +196,10 @@ class _EmojiSection extends StatelessWidget {
             children: [
               Text(
                 emoji,
-                style: const TextStyle(fontSize: 24),
+                style: TextStyle(
+                  fontSize: 24,
+                  color: NovaColors.textPrimary(context),
+                ),
               ),
               SizedBox(width: NovaSpacing.s),
               Text(

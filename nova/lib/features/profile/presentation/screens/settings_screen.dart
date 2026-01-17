@@ -17,7 +17,6 @@ import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/providers/theme_provider.dart';
-import '../../../../shared/widgets/adaptive/adaptive_scaffold.dart';
 import '../../../../shared/widgets/adaptive/adaptive_switch.dart';
 import '../../../../shared/widgets/adaptive/adaptive_loading_indicator.dart';
 import '../../../notifications/presentation/screens/notification_preferences_screen.dart';
@@ -90,8 +89,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Build settings view with all sections
   Widget _buildSettingsView(Profile profile) {
-    return AdaptiveScaffold(
-      appBar: _buildAppBar(),
+    // Use Scaffold directly instead of AdaptiveScaffold because this screen
+    // uses Material widgets (ListTile) which render better with Material scaffold
+    return Scaffold(
+      backgroundColor: NovaColors.background(context),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(
+            Platform.isIOS ? Icons.arrow_back_ios : Icons.arrow_back,
+            color: NovaColors.textPrimary(context),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'Impostazioni',
+          style: NovaTypography.headingMedium.copyWith(
+            color: NovaColors.textPrimary(context),
+          ),
+        ),
+        backgroundColor: NovaColors.background(context),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
       body: ListView(
         children: [
           SizedBox(height: NovaSpacing.small),
@@ -154,35 +173,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  /// Build app bar
-  PreferredSizeWidget _buildAppBar() {
-    if (Platform.isIOS) {
-      return CupertinoNavigationBar(
-        middle: const Text('Impostazioni'),
-        previousPageTitle: 'Profilo',
-        leading: CupertinoNavigationBarBackButton(
-          previousPageTitle: 'Profilo',
-          onPressed: () => Navigator.of(context).pop(),
+  /// Build Material app bar (used consistently across platform for this screen)
+  PreferredSizeWidget _buildMaterialAppBar() {
+    return AppBar(
+      leading: IconButton(
+        icon: Icon(
+          Platform.isIOS ? Icons.arrow_back_ios : Icons.arrow_back,
+          color: NovaColors.textPrimary(context),
         ),
-      );
-    } else {
-      return AppBar(
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: NovaColors.textPrimary(context),
-            size: 24,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      title: Text(
+        'Impostazioni',
+        style: NovaTypography.headingMedium.copyWith(
+          color: NovaColors.textPrimary(context),
         ),
-        title: Text(
-          'Impostazioni',
-          style: NovaTypography.headingMedium,
-        ),
-        backgroundColor: NovaColors.background(context),
-        elevation: 0,
-      );
-    }
+      ),
+      backgroundColor: NovaColors.background(context),
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+    );
   }
 
   /// Build section header
@@ -1285,8 +1295,9 @@ Ultimo aggiornamento: Dicembre 2024
 
   /// Build loading view
   Widget _buildLoadingView() {
-    return AdaptiveScaffold(
-      appBar: _buildAppBar(),
+    return Scaffold(
+      backgroundColor: NovaColors.background(context),
+      appBar: _buildMaterialAppBar(),
       body: const Center(
         child: AdaptiveLoadingIndicator(),
       ),
@@ -1295,8 +1306,9 @@ Ultimo aggiornamento: Dicembre 2024
 
   /// Build error view
   Widget _buildErrorView(Object error) {
-    return AdaptiveScaffold(
-      appBar: _buildAppBar(),
+    return Scaffold(
+      backgroundColor: NovaColors.background(context),
+      appBar: _buildMaterialAppBar(),
       body: Center(
         child: Text(
           'Errore nel caricare le impostazioni: ${error.toString()}',

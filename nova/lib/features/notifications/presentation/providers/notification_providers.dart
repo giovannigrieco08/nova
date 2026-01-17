@@ -401,6 +401,11 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     final updated = state.notifications.where((n) => n.id != notificationId).toList();
     state = state.copyWith(notifications: updated);
 
+    // Skip Supabase delete for mock data (IDs starting with "mock-")
+    if (notificationId.startsWith('mock-')) {
+      return;
+    }
+
     try {
       await _supabase
           .from('notifications')

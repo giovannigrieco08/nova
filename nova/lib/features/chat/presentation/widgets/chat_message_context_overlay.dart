@@ -299,9 +299,10 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
                 child: Center(
                   child: Text(
                     emoji,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       decoration: TextDecoration.none,
+                      color: NovaColors.textPrimary(context),
                     ),
                   ),
                 ),

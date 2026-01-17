@@ -32,6 +32,8 @@ class ProfileHeader extends StatelessWidget {
   final bool isOwnProfile;
   final VoidCallback? onEditTap;
   final VoidCallback? onAvatarTap;
+  final VoidCallback? onEventiTap;
+  final VoidCallback? onPartecipazioniTap;
 
   const ProfileHeader({
     required this.profile,
@@ -39,6 +41,8 @@ class ProfileHeader extends StatelessWidget {
     required this.isOwnProfile,
     this.onEditTap,
     this.onAvatarTap,
+    this.onEventiTap,
+    this.onPartecipazioniTap,
     super.key,
   });
 
@@ -68,11 +72,13 @@ class ProfileHeader extends StatelessWidget {
                       context,
                       count: stats?.eventsCreatedCount ?? 0,
                       label: 'eventi',
+                      onTap: onEventiTap,
                     ),
                     _buildStatColumn(
                       context,
                       count: stats?.participationsCount ?? 0,
                       label: 'partecipazioni',
+                      onTap: onPartecipazioniTap,
                     ),
                   ],
                 ),
@@ -127,32 +133,45 @@ class ProfileHeader extends StatelessWidget {
   }
 
   /// Build stat column (Instagram-style: prominent number + single-line label)
-  Widget _buildStatColumn(BuildContext context, {required int count, required String label}) {
+  Widget _buildStatColumn(
+    BuildContext context, {
+    required int count,
+    required String label,
+    VoidCallback? onTap,
+  }) {
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Prominent number (Instagram-style bold)
+        Text(
+          count.toString(),
+          style: NovaTypography.headingLarge.copyWith(
+            color: NovaColors.textPrimary(context),
+            fontWeight: FontWeight.w700,
+            fontSize: 22,
+          ),
+        ),
+        SizedBox(height: 2),
+        // Label below
+        Text(
+          label,
+          style: NovaTypography.bodySmall.copyWith(
+            color: NovaColors.textSecondary(context),
+            fontWeight: FontWeight.w400,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+
     return Expanded(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Prominent number (Instagram-style bold)
-          Text(
-            count.toString(),
-            style: NovaTypography.headingLarge.copyWith(
-              color: NovaColors.textPrimary(context),
-              fontWeight: FontWeight.w700,
-              fontSize: 22,
-            ),
-          ),
-          SizedBox(height: 2),
-          // Label below
-          Text(
-            label,
-            style: NovaTypography.bodySmall.copyWith(
-              color: NovaColors.textSecondary(context),
-              fontWeight: FontWeight.w400,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+      child: onTap != null
+          ? GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: content,
+            )
+          : content,
     );
   }
 

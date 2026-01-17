@@ -201,9 +201,11 @@ class _ReactionChipState extends State<_ReactionChip>
             children: [
               Text(
                 widget.emoji,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   decoration: TextDecoration.none,
+                  // Explicit color to ensure visibility regardless of inherited styles
+                  color: NovaColors.textPrimary(context),
                 ),
               ),
               SizedBox(width: NovaSpacing.xxs),

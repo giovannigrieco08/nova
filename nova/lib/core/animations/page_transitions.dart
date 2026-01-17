@@ -253,6 +253,32 @@ class NovaPageRoute {
     );
   }
 
+  /// Creates a route with swipe-to-go-back gesture from the RIGHT edge.
+  ///
+  /// Use this for screens that slide in from the LEFT (like creation screens).
+  /// Users swipe from right-to-left to dismiss.
+  ///
+  /// Usage:
+  /// ```dart
+  /// Navigator.push(
+  ///   context,
+  ///   NovaPageRoute.swipeBackFromRight(page: CreateScreen()),
+  /// );
+  /// ```
+  static Route<T> swipeBackFromRight<T>({
+    required Widget page,
+    RouteSettings? settings,
+    bool fullscreenDialog = false,
+    bool maintainState = true,
+  }) {
+    return SwipeBackRightPageRoute<T>(
+      builder: (_) => page,
+      settings: settings,
+      fullscreenDialog: fullscreenDialog,
+      maintainState: maintainState,
+    );
+  }
+
   static Offset _getBeginOffset(SlideDirection direction) {
     switch (direction) {
       case SlideDirection.fromLeft:

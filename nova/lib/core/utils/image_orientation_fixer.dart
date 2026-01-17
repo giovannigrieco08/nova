@@ -52,11 +52,9 @@ class ImageOrientationFixer {
       // This handles rotation and mirroring based on EXIF orientation tag
       var fixedImage = img.bakeOrientation(image);
 
-      // For front camera on iOS, the image might need to be flipped horizontally
-      // to match what the user saw in the preview (mirror selfie style)
-      // Note: Only do this if the user expects mirror behavior
-      // Most apps (Instagram, Snapchat) do NOT mirror the final photo
-      // So we skip this step to match standard behavior
+      // On iOS, images from the camera plugin appear mirrored.
+      // We flip horizontally to correct this for both front and rear cameras.
+      fixedImage = img.flipHorizontal(fixedImage);
 
       // Encode the fixed image as JPEG
       final fixedBytes = img.encodeJpg(fixedImage, quality: 95);
