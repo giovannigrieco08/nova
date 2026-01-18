@@ -89,12 +89,32 @@ class CommentsRemoteDataSource {
         }
       }
 
-      // Parse comments with profile data (map author_id to user_id for model)
+      // Fetch likes by current user for these comments
+      final currentUserId = _supabase.auth.currentUser?.id;
+      Set<String> likedCommentIds = {};
+      if (currentUserId != null && commentsData.isNotEmpty) {
+        final commentIds = commentsData
+            .map((json) => json['id'] as String)
+            .toList();
+        final likesResponse = await _supabase
+            .from('comment_likes')
+            .select('comment_id')
+            .eq('user_id', currentUserId)
+            .inFilter('comment_id', commentIds);
+        likedCommentIds = (likesResponse as List)
+            .map((like) => like['comment_id'] as String)
+            .toSet();
+      }
+
+      // Parse comments with profile data and like status
       final commentModels = commentsData.map((json) {
         final authorId = json['author_id'] as String?;
+        final commentId = json['id'] as String;
         final profile = authorId != null ? profilesMap[authorId] : null;
         // Normalize DB schema to model schema
         final normalizedJson = _normalizeCommentJson(json);
+        // Add like status for current user
+        normalizedJson['is_liked_by_current_user'] = likedCommentIds.contains(commentId);
         return _parseCommentWithProfileData(normalizedJson, profile);
       }).toList();
 
@@ -156,11 +176,31 @@ class CommentsRemoteDataSource {
         }
       }
 
+      // Fetch likes by current user for these replies
+      final currentUserId = _supabase.auth.currentUser?.id;
+      Set<String> likedCommentIds = {};
+      if (currentUserId != null && data.isNotEmpty) {
+        final replyIds = data
+            .map((json) => json['id'] as String)
+            .toList();
+        final likesResponse = await _supabase
+            .from('comment_likes')
+            .select('comment_id')
+            .eq('user_id', currentUserId)
+            .inFilter('comment_id', replyIds);
+        likedCommentIds = (likesResponse as List)
+            .map((like) => like['comment_id'] as String)
+            .toSet();
+      }
+
       return data.map((json) {
         final authorId = json['author_id'] as String?;
+        final replyId = json['id'] as String;
         final profile = authorId != null ? profilesMap[authorId] : null;
         // Normalize DB schema (author_id -> user_id, content -> text)
         final normalizedJson = _normalizeCommentJson(json);
+        // Add like status for current user
+        normalizedJson['is_liked_by_current_user'] = likedCommentIds.contains(replyId);
         return _parseCommentWithProfileData(normalizedJson, profile);
       }).toList();
     } on PostgrestException catch (e, stackTrace) {
@@ -198,7 +238,21 @@ class CommentsRemoteDataSource {
         profileData = profileResponse;
       }
 
+      // Check if current user has liked this comment
+      final currentUserId = _supabase.auth.currentUser?.id;
+      bool isLikedByCurrentUser = false;
+      if (currentUserId != null) {
+        final likeResponse = await _supabase
+            .from('comment_likes')
+            .select('comment_id')
+            .eq('user_id', currentUserId)
+            .eq('comment_id', commentId)
+            .maybeSingle();
+        isLikedByCurrentUser = likeResponse != null;
+      }
+
       final normalizedJson = _normalizeCommentJson(response);
+      normalizedJson['is_liked_by_current_user'] = isLikedByCurrentUser;
       return _parseCommentWithProfileData(normalizedJson, profileData);
     } on PostgrestException catch (e, stackTrace) {
       if (e.code == 'PGRST116') {
