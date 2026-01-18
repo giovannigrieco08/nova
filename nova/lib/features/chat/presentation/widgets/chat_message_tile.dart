@@ -362,26 +362,10 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
         ? Colors.white
         : NovaColors.textPrimary(context);
 
-    // T016-T017: Deleted message placeholder with grey background, italic text, and block icon
+    // Safety check: deleted messages should be filtered at the list level,
+    // but if one somehow gets through, don't render its content
     if (widget.message.isDeleted) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.block,
-            size: 16,
-            color: NovaColors.textTertiary(context),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Messaggio eliminato',
-            style: NovaTypography.bodyMedium.copyWith(
-              color: NovaColors.textTertiary(context),
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      );
+      return const SizedBox.shrink();
     }
 
     if (widget.message.isHidden) {

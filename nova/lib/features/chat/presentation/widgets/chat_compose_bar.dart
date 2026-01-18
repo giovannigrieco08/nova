@@ -448,12 +448,21 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   Future<void> _startRecording() async {
     debugPrint('[VoiceRecorder] _startRecording called');
     try {
-      // Check microphone permission
-      debugPrint('[VoiceRecorder] Requesting microphone permission...');
-      final status = await Permission.microphone.request();
-      debugPrint('[VoiceRecorder] Permission status: $status');
-      if (status != PermissionStatus.granted) {
-        if (status == PermissionStatus.permanentlyDenied && mounted) {
+      // Check microphone permission - first check current status
+      debugPrint('[VoiceRecorder] Checking microphone permission...');
+      var status = await Permission.microphone.status;
+      debugPrint('[VoiceRecorder] Current permission status: $status');
+
+      // If not determined yet, request permission
+      if (status.isDenied || status.isRestricted) {
+        debugPrint('[VoiceRecorder] Requesting permission...');
+        status = await Permission.microphone.request();
+        debugPrint('[VoiceRecorder] After request status: $status');
+      }
+
+      // Check if permission is granted (includes limited on iOS)
+      if (!status.isGranted && !status.isLimited) {
+        if (status.isPermanentlyDenied && mounted) {
           // Show dialog to guide user to Settings
           showCupertinoDialog(
             context: context,
@@ -481,6 +490,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         }
         return;
       }
+
+      debugPrint('[VoiceRecorder] Permission granted, proceeding...');
 
       // Initialize recorder if needed
       if (!_recorderInitialized) {

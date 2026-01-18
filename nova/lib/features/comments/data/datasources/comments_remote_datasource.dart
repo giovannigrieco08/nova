@@ -137,19 +137,19 @@ class CommentsRemoteDataSource {
 
       final List<dynamic> data = response as List;
 
-      // Fetch profiles for all reply authors
-      final userIds = data
-          .map((json) => json['user_id'] as String?)
+      // Fetch profiles for all reply authors (DB uses author_id, not user_id)
+      final authorIds = data
+          .map((json) => json['author_id'] as String?)
           .whereType<String>()
           .toSet()
           .toList();
 
       Map<String, Map<String, dynamic>> profilesMap = {};
-      if (userIds.isNotEmpty) {
+      if (authorIds.isNotEmpty) {
         final profilesResponse = await _supabase
             .from('profiles')
             .select('user_id, full_name, avatar_url, class')
-            .inFilter('user_id', userIds);
+            .inFilter('user_id', authorIds);
 
         for (final profile in profilesResponse as List) {
           profilesMap[profile['user_id'] as String] = profile;
@@ -157,9 +157,11 @@ class CommentsRemoteDataSource {
       }
 
       return data.map((json) {
-        final userId = json['user_id'] as String?;
-        final profile = userId != null ? profilesMap[userId] : null;
-        return _parseCommentWithProfileData(json, profile);
+        final authorId = json['author_id'] as String?;
+        final profile = authorId != null ? profilesMap[authorId] : null;
+        // Normalize DB schema (author_id -> user_id, content -> text)
+        final normalizedJson = _normalizeCommentJson(json);
+        return _parseCommentWithProfileData(normalizedJson, profile);
       }).toList();
     } on PostgrestException catch (e, stackTrace) {
       throw _mapSupabaseError(e, stackTrace);

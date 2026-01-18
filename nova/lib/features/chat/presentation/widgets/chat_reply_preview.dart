@@ -44,7 +44,8 @@ class ChatReplyPreview extends StatelessWidget {
 
   /// Build the compose bar style (original style with dismiss button)
   Widget _buildComposeBarStyle(BuildContext context) {
-    final isDeleted = replyTo.isHidden;
+    // Check if message is hidden (moderation) or soft-deleted (user deleted)
+    final isDeleted = replyTo.isHidden || replyTo.isDeleted;
 
     return GestureDetector(
       onTap: onTap,
@@ -120,7 +121,8 @@ class ChatReplyPreview extends StatelessWidget {
 
   /// Build the Instagram-style chat bubble reply preview
   Widget _buildChatBubbleStyle(BuildContext context) {
-    final isDeleted = replyTo.isHidden;
+    // Check if message is hidden (moderation) or soft-deleted (user deleted)
+    final isDeleted = replyTo.isHidden || replyTo.isDeleted;
     final isReplyToSelf = currentUserId != null && replyTo.userId == currentUserId;
 
     // Determine label text
