@@ -145,16 +145,20 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          TextButton.icon(
+          TextButton(
             onPressed: _showPickerOptions,
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Cambia'),
+            child: Text(
+              'Cambia',
+              style: TextStyle(color: NovaColors.primary(context)),
+            ),
           ),
           SizedBox(width: NovaSpacing.l),
-          TextButton.icon(
+          TextButton(
             onPressed: widget.onImageRemoved,
-            icon: Icon(Icons.delete_outline, size: 18, color: NovaColors.error(context)),
-            label: Text('Rimuovi', style: TextStyle(color: NovaColors.error(context))),
+            child: Text(
+              'Rimuovi',
+              style: TextStyle(color: NovaColors.error(context)),
+            ),
           ),
         ],
       ),
