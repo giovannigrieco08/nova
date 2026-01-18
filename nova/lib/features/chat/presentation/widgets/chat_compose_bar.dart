@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,6 +78,49 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   bool _isOpeningGallery = false;
 
   static const int _maxCharacters = 500;
+
+  /// Show a toast-style notification (Cupertino compatible)
+  void _showToast(String message, {bool isError = false, bool isWarning = false}) {
+    if (!mounted) return;
+
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 100,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isError
+                  ? CupertinoColors.systemRed.darkColor
+                  : isWarning
+                      ? CupertinoColors.systemOrange.darkColor
+                      : CupertinoColors.systemGrey.darkColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: CupertinoColors.white,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 3), () {
+      if (entry.mounted) entry.remove();
+    });
+  }
 
   @override
   void initState() {
@@ -331,14 +375,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Impossibile aprire la fotocamera'),
-            backgroundColor: NovaColors.error(context),
-          ),
-        );
-      }
+      _showToast('Impossibile aprire la fotocamera', isError: true);
     }
   }
 
@@ -376,14 +413,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         _handleSelectedMedia(XFile(fixedPath));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Impossibile aprire la galleria'),
-            backgroundColor: NovaColors.error(context),
-          ),
-        );
-      }
+      _showToast('Impossibile aprire la galleria', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isOpeningGallery = false);
@@ -423,13 +453,31 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       final status = await Permission.microphone.request();
       debugPrint('[VoiceRecorder] Permission status: $status');
       if (status != PermissionStatus.granted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Permesso microfono necessario'),
-              backgroundColor: NovaColors.error(context),
+        if (status == PermissionStatus.permanentlyDenied && mounted) {
+          // Show dialog to guide user to Settings
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Permesso microfono'),
+              content: const Text('Per registrare messaggi vocali, abilita il microfono nelle Impostazioni.'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('Annulla'),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  child: const Text('Impostazioni'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    openAppSettings();
+                  },
+                ),
+              ],
             ),
           );
+        } else {
+          _showToast('Permesso microfono necessario', isError: true);
         }
         return;
       }
@@ -440,14 +488,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         final initialized = await _initRecorder();
         debugPrint('[VoiceRecorder] Recorder initialized: $initialized');
         if (!initialized) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Impossibile inizializzare il registratore'),
-                backgroundColor: NovaColors.error(context),
-              ),
-            );
-          }
+          _showToast('Impossibile inizializzare il registratore', isError: true);
           return;
         }
       }
@@ -495,14 +536,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     } catch (e, stackTrace) {
       debugPrint('[VoiceRecorder] ERROR in _startRecording: $e');
       debugPrint('[VoiceRecorder] Stack trace: $stackTrace');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Impossibile avviare la registrazione'),
-            backgroundColor: NovaColors.error(context),
-          ),
-        );
-      }
+      _showToast('Impossibile avviare la registrazione', isError: true);
     }
   }
 
@@ -532,14 +566,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
           if (await file.exists()) {
             await file.delete();
           }
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Registrazione troppo breve'),
-                backgroundColor: NovaColors.warning(context),
-              ),
-            );
-          }
+          _showToast('Registrazione troppo breve', isWarning: true);
         }
       }
     } catch (e) {
@@ -642,28 +669,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       // Notify parent that something was sent
       widget.onSent?.call();
     } on ChatMediaLimitException catch (e) {
-      // Show limit error as snackbar (this is important feedback)
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: NovaColors.warning(context),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      // Show limit error as toast
+      _showToast(e.message, isWarning: true);
     } catch (e, stackTrace) {
       // TODO: Mark the message as failed with red X indicator
-      // For now, show error snackbar only for upload failures
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Errore durante l\'invio. Riprova.'),
-            backgroundColor: NovaColors.error(context),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      _showToast('Errore durante l\'invio. Riprova.', isError: true);
     }
   }
 
