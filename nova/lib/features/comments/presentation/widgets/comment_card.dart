@@ -339,23 +339,25 @@ class _CommentCardState extends ConsumerState<CommentCard>
     final likesState = ref.watch(commentLikesNotifierProvider(widget.comment.id));
     final likesNotifier = ref.read(commentLikesNotifierProvider(widget.comment.id).notifier);
 
-    // Initialize likes state if needed (first render)
+    // Initialize likes state from comment on first render
+    // Use post-frame callback to avoid modifying state during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (likesState.likeCount == 0 && !likesState.isLiked && widget.comment.likeCount > 0) {
-        likesNotifier.initialize(
-          isLiked: widget.comment.isLikedByCurrentUser,
-          likeCount: widget.comment.likeCount,
-        );
+      // Only initialize if state hasn't been set yet (default state)
+      // Check if state matches default values AND differs from comment
+      final needsInit = likesState.likeCount == 0 &&
+                        !likesState.isLiked &&
+                        !likesState.isProcessing &&
+                        (widget.comment.likeCount > 0 || widget.comment.isLikedByCurrentUser);
+      if (needsInit) {
+        likesNotifier.initializeFromComment(widget.comment);
       }
     });
 
-    // Use state from notifier, fallback to comment data if not initialized
-    final isLiked = likesState.likeCount > 0 || likesState.isLiked
-        ? likesState.isLiked
-        : widget.comment.isLikedByCurrentUser;
-    final likeCount = likesState.likeCount > 0 || likesState.isLiked
-        ? likesState.likeCount
-        : widget.comment.likeCount;
+    // Use state from notifier if it's been initialized (likeCount > 0, isLiked true, or isProcessing)
+    // Otherwise fallback to comment data
+    final isInitialized = likesState.likeCount > 0 || likesState.isLiked || likesState.isProcessing;
+    final isLiked = isInitialized ? likesState.isLiked : widget.comment.isLikedByCurrentUser;
+    final likeCount = isInitialized ? likesState.likeCount : widget.comment.likeCount;
 
     return Padding(
       padding: EdgeInsets.only(left: NovaSpacing.s),

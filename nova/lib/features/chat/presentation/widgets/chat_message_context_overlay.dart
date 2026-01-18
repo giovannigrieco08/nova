@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
@@ -168,6 +169,48 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
     widget.onReact?.call(emoji);
   }
 
+  void _showEmojiPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: NovaColors.surface(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SizedBox(
+          height: 350,
+          child: EmojiPicker(
+            onEmojiSelected: (category, emoji) {
+              Navigator.pop(sheetContext);
+              _handleReaction(emoji.emoji);
+            },
+            config: Config(
+              height: 350,
+              checkPlatformCompatibility: true,
+              viewOrderConfig: const ViewOrderConfig(),
+              emojiViewConfig: EmojiViewConfig(
+                emojiSizeMax: 28,
+                backgroundColor: NovaColors.surface(context),
+              ),
+              skinToneConfig: const SkinToneConfig(),
+              categoryViewConfig: CategoryViewConfig(
+                backgroundColor: NovaColors.surface(context),
+                indicatorColor: NovaColors.primary(context),
+                iconColorSelected: NovaColors.primary(context),
+                iconColor: NovaColors.textSecondary(context),
+              ),
+              bottomActionBarConfig: const BottomActionBarConfig(enabled: false),
+              searchViewConfig: SearchViewConfig(
+                backgroundColor: NovaColors.surface(context),
+                buttonIconColor: NovaColors.textSecondary(context),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _handleReply() {
     _close();
     widget.onReply?.call();
@@ -309,11 +352,9 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
               ),
             );
           }),
-          // Plus button for more emojis (optional, not implemented)
+          // Plus button for more emojis
           GestureDetector(
-            onTap: () {
-              // Could show full emoji picker in future
-            },
+            onTap: _showEmojiPicker,
             child: Container(
               width: 44,
               height: 44,

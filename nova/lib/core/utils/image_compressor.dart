@@ -88,6 +88,9 @@ class ImageCompressor {
         minHeight: targetHeight,
         // Automatically removes EXIF metadata (privacy requirement)
         keepExif: false,
+        // Disable auto rotation - we already handle orientation in ImageOrientationFixer
+        autoCorrectionAngle: false,
+        rotate: 0,
       );
 
       return result;
@@ -111,6 +114,9 @@ class ImageCompressor {
         minHeight: targetHeight,
         // Automatically removes EXIF metadata (privacy requirement)
         keepExif: false,
+        // Disable auto rotation - we already handle orientation in ImageOrientationFixer
+        autoCorrectionAngle: false,
+        rotate: 0,
       );
 
       return result;

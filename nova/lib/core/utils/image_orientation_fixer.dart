@@ -48,6 +48,18 @@ class ImageOrientationFixer {
         return imagePath; // Can't decode, return original
       }
 
+      // Check if image has non-standard orientation that needs fixing
+      // Orientation 1 = normal, no transformation needed
+      // Skip processing for images that are already correctly oriented
+      final exifData = image.exif;
+      final orientation = exifData.imageIfd[0x0112]?.toInt() ?? 1;
+
+      // If orientation is normal (1) and not front camera, skip processing
+      // This prevents unnecessary re-encoding of gallery images/screenshots
+      if (orientation == 1 && !isFrontCamera) {
+        return imagePath;
+      }
+
       // Apply EXIF orientation (bakes orientation into pixel data)
       // This handles rotation and mirroring based on EXIF orientation tag
       var fixedImage = img.bakeOrientation(image);
