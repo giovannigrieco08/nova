@@ -245,35 +245,56 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    Event? event;
-    if (isEditMode) {
-      event = await notifier.updateEvent(widget.eventToEdit!.id);
-    } else {
-      event = await notifier.createEvent();
-    }
+    try {
+      debugPrint('>>> _submitForm called, isEditMode: $isEditMode');
 
-    if (event != null) {
-      // Refresh the feed to show the new/updated event
-      ref.invalidate(eventsFeedProvider);
-      ref.invalidate(userPendingEventsProvider);
+      Event? event;
+      if (isEditMode) {
+        event = await notifier.updateEvent(widget.eventToEdit!.id);
+      } else {
+        event = await notifier.createEvent();
+      }
 
-      // Navigate back immediately
-      navigator.pop(event); // Return the updated event
+      debugPrint('>>> createEvent returned: ${event?.id ?? 'null'}');
 
-      // Show success message after navigation
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            isEditMode
-              ? 'Evento modificato con successo'
-              : 'Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
+      if (event != null) {
+        // Refresh the feed to show the new/updated event
+        ref.invalidate(eventsFeedProvider);
+        ref.invalidate(userPendingEventsProvider);
+
+        // Navigate back immediately
+        navigator.pop(event); // Return the updated event
+
+        // Show success message after navigation
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              isEditMode
+                ? 'Evento modificato con successo'
+                : 'Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
+            ),
+            backgroundColor: NovaColors.successLight,
+            duration: const Duration(seconds: 3),
           ),
-          backgroundColor: NovaColors.successLight,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+        );
+      } else {
+        debugPrint('>>> Event creation returned null, check submitError in state');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('>>> UNHANDLED ERROR in _submitForm: $e');
+      debugPrint('>>> Stack trace: $stackTrace');
+
+      // Show error to user
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Errore imprevisto: $e'),
+            backgroundColor: NovaColors.error(context),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
-    // Error is already shown in bottom bar via submitError
   }
 
   /// Get human-readable validation message
