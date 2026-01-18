@@ -89,21 +89,25 @@ class CommentsRemoteDataSource {
         }
       }
 
-      // Fetch likes by current user for these comments
+      // Fetch likes by current user for these comments (non-blocking on error)
       final currentUserId = _supabase.auth.currentUser?.id;
       Set<String> likedCommentIds = {};
       if (currentUserId != null && commentsData.isNotEmpty) {
-        final commentIds = commentsData
-            .map((json) => json['id'] as String)
-            .toList();
-        final likesResponse = await _supabase
-            .from('comment_likes')
-            .select('comment_id')
-            .eq('user_id', currentUserId)
-            .inFilter('comment_id', commentIds);
-        likedCommentIds = (likesResponse as List)
-            .map((like) => like['comment_id'] as String)
-            .toSet();
+        try {
+          final commentIds = commentsData
+              .map((json) => json['id'] as String)
+              .toList();
+          final likesResponse = await _supabase
+              .from('comment_likes')
+              .select('comment_id')
+              .eq('user_id', currentUserId)
+              .inFilter('comment_id', commentIds);
+          likedCommentIds = (likesResponse as List)
+              .map((like) => like['comment_id'] as String)
+              .toSet();
+        } catch (_) {
+          // Ignore errors fetching likes - comments still work without like status
+        }
       }
 
       // Parse comments with profile data and like status
@@ -157,9 +161,9 @@ class CommentsRemoteDataSource {
 
       final List<dynamic> data = response as List;
 
-      // Fetch profiles for all reply authors (DB uses author_id, not user_id)
+      // Fetch profiles for all reply authors (handle both author_id and user_id)
       final authorIds = data
-          .map((json) => json['author_id'] as String?)
+          .map((json) => (json['author_id'] ?? json['user_id']) as String?)
           .whereType<String>()
           .toSet()
           .toList();
@@ -176,25 +180,29 @@ class CommentsRemoteDataSource {
         }
       }
 
-      // Fetch likes by current user for these replies
+      // Fetch likes by current user for these replies (non-blocking on error)
       final currentUserId = _supabase.auth.currentUser?.id;
       Set<String> likedCommentIds = {};
       if (currentUserId != null && data.isNotEmpty) {
-        final replyIds = data
-            .map((json) => json['id'] as String)
-            .toList();
-        final likesResponse = await _supabase
-            .from('comment_likes')
-            .select('comment_id')
-            .eq('user_id', currentUserId)
-            .inFilter('comment_id', replyIds);
-        likedCommentIds = (likesResponse as List)
-            .map((like) => like['comment_id'] as String)
-            .toSet();
+        try {
+          final replyIds = data
+              .map((json) => json['id'] as String)
+              .toList();
+          final likesResponse = await _supabase
+              .from('comment_likes')
+              .select('comment_id')
+              .eq('user_id', currentUserId)
+              .inFilter('comment_id', replyIds);
+          likedCommentIds = (likesResponse as List)
+              .map((like) => like['comment_id'] as String)
+              .toSet();
+        } catch (_) {
+          // Ignore errors fetching likes - replies still work without like status
+        }
       }
 
       return data.map((json) {
-        final authorId = json['author_id'] as String?;
+        final authorId = (json['author_id'] ?? json['user_id']) as String?;
         final replyId = json['id'] as String;
         final profile = authorId != null ? profilesMap[authorId] : null;
         // Normalize DB schema (author_id -> user_id, content -> text)
@@ -238,17 +246,21 @@ class CommentsRemoteDataSource {
         profileData = profileResponse;
       }
 
-      // Check if current user has liked this comment
+      // Check if current user has liked this comment (non-blocking on error)
       final currentUserId = _supabase.auth.currentUser?.id;
       bool isLikedByCurrentUser = false;
       if (currentUserId != null) {
-        final likeResponse = await _supabase
-            .from('comment_likes')
-            .select('comment_id')
-            .eq('user_id', currentUserId)
-            .eq('comment_id', commentId)
-            .maybeSingle();
-        isLikedByCurrentUser = likeResponse != null;
+        try {
+          final likeResponse = await _supabase
+              .from('comment_likes')
+              .select('comment_id')
+              .eq('user_id', currentUserId)
+              .eq('comment_id', commentId)
+              .maybeSingle();
+          isLikedByCurrentUser = likeResponse != null;
+        } catch (_) {
+          // Ignore errors - comment still works without like status
+        }
       }
 
       final normalizedJson = _normalizeCommentJson(response);
