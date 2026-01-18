@@ -10,6 +10,7 @@
 // - Loading indicator during compression
 
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/nova_colors.dart';
@@ -42,6 +43,45 @@ class ImagePickerWidget extends StatefulWidget {
 class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+
+  /// Show error toast (Cupertino compatible)
+  void _showErrorToast(String message) {
+    if (!mounted) return;
+
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 100,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemRed.darkColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: CupertinoColors.white,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 3), () {
+      if (entry.mounted) entry.remove();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -250,21 +290,17 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
 
       if (pickedFile != null) {
         // Fix orientation issues on iOS
+        // For events, assume rear camera (not selfies) - don't flip horizontally
         final fixedPath = await ImageOrientationFixer.fixOrientation(
           pickedFile.path,
-          isFrontCamera: source == ImageSource.camera, // Assume front for selfies
+          isFrontCamera: false, // Events use rear camera, not selfies
         );
         final imageFile = File(fixedPath);
         widget.onImagePicked(imageFile);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Errore durante la selezione: ${e.toString()}'),
-            backgroundColor: NovaColors.error(context),
-          ),
-        );
+        _showErrorToast('Errore durante la selezione: ${e.toString()}');
       }
     } finally {
       if (mounted) {

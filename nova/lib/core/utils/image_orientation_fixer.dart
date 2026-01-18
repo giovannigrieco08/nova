@@ -52,9 +52,11 @@ class ImageOrientationFixer {
       // This handles rotation and mirroring based on EXIF orientation tag
       var fixedImage = img.bakeOrientation(image);
 
-      // On iOS, images from the camera plugin appear mirrored.
-      // We flip horizontally to correct this for both front and rear cameras.
-      fixedImage = img.flipHorizontal(fixedImage);
+      // Only flip front camera images (selfies are mirrored by iOS camera plugin)
+      // Gallery images and rear camera images should NOT be flipped
+      if (isFrontCamera) {
+        fixedImage = img.flipHorizontal(fixedImage);
+      }
 
       // Encode the fixed image as JPEG
       final fixedBytes = img.encodeJpg(fixedImage, quality: 95);
