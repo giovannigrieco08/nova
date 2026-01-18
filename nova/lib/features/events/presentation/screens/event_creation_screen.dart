@@ -11,6 +11,7 @@
 // - Error handling with SnackBar
 // - Draft restoration on init
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/nova_colors.dart';
@@ -40,6 +41,49 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
   bool _initialized = false;
 
   bool get isEditMode => widget.eventToEdit != null;
+
+  /// Show a toast-style notification (Cupertino compatible)
+  void _showToast(String message, {bool isError = false, bool isSuccess = false}) {
+    if (!mounted) return;
+
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 100,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isError
+                  ? CupertinoColors.systemRed.darkColor
+                  : isSuccess
+                      ? CupertinoColors.systemGreen.darkColor
+                      : CupertinoColors.systemGrey.darkColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: CupertinoColors.white,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 3), () {
+      if (entry.mounted) entry.remove();
+    });
+  }
 
   @override
   void initState() {
@@ -243,7 +287,6 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     EventCreationNotifier notifier,
   ) async {
     final navigator = Navigator.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
       debugPrint('>>> _submitForm called, isEditMode: $isEditMode');
@@ -262,21 +305,16 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
         ref.invalidate(eventsFeedProvider);
         ref.invalidate(userPendingEventsProvider);
 
-        // Navigate back immediately
-        navigator.pop(event); // Return the updated event
-
-        // Show success message after navigation
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditMode
-                ? 'Evento modificato con successo'
-                : 'Evento creato! Sarà visibile dopo l\'approvazione del moderatore',
-            ),
-            backgroundColor: NovaColors.successLight,
-            duration: const Duration(seconds: 3),
-          ),
+        // Show success message before navigation
+        _showToast(
+          isEditMode
+            ? 'Evento modificato con successo'
+            : 'Evento creato! Sarà visibile dopo l\'approvazione',
+          isSuccess: true,
         );
+
+        // Navigate back
+        navigator.pop(event);
       } else {
         debugPrint('>>> Event creation returned null, check submitError in state');
       }
@@ -285,15 +323,7 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
       debugPrint('>>> Stack trace: $stackTrace');
 
       // Show error to user
-      if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('Errore imprevisto: $e'),
-            backgroundColor: NovaColors.error(context),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
+      _showToast('Errore imprevisto: $e', isError: true);
     }
   }
 
