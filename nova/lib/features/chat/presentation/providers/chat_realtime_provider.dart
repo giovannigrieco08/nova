@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -39,6 +40,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
 
   /// Subscribe to message changes via Postgres Changes
   Future<void> _subscribeToMessages() async {
+    debugPrint('[Realtime] Subscribing to message changes...');
     _messagesChannel = _supabase
         .channel('global-chat:messages')
         .onPostgresChanges(
@@ -46,6 +48,8 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
           schema: 'public',
           table: 'chat_messages',
           callback: (payload) {
+            debugPrint('[Realtime] INSERT event received');
+            debugPrint('[Realtime] - newRecord: ${payload.newRecord}');
             // Postgres Changes only returns raw row data without joins.
             // We need to re-fetch the message to get full data (profiles, media, etc.)
             // Use unawaited Future to not block the callback
@@ -57,6 +61,8 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
           schema: 'public',
           table: 'chat_messages',
           callback: (payload) {
+            debugPrint('[Realtime] UPDATE event received');
+            debugPrint('[Realtime] - newRecord: ${payload.newRecord}');
             // Re-fetch to get full joined data
             _handleMessageUpdate(payload.newRecord);
           },
@@ -66,6 +72,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
           schema: 'public',
           table: 'chat_messages',
           callback: (payload) {
+            debugPrint('[Realtime] DELETE event received');
             final messageId = payload.oldRecord['id'] as String?;
             if (messageId != null) {
               _removeMessage(messageId);
@@ -125,29 +132,45 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
 
   /// Handle message INSERT - fetch full data asynchronously
   Future<void> _handleMessageInsert(Map<String, dynamic> record) async {
+    final messageId = record['id'] as String;
+    debugPrint('[Realtime] _handleMessageInsert: $messageId');
     try {
-      final messageId = record['id'] as String;
+      debugPrint('[Realtime] Fetching full message data...');
       final fullMessage = await _dataSource.getMessage(messageId);
       if (fullMessage != null) {
+        debugPrint('[Realtime] Got message, hasMedia: ${fullMessage.mediaJson != null}');
         final message = fullMessage.toEntity(currentUserId: _currentUserId);
+        debugPrint('[Realtime] Entity hasMedia: ${message.hasMedia}, media: ${message.media?.id}');
         _addMessage(message);
+        debugPrint('[Realtime] Message added to state');
+      } else {
+        debugPrint('[Realtime] getMessage returned null!');
       }
-    } catch (e) {
-      // Silently ignore errors - message will appear on next refresh
+    } catch (e, st) {
+      debugPrint('[Realtime] ERROR in _handleMessageInsert: $e');
+      debugPrint('[Realtime] Stack: $st');
     }
   }
 
   /// Handle message UPDATE - fetch full data asynchronously
   Future<void> _handleMessageUpdate(Map<String, dynamic> record) async {
+    final messageId = record['id'] as String;
+    debugPrint('[Realtime] _handleMessageUpdate: $messageId');
     try {
-      final messageId = record['id'] as String;
+      debugPrint('[Realtime] Fetching full message data...');
       final fullMessage = await _dataSource.getMessage(messageId);
       if (fullMessage != null) {
+        debugPrint('[Realtime] Got message, content: "${fullMessage.content}", hasMedia: ${fullMessage.mediaJson != null}');
         final message = fullMessage.toEntity(currentUserId: _currentUserId);
+        debugPrint('[Realtime] Entity hasMedia: ${message.hasMedia}, media: ${message.media?.id}');
         _updateMessage(message);
+        debugPrint('[Realtime] Message updated in state');
+      } else {
+        debugPrint('[Realtime] getMessage returned null!');
       }
-    } catch (e) {
-      // Silently ignore errors - message will update on next refresh
+    } catch (e, st) {
+      debugPrint('[Realtime] ERROR in _handleMessageUpdate: $e');
+      debugPrint('[Realtime] Stack: $st');
     }
   }
 

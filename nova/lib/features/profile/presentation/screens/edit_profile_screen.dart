@@ -19,8 +19,6 @@ import '../widgets/avatar_initials.dart';
 import '../widgets/class_picker_bottom_sheet.dart';
 import '../widgets/avatar_picker_bottom_sheet.dart';
 import '../widgets/avatar_cropper.dart';
-import '../widgets/banner_picker_bottom_sheet.dart';
-import '../widgets/banner_cropper.dart';
 
 /// Edit profile screen for existing users
 ///
@@ -49,15 +47,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   String? _avatarUrl;
   String? _originalAvatarUrl; // Track original URL for cache eviction
   File? _selectedAvatarFile;
-  String? _bannerUrl;
-  String? _originalBannerUrl; // Track original URL for cache eviction
-  File? _selectedBannerFile;
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isUploadingAvatar = false;
-  bool _isUploadingBanner = false;
   double _uploadProgress = 0.0;
-  double _bannerUploadProgress = 0.0;
   int _bioCharCount = 0;
 
   @override
@@ -153,78 +146,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
-  /// Handle banner selection and upload
-  Future<void> _handleBannerPicker() async {
-    // Show picker bottom sheet
-    final selectedFile = await BannerPickerBottomSheet.show(
-      context,
-      hasExistingBanner: _bannerUrl != null || _selectedBannerFile != null,
-      onRemoveBanner: () {
-        setState(() {
-          _bannerUrl = null;
-          _selectedBannerFile = null;
-        });
-        NovaToast.showInfo(context, 'Banner rimosso');
-      },
-    );
-
-    if (selectedFile == null) return;
-
-    // Show cropper with 3:1 aspect ratio
-    final croppedFile = await BannerCropper.show(context, selectedFile);
-
-    if (croppedFile == null) return;
-
-    // Upload to Supabase Storage
-    setState(() {
-      _isUploadingBanner = true;
-      _bannerUploadProgress = 0.0;
-    });
-
-    try {
-      final uploadService = ref.read(bannerUploadServiceProvider);
-      final supabase = ref.read(supabaseClientProvider);
-      final userId = supabase.auth.currentUser?.id;
-
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
-
-      final bannerUrl = await uploadService.uploadBanner(
-        userId: userId,
-        imageFile: croppedFile,
-        onProgress: (progress) {
-          if (mounted) {
-            setState(() {
-              _bannerUploadProgress = progress;
-            });
-          }
-        },
-      );
-
-      if (mounted) {
-        setState(() {
-          _bannerUrl = bannerUrl;
-          _selectedBannerFile = croppedFile;
-          _isUploadingBanner = false;
-        });
-
-        NovaToast.showSuccess(context, 'Banner aggiornato ✓');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isUploadingBanner = false;
-        });
-
-        NovaToast.showError(
-          context,
-          'Errore nel caricamento banner: ${e.toString()}',
-        );
-      }
-    }
-  }
-
   /// Load existing profile and pre-populate fields
   Future<void> _loadExistingProfile() async {
     setState(() {
@@ -241,8 +162,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               _selectedClass = profile.classYear;
               _avatarUrl = profile.avatarUrl;
               _originalAvatarUrl = profile.avatarUrl; // Save for cache eviction
-              _bannerUrl = profile.bannerUrl;
-              _originalBannerUrl = profile.bannerUrl; // Save for cache eviction
               _bioController.text = profile.bio ?? '';
               _bioCharCount = profile.bio?.length ?? 0;
               _isLoading = false;
@@ -298,7 +217,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         'full_name': _nameController.text.trim(),
         'class': _selectedClass,
         'avatar_url': _avatarUrl,
-        'banner_url': _bannerUrl,
         'bio': _bioController.text.trim().isNotEmpty
             ? _bioController.text.trim()
             : null,
@@ -311,14 +229,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
       if (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != _originalAvatarUrl) {
         await CachedNetworkImage.evictFromCache(_avatarUrl!);
-      }
-
-      // Clear CachedNetworkImage cache for banner to force refresh
-      if (_originalBannerUrl != null && _originalBannerUrl!.isNotEmpty) {
-        await CachedNetworkImage.evictFromCache(_originalBannerUrl!);
-      }
-      if (_bannerUrl != null && _bannerUrl!.isNotEmpty && _bannerUrl != _originalBannerUrl) {
-        await CachedNetworkImage.evictFromCache(_bannerUrl!);
       }
 
       // Invalidate BOTH profile providers to refresh data everywhere
@@ -391,17 +301,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               child: Form(
                 key: _formKey,
                 child: ListView(
-                  padding: EdgeInsets.zero,
+                  padding: EdgeInsets.all(NovaSpacing.xl),
                   children: [
-                    // Banner section with edit overlay
-                    _buildBannerSection(context),
-
-                    SizedBox(height: NovaSpacing.xl),
-
-                    // Avatar with edit button (centered below banner)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: NovaSpacing.xl),
-                      child: Center(
+                    // Avatar with edit button
+                    Center(
                       child: Stack(
                         children: [
                           // Avatar (skeleton, initials, or uploaded image)
@@ -501,16 +404,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             ),
                         ],
                       ),
-                      ),
                     ),
 
                     SizedBox(height: NovaSpacing.xxl),
 
-                    // Form fields with horizontal padding
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: NovaSpacing.xl),
-                      child: Column(
-                        children: [
                     // Name field
                     TextFormField(
                       controller: _nameController,
@@ -619,128 +516,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       enabled: !_isSaving,
                     ),
 
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
-    );
-  }
-
-  /// Build banner section with edit overlay
-  Widget _buildBannerSection(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final bannerHeight = screenWidth / 3.0; // 3:1 aspect ratio
-
-    return GestureDetector(
-      onTap: _isUploadingBanner || _isSaving ? null : _handleBannerPicker,
-      child: Stack(
-        children: [
-          // Banner (gradient, file, or network image)
-          if (_isUploadingBanner)
-            Stack(
-              children: [
-                // Show previous banner or gradient while uploading
-                _buildBannerImage(context, screenWidth, bannerHeight),
-                // Upload progress overlay
-                Container(
-                  width: screenWidth,
-                  height: bannerHeight,
-                  color: Colors.black.withValues(alpha: 0.5),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 3,
-                        ),
-                      ),
-                      SizedBox(height: NovaSpacing.s),
-                      Text(
-                        '${(_bannerUploadProgress * 100).toInt()}%',
-                        style: NovaTextStyles.caption.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          else
-            _buildBannerImage(context, screenWidth, bannerHeight),
-
-          // Edit icon overlay (bottom right)
-          if (!_isUploadingBanner && !_isSaving)
-            Positioned(
-              bottom: NovaSpacing.s,
-              right: NovaSpacing.s,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// Build banner image (gradient fallback, file, or network)
-  Widget _buildBannerImage(BuildContext context, double width, double height) {
-    // Show local file if selected
-    if (_selectedBannerFile != null) {
-      return Image.file(
-        _selectedBannerFile!,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-      );
-    }
-
-    // Show network image if URL exists
-    if (_bannerUrl != null && _bannerUrl!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: _bannerUrl!,
-        cacheKey: _bannerUrl!,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => _buildBannerGradient(width, height),
-        errorWidget: (context, url, error) => _buildBannerGradient(width, height),
-      );
-    }
-
-    // Fallback gradient
-    return _buildBannerGradient(width, height);
-  }
-
-  /// Build default banner gradient
-  Widget _buildBannerGradient(double width, double height) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [NovaColors.brandViolet, NovaColors.brandPink],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
     );
   }
 }

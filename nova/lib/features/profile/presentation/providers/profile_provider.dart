@@ -15,7 +15,6 @@ import '../../data/datasources/profile_remote_datasource.dart';
 import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/models/profile_model.dart';
 import '../../data/services/avatar_upload_service.dart';
-import '../../data/services/banner_upload_service.dart';
 // Events imports for user events providers
 import '../../../events/presentation/providers/events_feed_provider.dart' show eventsRepositoryProvider;
 import '../../../events/domain/entities/event.dart';
@@ -58,12 +57,6 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 final avatarUploadServiceProvider = Provider<AvatarUploadService>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
   return AvatarUploadService(supabase);
-});
-
-/// Banner upload service provider
-final bannerUploadServiceProvider = Provider<BannerUploadService>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return BannerUploadService(supabase);
 });
 
 /// CreateProfile use case provider

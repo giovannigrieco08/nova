@@ -242,17 +242,12 @@ class _NovaAppState extends ConsumerState<NovaApp> {
       onLink: (uri) async {
         // Check if this is an auth callback (magic link)
         if (uri.scheme == 'novaapp' &&
-            uri.host == 'auth' &&
-            uri.path == '/callback') {
-          // Wait for app to be fully initialized before processing magic link
-          // This prevents race conditions where the deep link is processed
-          // before Riverpod providers are ready
-          await Future.delayed(const Duration(milliseconds: 300));
-
-          // Ensure we're on the main thread and widget tree is built
+            uri.host == 'auth') {
+          // Ensure we're still mounted
           if (!mounted) return;
 
-          // Verify magic link token via auth notifier
+          // Process magic link - the auth repository now handles
+          // PKCE flow properly by checking existing sessions first
           final success = await ref
               .read(authNotifierProvider.notifier)
               .verifyMagicLink(uri);

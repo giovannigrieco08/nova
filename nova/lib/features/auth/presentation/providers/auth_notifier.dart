@@ -204,6 +204,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Verify magic link token from deep link
   ///
   /// Called when user clicks magic link in email.
+  /// With PKCE flow, Supabase may have already created the session
+  /// during the redirect, so this method handles multiple scenarios.
   ///
   /// Parameters:
   /// - [uri]: Deep link URI with token
@@ -227,19 +229,27 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       final existingUser = _authRepository.getCurrentUser();
       if (existingUser != null) {
         // Session already exists - Supabase verified token during redirect
+        // Update state immediately and register FCM token
         state = AsyncData(AuthStateAuthenticated(existingUser));
+        _registerFcmTokenAfterLogin();
         return true;
       }
 
       // Set loading state
       state = const AsyncLoading();
 
-      // Verify token via repository
+      // Verify token via repository - this handles multiple scenarios:
+      // 1. Session exists (PKCE completed server-side)
+      // 2. token_hash in URL (traditional OTP)
+      // 3. access_token/refresh_token in URL
       final user = await _authRepository.verifyMagicLink(uri);
 
       // State will be updated by auth state listener
       // But we can set it immediately for faster UI update
       state = AsyncData(AuthStateAuthenticated(user));
+
+      // Note: FCM registration will be triggered by auth state listener
+      // when it receives the signedIn event
 
       return true;
     } on supabase.AuthException catch (e) {
@@ -248,6 +258,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
         state = AsyncData(AuthStateAuthenticated(currentUser));
+        _registerFcmTokenAfterLogin();
         return true;
       }
 
@@ -259,6 +270,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
         state = AsyncData(AuthStateAuthenticated(currentUser));
+        _registerFcmTokenAfterLogin();
         return true;
       }
 

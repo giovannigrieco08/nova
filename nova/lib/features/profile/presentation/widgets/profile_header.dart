@@ -1,7 +1,6 @@
 // Widget: ProfileHeader
 // Feature: 006-user-profile (User Story 1 - T033)
-// Updated: 014-profile-banner - Added banner display with avatar overlay
-// Purpose: Displays banner, avatar + stats (Instagram-style), name, class, bio, moderator badge
+// Purpose: Displays avatar + stats (Instagram-style), name, class, bio, moderator badge
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,13 +11,11 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/theme/nova_radius.dart';
 
-/// Profile header widget with banner and Instagram-style layout
+/// Profile header widget with Instagram-style layout
 ///
-/// **Design**:
-/// - Banner (3:1 aspect ratio, gradient fallback)
-/// - Avatar (80px) overlapping banner bottom, centered
-/// - Below: Name (bold), class, moderator badge
-/// - Below: Stats (events, participations)
+/// **Design (Instagram-style)**:
+/// - Top row: Avatar (80px) on left + Stats (big numbers) on right
+/// - Below: Name (bold), class badge, moderator badge
 /// - Below: Bio (max 3 lines)
 ///
 /// **Usage**:
@@ -35,18 +32,8 @@ class ProfileHeader extends StatelessWidget {
   final bool isOwnProfile;
   final VoidCallback? onEditTap;
   final VoidCallback? onAvatarTap;
-  final VoidCallback? onBannerTap;
   final VoidCallback? onEventiTap;
   final VoidCallback? onPartecipazioniTap;
-
-  /// Banner height (screen width / 3 for 3:1 aspect ratio)
-  static const double _bannerAspectRatio = 3.0;
-
-  /// Avatar size
-  static const double _avatarSize = 88.0;
-
-  /// Avatar overlap (how much avatar overlaps into banner)
-  static const double _avatarOverlap = 44.0;
 
   const ProfileHeader({
     required this.profile,
@@ -54,7 +41,6 @@ class ProfileHeader extends StatelessWidget {
     required this.isOwnProfile,
     this.onEditTap,
     this.onAvatarTap,
-    this.onBannerTap,
     this.onEventiTap,
     this.onPartecipazioniTap,
     super.key,
@@ -62,181 +48,86 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final bannerHeight = screenWidth / _bannerAspectRatio;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Banner + Avatar stack
-        SizedBox(
-          height: bannerHeight + _avatarSize - _avatarOverlap,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // Banner
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: onBannerTap,
-                  child: _buildBanner(context, screenWidth, bannerHeight),
-                ),
-              ),
-
-              // Avatar (centered, overlapping banner)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: _buildAvatar(context),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(height: NovaSpacing.small),
-
-        // Content below avatar
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
-          child: Column(
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.large,
+        vertical: NovaSpacing.medium,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: Avatar + Stats (Instagram-style)
+          Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Moderator badge (if applicable)
-              if (profile.isModerator) ...[
-                _buildModeratorBadge(),
-                SizedBox(height: NovaSpacing.xsmall),
-              ],
-
-              // Name (bold, centered)
-              if (profile.fullName.isNotEmpty)
-                Text(
-                  profile.fullName,
-                  style: NovaTypography.labelLarge.copyWith(
-                    color: NovaColors.textPrimary(context),
-                    fontWeight: FontWeight.w700,
-                  ),
-                  textAlign: TextAlign.center,
+              // Avatar (left)
+              _buildAvatar(context),
+              SizedBox(width: NovaSpacing.large),
+              // Stats (right) - expanded to fill remaining space, centered
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildStatColumn(
+                      context,
+                      count: stats?.eventsCreatedCount ?? 0,
+                      label: 'eventi',
+                      onTap: onEventiTap,
+                    ),
+                    _buildStatColumn(
+                      context,
+                      count: stats?.participationsCount ?? 0,
+                      label: 'partecipazioni',
+                      onTap: onPartecipazioniTap,
+                    ),
+                  ],
                 ),
-
-              // Class
-              if (profile.classYear != null && profile.classYear!.isNotEmpty) ...[
-                SizedBox(height: 2),
-                Text(
-                  profile.classYear!,
-                  style: NovaTypography.bodySmall.copyWith(
-                    color: NovaColors.textSecondary(context),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-
-              SizedBox(height: NovaSpacing.medium),
-
-              // Stats row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildStatColumn(
-                    context,
-                    count: stats?.eventsCreatedCount ?? 0,
-                    label: 'eventi',
-                    onTap: onEventiTap,
-                  ),
-                  SizedBox(width: NovaSpacing.xxl),
-                  _buildStatColumn(
-                    context,
-                    count: stats?.participationsCount ?? 0,
-                    label: 'partecipazioni',
-                    onTap: onPartecipazioniTap,
-                  ),
-                ],
               ),
-
-              // Bio (if exists)
-              if (profile.bio != null && profile.bio!.isNotEmpty) ...[
-                SizedBox(height: NovaSpacing.medium),
-                Text(
-                  profile.bio!,
-                  style: NovaTypography.bodyMedium.copyWith(
-                    color: NovaColors.textPrimary(context),
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
-              ],
-
-              SizedBox(height: NovaSpacing.medium),
             ],
           ),
-        ),
-      ],
-    );
-  }
 
-  /// Build banner with image or gradient fallback
-  Widget _buildBanner(BuildContext context, double width, double height) {
-    final hasBanner = profile.bannerUrl != null && profile.bannerUrl!.isNotEmpty;
+          SizedBox(height: NovaSpacing.medium),
 
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        // Fallback gradient when no banner
-        gradient: !hasBanner
-            ? LinearGradient(
-                colors: [NovaColors.brandViolet, NovaColors.brandPink],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-      ),
-      child: hasBanner
-          ? CachedNetworkImage(
-              imageUrl: profile.bannerUrl!,
-              cacheKey: profile.bannerUrl!,
-              width: width,
-              height: height,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => _buildBannerPlaceholder(context),
-              errorWidget: (context, url, error) => _buildBannerFallback(),
-              fadeInDuration: Duration.zero,
-              fadeOutDuration: Duration.zero,
-            )
-          : null,
-    );
-  }
-
-  /// Banner loading placeholder
-  Widget _buildBannerPlaceholder(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            NovaColors.brandViolet.withValues(alpha: 0.5),
-            NovaColors.brandPink.withValues(alpha: 0.5),
+          // Moderator badge ABOVE name (if applicable)
+          if (profile.isModerator) ...[
+            _buildModeratorBadge(),
+            SizedBox(height: NovaSpacing.xsmall),
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-    );
-  }
 
-  /// Banner error fallback (gradient)
-  Widget _buildBannerFallback() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [NovaColors.brandViolet, NovaColors.brandPink],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+          // Row 2: Name (bold, left-aligned) - Instagram style
+          if (profile.fullName.isNotEmpty)
+            Text(
+              profile.fullName,
+              style: NovaTypography.labelLarge.copyWith(
+                color: NovaColors.textPrimary(context),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+
+          // Row 3: Class as plain text (not badge)
+          if (profile.classYear != null && profile.classYear!.isNotEmpty) ...[
+            SizedBox(height: 2),
+            Text(
+              profile.classYear!,
+              style: NovaTypography.bodySmall.copyWith(
+                color: NovaColors.textSecondary(context),
+              ),
+            ),
+          ],
+
+          // Row 4: Bio (if exists)
+          if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+            SizedBox(height: NovaSpacing.xsmall),
+            Text(
+              profile.bio!,
+              style: NovaTypography.bodyMedium.copyWith(
+                color: NovaColors.textPrimary(context),
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -273,75 +164,59 @@ class ProfileHeader extends StatelessWidget {
       ],
     );
 
-    return onTap != null
-        ? GestureDetector(
-            onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: content,
-          )
-        : content;
+    return Expanded(
+      child: onTap != null
+          ? GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: content,
+            )
+          : content,
+    );
   }
 
-  /// Build avatar with white border (for banner overlay) and gradient border for moderators
+  /// Build avatar with gradient border for moderators
   Widget _buildAvatar(BuildContext context) {
-    const size = _avatarSize;
-    const borderWidth = 4.0;
-    final innerSize = size - (borderWidth * 2);
+    final size = 80.0; // Instagram-style smaller avatar
 
-    // Avatar container with white border + optional gradient border for moderators
+    // Avatar container with optional gradient border
     Widget avatar = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: NovaColors.background(context), // White/dark border around avatar
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        // Gradient border for moderators
+        gradient: profile.isModerator
+            ? LinearGradient(
+                colors: [NovaColors.brandViolet, NovaColors.brandPink],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        color: profile.isModerator ? null : Colors.transparent,
       ),
-      padding: const EdgeInsets.all(borderWidth),
+      padding: EdgeInsets.all(profile.isModerator ? 2.0 : 0.0),
       child: Container(
-        width: innerSize,
-        height: innerSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          // Gradient border for moderators
-          gradient: profile.isModerator
-              ? LinearGradient(
-                  colors: [NovaColors.brandViolet, NovaColors.brandPink],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: profile.isModerator ? null : NovaColors.backgroundSecondary(context),
+          color: NovaColors.backgroundSecondary(context),
         ),
-        padding: EdgeInsets.all(profile.isModerator ? 2.0 : 0.0),
-        child: Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: NovaColors.backgroundSecondary(context),
-          ),
-          child: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
-              ? ClipOval(
-                  child: CachedNetworkImage(
-                    key: ValueKey(profile.avatarUrl),
-                    imageUrl: profile.avatarUrl!,
-                    cacheKey: profile.avatarUrl!,
-                    width: innerSize - (profile.isModerator ? 4 : 0),
-                    height: innerSize - (profile.isModerator ? 4 : 0),
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => _buildInitialsAvatar(innerSize - (profile.isModerator ? 4 : 0)),
-                    errorWidget: (context, url, error) => _buildInitialsAvatar(innerSize - (profile.isModerator ? 4 : 0)),
-                    fadeInDuration: Duration.zero,
-                    fadeOutDuration: Duration.zero,
-                  ),
-                )
-              : _buildInitialsAvatar(innerSize - (profile.isModerator ? 4 : 0)),
-        ),
+        child: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
+            ? ClipOval(
+                child: CachedNetworkImage(
+                  key: ValueKey(profile.avatarUrl),
+                  imageUrl: profile.avatarUrl!,
+                  cacheKey: profile.avatarUrl!,
+                  width: size - 4,
+                  height: size - 4,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => _buildInitialsAvatar(size - 4),
+                  errorWidget: (context, url, error) => _buildInitialsAvatar(size - 4),
+                  fadeInDuration: Duration.zero,
+                  fadeOutDuration: Duration.zero,
+                ),
+              )
+            : _buildInitialsAvatar(size - 4),
       ),
     );
 

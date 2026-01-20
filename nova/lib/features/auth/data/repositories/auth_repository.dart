@@ -85,10 +85,11 @@ class AuthRepository {
 
   /// Verify magic link token from deep link
   ///
-  /// Extracts token from deep link URL and verifies with Supabase.
+  /// With PKCE flow, Supabase handles token exchange automatically during redirect.
+  /// This method checks for an existing session or extracts it from the URL.
   ///
   /// Parameters:
-  /// - [uri]: Deep link URI (e.g., novaapp://auth/callback?token=...&type=magiclink)
+  /// - [uri]: Deep link URI (e.g., novaapp://auth/callback?...)
   ///
   /// Returns:
   /// - [User] object if verification successful
@@ -107,46 +108,72 @@ class AuthRepository {
   /// ```
   Future<User> verifyMagicLink(Uri uri) async {
     try {
+      // With PKCE flow, Supabase may have already created the session
+      // during the redirect. First check if session exists.
+      final existingUser = _supabase.auth.currentUser;
+      if (existingUser != null) {
+        // Session already exists - return the user
+        return existingUser;
+      }
+
       // For HTTPS URLs from Supabase email, use getSessionFromUrl
       // This handles the token parameter automatically
       if (uri.scheme == 'https' && uri.host.contains('supabase.co')) {
         final response = await _supabase.auth.getSessionFromUrl(uri);
-
         return response.session.user;
       }
 
-      // For custom scheme URLs (novaapp://), use verifyOTP
+      // For custom scheme URLs (novaapp://), extract parameters
       final tokenHash = uri.queryParameters['token_hash'];
       final type = uri.queryParameters['type'];
       final email = uri.queryParameters['email'];
+      final accessToken = uri.queryParameters['access_token'];
+      final refreshToken = uri.queryParameters['refresh_token'];
 
-      // Validate required parameters
-      if (tokenHash == null || tokenHash.isEmpty) {
-        throw AuthException('Invalid magic link (missing token)');
+      // If we have access_token and refresh_token, set session directly
+      // This handles the case where Supabase includes tokens in the callback
+      if (accessToken != null && accessToken.isNotEmpty) {
+        final response = await _supabase.auth.setSession(refreshToken ?? '');
+        if (response.user != null) {
+          return response.user!;
+        }
       }
 
-      if (type != 'magiclink') {
-        throw AuthException('Invalid magic link type');
+      // If we have token_hash, use verifyOTP
+      if (tokenHash != null && tokenHash.isNotEmpty) {
+        // For verifyOTP, we need email
+        if (email == null || email.isEmpty) {
+          throw AuthException('Invalid magic link (missing email)');
+        }
+
+        // Verify token with Supabase
+        final response = await _supabase.auth.verifyOTP(
+          tokenHash: tokenHash,
+          type: type == 'signup' ? OtpType.signup : OtpType.magiclink,
+          email: email,
+        );
+
+        // Check if user is authenticated
+        if (response.user == null) {
+          throw AuthException('Magic link verification failed');
+        }
+
+        return response.user!;
       }
 
-      if (email == null || email.isEmpty) {
-        throw AuthException('Invalid magic link (missing email)');
+      // If no tokens or hash, try to refresh session
+      // This handles the case where PKCE flow completed server-side
+      try {
+        final response = await _supabase.auth.refreshSession();
+        if (response.user != null) {
+          return response.user!;
+        }
+      } catch (_) {
+        // No valid session to refresh
       }
 
-      // Verify token with Supabase
-      // Both tokenHash and email are required by Supabase verifyOTP API
-      final response = await _supabase.auth.verifyOTP(
-        tokenHash: tokenHash,
-        type: OtpType.magiclink,
-        email: email,
-      );
-
-      // Check if user is authenticated
-      if (response.user == null) {
-        throw AuthException('Magic link verification failed');
-      }
-
-      return response.user!;
+      // No valid authentication method found
+      throw AuthException('Invalid magic link. Please request a new one.');
     } on AuthException catch (e) {
       // Re-throw with user-friendly message
       throw _handleAuthException(e);

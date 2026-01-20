@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
@@ -219,12 +220,20 @@ class ChatRepositoryImpl implements ChatRepository {
     int? durationSeconds,
     String? caption,
   }) async {
+    debugPrint('[Repository] uploadMedia called');
+    debugPrint('[Repository] - filePath: $filePath');
+    debugPrint('[Repository] - mediaType: ${mediaType.value}');
+    debugPrint('[Repository] - caption: $caption');
+
     // Create a message for the media with placeholder content
     // Caption is stored separately in media_caption field, not in content
     // This prevents showing caption as text while media is still uploading
+    debugPrint('[Repository] Step 1: Creating placeholder message...');
     final message = await sendMessage(content: '[media]');
+    debugPrint('[Repository] Step 1 DONE: Message ID = ${message.id}');
 
     // Upload media
+    debugPrint('[Repository] Step 2: Uploading media to storage...');
     final model = await _remoteDataSource.uploadMedia(
       messageId: message.id,
       userId: _currentUserId,
@@ -233,15 +242,19 @@ class ChatRepositoryImpl implements ChatRepository {
       maxViews: maxViews,
       durationSeconds: durationSeconds,
     );
+    debugPrint('[Repository] Step 2 DONE: Media ID = ${model.id}');
 
     // Always update the message after media upload to trigger realtime UPDATE event.
     // This ensures other clients re-fetch the message and get the media data.
     // We update media_caption (null if no caption) and clear the placeholder content.
+    debugPrint('[Repository] Step 3: Updating message with caption and clearing placeholder...');
     await _supabase.from('chat_messages').update({
       'media_caption': caption,
       'content': '', // Clear placeholder, media will be shown instead
     }).eq('id', message.id);
+    debugPrint('[Repository] Step 3 DONE: Message updated');
 
+    debugPrint('[Repository] uploadMedia COMPLETE!');
     return model.toEntity();
   }
 

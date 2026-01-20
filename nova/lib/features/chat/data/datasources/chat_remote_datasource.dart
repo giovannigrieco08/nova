@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:nova/features/chat/data/models/chat_message_model.dart';
 import 'package:nova/features/chat/data/models/chat_reaction_model.dart';
@@ -82,6 +83,7 @@ class ChatRemoteDataSource {
 
   /// Get a single message by ID with full joins.
   Future<ChatMessageModel?> getMessage(String messageId) async {
+    debugPrint('[Datasource] getMessage: $messageId');
     final response = await _supabase
         .from('chat_messages')
         .select('''
@@ -97,7 +99,13 @@ class ChatRemoteDataSource {
         .eq('id', messageId)
         .maybeSingle();
 
-    if (response == null) return null;
+    if (response == null) {
+      debugPrint('[Datasource] getMessage: null response');
+      return null;
+    }
+    debugPrint('[Datasource] getMessage: got response');
+    debugPrint('[Datasource] - content: "${response['content']}"');
+    debugPrint('[Datasource] - chat_media: ${response['chat_media']}');
     return ChatMessageModel.fromJson(response);
   }
 
@@ -316,33 +324,64 @@ class ChatRemoteDataSource {
     int maxViews = 1,
     int? durationSeconds,
   }) async {
+    debugPrint('[Datasource] uploadMedia called');
+    debugPrint('[Datasource] - messageId: $messageId');
+    debugPrint('[Datasource] - filePath: $filePath');
+    debugPrint('[Datasource] - mediaType: ${mediaType.value}');
+
     final file = File(filePath);
+    final fileExists = await file.exists();
+    debugPrint('[Datasource] File exists: $fileExists');
+
+    if (!fileExists) {
+      throw Exception('File does not exist: $filePath');
+    }
+
     final fileBytes = await file.readAsBytes();
+    debugPrint('[Datasource] File size: ${fileBytes.length} bytes');
+
     final fileName =
         '${DateTime.now().millisecondsSinceEpoch}.${_getExtension(mediaType)}';
     final storagePath = '$userId/$fileName';
+    debugPrint('[Datasource] Storage path: $storagePath');
 
     // Upload to storage
-    await _supabase.storage
-        .from('ephemeral-media')
-        .uploadBinary(storagePath, fileBytes);
+    debugPrint('[Datasource] Uploading to Supabase Storage...');
+    try {
+      await _supabase.storage
+          .from('ephemeral-media')
+          .uploadBinary(storagePath, fileBytes);
+      debugPrint('[Datasource] Storage upload SUCCESS');
+    } catch (e, st) {
+      debugPrint('[Datasource] Storage upload FAILED: $e');
+      debugPrint('[Datasource] Stack: $st');
+      rethrow;
+    }
 
     // Create media record
-    final response = await _supabase
-        .from('chat_media')
-        .insert(ChatMediaModel.toInsertJson(
-          messageId: messageId,
-          uploaderUserId: userId,
-          storagePath: storagePath,
-          mediaType: mediaType,
-          fileSizeBytes: fileBytes.length,
-          maxViews: maxViews,
-          durationSeconds: durationSeconds,
-        ))
-        .select()
-        .single();
+    debugPrint('[Datasource] Creating chat_media record...');
+    try {
+      final response = await _supabase
+          .from('chat_media')
+          .insert(ChatMediaModel.toInsertJson(
+            messageId: messageId,
+            uploaderUserId: userId,
+            storagePath: storagePath,
+            mediaType: mediaType,
+            fileSizeBytes: fileBytes.length,
+            maxViews: maxViews,
+            durationSeconds: durationSeconds,
+          ))
+          .select()
+          .single();
 
-    return ChatMediaModel.fromJson(response);
+      debugPrint('[Datasource] chat_media record created: ${response['id']}');
+      return ChatMediaModel.fromJson(response);
+    } catch (e, st) {
+      debugPrint('[Datasource] chat_media insert FAILED: $e');
+      debugPrint('[Datasource] Stack: $st');
+      rethrow;
+    }
   }
 
   /// Get a signed URL for viewing media (60 second expiry).

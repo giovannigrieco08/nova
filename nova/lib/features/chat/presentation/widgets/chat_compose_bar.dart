@@ -381,6 +381,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
   /// Handle media from photo/video editor screens
   Future<void> _handleMediaFromEditor(File file, ChatMediaType mediaType, bool allowReplay, {String? caption}) async {
+    debugPrint('[MediaUpload] _handleMediaFromEditor called');
+    debugPrint('[MediaUpload] - file: ${file.path}');
+    debugPrint('[MediaUpload] - mediaType: ${mediaType.value}');
+    debugPrint('[MediaUpload] - allowReplay: $allowReplay');
+    debugPrint('[MediaUpload] - caption: $caption');
     final maxViews = allowReplay ? 2 : 1;
     await _uploadMedia(file.path, mediaType, maxViews: maxViews, caption: caption);
   }
@@ -690,8 +695,15 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     int? durationSeconds,
     String? caption,
   }) async {
+    debugPrint('[MediaUpload] _uploadMedia called');
+    debugPrint('[MediaUpload] - filePath: $filePath');
+    debugPrint('[MediaUpload] - mediaType: ${mediaType.value}');
+    debugPrint('[MediaUpload] - maxViews: $maxViews');
+    debugPrint('[MediaUpload] - caption: $caption');
+
     try {
-      await ref.read(uploadMediaProvider((
+      debugPrint('[MediaUpload] Starting upload via provider...');
+      final result = await ref.read(uploadMediaProvider((
         filePath: filePath,
         mediaType: mediaType,
         maxViews: maxViews,
@@ -699,16 +711,22 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         caption: caption,
       )).future);
 
+      debugPrint('[MediaUpload] Upload SUCCESS! Media ID: ${result.id}');
+
       // Invalidate messages stream to refresh with new media
+      debugPrint('[MediaUpload] Invalidating chatMessagesStreamProvider...');
       ref.invalidate(chatMessagesStreamProvider);
 
       // Notify parent that something was sent
       widget.onSent?.call();
+      debugPrint('[MediaUpload] Upload complete!');
     } on ChatMediaLimitException catch (e) {
       // Show limit error as toast
+      debugPrint('[MediaUpload] ERROR: ChatMediaLimitException - ${e.message}');
       _showToast(e.message, isWarning: true);
     } catch (e, stackTrace) {
-      // TODO: Mark the message as failed with red X indicator
+      debugPrint('[MediaUpload] ERROR: $e');
+      debugPrint('[MediaUpload] StackTrace: $stackTrace');
       _showToast('Errore durante l\'invio. Riprova.', isError: true);
     }
   }
