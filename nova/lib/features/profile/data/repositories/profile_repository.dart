@@ -259,7 +259,11 @@ class ProfileRepository {
       profileVisible: updates['profile_visible'] as bool? ?? current.profileVisible,
       createdAt: current.createdAt,
       updatedAt: DateTime.now(), // Update timestamp
-      deletedAt: current.deletedAt,
+      deletedAt: updates.containsKey('deleted_at')
+          ? (updates['deleted_at'] != null
+              ? DateTime.parse(updates['deleted_at'] as String)
+              : null)
+          : current.deletedAt,
     );
   }
 

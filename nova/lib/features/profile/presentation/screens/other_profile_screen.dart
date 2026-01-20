@@ -10,7 +10,11 @@ import '../../domain/entities/profile.dart';
 import '../../domain/entities/profile_stats.dart';
 import '../providers/other_profile_provider.dart';
 import '../widgets/profile_header.dart';
+import '../widgets/profile_tabs.dart';
 import '../widgets/events_grid.dart';
+import '../../../events/domain/entities/event.dart';
+import '../../../events/presentation/screens/event_detail_screen.dart';
+import '../../../../core/animations/page_transitions.dart';
 import '../widgets/share_profile_sheet.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
@@ -38,7 +42,7 @@ import '../../../tutoring/presentation/widgets/tutor_profile_section.dart';
 ///
 /// **Privacy Enforcement**:
 /// - RLS policies ensure only public profiles visible
-/// - Only shows user's created events (no participation history)
+/// - Shows user's created events and participations via tabs
 class OtherProfileScreen extends ConsumerStatefulWidget {
   final String userId;
 
@@ -52,6 +56,8 @@ class OtherProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
+  ProfileTab _selectedTab = ProfileTab.eventi;
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(otherProfileProvider(widget.userId));
@@ -72,7 +78,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
 
     // Get stats for conditional rendering
     final stats = statsAsync.valueOrNull;
-    final hasEvents = stats != null && stats.eventsCreatedCount > 0;
+    final hasEventsOrParticipations = stats != null &&
+        (stats.eventsCreatedCount > 0 || stats.participationsCount > 0);
 
     return AdaptiveScaffold(
       appBar: _buildAppBar(profile),
@@ -80,6 +87,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
         onRefresh: () async {
           ref.invalidate(otherProfileProvider(widget.userId));
           ref.invalidate(otherProfileStatsProvider(widget.userId));
+          ref.invalidate(otherUserCreatedEventsProvider(widget.userId));
+          ref.invalidate(otherUserParticipatingEventsProvider(widget.userId));
         },
         child: CustomScrollView(
           slivers: [
@@ -89,6 +98,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
                 profile: profile,
                 stats: statsAsync.valueOrNull,
                 isOwnProfile: false,
+                onEventiTap: () => setState(() => _selectedTab = ProfileTab.eventi),
+                onPartecipazioniTap: () => setState(() => _selectedTab = ProfileTab.partecipazioni),
               ),
             ),
 
@@ -97,28 +108,19 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
               child: _buildTutorSection(profile),
             ),
 
-            // Events section - only show if user has events
-            if (hasEvents) ...[
-              // Section header
+            // Events section - only show if user has events or participations
+            if (hasEventsOrParticipations) ...[
+              // Tabs (Eventi / Partecipazioni)
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    NovaSpacing.large,
-                    NovaSpacing.medium,
-                    NovaSpacing.large,
-                    NovaSpacing.small,
-                  ),
-                  child: Text(
-                    'Eventi',
-                    style: NovaTypography.headingSmall.copyWith(
-                      color: NovaColors.textPrimary(context),
-                    ),
-                  ),
+                child: ProfileTabs(
+                  selectedTab: _selectedTab,
+                  onTabChanged: (tab) => setState(() => _selectedTab = tab),
+                  showPartecipazioni: true,
                 ),
               ),
-              // Events grid
+              // Events grid based on selected tab
               SliverToBoxAdapter(
-                child: _buildEventsGrid(profile, statsAsync),
+                child: _buildEventsGrid(),
               ),
             ],
 
@@ -186,17 +188,55 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
     }
   }
 
-  /// Build events grid (created events only)
-  Widget _buildEventsGrid(Profile profile, AsyncValue<ProfileStats?> statsAsync) {
-    // TODO(T037): Replace with actual event queries
-    // For now, show placeholder empty state
-
-    return EventsGrid(
-      events: const [], // TODO: Load created events for this user
-      onEventTap: _navigateToEventDetail,
-      emptyMessage: 'Nessun evento creato.',
-      shrinkWrap: true, // Don't scroll independently
-    );
+  /// Build events grid based on selected tab
+  Widget _buildEventsGrid() {
+    if (_selectedTab == ProfileTab.eventi) {
+      // Load user's created events
+      final createdEventsAsync = ref.watch(otherUserCreatedEventsProvider(widget.userId));
+      return createdEventsAsync.when(
+        data: (events) => EventsGrid(
+          events: events,
+          onEventTap: _navigateToEventDetail,
+          emptyMessage: 'Nessun evento creato.',
+          shrinkWrap: true,
+        ),
+        loading: () => EventsGrid(
+          events: const [],
+          onEventTap: _navigateToEventDetail,
+          isLoading: true,
+          shrinkWrap: true,
+        ),
+        error: (_, __) => EventsGrid(
+          events: const [],
+          onEventTap: _navigateToEventDetail,
+          emptyMessage: 'Errore nel caricamento degli eventi.',
+          shrinkWrap: true,
+        ),
+      );
+    } else {
+      // Load events user is participating in
+      final participatingEventsAsync = ref.watch(otherUserParticipatingEventsProvider(widget.userId));
+      return participatingEventsAsync.when(
+        data: (events) => EventsGrid(
+          events: events,
+          onEventTap: _navigateToEventDetail,
+          emptyMessage: 'Nessuna partecipazione.',
+          shrinkWrap: true,
+        ),
+        loading: () => EventsGrid(
+          events: const [],
+          onEventTap: _navigateToEventDetail,
+          isLoading: true,
+          shrinkWrap: true,
+        ),
+        error: (_, __) => EventsGrid(
+          events: const [],
+          onEventTap: _navigateToEventDetail,
+          emptyMessage: 'Errore nel caricamento delle partecipazioni.',
+          shrinkWrap: true,
+        ),
+      );
+    }
   }
 
   /// Share profile (T075 - show ShareProfileSheet)
@@ -205,8 +245,11 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
   }
 
   /// Navigate to event detail
-  void _navigateToEventDetail(dynamic event) {
-    // TODO: Navigate to EventDetailScreen
+  void _navigateToEventDetail(Event event) {
+    Navigator.push(
+      context,
+      NovaPageRoute.swipeBack(page: EventDetailScreen(eventId: event.id)),
+    );
   }
 
   /// Build tutor section for other user's profile (T045-T048)
