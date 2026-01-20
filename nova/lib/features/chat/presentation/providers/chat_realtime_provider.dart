@@ -45,29 +45,20 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'chat_messages',
-          callback: (payload) async {
+          callback: (payload) {
             // Postgres Changes only returns raw row data without joins.
             // We need to re-fetch the message to get full data (profiles, media, etc.)
-            final messageId = payload.newRecord['id'] as String;
-            final fullMessage = await _dataSource.getMessage(messageId);
-            if (fullMessage != null) {
-              final message = fullMessage.toEntity(currentUserId: _currentUserId);
-              _addMessage(message);
-            }
+            // Use unawaited Future to not block the callback
+            _handleMessageInsert(payload.newRecord);
           },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.update,
           schema: 'public',
           table: 'chat_messages',
-          callback: (payload) async {
+          callback: (payload) {
             // Re-fetch to get full joined data
-            final messageId = payload.newRecord['id'] as String;
-            final fullMessage = await _dataSource.getMessage(messageId);
-            if (fullMessage != null) {
-              final message = fullMessage.toEntity(currentUserId: _currentUserId);
-              _updateMessage(message);
-            }
+            _handleMessageUpdate(payload.newRecord);
           },
         )
         .onPostgresChanges(
@@ -130,6 +121,34 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
   void _removeMessage(String messageId) {
     final messages = state.messages.where((m) => m.id != messageId).toList();
     state = state.copyWith(messages: messages, incrementCounter: true);
+  }
+
+  /// Handle message INSERT - fetch full data asynchronously
+  Future<void> _handleMessageInsert(Map<String, dynamic> record) async {
+    try {
+      final messageId = record['id'] as String;
+      final fullMessage = await _dataSource.getMessage(messageId);
+      if (fullMessage != null) {
+        final message = fullMessage.toEntity(currentUserId: _currentUserId);
+        _addMessage(message);
+      }
+    } catch (e) {
+      // Silently ignore errors - message will appear on next refresh
+    }
+  }
+
+  /// Handle message UPDATE - fetch full data asynchronously
+  Future<void> _handleMessageUpdate(Map<String, dynamic> record) async {
+    try {
+      final messageId = record['id'] as String;
+      final fullMessage = await _dataSource.getMessage(messageId);
+      if (fullMessage != null) {
+        final message = fullMessage.toEntity(currentUserId: _currentUserId);
+        _updateMessage(message);
+      }
+    } catch (e) {
+      // Silently ignore errors - message will update on next refresh
+    }
   }
 
   void _handleReactionAdded(String messageId, String emoji, String userId) {

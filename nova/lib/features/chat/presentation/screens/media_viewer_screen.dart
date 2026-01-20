@@ -25,11 +25,13 @@ import 'package:nova/features/chat/presentation/providers/chat_providers.dart'
 class MediaViewerScreen extends ConsumerStatefulWidget {
   final ChatMediaInfo media;
   final String signedUrl;
+  final String? caption;
 
   const MediaViewerScreen({
     super.key,
     required this.media,
     required this.signedUrl,
+    this.caption,
   });
 
   @override
@@ -211,10 +213,32 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             )
           : Stack(
               children: [
-                // Media content
-                Center(
+                // Media content - full screen with interactive zoom/pan
+                Positioned.fill(
                   child: _buildMediaContent(),
                 ),
+
+                // Caption (if provided) - positioned above the view status
+                if (widget.caption != null && widget.caption!.isNotEmpty)
+                  Positioned(
+                    bottom: _isOwner ? NovaSpacing.xl : NovaSpacing.xl + 60,
+                    left: NovaSpacing.m,
+                    right: NovaSpacing.m,
+                    child: Container(
+                      padding: EdgeInsets.all(NovaSpacing.m),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: NovaRadius.circularS,
+                      ),
+                      child: Text(
+                        widget.caption!,
+                        style: NovaTypography.bodyMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
 
                 // View status notice (only shown to non-owners)
                 if (!_isOwner)
@@ -276,36 +300,42 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   Widget _buildImageViewer() {
-    return Image.network(
-      widget.signedUrl,
-      fit: BoxFit.contain,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Center(
-          child: CircularProgressIndicator(
-            value: progress.expectedTotalBytes != null
-                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                : null,
-            color: Colors.white,
+    return InteractiveViewer(
+      minScale: 0.5,
+      maxScale: 4.0,
+      child: Center(
+        child: Image.network(
+          widget.signedUrl,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                    : null,
+                color: Colors.white,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stack) => Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.broken_image,
+                size: 64,
+                color: Colors.white54,
+              ),
+              SizedBox(height: NovaSpacing.m),
+              Text(
+                'Impossibile caricare l\'immagine',
+                style: NovaTypography.bodyMedium.copyWith(
+                  color: Colors.white54,
+                ),
+              ),
+            ],
           ),
-        );
-      },
-      errorBuilder: (context, error, stack) => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.broken_image,
-            size: 64,
-            color: Colors.white54,
-          ),
-          SizedBox(height: NovaSpacing.m),
-          Text(
-            'Impossibile caricare l\'immagine',
-            style: NovaTypography.bodyMedium.copyWith(
-              color: Colors.white54,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

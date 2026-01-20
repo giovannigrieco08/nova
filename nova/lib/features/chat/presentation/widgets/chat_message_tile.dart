@@ -767,6 +767,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
             page: MediaViewerScreen(
               media: media,
               signedUrl: signedUrl,
+              caption: widget.message.mediaCaption,
             ),
           ),
         );
