@@ -390,17 +390,20 @@ class _EventCardState extends ConsumerState<EventCard> {
     final hasImage = widget.event.imageUrl != null;
     final emoji = widget.emoji;
 
-    return AspectRatio(
-      aspectRatio: 3 / 4, // 3:4 portrait (BeReal-style)
-      child: ClipRRect(
-        borderRadius: NovaRadius.circularS,
-        child: DoubleTapLikeOverlay(
-          onDoubleTap: _handleDoubleTapLike,
-          child: emoji != null
-              ? _buildEmojiPlaceholder(emoji)
-              : hasImage
-                  ? _buildNetworkImage(widget.event.imageUrl!)
-                  : _buildDefaultPlaceholder(),
+    return SizedBox(
+      width: double.infinity,
+      child: AspectRatio(
+        aspectRatio: 3 / 4, // 3:4 portrait (BeReal-style)
+        child: ClipRRect(
+          borderRadius: NovaRadius.circularS,
+          child: DoubleTapLikeOverlay(
+            onDoubleTap: _handleDoubleTapLike,
+            child: emoji != null
+                ? _buildEmojiPlaceholder(emoji)
+                : hasImage
+                    ? _buildNetworkImage(widget.event.imageUrl!)
+                    : _buildDefaultPlaceholder(),
+          ),
         ),
       ),
     );
