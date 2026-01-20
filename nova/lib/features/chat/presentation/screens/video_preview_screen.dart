@@ -393,7 +393,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
         allowReplay: _allowReplay,
         caption: caption.isNotEmpty ? caption : null,
       );
-      Navigator.pop(context);
+      // Navigator.pop is handled by the callback
     } else {
       // Just close if no callback
       Navigator.pop(context);

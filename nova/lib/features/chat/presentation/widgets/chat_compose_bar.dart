@@ -385,7 +385,7 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     await _uploadMedia(file.path, mediaType, maxViews: maxViews, caption: caption);
   }
 
-  /// Open gallery to pick an image - optimized for speed
+  /// Open gallery to pick an image or video - optimized for speed
   Future<void> _openGallery() async {
     // Prevent double-tap
     if (_isOpeningGallery) return;
@@ -396,21 +396,27 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     setState(() => _isOpeningGallery = true);
 
     try {
-      // Use requestFullMetadata: false for faster gallery opening
-      // Skip imageQuality/maxWidth/maxHeight for faster picker response
-      // (we process the image later in PhotoEditorScreen anyway)
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+      // Use pickMedia to allow both images and videos
+      // requestFullMetadata: false for faster gallery opening
+      final XFile? media = await _imagePicker.pickMedia(
         requestFullMetadata: false,
       );
 
-      if (image != null && mounted) {
-        // Fix orientation issues on iOS for gallery images
-        final fixedPath = await ImageOrientationFixer.fixOrientation(
-          image.path,
-          isFrontCamera: false,
-        );
-        _handleSelectedMedia(XFile(fixedPath));
+      if (media != null && mounted) {
+        // Determine if it's a video or image based on extension
+        final extension = media.path.toLowerCase().split('.').last;
+        final isVideo = ['mp4', 'mov', 'avi', 'mkv', 'm4v', '3gp', 'webm'].contains(extension);
+
+        if (isVideo) {
+          _handleSelectedVideo(media);
+        } else {
+          // Fix orientation issues on iOS for gallery images
+          final fixedPath = await ImageOrientationFixer.fixOrientation(
+            media.path,
+            isFrontCamera: false,
+          );
+          _handleSelectedImage(XFile(fixedPath));
+        }
       }
     } catch (e) {
       _showToast('Impossibile aprire la galleria', isError: true);
@@ -421,8 +427,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     }
   }
 
-  /// Handle selected media file - opens PhotoEditorScreen for preview
-  Future<void> _handleSelectedMedia(XFile file) async {
+  /// Handle selected image file - opens PhotoEditorScreen for preview
+  Future<void> _handleSelectedImage(XFile file) async {
     if (!mounted) return;
 
     // Open photo editor screen (same flow as camera)
@@ -433,6 +439,25 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
           imageFile: file,
           onSend: (editedFile, {bool allowReplay = true, String? caption}) {
             _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay, caption: caption);
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Handle selected video file - opens VideoPreviewScreen for preview
+  Future<void> _handleSelectedVideo(XFile file) async {
+    if (!mounted) return;
+
+    // Open video preview screen (same flow as camera)
+    Navigator.push(
+      context,
+      NovaPageRoute.swipeBack(
+        page: VideoPreviewScreen(
+          videoFile: file,
+          onSend: (videoFile, {bool allowReplay = true, String? caption}) {
+            _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay, caption: caption);
             Navigator.pop(context);
           },
         ),

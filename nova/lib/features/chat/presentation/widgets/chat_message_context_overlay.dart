@@ -187,7 +187,6 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
             config: Config(
               height: 350,
               checkPlatformCompatibility: true,
-              viewOrderConfig: const ViewOrderConfig(),
               emojiViewConfig: EmojiViewConfig(
                 emojiSizeMax: 28,
                 backgroundColor: NovaColors.surface(context),
