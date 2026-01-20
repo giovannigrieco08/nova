@@ -32,6 +32,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   bool _isFrontCamera = false;
   FlashMode _flashMode = FlashMode.off;
 
+  /// Prevents double-tap on shutter button
+  bool _isProcessingShutter = false;
+
   /// 0 = Photo, 1 = Video
   int _selectedMode = 0;
 
@@ -166,6 +169,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   Future<void> _takePhoto() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
     if (_controller!.value.isTakingPicture) return;
+    if (_isProcessingShutter) return;
+
+    setState(() => _isProcessingShutter = true);
 
     try {
       final XFile file = await _controller!.takePicture();
@@ -177,10 +183,12 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       );
 
       if (mounted) {
+        setState(() => _isProcessingShutter = false);
         Navigator.pop(context, {'type': 'photo', 'file': XFile(fixedPath)});
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isProcessingShutter = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Errore scatto: $e')),
         );
@@ -191,14 +199,21 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   Future<void> _startVideoRecording() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
     if (_controller!.value.isRecordingVideo) return;
+    if (_isProcessingShutter) return;
+
+    setState(() => _isProcessingShutter = true);
 
     try {
       await _controller!.startVideoRecording();
-      setState(() {
-        _isRecording = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isRecording = true;
+          _isProcessingShutter = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
+        setState(() => _isProcessingShutter = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Errore registrazione: $e')),
         );
@@ -208,20 +223,25 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
   Future<void> _stopVideoRecording() async {
     if (_controller == null || !_controller!.value.isRecordingVideo) return;
+    if (_isProcessingShutter) return;
+
+    setState(() => _isProcessingShutter = true);
 
     try {
       final XFile file = await _controller!.stopVideoRecording();
-      setState(() {
-        _isRecording = false;
-      });
       if (mounted) {
+        setState(() {
+          _isRecording = false;
+          _isProcessingShutter = false;
+        });
         Navigator.pop(context, {'type': 'video', 'file': file});
       }
     } catch (e) {
-      setState(() {
-        _isRecording = false;
-      });
       if (mounted) {
+        setState(() {
+          _isRecording = false;
+          _isProcessingShutter = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Errore stop registrazione: $e')),
         );
@@ -454,50 +474,43 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     final isVideoMode = _selectedMode == 1;
 
     return GestureDetector(
-      onTap: () {
-        if (isVideoMode) {
-          if (_isRecording) {
-            _stopVideoRecording();
-          } else {
-            _startVideoRecording();
-          }
-        } else {
-          _takePhoto();
-        }
-      },
+      onTap: _isProcessingShutter
+          ? null
+          : () {
+              if (isVideoMode) {
+                if (_isRecording) {
+                  _stopVideoRecording();
+                } else {
+                  _startVideoRecording();
+                }
+              } else {
+                _takePhoto();
+              }
+            },
       child: Container(
         width: 80,
         height: 80,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white,
+            color: _isRecording ? Colors.red : Colors.white,
             width: 4,
           ),
         ),
         padding: const EdgeInsets.all(4),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            shape: isVideoMode && !_isRecording ? BoxShape.circle : BoxShape.circle,
-            color: _isRecording
-                ? Colors.red
-                : (isVideoMode ? Colors.red : Colors.white),
-            borderRadius: _isRecording
-                ? NovaRadius.circularXs
-                : null,
+            // When recording: show rounded square (stop button)
+            // When not recording: show circle
+            shape: _isRecording ? BoxShape.rectangle : BoxShape.circle,
+            borderRadius: _isRecording ? NovaRadius.circularS : null,
+            color: isVideoMode ? Colors.red : Colors.white,
           ),
-          child: _isRecording
-              ? Center(
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: NovaRadius.circularXxs,
-                    ),
-                  ),
-                )
-              : null,
+          // When recording, shrink the inner shape to make it clearly a stop button
+          width: _isRecording ? 32 : null,
+          height: _isRecording ? 32 : null,
+          margin: _isRecording ? const EdgeInsets.all(16) : null,
         ),
       ),
     );

@@ -219,10 +219,10 @@ class ChatRepositoryImpl implements ChatRepository {
     int? durationSeconds,
     String? caption,
   }) async {
-    // Create a message for the media (content will be hidden when media is attached)
-    // Use caption as content if provided, otherwise use placeholder
-    final messageContent = caption ?? '[media]';
-    final message = await sendMessage(content: messageContent);
+    // Create a message for the media with placeholder content
+    // Caption is stored separately in media_caption field, not in content
+    // This prevents showing caption as text while media is still uploading
+    final message = await sendMessage(content: '[media]');
 
     // Upload media
     final model = await _remoteDataSource.uploadMedia(
@@ -234,13 +234,13 @@ class ChatRepositoryImpl implements ChatRepository {
       durationSeconds: durationSeconds,
     );
 
-    // Update message with media_caption field if caption provided
-    if (caption != null && caption.isNotEmpty) {
-      await _supabase
-          .from('chat_messages')
-          .update({'media_caption': caption})
-          .eq('id', message.id);
-    }
+    // Always update the message after media upload to trigger realtime UPDATE event.
+    // This ensures other clients re-fetch the message and get the media data.
+    // We update media_caption (null if no caption) and clear the placeholder content.
+    await _supabase.from('chat_messages').update({
+      'media_caption': caption,
+      'content': '', // Clear placeholder, media will be shown instead
+    }).eq('id', message.id);
 
     return model.toEntity();
   }

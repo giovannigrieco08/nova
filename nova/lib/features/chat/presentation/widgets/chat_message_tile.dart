@@ -302,7 +302,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                             ],
                           )
                         // Text message: show in normal bubble
-                        else
+                        // Skip if content is empty/placeholder (media message without loaded media)
+                        else if (_hasDisplayableContent())
                           GestureDetector(
                             // T016-T017: Disable interactions for deleted messages
                             onDoubleTap: widget.message.isDeleted ? null : () => _handleDoubleTap(context),
@@ -354,6 +355,14 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
         ),
       ),
     );
+  }
+
+  /// Check if message has displayable text content
+  /// Returns false for empty content, media placeholders, or deleted messages
+  bool _hasDisplayableContent() {
+    if (widget.message.isDeleted) return false;
+    final content = widget.message.content.trim();
+    return content.isNotEmpty && content != '[media]';
   }
 
   Widget _buildMessageContent(BuildContext context, bool isOwnMessage) {
