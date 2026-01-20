@@ -173,7 +173,7 @@ class TutorRemoteDataSource {
           throw TutorValidationException('La bio non può superare 200 caratteri');
         }
         if (e.message.contains('subjects') == true) {
-          throw TutorValidationException('Seleziona da 1 a 5 materie');
+          throw TutorValidationException('Puoi selezionare al massimo 5 materie');
         }
       }
       rethrow;

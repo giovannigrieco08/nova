@@ -444,12 +444,6 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
     // Validate form
     if (!_formKey.currentState!.validate()) return;
 
-    // Validate subjects
-    if (_selectedSubjects.isEmpty) {
-      _showError('Seleziona almeno una materia');
-      return;
-    }
-
     // Validate contacts
     final whatsapp = _whatsappController.text.trim();
     final instagram = _instagramController.text.trim();
