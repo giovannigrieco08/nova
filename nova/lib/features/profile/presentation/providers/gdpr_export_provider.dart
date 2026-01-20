@@ -2,6 +2,7 @@
 // Feature: 006-user-profile (US3 - GDPR Compliance)
 // Purpose: Handles GDPR data export and account deletion functionality
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import './profile_provider.dart' show profileRepositoryProvider;
 
@@ -132,27 +133,37 @@ class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
   /// The account will be permanently deleted after 30 days.
   /// User can cancel deletion by contacting support within grace period.
   Future<void> deleteAccount(String userId) async {
+    debugPrint('[AccountDeletion] Starting deleteAccount for user: $userId');
     state = state.copyWith(isDeleting: true, error: null);
 
     try {
       // Get the profile repository
       final repository = _ref.read(profileRepositoryProvider);
+      debugPrint('[AccountDeletion] Got repository, calling updateProfile...');
+
+      final deletedAt = DateTime.now().toUtc().toIso8601String();
+      debugPrint('[AccountDeletion] Setting deleted_at to: $deletedAt');
 
       // Set deleted_at timestamp for soft delete
       // The backend will handle the 30-day grace period and permanent deletion
       await repository.updateProfile(userId, {
-        'deleted_at': DateTime.now().toUtc().toIso8601String(),
+        'deleted_at': deletedAt,
       });
 
+      debugPrint('[AccountDeletion] updateProfile completed successfully');
       state = state.copyWith(
         isDeleting: false,
         isDeleted: true,
       );
-    } catch (e) {
+      debugPrint('[AccountDeletion] State updated to isDeleted=true');
+    } catch (e, stack) {
+      debugPrint('[AccountDeletion] Error caught: $e');
+      debugPrint('[AccountDeletion] Stack: $stack');
       state = state.copyWith(
         isDeleting: false,
         error: _getErrorMessage(e),
       );
+      debugPrint('[AccountDeletion] State updated with error: ${_getErrorMessage(e)}');
     }
   }
 

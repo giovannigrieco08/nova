@@ -729,6 +729,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             CupertinoDialogAction(
               isDestructiveAction: true,
               onPressed: () {
+                debugPrint('[DeleteAccount] Confirm button pressed');
                 Navigator.pop(context);
                 _softDeleteAccount(profile);
               },
@@ -752,6 +753,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             TextButton(
               onPressed: () {
+                debugPrint('[DeleteAccount] Confirm button pressed');
                 Navigator.pop(context);
                 _softDeleteAccount(profile);
               },
@@ -765,12 +767,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   /// Soft delete account (T067)
-  void _softDeleteAccount(Profile profile) async {
+  Future<void> _softDeleteAccount(Profile profile) async {
+    debugPrint('[DeleteAccount] Starting soft delete for user: ${profile.userId}');
+
     try {
       final deleteNotifier = ref.read(accountDeletionProvider.notifier);
+      debugPrint('[DeleteAccount] Calling softDeleteAccount...');
       await deleteNotifier.softDeleteAccount(profile.userId);
+      debugPrint('[DeleteAccount] softDeleteAccount completed');
 
       final deleteState = ref.read(accountDeletionProvider);
+      debugPrint('[DeleteAccount] State: isDeleted=${deleteState.isDeleted}, error=${deleteState.errorMessage}');
 
       if (deleteState.isDeleted) {
         // Show confirmation banner
@@ -791,8 +798,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
       } else if (deleteState.errorMessage != null) {
         _showError(deleteState.errorMessage!);
+      } else {
+        // Unexpected state - show generic error
+        debugPrint('[DeleteAccount] Unexpected state: neither deleted nor error');
+        if (mounted) {
+          _showError('Errore durante l\'eliminazione. Riprova.');
+        }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[DeleteAccount] Exception caught: $e');
+      debugPrint('[DeleteAccount] Stack trace: $stack');
       if (mounted) {
         _showError('Errore nell\'eliminare l\'account: ${e.toString()}');
       }
