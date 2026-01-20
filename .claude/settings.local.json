@@ -54,7 +54,9 @@
       "Bash(git fetch:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File:*)",
       "Bash(git log:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(cmd /c \"cd /d c:\\\\Users\\\\grigi\\\\nova_def\\\\nova && dart analyze:*)",
+      "Bash(popd)"
     ],
     "deny": [],
     "ask": []
