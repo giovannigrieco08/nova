@@ -604,16 +604,14 @@ class CommentsRemoteDataSource {
         throw const UnauthorizedException('User not authenticated');
       }
 
-      await _supabase
-          .from('comment_likes')
-          .insert({
-            'comment_id': commentId,
-            'user_id': currentUserId,
-          })
-          .select()
-          .single();
+      // Insert like - don't use .select().single() as RLS SELECT policy
+      // may have stricter conditions than INSERT policy
+      await _supabase.from('comment_likes').insert({
+        'comment_id': commentId,
+        'user_id': currentUserId,
+      });
 
-      // Fetch and return the updated comment
+      // Fetch and return the updated comment (with incremented like_count)
       final model = await getCommentById(commentId: commentId);
       return model.toEntity();
     } on PostgrestException catch (e, stackTrace) {

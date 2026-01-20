@@ -371,12 +371,9 @@ class _CommentCardState extends ConsumerState<CommentCard>
                 : () {
                     // Haptic feedback on like
                     HapticFeedback.lightImpact();
-                    // Initialize if first interaction
-                    if (likesState.likeCount == 0 && !likesState.isLiked) {
-                      likesNotifier.initialize(
-                        isLiked: widget.comment.isLikedByCurrentUser,
-                        likeCount: widget.comment.likeCount,
-                      );
+                    // Initialize if first interaction (state not yet set)
+                    if (!isInitialized) {
+                      likesNotifier.initializeFromComment(widget.comment);
                     }
                     likesNotifier.toggleLike();
                   },
