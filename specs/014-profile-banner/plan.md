@@ -1,104 +1,122 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Profile Banner
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `014-profile-banner` | **Date**: 2025-01-20 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/014-profile-banner/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Add customizable profile banner that displays behind the profile photo, similar to Twitter/X. Users can upload, crop (3:1 aspect ratio), preview, and save banner images. Fallback to brand gradient when no banner is set.
+
+**Technical Approach**: Extend existing avatar upload patterns to support banners with different dimensions (1200x400 JPEG) and integrate into profile header UI.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Dart 3.x (Flutter SDK 3.x+)
+**Primary Dependencies**: flutter_riverpod, image_picker, image_cropper, image, cached_network_image, supabase_flutter
+**Storage**: Supabase Storage (`banners` bucket) + PostgreSQL (profiles.banner_url)
+**Testing**: flutter_test (unit), integration_test (widget)
+**Target Platform**: iOS 15+, Android 6.0+
+**Project Type**: Mobile (Flutter)
+**Performance Goals**: 60fps scroll, <2s banner load, <300KB file size
+**Constraints**: <300KB compressed banner, 3:1 aspect ratio, offline-capable (cached)
+**Scale/Scope**: Single screen modification (profile), ~10 files changed
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Assessment |
+|-----------|--------|------------|
+| **ENGAGEMENT_FIRST** | PASS | Profile customization increases user investment and profile visits |
+| **SCHOOL_IDENTITY** | PASS | Enhances personal expression within school context |
+| **EPHEMERAL_CONTENT** | N/A | Profile data is permanent (not ephemeral) |
+| **CAMERA_FIRST** | PASS | Supports camera as source for banner |
+| **AMBASSADOR_GROWTH** | N/A | Not growth-related |
+| **AD_SUPPORTED** | N/A | No ad implications |
+| **PERFORMANCE_FIRST** | PASS | <300KB images, CachedNetworkImage, 60fps maintained |
+
+**Performance Budget Compliance**:
+| Metric | Constitution Limit | Implementation Target |
+|--------|-------------------|----------------------|
+| Image size | <500KB | <300KB (banner) |
+| Load time | <1s cached | <2s (4G), instant cached |
+| Frame rate | 60fps | 60fps (no heavy ops during scroll) |
+
+**Result**: All applicable principles satisfied. No violations.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/014-profile-banner/
+├── spec.md              # Feature specification
+├── plan.md              # This file
+├── research.md          # Research findings
+├── data-model.md        # Data model changes
+├── quickstart.md        # Implementation guide
+├── contracts/           # API contracts
+│   └── profile-api.md
+├── checklists/
+│   └── requirements.md  # Quality checklist
+└── tasks.md             # Task list (created by /speckit.tasks)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
+nova/lib/features/profile/
+├── domain/
+│   └── entities/
+│       └── profile.dart              # Add bannerUrl field
+├── data/
 │   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
+│   │   └── profile_model.dart        # Add bannerUrl field + HiveField
 │   └── services/
-└── tests/
+│       ├── avatar_upload_service.dart  # Reference pattern
+│       └── banner_upload_service.dart  # NEW: Banner upload logic
+├── presentation/
+│   ├── widgets/
+│   │   ├── profile_header.dart       # Add banner display
+│   │   ├── banner_cropper.dart       # NEW: 3:1 aspect ratio cropper
+│   │   └── banner_picker_bottom_sheet.dart  # NEW: Camera/gallery picker
+│   ├── screens/
+│   │   └── edit_profile_screen.dart  # Add banner picker section
+│   └── providers/
+│       └── profile_provider.dart     # Add bannerUploadServiceProvider
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+supabase/migrations/
+└── 037_add_profile_banner.sql        # NEW: Database migration
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+nova/test/features/profile/
+└── data/services/
+    └── banner_upload_service_test.dart  # NEW: Unit tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Mobile (Flutter) with feature-first clean architecture. Extends existing `profile` feature module.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations. No complexity justification needed.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Generated Artifacts
+
+| Artifact | Path | Description |
+|----------|------|-------------|
+| Research | [research.md](./research.md) | Decision documentation |
+| Data Model | [data-model.md](./data-model.md) | Schema changes |
+| API Contract | [contracts/profile-api.md](./contracts/profile-api.md) | API extensions |
+| Quickstart | [quickstart.md](./quickstart.md) | Implementation guide |
+
+## Next Steps
+
+1. Run `/speckit.tasks` to generate task list
+2. Run `/speckit.implement` to execute implementation
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Large image uploads on slow network | Medium | Low | Progress indicator, compression feedback |
+| Cropper UX inconsistency | Low | Low | Mirror existing AvatarCropper patterns |
+| Cache invalidation issues | Medium | Medium | Clear both old and new URLs from cache |
