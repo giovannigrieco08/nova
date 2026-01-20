@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termini di Servizio - Nova</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --bg: #ffffff;
+            --bg-alt: #f9fafb;
+            --border: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .logo {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .meta {
+            color: var(--text-light);
+            font-size: 0.95em;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            color: var(--text);
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.2em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            color: var(--text);
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-alt);
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: var(--bg-alt);
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        strong {
+            font-weight: 600;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight {
+            background: var(--bg-alt);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        .warning {
+            background: #fef3c7;
+            border-left-color: #f59e0b;
+        }
+
+        .danger {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+        }
+
+        .success {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 2px solid var(--border);
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .checklist {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .checklist li {
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .checklist li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            h1 {
+                font-size: 1.6em;
+            }
+
+            h2 {
+                font-size: 1.3em;
+            }
+
+            table {
+                font-size: 0.85em;
+            }
+
+            th, td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">Nova</div>
+            <h1>Termini di Servizio</h1>
+            <p class="meta">Ultimo aggiornamento: 20 gennaio 2025 | Versione 1.0.0</p>
+        </header>
+
+        <section>
+            <h2>1. Accettazione dei Termini</h2>
+            <p>Benvenuto in Nova. I presenti Termini di Servizio ("Termini") regolano l'utilizzo dell'applicazione mobile Nova ("App", "Servizio") fornita da [Nome Società] ("noi", "nostro", "Società").</p>
+            <div class="highlight warning">
+                <strong>Utilizzando Nova, accetti integralmente questi Termini.</strong> Se non accetti, non utilizzare l'App.
+            </div>
+        </section>
+
+        <section>
+            <h2>2. Descrizione del Servizio</h2>
+            <p>Nova è una piattaforma social dedicata agli studenti delle scuole superiori italiane che permette di:</p>
+            <ul>
+                <li>Condividere contenuti effimeri (foto, video) con la propria scuola</li>
+                <li>Creare e conservare Costellazioni (memorie permanenti)</li>
+                <li>Comunicare tramite chat con altri studenti</li>
+                <li>Costruire e mantenere Streak di attività</li>
+                <li>Visualizzare e interagire con contenuti della community scolastica</li>
+            </ul>
+            <p>Il Servizio è gratuito per gli utenti e supportato da pubblicità.</p>
+        </section>
+
+        <section>
+            <h2>3. Requisiti di Accesso</h2>
+
+            <h3>3.1 Età minima</h3>
+            <p>Per utilizzare Nova devi avere <strong>almeno 14 anni</strong>. Registrandoti, dichiari di avere almeno 14 anni.</p>
+
+            <h3>3.2 Email scolastica</h3>
+            <p>La registrazione richiede un'<strong>email scolastica istituzionale</strong> valida (es. nome.cognome@nomescuola.edu.it). Non sono ammesse email personali.</p>
+
+            <h3>3.3 Identità reale</h3>
+            <p>Nova richiede l'utilizzo del <strong>nome reale</strong>. Non è consentito:</p>
+            <ul>
+                <li>Utilizzare pseudonimi o nickname</li>
+                <li>Creare account con identità false</li>
+                <li>Impersonare altre persone</li>
+            </ul>
+
+            <h3>3.4 Un account per persona</h3>
+            <p>Ogni persona può avere un solo account Nova. Account multipli verranno sospesi.</p>
+        </section>
+
+        <section>
+            <h2>4. Il Tuo Account</h2>
+
+            <h3>4.1 Responsabilità</h3>
+            <p>Sei responsabile di:</p>
+            <ul>
+                <li>Mantenere la sicurezza del tuo account</li>
+                <li>Tutte le attività che avvengono tramite il tuo account</li>
+                <li>Notificarci immediatamente in caso di accesso non autorizzato</li>
+            </ul>
+
+            <h3>4.2 Autenticazione</h3>
+            <p>L'accesso avviene tramite Magic Link inviato alla tua email scolastica. Non esistono password da ricordare.</p>
+
+            <h3>4.3 Sospensione e terminazione</h3>
+            <p>Possiamo sospendere o terminare il tuo account se:</p>
+            <ul>
+                <li>Violi questi Termini</li>
+                <li>Violi le Linee Guida della Community</li>
+                <li>Il tuo comportamento danneggia altri utenti o il Servizio</li>
+                <li>Riceviamo segnalazioni verificate di abuso</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>5. Contenuti dell'Utente</h2>
+
+            <h3>5.1 Proprietà</h3>
+            <p>I contenuti che pubblichi (foto, video, messaggi) rimangono di tua proprietà. Tuttavia, pubblicandoli su Nova, ci concedi una licenza come descritto di seguito.</p>
+
+            <h3>5.2 Licenza concessa a Nova</h3>
+            <p>Pubblicando contenuti su Nova, ci concedi una licenza:</p>
+            <ul>
+                <li><strong>Non esclusiva:</strong> puoi usare i tuoi contenuti altrove</li>
+                <li><strong>Gratuita:</strong> non ci devi nulla</li>
+                <li><strong>Mondiale:</strong> possiamo usarli ovunque</li>
+                <li><strong>Trasferibile:</strong> possiamo sub-licenziare ai nostri fornitori tecnici</li>
+            </ul>
+            <p>Questa licenza serve esclusivamente per:</p>
+            <ul>
+                <li>Visualizzare i tuoi contenuti nell'App</li>
+                <li>Conservarli sui nostri server</li>
+                <li>Elaborarli tecnicamente (es. compressione, ridimensionamento)</li>
+            </ul>
+            <p>La licenza termina quando elimini il contenuto o il tuo account, salvo che:</p>
+            <ul>
+                <li>Il contenuto sia stato condiviso da altri utenti</li>
+                <li>Sia necessario conservarlo per obblighi legali</li>
+            </ul>
+
+            <h3>5.3 Contenuti effimeri</h3>
+            <p>I contenuti pubblicati nel feed "Oggi a Scuola" sono effimeri e vengono eliminati automaticamente a mezzanotte. Solo le Costellazioni sono permanenti.</p>
+
+            <h3>5.4 Contenuti vietati</h3>
+            <p>È vietato pubblicare contenuti che:</p>
+            <table>
+                <tr>
+                    <th>Categoria</th>
+                    <th>Esempi</th>
+                </tr>
+                <tr>
+                    <td><strong>Illegali</strong></td>
+                    <td>Droghe, armi, attività criminali</td>
+                </tr>
+                <tr>
+                    <td><strong>Violenti</strong></td>
+                    <td>Gore, violenza grafica, minacce</td>
+                </tr>
+                <tr>
+                    <td><strong>Sessuali</strong></td>
+                    <td>Nudità, contenuti sessualmente espliciti</td>
+                </tr>
+                <tr>
+                    <td><strong>Discriminatori</strong></td>
+                    <td>Razzismo, omofobia, sessismo, bullismo</td>
+                </tr>
+                <tr>
+                    <td><strong>Pericolosi</strong></td>
+                    <td>Autolesionismo, challenge pericolose, disinformazione medica</td>
+                </tr>
+                <tr>
+                    <td><strong>Molesti</strong></td>
+                    <td>Stalking, doxxing, harassment</td>
+                </tr>
+                <tr>
+                    <td><strong>Spam</strong></td>
+                    <td>Pubblicità non autorizzata, catene, contenuti ripetitivi</td>
+                </tr>
+                <tr>
+                    <td><strong>Fraudolenti</strong></td>
+                    <td>Phishing, truffe, impersonificazione</td>
+                </tr>
+                <tr>
+                    <td><strong>Violazione copyright</strong></td>
+                    <td>Contenuti protetti senza autorizzazione</td>
+                </tr>
+            </table>
+
+            <h3>5.5 Segnalazione contenuti</h3>
+            <p>Se vedi contenuti che violano questi Termini, segnalali tramite l'apposita funzione nell'App. Esamineremo la segnalazione entro 24 ore.</p>
+        </section>
+
+        <section>
+            <h2>6. Comportamento dell'Utente</h2>
+
+            <h3>6.1 Codice di condotta</h3>
+            <p>Utilizzando Nova, ti impegni a:</p>
+            <ul>
+                <li>Rispettare gli altri utenti</li>
+                <li>Non molestare, intimidire o fare bullismo</li>
+                <li>Non diffondere informazioni personali di altri senza consenso</li>
+                <li>Non interferire con il funzionamento del Servizio</li>
+                <li>Non tentare di accedere ad account altrui</li>
+                <li>Non utilizzare bot, script o automazioni non autorizzate</li>
+            </ul>
+
+            <h3>6.2 Interazioni con altri utenti</h3>
+            <p>Le interazioni con altri utenti avvengono sotto la tua responsabilità. Nova non è responsabile per:</p>
+            <ul>
+                <li>Contenuti pubblicati da altri utenti</li>
+                <li>Comportamenti di altri utenti fuori dall'App</li>
+                <li>Dispute tra utenti</li>
+            </ul>
+
+            <h3>6.3 Conseguenze delle violazioni</h3>
+            <p>Le violazioni possono comportare:</p>
+            <ul>
+                <li>Rimozione del contenuto</li>
+                <li>Avvertimento</li>
+                <li>Sospensione temporanea (24h - 30 giorni)</li>
+                <li>Sospensione permanente</li>
+                <li>Segnalazione alle autorità competenti (per reati)</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>7. Pubblicità</h2>
+
+            <h3>7.1 Presenza di annunci</h3>
+            <p>Nova è un servizio gratuito supportato da pubblicità. Visualizzerai annunci pubblicitari durante l'utilizzo dell'App.</p>
+
+            <h3>7.2 Tipologia di annunci</h3>
+            <p>Gli annunci sono:</p>
+            <ul>
+                <li>Appropriati all'età (14+)</li>
+                <li>Chiaramente identificati come "Sponsorizzato"</li>
+                <li>Non invasivi (no interstitial a schermo intero frequenti)</li>
+                <li>Mai presenti nelle chat private</li>
+            </ul>
+
+            <h3>7.3 Annunci personalizzati</h3>
+            <p>Con il tuo consenso, potresti visualizzare annunci personalizzati basati sui tuoi interessi. Puoi disattivare questa opzione nelle Impostazioni.</p>
+        </section>
+
+        <section>
+            <h2>8. Proprietà Intellettuale</h2>
+
+            <h3>8.1 Proprietà di Nova</h3>
+            <p>Nova, inclusi logo, design, codice, testi e grafica, è di nostra proprietà o dei nostri licenzianti. Non puoi:</p>
+            <ul>
+                <li>Copiare, modificare o distribuire l'App</li>
+                <li>Decompilare o fare reverse engineering</li>
+                <li>Utilizzare il nostro marchio senza autorizzazione</li>
+                <li>Creare opere derivate</li>
+            </ul>
+
+            <h3>8.2 Feedback</h3>
+            <p>Se ci invii suggerimenti, idee o feedback, possiamo utilizzarli liberamente senza compenso.</p>
+        </section>
+
+        <section>
+            <h2>9. Disclaimer e Limitazioni</h2>
+
+            <h3>9.1 Servizio "così com'è"</h3>
+            <p>Nova è fornita "così com'è" e "come disponibile", senza garanzie di alcun tipo, esplicite o implicite.</p>
+
+            <h3>9.2 Disponibilità</h3>
+            <p>Non garantiamo che il Servizio sia:</p>
+            <ul>
+                <li>Sempre disponibile o ininterrotto</li>
+                <li>Privo di errori o bug</li>
+                <li>Sicuro al 100% da attacchi esterni</li>
+            </ul>
+
+            <h3>9.3 Limitazione di responsabilità</h3>
+            <p>Nei limiti consentiti dalla legge, non siamo responsabili per:</p>
+            <ul>
+                <li>Danni indiretti, incidentali o consequenziali</li>
+                <li>Perdita di dati, profitti o opportunità</li>
+                <li>Danni derivanti dall'uso o impossibilità di uso del Servizio</li>
+                <li>Contenuti o comportamenti di altri utenti</li>
+            </ul>
+
+            <h3>9.4 Indennizzo</h3>
+            <p>Accetti di indennizzarci da qualsiasi reclamo, danno o spesa derivante da:</p>
+            <ul>
+                <li>La tua violazione di questi Termini</li>
+                <li>I contenuti che pubblichi</li>
+                <li>Il tuo utilizzo del Servizio</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>10. Modifiche al Servizio</h2>
+
+            <h3>10.1 Aggiornamenti</h3>
+            <p>Possiamo modificare, aggiornare o interrompere funzionalità del Servizio in qualsiasi momento.</p>
+
+            <h3>10.2 Modifiche ai Termini</h3>
+            <p>Possiamo modificare questi Termini. In caso di modifiche sostanziali:</p>
+            <ul>
+                <li>Ti informeremo tramite notifica in-app</li>
+                <li>Avrai 30 giorni per accettare o cessare l'utilizzo</li>
+                <li>L'uso continuato dopo la notifica costituisce accettazione</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>11. Cessazione</h2>
+
+            <h3>11.1 Da parte tua</h3>
+            <p>Puoi cessare l'utilizzo di Nova in qualsiasi momento:</p>
+            <ul>
+                <li>Eliminando il tuo account dalle Impostazioni</li>
+                <li>Disinstallando l'App</li>
+            </ul>
+
+            <h3>11.2 Da parte nostra</h3>
+            <p>Possiamo cessare il Servizio o il tuo accesso con preavviso ragionevole, salvo violazioni gravi che giustifichino cessazione immediata.</p>
+
+            <h3>11.3 Effetti della cessazione</h3>
+            <p>Alla cessazione:</p>
+            <ul>
+                <li>Perderai accesso al tuo account e ai contenuti</li>
+                <li>I contenuti effimeri saranno già stati eliminati</li>
+                <li>Le Costellazioni verranno eliminate entro 30 giorni</li>
+                <li>Alcuni dati potrebbero essere conservati per obblighi legali</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>12. Legge Applicabile e Foro Competente</h2>
+
+            <h3>12.1 Legge applicabile</h3>
+            <p>Questi Termini sono regolati dalla legge italiana.</p>
+
+            <h3>12.2 Foro competente</h3>
+            <p>Per le controversie:</p>
+            <ul>
+                <li><strong>Consumatori:</strong> foro del luogo di residenza del consumatore</li>
+                <li><strong>Non consumatori:</strong> foro di [Città sede legale]</li>
+            </ul>
+
+            <h3>12.3 Risoluzione alternativa</h3>
+            <p>Prima di adire le vie legali, ti invitiamo a contattarci per risolvere la controversia in via amichevole.</p>
+            <p>Piattaforma ODR della Commissione Europea: <a href="https://ec.europa.eu/consumers/odr" target="_blank">https://ec.europa.eu/consumers/odr</a></p>
+        </section>
+
+        <section>
+            <h2>13. Disposizioni Generali</h2>
+
+            <h3>13.1 Intero accordo</h3>
+            <p>Questi Termini, insieme alla Privacy Policy e alle Linee Guida della Community, costituiscono l'intero accordo tra te e Nova.</p>
+
+            <h3>13.2 Separabilità</h3>
+            <p>Se una disposizione risulta invalida, le altre rimangono in vigore.</p>
+
+            <h3>13.3 Rinuncia</h3>
+            <p>Il mancato esercizio di un diritto non costituisce rinuncia.</p>
+
+            <h3>13.4 Cessione</h3>
+            <p>Non puoi cedere questi Termini. Noi possiamo cederli in caso di fusione o acquisizione.</p>
+        </section>
+
+        <section>
+            <h2>14. Contatti</h2>
+            <p>Per domande su questi Termini:</p>
+            <div class="highlight">
+                <strong>Email:</strong> <a href="mailto:supporto@nova-app.it">supporto@nova-app.it</a><br>
+                <strong>Email legale:</strong> <a href="mailto:legal@nova-app.it">legal@nova-app.it</a><br>
+                <strong>Indirizzo:</strong> [Indirizzo postale]
+            </div>
+        </section>
+
+        <section>
+            <h2>15. Accettazione</h2>
+            <p>Utilizzando Nova, confermi di:</p>
+            <ul class="checklist">
+                <li>Aver letto e compreso questi Termini di Servizio</li>
+                <li>Aver letto e compreso la Privacy Policy</li>
+                <li>Avere almeno 14 anni di età</li>
+                <li>Possedere un'email scolastica valida</li>
+                <li>Accettare di utilizzare il tuo nome reale</li>
+            </ul>
+
+            <div class="highlight danger">
+                <strong>Se non accetti questi Termini, non puoi utilizzare Nova.</strong>
+            </div>
+        </section>
+
+        <footer>
+            <div class="logo">Nova</div>
+            <p>Connetti la tua scuola</p>
+            <p style="margin-top: 20px;">&copy; 2025 [Nome Società]. Tutti i diritti riservati.</p>
+        </footer>
+    </div>
+</body>
+</html>
