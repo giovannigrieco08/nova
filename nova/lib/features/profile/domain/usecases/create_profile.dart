@@ -76,10 +76,6 @@ class CreateProfile {
       throw ValidationException('L\'email è obbligatoria');
     }
 
-    if (!email.endsWith('@galileimoro.edu.it')) {
-      throw ValidationException('Devi usare l\'email della scuola (@galileimoro.edu.it)');
-    }
-
     // Validate name
     if (fullName.trim().isEmpty) {
       throw ValidationException('Il nome è obbligatorio');

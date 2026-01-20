@@ -32,6 +32,10 @@ class Profile with _$Profile {
     /// NULL = show colored initials fallback
     String? avatarUrl,
 
+    /// Supabase Storage URL for profile banner
+    /// NULL = show fallback gradient
+    String? bannerUrl,
+
     /// Optional bio text (max 150 characters, sanitized)
     String? bio,
 
@@ -81,6 +85,9 @@ extension ProfileExtensions on Profile {
 
   /// Checks if avatar is set (has valid URL)
   bool get hasAvatar => avatarUrl != null && avatarUrl!.isNotEmpty;
+
+  /// Checks if banner is set (has valid URL)
+  bool get hasBanner => bannerUrl != null && bannerUrl!.isNotEmpty;
 
   /// Checks if bio is set
   bool get hasBio => bio != null && bio!.trim().isNotEmpty;

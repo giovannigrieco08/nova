@@ -221,6 +221,16 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// ```
   Future<bool> verifyMagicLink(Uri uri) async {
     try {
+      // Check if already authenticated (Supabase may have already verified
+      // the token server-side during the redirect, creating a session before
+      // the app receives the deep link callback)
+      final existingUser = _authRepository.getCurrentUser();
+      if (existingUser != null) {
+        // Session already exists - Supabase verified token during redirect
+        state = AsyncData(AuthStateAuthenticated(existingUser));
+        return true;
+      }
+
       // Set loading state
       state = const AsyncLoading();
 
@@ -233,10 +243,25 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       return true;
     } on supabase.AuthException catch (e) {
+      // Check if user got authenticated despite the error
+      // (can happen if token was already verified server-side)
+      final currentUser = _authRepository.getCurrentUser();
+      if (currentUser != null) {
+        state = AsyncData(AuthStateAuthenticated(currentUser));
+        return true;
+      }
+
       // Set error state
       state = AsyncError(e.message, StackTrace.current);
       return false;
     } catch (e, stackTrace) {
+      // Check if user got authenticated despite the error
+      final currentUser = _authRepository.getCurrentUser();
+      if (currentUser != null) {
+        state = AsyncData(AuthStateAuthenticated(currentUser));
+        return true;
+      }
+
       // Set error state for unexpected errors
       state = AsyncError(e, stackTrace);
       return false;

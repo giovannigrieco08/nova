@@ -35,6 +35,10 @@ class ProfileModel {
   @JsonKey(name: 'avatar_url')
   final String? avatarUrl;
 
+  @HiveField(12)
+  @JsonKey(name: 'banner_url')
+  final String? bannerUrl;
+
   @HiveField(6)
   @JsonKey(name: 'bio')
   final String? bio;
@@ -66,6 +70,7 @@ class ProfileModel {
     required this.username,
     this.classYear,
     this.avatarUrl,
+    this.bannerUrl,
     this.bio,
     this.role = 'student',
     this.profileVisible = true,
@@ -90,6 +95,7 @@ class ProfileModel {
       username: entity.username,
       classYear: entity.classYear,
       avatarUrl: entity.avatarUrl,
+      bannerUrl: entity.bannerUrl,
       bio: entity.bio,
       role: entity.role,
       profileVisible: entity.profileVisible,
@@ -108,6 +114,7 @@ class ProfileModel {
       username: username,
       classYear: classYear,
       avatarUrl: avatarUrl,
+      bannerUrl: bannerUrl,
       bio: bio,
       role: role,
       profileVisible: profileVisible,
@@ -125,6 +132,7 @@ class ProfileModel {
     String? username,
     String? classYear,
     String? avatarUrl,
+    String? bannerUrl,
     String? bio,
     String? role,
     bool? profileVisible,
@@ -139,6 +147,7 @@ class ProfileModel {
       username: username ?? this.username,
       classYear: classYear ?? this.classYear,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      bannerUrl: bannerUrl ?? this.bannerUrl,
       bio: bio ?? this.bio,
       role: role ?? this.role,
       profileVisible: profileVisible ?? this.profileVisible,
