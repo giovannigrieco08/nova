@@ -29,6 +29,8 @@ import '../../../tutoring/presentation/screens/become_tutor_screen.dart';
 import '../../../tutoring/presentation/screens/edit_tutor_screen.dart';
 // Moderation feature import
 import '../../../events/presentation/screens/moderation_queue_screen.dart';
+// Toast notifications (Cupertino-compatible)
+import '../../../../shared/widgets/nova_toast.dart';
 
 /// Provider for app package info (version, build number)
 final packageInfoProvider = FutureProvider<PackageInfo>((ref) async {
@@ -780,15 +782,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       debugPrint('[DeleteAccount] State: isDeleted=${deleteState.isDeleted}, error=${deleteState.errorMessage}');
 
       if (deleteState.isDeleted) {
-        // Show confirmation banner
+        // Show confirmation toast
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Account eliminato. Hai 30 giorni per annullare.'),
-              backgroundColor: NovaColors.error(context),
-              duration: const Duration(seconds: 5),
-            ),
-          );
+          NovaToast.showInfo(context, 'Account eliminato. Hai 30 giorni per annullare.');
         }
 
         // Logout user after account deletion
@@ -797,19 +793,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           await ref.read(authNotifierProvider.notifier).signOut();
         }
       } else if (deleteState.errorMessage != null) {
-        _showError(deleteState.errorMessage!);
+        if (mounted) {
+          NovaToast.showError(context, deleteState.errorMessage!);
+        }
       } else {
         // Unexpected state - show generic error
         debugPrint('[DeleteAccount] Unexpected state: neither deleted nor error');
         if (mounted) {
-          _showError('Errore durante l\'eliminazione. Riprova.');
+          NovaToast.showError(context, 'Errore durante l\'eliminazione. Riprova.');
         }
       }
     } catch (e, stack) {
       debugPrint('[DeleteAccount] Exception caught: $e');
       debugPrint('[DeleteAccount] Stack trace: $stack');
       if (mounted) {
-        _showError('Errore nell\'eliminare l\'account: ${e.toString()}');
+        NovaToast.showError(context, 'Errore nell\'eliminare l\'account.');
       }
     }
   }
@@ -1117,16 +1115,9 @@ Ultimo aggiornamento: Dicembre 2024
     );
   }
 
-  /// Show error message
+  /// Show error message using Cupertino-compatible toast
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: NovaColors.error(context),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    NovaToast.showError(context, message);
   }
 
   /// Show legal document dialog (Privacy Policy, Terms of Service)
