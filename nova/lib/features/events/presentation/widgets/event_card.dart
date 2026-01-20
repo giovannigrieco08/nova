@@ -4,9 +4,9 @@
 //
 // Design Specs: VISUAL-REFERENCE-GUIDE.md + CLAUDE-CODE-PROMPT.md
 // - Pure white background (no glassmorphism)
-// - 1:1 image aspect ratio
+// - 3:4 image aspect ratio (full width, edge-to-edge)
 // - Username + description INLINE (RichText)
-// - Pixel-perfect spacing (6.375px image padding, 1.5px action icon offset)
+// - Pixel-perfect spacing (1.5px action icon offset)
 // - Instagram colors (#0095f6 button, #ed4956 like active)
 
 import 'package:flutter/material.dart';
@@ -384,26 +384,23 @@ class _EventCardState extends ConsumerState<EventCard> {
     return classes.take(2).join(' · ');
   }
 
-  /// Image: 1:1 aspect ratio, 6.375px padding, 14px radius
+  /// Image: 3:4 aspect ratio, full width, 14px radius
   /// Supports double-tap to like with Instagram-style heart animation
   Widget _buildImage() {
     final hasImage = widget.event.imageUrl != null;
     final emoji = widget.emoji;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6.375), // EXACT per specs
-      child: AspectRatio(
-        aspectRatio: 3 / 4, // 3:4 portrait (BeReal-style)
-        child: ClipRRect(
-          borderRadius: NovaRadius.circularS,
-          child: DoubleTapLikeOverlay(
-            onDoubleTap: _handleDoubleTapLike,
-            child: emoji != null
-                ? _buildEmojiPlaceholder(emoji)
-                : hasImage
-                    ? _buildNetworkImage(widget.event.imageUrl!)
-                    : _buildDefaultPlaceholder(),
-          ),
+    return AspectRatio(
+      aspectRatio: 3 / 4, // 3:4 portrait (BeReal-style)
+      child: ClipRRect(
+        borderRadius: NovaRadius.circularS,
+        child: DoubleTapLikeOverlay(
+          onDoubleTap: _handleDoubleTapLike,
+          child: emoji != null
+              ? _buildEmojiPlaceholder(emoji)
+              : hasImage
+                  ? _buildNetworkImage(widget.event.imageUrl!)
+                  : _buildDefaultPlaceholder(),
         ),
       ),
     );
