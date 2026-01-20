@@ -56,7 +56,9 @@
       "Bash(git log:*)",
       "Bash(echo:*)",
       "Bash(cmd /c \"cd /d c:\\\\Users\\\\grigi\\\\nova_def\\\\nova && dart analyze:*)",
-      "Bash(popd)"
+      "Bash(popd)",
+      "Skill(speckit.tasks)",
+      "Skill(speckit.tasks:*)"
     ],
     "deny": [],
     "ask": []
