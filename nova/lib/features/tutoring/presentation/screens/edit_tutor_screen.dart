@@ -44,7 +44,6 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
   late Set<Subject> _selectedSubjects;
   late Set<AvailabilityDay> _selectedDays;
   bool _isSubmitting = false;
-  bool _isDeactivating = false;
 
   @override
   void initState() {
@@ -191,10 +190,6 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
           _buildWhatsAppField(context),
           const SizedBox(height: NovaSpacing.m),
           _buildInstagramField(context),
-          const SizedBox(height: NovaSpacing.xxxl),
-
-          // Deactivate section (T040-T041)
-          _buildDeactivateSection(context),
           const SizedBox(height: NovaSpacing.xxxl),
         ],
       ),
@@ -442,168 +437,6 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
         ),
       ),
     );
-  }
-
-  /// T040-T041: Deactivate profile section
-  Widget _buildDeactivateSection(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(NovaSpacing.l),
-      decoration: BoxDecoration(
-        color: NovaColors.error(context).withValues(alpha: 0.1),
-        borderRadius: NovaRadius.circularS,
-        border: Border.all(
-          color: NovaColors.error(context).withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Zona Pericolo',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: NovaColors.error(context),
-            ),
-          ),
-          const SizedBox(height: NovaSpacing.s),
-          Text(
-            'Disattivando il profilo, non sarai più visibile nelle ricerche. Potrai riattivarlo in qualsiasi momento.',
-            style: TextStyle(
-              fontSize: 14,
-              color: NovaColors.textSecondary(context),
-            ),
-          ),
-          const SizedBox(height: NovaSpacing.m),
-          SizedBox(
-            width: double.infinity,
-            child: Platform.isIOS
-                ? CupertinoButton(
-                    padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
-                    color: NovaColors.error(context),
-                    borderRadius: NovaRadius.circularS,
-                    onPressed: _isDeactivating ? null : _showDeactivateConfirmation,
-                    child: _isDeactivating
-                        ? const CupertinoActivityIndicator(color: Colors.white)
-                        : const Text(
-                            'Disattiva Profilo',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                  )
-                : ElevatedButton(
-                    onPressed: _isDeactivating ? null : _showDeactivateConfirmation,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: NovaColors.error(context),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: NovaRadius.circularS,
-                      ),
-                    ),
-                    child: _isDeactivating
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Disattiva Profilo',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// T041: Show confirmation dialog for deactivation
-  void _showDeactivateConfirmation() {
-    if (Platform.isIOS) {
-      showCupertinoDialog(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('Disattiva Profilo?'),
-          content: const Text(
-            'Il tuo profilo tutor non sarà più visibile agli altri studenti. Potrai riattivarlo in qualsiasi momento.',
-          ),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('Annulla'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            CupertinoDialogAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deactivateProfile();
-              },
-              child: const Text('Disattiva'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Disattiva Profilo?'),
-          content: const Text(
-            'Il tuo profilo tutor non sarà più visibile agli altri studenti. Potrai riattivarlo in qualsiasi momento.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annulla'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deactivateProfile();
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: NovaColors.error(context),
-              ),
-              child: const Text('Disattiva'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  /// T042: Execute deactivation
-  Future<void> _deactivateProfile() async {
-    setState(() => _isDeactivating = true);
-
-    try {
-      final notifier = ref.read(toggleTutorActiveProvider.notifier);
-      final result = await notifier.deactivate();
-
-      if (!mounted) return;
-
-      if (result != null) {
-        _showSuccess('Profilo tutor disattivato');
-        Navigator.of(context).pop(); // Return to profile
-      } else {
-        _showError('Errore durante la disattivazione');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isDeactivating = false);
-      }
-    }
   }
 
   /// T039: Submit form to update profile
