@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/comment.dart';
@@ -598,25 +599,34 @@ class CommentsRemoteDataSource {
   Future<Comment> likeComment({
     required String commentId,
   }) async {
+    developer.log('likeComment: Starting for commentId=$commentId');
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
+      developer.log('likeComment: currentUserId=$currentUserId');
       if (currentUserId == null) {
+        developer.log('likeComment: User not authenticated!');
         throw const UnauthorizedException('User not authenticated');
       }
 
       // Insert like - don't use .select().single() as RLS SELECT policy
       // may have stricter conditions than INSERT policy
+      developer.log('likeComment: Inserting into comment_likes table');
       await _supabase.from('comment_likes').insert({
         'comment_id': commentId,
         'user_id': currentUserId,
       });
+      developer.log('likeComment: Insert successful');
 
       // Fetch and return the updated comment (with incremented like_count)
+      developer.log('likeComment: Fetching updated comment');
       final model = await getCommentById(commentId: commentId);
+      developer.log('likeComment: Comment fetched, likeCount=${model.likeCount}');
       return model.toEntity();
     } on PostgrestException catch (e, stackTrace) {
+      developer.log('likeComment: PostgrestException - code=${e.code}, message=${e.message}');
       if (e.code == '23505') {
         // Duplicate like (idempotent - return current comment state)
+        developer.log('likeComment: Duplicate like, returning current state');
         final model = await getCommentById(commentId: commentId);
         return model.toEntity();
       } else if (e.code == 'P0001' &&
@@ -636,6 +646,7 @@ class CommentsRemoteDataSource {
       }
       throw _mapSupabaseError(e, stackTrace);
     } catch (e, stackTrace) {
+      developer.log('likeComment: Unknown error - $e', error: e, stackTrace: stackTrace);
       throw NetworkException('Failed to like comment: $e', stackTrace);
     }
   }

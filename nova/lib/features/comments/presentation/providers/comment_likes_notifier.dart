@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/comment.dart';
@@ -99,8 +100,13 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
   /// 5. On success: Update comments list with server data
   /// 6. On error: Rollback to previous state, show error
   Future<void> toggleLike() async {
+    developer.log('toggleLike called for comment $_commentId, current state: isLiked=${state.isLiked}, likeCount=${state.likeCount}, isProcessing=${state.isProcessing}');
+
     // Prevent duplicate actions
-    if (state.isProcessing) return;
+    if (state.isProcessing) {
+      developer.log('toggleLike: Already processing, returning');
+      return;
+    }
 
     // Save previous state for rollback
     final previousState = state;
@@ -108,6 +114,8 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
     // Optimistic update (instant UI feedback)
     final newIsLiked = !state.isLiked;
     final newLikeCount = newIsLiked ? state.likeCount + 1 : state.likeCount - 1;
+
+    developer.log('toggleLike: Optimistic update - newIsLiked=$newIsLiked, newLikeCount=$newLikeCount');
 
     state = state.copyWith(
       isLiked: newIsLiked,
@@ -119,9 +127,11 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
     try {
       if (newIsLiked) {
         // Like comment
+        developer.log('toggleLike: Calling repository.likeComment');
         final updatedComment = await _repository.likeComment(
           commentId: _commentId,
         );
+        developer.log('toggleLike: Like successful, server likeCount=${updatedComment.likeCount}');
 
         // Update comment in comments list
         _updateCommentInList(updatedComment);
@@ -134,9 +144,11 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
         );
       } else {
         // Unlike comment
+        developer.log('toggleLike: Calling repository.unlikeComment');
         final updatedComment = await _repository.unlikeComment(
           commentId: _commentId,
         );
+        developer.log('toggleLike: Unlike successful, server likeCount=${updatedComment.likeCount}');
 
         // Update comment in comments list
         _updateCommentInList(updatedComment);
@@ -149,24 +161,28 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
         );
       }
     } on RateLimitException catch (e) {
+      developer.log('toggleLike: RateLimitException - ${e.message}');
       // Rate limit exceeded - rollback and show error
       state = previousState.copyWith(
         isProcessing: false,
         error: 'Hai raggiunto il limite di like. Riprova tra ${e.retryAfter.inMinutes} minuti.',
       );
-    } on NetworkException catch (_) {
+    } on NetworkException catch (e) {
+      developer.log('toggleLike: NetworkException - ${e.message}');
       // Network error - rollback and show error
       state = previousState.copyWith(
         isProcessing: false,
         error: 'Nessuna connessione. Riprova più tardi.',
       );
-    } on ConflictException catch (_) {
+    } on ConflictException catch (e) {
+      developer.log('toggleLike: ConflictException - ${e.message}');
       // Already liked/unliked (duplicate action) - sync with server state
       // This shouldn't happen with optimistic UI, but handle gracefully
       state = previousState.copyWith(
         isProcessing: false,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      developer.log('toggleLike: Unknown error - $e', error: e, stackTrace: stackTrace);
       // Unknown error - rollback and show generic error
       state = previousState.copyWith(
         isProcessing: false,

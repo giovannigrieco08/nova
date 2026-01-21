@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -349,6 +350,7 @@ class _CommentCardState extends ConsumerState<CommentCard>
                         !likesState.isProcessing &&
                         (widget.comment.likeCount > 0 || widget.comment.isLikedByCurrentUser);
       if (needsInit) {
+        developer.log('CommentCard: Initializing likes state from comment ${widget.comment.id}');
         likesNotifier.initializeFromComment(widget.comment);
       }
     });
@@ -369,10 +371,12 @@ class _CommentCardState extends ConsumerState<CommentCard>
             onTap: likesState.isProcessing
                 ? null
                 : () {
+                    developer.log('CommentCard: Like tapped for ${widget.comment.id}, isInitialized=$isInitialized, isLiked=$isLiked');
                     // Haptic feedback on like
                     HapticFeedback.lightImpact();
                     // Initialize if first interaction (state not yet set)
                     if (!isInitialized) {
+                      developer.log('CommentCard: Initializing before toggle');
                       likesNotifier.initializeFromComment(widget.comment);
                     }
                     likesNotifier.toggleLike();
