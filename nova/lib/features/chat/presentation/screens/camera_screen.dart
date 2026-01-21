@@ -498,19 +498,18 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           ),
         ),
         padding: const EdgeInsets.all(4),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            // When recording: show rounded square (stop button)
-            // When not recording: show circle
-            shape: _isRecording ? BoxShape.rectangle : BoxShape.circle,
-            borderRadius: _isRecording ? NovaRadius.circularS : null,
-            color: isVideoMode ? Colors.red : Colors.white,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: _isRecording ? 32 : 64,
+            height: _isRecording ? 32 : 64,
+            decoration: BoxDecoration(
+              color: isVideoMode ? Colors.red : Colors.white,
+              // Use borderRadius for both states to avoid animation issues
+              // Circle = very large radius, Square = small radius
+              borderRadius: BorderRadius.circular(_isRecording ? 8 : 32),
+            ),
           ),
-          // When recording, shrink the inner shape to make it clearly a stop button
-          width: _isRecording ? 32 : null,
-          height: _isRecording ? 32 : null,
-          margin: _isRecording ? const EdgeInsets.all(16) : null,
         ),
       ),
     );
