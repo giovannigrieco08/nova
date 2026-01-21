@@ -623,7 +623,7 @@ class CommentsRemoteDataSource {
       developer.log('likeComment: Comment fetched, likeCount=${model.likeCount}');
       return model.toEntity();
     } on PostgrestException catch (e, stackTrace) {
-      developer.log('likeComment: PostgrestException - code=${e.code}, message=${e.message}');
+      developer.log('likeComment: PostgrestException - code=${e.code}, message=${e.message}, details=${e.details}, hint=${e.hint}');
       if (e.code == '23505') {
         // Duplicate like (idempotent - return current comment state)
         developer.log('likeComment: Duplicate like, returning current state');
@@ -643,10 +643,15 @@ class CommentsRemoteDataSource {
           commentId,
           stackTrace,
         );
+      } else if (e.code == '42501') {
+        // RLS policy violation
+        developer.log('likeComment: RLS policy violation!');
+        throw NetworkException('Permesso negato dalla policy RLS', stackTrace);
       }
-      throw _mapSupabaseError(e, stackTrace);
+      // Re-throw with more details for debugging
+      throw NetworkException('DB Error [${e.code}]: ${e.message}', stackTrace);
     } catch (e, stackTrace) {
-      developer.log('likeComment: Unknown error - $e', error: e, stackTrace: stackTrace);
+      developer.log('likeComment: Unknown error type=${e.runtimeType} - $e', error: e, stackTrace: stackTrace);
       throw NetworkException('Failed to like comment: $e', stackTrace);
     }
   }

@@ -361,6 +361,24 @@ class _CommentCardState extends ConsumerState<CommentCard>
     final isLiked = isInitialized ? likesState.isLiked : widget.comment.isLikedByCurrentUser;
     final likeCount = isInitialized ? likesState.likeCount : widget.comment.likeCount;
 
+    // Show error if present
+    if (likesState.error != null) {
+      developer.log('CommentCard: Error in likes state: ${likesState.error}');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Errore like: ${likesState.error}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          // Clear error after showing
+          likesNotifier.clearError();
+        }
+      });
+    }
+
     return Padding(
       padding: EdgeInsets.only(left: NovaSpacing.s),
       child: Column(
