@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -361,18 +362,12 @@ class _CommentCardState extends ConsumerState<CommentCard>
     final isLiked = isInitialized ? likesState.isLiked : widget.comment.isLikedByCurrentUser;
     final likeCount = isInitialized ? likesState.likeCount : widget.comment.likeCount;
 
-    // Show error if present
+    // Show error if present using Overlay (works without Scaffold)
     if (likesState.error != null) {
       developer.log('CommentCard: Error in likes state: ${likesState.error}');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Errore like: ${likesState.error}'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          _showErrorToast('Errore like: ${likesState.error}');
           // Clear error after showing
           likesNotifier.clearError();
         }
@@ -513,5 +508,44 @@ class _CommentCardState extends ConsumerState<CommentCard>
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  /// Show error toast using Overlay (works without Scaffold)
+  void _showErrorToast(String message) {
+    if (!mounted) return;
+
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 100,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemRed.darkColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: CupertinoColors.white,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 5), () {
+      if (entry.mounted) entry.remove();
+    });
   }
 }
