@@ -33,9 +33,11 @@ import '../../../../shared/widgets/nova_toast.dart';
 /// - Edit button: White circular button with pencil icon
 class ProfilePhotoViewerScreen extends ConsumerStatefulWidget {
   final Profile profile;
+  final bool isOwnProfile;
 
   const ProfilePhotoViewerScreen({
     required this.profile,
+    this.isOwnProfile = true,
     super.key,
   });
 
@@ -229,8 +231,8 @@ class _ProfilePhotoViewerScreenState
                       // Main profile photo
                       _buildProfilePhoto(photoSize),
 
-                      // Edit button
-                      if (!_isUploadingAvatar)
+                      // Edit button (only for own profile)
+                      if (!_isUploadingAvatar && widget.isOwnProfile)
                         Positioned(
                           bottom: 8,
                           right: 8,

@@ -78,8 +78,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       return;
     }
 
-    // Check microphone permission for video
-    await Permission.microphone.request();
+    // Microphone permission will be requested when video mode is used
 
     try {
       _cameras = await availableCameras();
@@ -111,8 +110,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     final camera = _cameras[cameraIndex];
     _controller = CameraController(
       camera,
-      ResolutionPreset.max, // Maximum quality
-      enableAudio: true,
+      ResolutionPreset.high, // Good quality, faster init than max
+      enableAudio: true, // Keep audio ready for video mode
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
 
@@ -204,6 +203,16 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     setState(() => _isProcessingShutter = true);
 
     try {
+      // Request microphone permission when video recording starts
+      final micStatus = await Permission.microphone.request();
+      if (micStatus.isDenied && mounted) {
+        setState(() => _isProcessingShutter = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permesso microfono negato')),
+        );
+        return;
+      }
+
       await _controller!.startVideoRecording();
       if (mounted) {
         setState(() {

@@ -246,11 +246,10 @@ class ChatRepositoryImpl implements ChatRepository {
 
     // Always update the message after media upload to trigger realtime UPDATE event.
     // This ensures other clients re-fetch the message and get the media data.
-    // We update media_caption (null if no caption) and clear the placeholder content.
-    debugPrint('[Repository] Step 3: Updating message with caption and clearing placeholder...');
+    // We update media_caption - the content stays as [media] placeholder (UI handles it).
+    debugPrint('[Repository] Step 3: Updating message with caption...');
     await _supabase.from('chat_messages').update({
       'media_caption': caption,
-      'content': '', // Clear placeholder, media will be shown instead
     }).eq('id', message.id);
     debugPrint('[Repository] Step 3 DONE: Message updated');
 

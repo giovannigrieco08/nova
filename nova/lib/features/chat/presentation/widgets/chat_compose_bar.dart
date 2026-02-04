@@ -20,6 +20,7 @@ import 'package:nova/core/utils/image_orientation_fixer.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
+import 'package:nova/features/chat/presentation/providers/chat_realtime_provider.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_reply_preview.dart';
 import 'package:nova/features/chat/presentation/widgets/mention_autocomplete.dart';
 import 'package:nova/features/chat/presentation/screens/photo_editor_screen.dart';
@@ -701,6 +702,24 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     debugPrint('[MediaUpload] - maxViews: $maxViews');
     debugPrint('[MediaUpload] - caption: $caption');
 
+    // Pre-upload validation: check if file exists
+    final file = File(filePath);
+    if (!await file.exists()) {
+      debugPrint('[MediaUpload] ERROR: File does not exist at path: $filePath');
+      _showToast('File non trovato. Riprova.', isError: true);
+      return;
+    }
+
+    final fileSize = await file.length();
+    debugPrint('[MediaUpload] File size: $fileSize bytes');
+
+    // Check file size limit (50MB max)
+    if (fileSize > 50 * 1024 * 1024) {
+      debugPrint('[MediaUpload] ERROR: File too large: $fileSize bytes');
+      _showToast('File troppo grande (max 50MB)', isError: true);
+      return;
+    }
+
     try {
       debugPrint('[MediaUpload] Starting upload via provider...');
       final result = await ref.read(uploadMediaProvider((
@@ -713,9 +732,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
       debugPrint('[MediaUpload] Upload SUCCESS! Media ID: ${result.id}');
 
-      // Invalidate messages stream to refresh with new media
-      debugPrint('[MediaUpload] Invalidating chatMessagesStreamProvider...');
-      ref.invalidate(chatMessagesStreamProvider);
+      // Refresh the specific message in the realtime state
+      // This ensures the message displays immediately with media attached
+      debugPrint('[MediaUpload] Refreshing message ${result.messageId} in realtime state...');
+      await ref.read(chatRealtimeProvider.notifier).refreshMessage(result.messageId);
+      debugPrint('[MediaUpload] Message refreshed!');
 
       // Notify parent that something was sent
       widget.onSent?.call();
@@ -727,7 +748,16 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     } catch (e, stackTrace) {
       debugPrint('[MediaUpload] ERROR: $e');
       debugPrint('[MediaUpload] StackTrace: $stackTrace');
-      _showToast('Errore durante l\'invio. Riprova.', isError: true);
+      // Show more specific error message
+      String errorMsg = 'Errore durante l\'invio. Riprova.';
+      if (e.toString().contains('storage')) {
+        errorMsg = 'Errore upload. Controlla la connessione.';
+      } else if (e.toString().contains('permission') || e.toString().contains('403')) {
+        errorMsg = 'Permesso negato. Riprova più tardi.';
+      } else if (e.toString().contains('timeout') || e.toString().contains('network')) {
+        errorMsg = 'Connessione lenta. Riprova.';
+      }
+      _showToast(errorMsg, isError: true);
     }
   }
 

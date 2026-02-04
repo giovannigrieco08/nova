@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:video_player/video_player.dart';
 
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
@@ -53,6 +54,11 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   Duration _duration = Duration.zero;
   StreamSubscription? _progressSubscription;
 
+  // Video player state
+  VideoPlayerController? _videoController;
+  bool _videoInitialized = false;
+  bool _videoError = false;
+
   @override
   void initState() {
     super.initState();
@@ -66,13 +72,46 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     if (widget.media.mediaType.isAudio) {
       _initAudioPlayer();
     }
+
+    // Initialize video player if this is a video media
+    if (widget.media.mediaType.isVideo) {
+      _initVideoPlayer();
+    }
   }
 
   @override
   void dispose() {
     _removeScreenshotProtection();
     _disposeAudioPlayer();
+    _disposeVideoPlayer();
     super.dispose();
+  }
+
+  Future<void> _initVideoPlayer() async {
+    try {
+      _videoController = VideoPlayerController.networkUrl(
+        Uri.parse(widget.signedUrl),
+      );
+      await _videoController!.initialize();
+      _videoController!.setLooping(true);
+      // Auto-play when initialized
+      await _videoController!.play();
+      if (mounted) {
+        setState(() {
+          _videoInitialized = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _videoError = true;
+        });
+      }
+    }
+  }
+
+  void _disposeVideoPlayer() {
+    _videoController?.dispose();
   }
 
   void _checkIfOwner() {
@@ -341,24 +380,74 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   Widget _buildVideoPlayer() {
-    // Simplified video placeholder
-    // In production, use video_player package
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(
-          Icons.play_circle_outline,
-          size: 80,
+    // Show error state
+    if (_videoError) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 64,
+            color: Colors.white54,
+          ),
+          SizedBox(height: NovaSpacing.m),
+          Text(
+            'Impossibile caricare il video',
+            style: NovaTypography.bodyMedium.copyWith(
+              color: Colors.white54,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Show loading state
+    if (!_videoInitialized || _videoController == null) {
+      return const Center(
+        child: CircularProgressIndicator(
           color: Colors.white,
         ),
-        SizedBox(height: NovaSpacing.m),
-        Text(
-          'Tocca per riprodurre',
-          style: NovaTypography.bodyMedium.copyWith(
-            color: Colors.white70,
+      );
+    }
+
+    // Show video player
+    return GestureDetector(
+      onTap: () {
+        // Toggle play/pause on tap
+        if (_videoController!.value.isPlaying) {
+          _videoController!.pause();
+        } else {
+          _videoController!.play();
+        }
+        setState(() {});
+      },
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Video
+          Center(
+            child: AspectRatio(
+              aspectRatio: _videoController!.value.aspectRatio,
+              child: VideoPlayer(_videoController!),
+            ),
           ),
-        ),
-      ],
+          // Play/Pause overlay (show when paused)
+          if (!_videoController!.value.isPlaying)
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.play_arrow,
+                size: 50,
+                color: Colors.white,
+              ),
+            ),
+        ],
+      ),
     );
   }
 

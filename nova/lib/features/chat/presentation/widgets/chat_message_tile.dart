@@ -24,6 +24,7 @@ import 'package:nova/features/chat/presentation/widgets/gif_picker.dart';
 import 'package:nova/features/chat/presentation/screens/media_viewer_screen.dart';
 import 'package:nova/shared/widgets/avatar_widget.dart';
 import 'package:nova/core/animations/page_transitions.dart';
+import 'package:nova/features/profile/presentation/screens/other_profile_screen.dart';
 
 /// A single message tile in the chat feed.
 ///
@@ -216,12 +217,15 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                     ? MainAxisAlignment.end
                     : MainAxisAlignment.start,
                 children: [
-                  // Avatar (solo per messaggi degli altri)
+                  // Avatar (solo per messaggi degli altri) - tap per aprire profilo
                   if (!isOwnMessage) ...[
-                    AvatarWidget(
-                      avatarUrl: widget.message.author.avatarUrl,
-                      name: widget.message.author.fullName,
-                      size: 28,
+                    GestureDetector(
+                      onTap: () => _navigateToProfile(widget.message.userId),
+                      child: AvatarWidget(
+                        avatarUrl: widget.message.author.avatarUrl,
+                        name: widget.message.author.fullName,
+                        size: 28,
+                      ),
                     ),
                     SizedBox(width: NovaSpacing.xs),
                   ],
@@ -319,10 +323,10 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                               decoration: BoxDecoration(
                                 // T017: Grey background for deleted messages
                                 color: widget.message.isDeleted
-                                    ? NovaColors.card(context)
+                                    ? NovaColors.receivedBubble(context)
                                     : isOwnMessage
                                         ? NovaColors.primary(context)
-                                        : NovaColors.card(context),
+                                        : NovaColors.receivedBubble(context),
                                 borderRadius: NovaRadius.circularL,
                               ),
                               child: _buildMessageContent(context, isOwnMessage),
@@ -702,12 +706,21 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
           decoration: BoxDecoration(
             color: isOwnMessage
                 ? NovaColors.primary(context)
-                : NovaColors.card(context),
+                : NovaColors.receivedBubble(context),
             borderRadius: NovaRadius.circularL,
           ),
           child: _buildMessageContent(context, isOwnMessage),
         ),
       ],
+    );
+  }
+
+  /// Navigate to user's profile screen
+  void _navigateToProfile(String userId) {
+    Navigator.of(context).push(
+      NovaPageRoute.swipeBack(
+        page: OtherProfileScreen(userId: userId),
+      ),
     );
   }
 

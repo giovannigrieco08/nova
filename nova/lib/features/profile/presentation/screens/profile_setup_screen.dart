@@ -306,10 +306,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       if (mounted) {
         NovaToast.showSuccess(context, 'Profilo creato ✓');
 
-        // Navigate to Feed with replace (FR-009d: remove setup from stack)
-        // TODO: Replace with actual FeedScreen when available
-        // For now, just pop back
-        Navigator.of(context).pop();
+        // Invalidate profile provider so _ProfileCheckGuard re-evaluates
+        // and navigates to MainFeedScreen (since profile is now complete)
+        ref.invalidate(currentProfileProvider);
       }
     } catch (e) {
       if (mounted) {
@@ -373,9 +372,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           'Profilo salvato. Completa più tardi!',
         );
 
-        // Navigate to Feed with replace
-        // TODO: Replace with actual FeedScreen when available
-        Navigator.of(context).pop();
+        // Invalidate profile provider so _ProfileCheckGuard re-evaluates
+        // and navigates to MainFeedScreen (profile created, even if incomplete)
+        ref.invalidate(currentProfileProvider);
       }
     } catch (e) {
       if (mounted) {

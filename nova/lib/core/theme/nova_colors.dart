@@ -60,6 +60,9 @@ class NovaColors {
   /// Blue - informational messages
   static const Color infoLight = Color(0xFF3B82F6);
 
+  /// Light gray - received message bubbles in chat
+  static const Color receivedBubbleLight = Color(0xFFE5E7EB);
+
   // ============================================
   // DARK MODE COLORS
   // ============================================
@@ -105,6 +108,9 @@ class NovaColors {
 
   /// Lighter blue
   static const Color infoDark = Color(0xFF60A5FA);
+
+  /// Dark gray - received message bubbles in chat (slightly lighter than card)
+  static const Color receivedBubbleDark = Color(0xFF2A2A2A);
 
   // ============================================
   // ON-COLOR CONTRASTS (text/icons on colored backgrounds)
@@ -255,6 +261,11 @@ class NovaColors {
   /// Info color (context-aware)
   static Color info(BuildContext context) {
     return isDark(context) ? infoDark : infoLight;
+  }
+
+  /// Received message bubble color (context-aware) - for chat message bubbles from others
+  static Color receivedBubble(BuildContext context) {
+    return isDark(context) ? receivedBubbleDark : receivedBubbleLight;
   }
 
   /// On-primary color (context-aware) - for text/icons on primary background

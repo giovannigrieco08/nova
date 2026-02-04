@@ -70,8 +70,8 @@ class ImageOrientationFixer {
         fixedImage = img.flipHorizontal(fixedImage);
       }
 
-      // Encode the fixed image as JPEG
-      final fixedBytes = img.encodeJpg(fixedImage, quality: 95);
+      // Encode the fixed image as JPEG (85% quality for faster encoding)
+      final fixedBytes = img.encodeJpg(fixedImage, quality: 85);
 
       // Save to a new temporary file
       final tempDir = await getTemporaryDirectory();
@@ -108,7 +108,7 @@ class ImageOrientationFixer {
       if (image == null) return bytes;
 
       final fixedImage = img.bakeOrientation(image);
-      return Uint8List.fromList(img.encodeJpg(fixedImage, quality: 95));
+      return Uint8List.fromList(img.encodeJpg(fixedImage, quality: 85));
     } catch (e) {
       return bytes;
     }

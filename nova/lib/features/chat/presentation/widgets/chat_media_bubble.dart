@@ -214,7 +214,7 @@ class ChatMediaBubble extends ConsumerWidget {
     // Always use same background as normal messages (Instagram style)
     return isOwnMessage
         ? NovaColors.primary(context)
-        : NovaColors.card(context);
+        : NovaColors.receivedBubble(context);
   }
 
   Color _getTextColor(
@@ -388,7 +388,7 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
     // Colors based on ownership - own messages have purple background
     final backgroundColor = isOwn
         ? NovaColors.primary(context)
-        : NovaColors.card(context);
+        : NovaColors.receivedBubble(context);
 
     // For own messages (purple bg): white icons/text, gray waveform unplayed, white played
     // For others (light bg): purple icons, gray waveform unplayed, purple played

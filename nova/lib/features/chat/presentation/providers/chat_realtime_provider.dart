@@ -266,6 +266,37 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
     state = state.copyWith(messages: messages, incrementCounter: true);
   }
 
+  /// Refresh a specific message by ID.
+  ///
+  /// Fetches the latest data for the message and updates it in state.
+  /// Used after media upload to ensure the message displays immediately
+  /// without relying on Supabase Realtime UPDATE events.
+  Future<void> refreshMessage(String messageId) async {
+    debugPrint('[Realtime] refreshMessage: $messageId');
+    try {
+      final fullMessage = await _dataSource.getMessage(messageId);
+      if (fullMessage != null) {
+        final message = fullMessage.toEntity(currentUserId: _currentUserId);
+        debugPrint('[Realtime] refreshMessage got message, hasMedia: ${message.hasMedia}');
+
+        final messages = [...state.messages];
+        final index = messages.indexWhere((m) => m.id == messageId);
+        if (index >= 0) {
+          // Update existing message
+          messages[index] = message;
+          debugPrint('[Realtime] refreshMessage: updated existing message at index $index');
+        } else {
+          // Add as new message (shouldn't happen normally, but handle it)
+          messages.insert(0, message);
+          debugPrint('[Realtime] refreshMessage: added as new message');
+        }
+        state = state.copyWith(messages: messages, incrementCounter: true);
+      }
+    } catch (e) {
+      debugPrint('[Realtime] refreshMessage ERROR: $e');
+    }
+  }
+
   @override
   void dispose() {
     _messagesChannel?.unsubscribe();

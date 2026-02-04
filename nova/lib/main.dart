@@ -29,7 +29,6 @@ import 'package:nova/features/auth/presentation/screens/login_screen.dart';
 import 'package:nova/features/events/presentation/screens/main_feed_screen.dart';
 import 'package:nova/features/events/presentation/screens/event_detail_screen.dart';
 import 'package:nova/features/profile/data/models/profile_model.dart';
-import 'package:nova/features/profile/domain/entities/profile.dart';
 import 'package:nova/features/profile/presentation/providers/profile_provider.dart';
 import 'package:nova/features/profile/presentation/providers/incomplete_profile_provider.dart';
 import 'package:nova/features/profile/presentation/screens/profile_setup_screen.dart';
@@ -375,7 +374,9 @@ class AuthGuard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // ⚠️ DEV BYPASS - Skip auth check in development
     if (kDevBypassAuth) {
-      return const _ProfileCheckGuard();
+      // In dev mode, try to get user from Supabase directly
+      final devUser = ref.read(supabaseClientProvider).auth.currentUser;
+      return _ProfileCheckGuard(userId: devUser?.id);
     }
 
     // Watch auth state from provider
@@ -386,8 +387,9 @@ class AuthGuard extends ConsumerWidget {
       // Data loaded - check auth state
       data: (state) {
         return switch (state) {
-          // User authenticated - check profile before routing
-          AuthStateAuthenticated() => const _ProfileCheckGuard(),
+          // User authenticated - pass user ID to profile guard
+          // This ensures the ID is available immediately after magic link verification
+          AuthStateAuthenticated(:final user) => _ProfileCheckGuard(userId: user.id),
 
           // User not authenticated - show login
           AuthStateUnauthenticated() => const LoginScreen(),
@@ -416,14 +418,18 @@ class AuthGuard extends ConsumerWidget {
 /// Routes:
 /// - ProfileSetupScreen: Profile doesn't exist or is incomplete (class is null)
 /// - MainFeedScreen: Profile exists and is complete
+///
+/// The [userId] is passed from [AuthGuard] to avoid race conditions where
+/// Supabase's internal session might not be synchronized yet after magic link
+/// verification.
 class _ProfileCheckGuard extends ConsumerWidget {
-  const _ProfileCheckGuard();
+  const _ProfileCheckGuard({required this.userId});
+
+  /// User ID from authenticated state (passed from AuthGuard)
+  final String? userId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Get current user ID
-    final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
-
     // If no user ID, return to login (shouldn't happen after AuthStateAuthenticated)
     if (userId == null) {
       // ⚠️ DEV MODE: Show helpful message if no session exists
@@ -470,17 +476,9 @@ class _ProfileCheckGuard extends ConsumerWidget {
     final profileAsync = ref.watch(currentProfileProvider);
 
     return profileAsync.when(
-      // Profile loaded successfully
-      data: (profile) {
-        // Check if profile is complete (has class selected)
-        if (profile.isComplete) {
-          // Profile complete - show main feed
-          return const MainFeedScreen();
-        } else {
-          // Profile incomplete (class is null) - show setup to complete
-          return const ProfileSetupScreen();
-        }
-      },
+      // Profile loaded successfully - always show main feed
+      // Profile completeness is handled by prompts within the app, not blocking
+      data: (profile) => const MainFeedScreen(),
 
       // Loading profile
       loading: () => const _LoadingScreen(),

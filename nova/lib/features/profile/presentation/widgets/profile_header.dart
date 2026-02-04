@@ -48,6 +48,10 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final eventsCount = stats?.eventsCreatedCount ?? 0;
+    final participationsCount = stats?.participationsCount ?? 0;
+    final hasActivity = eventsCount > 0 || participationsCount > 0;
+
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: NovaSpacing.large,
@@ -56,29 +60,31 @@ class ProfileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Avatar + Stats (Instagram-style)
+          // Row 1: Avatar + Stats (Instagram-style, optimized spacing)
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Avatar (left)
               _buildAvatar(context),
-              SizedBox(width: NovaSpacing.large),
-              // Stats (right) - expanded to fill remaining space, centered
+              SizedBox(width: NovaSpacing.xlarge),
+              // Stats (right) - evenly spaced with tighter layout
               Expanded(
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildStatColumn(
                       context,
-                      count: stats?.eventsCreatedCount ?? 0,
+                      count: eventsCount,
                       label: 'eventi',
                       onTap: onEventiTap,
+                      dimmed: !hasActivity,
                     ),
                     _buildStatColumn(
                       context,
-                      count: stats?.participationsCount ?? 0,
+                      count: participationsCount,
                       label: 'partecipazioni',
                       onTap: onPartecipazioniTap,
+                      dimmed: !hasActivity,
                     ),
                   ],
                 ),
@@ -86,7 +92,7 @@ class ProfileHeader extends StatelessWidget {
             ],
           ),
 
-          SizedBox(height: NovaSpacing.medium),
+          SizedBox(height: NovaSpacing.small),
 
           // Moderator badge ABOVE name (if applicable)
           if (profile.isModerator) ...[
@@ -133,12 +139,24 @@ class ProfileHeader extends StatelessWidget {
   }
 
   /// Build stat column (Instagram-style: prominent number + single-line label)
+  ///
+  /// When [dimmed] is true, the stat appears with reduced opacity
+  /// to indicate no activity (both stats are 0).
   Widget _buildStatColumn(
     BuildContext context, {
     required int count,
     required String label,
     VoidCallback? onTap,
+    bool dimmed = false,
   }) {
+    // Reduce visual weight when profile has no activity
+    final numberColor = dimmed
+        ? NovaColors.textTertiary(context)
+        : NovaColors.textPrimary(context);
+    final labelColor = dimmed
+        ? NovaColors.textTertiary(context)
+        : NovaColors.textSecondary(context);
+
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -146,9 +164,9 @@ class ProfileHeader extends StatelessWidget {
         Text(
           count.toString(),
           style: NovaTypography.headingLarge.copyWith(
-            color: NovaColors.textPrimary(context),
+            color: numberColor,
             fontWeight: FontWeight.w700,
-            fontSize: 22,
+            fontSize: 20,
           ),
         ),
         SizedBox(height: 2),
@@ -156,7 +174,7 @@ class ProfileHeader extends StatelessWidget {
         Text(
           label,
           style: NovaTypography.bodySmall.copyWith(
-            color: NovaColors.textSecondary(context),
+            color: labelColor,
             fontWeight: FontWeight.w400,
           ),
           textAlign: TextAlign.center,
@@ -164,8 +182,9 @@ class ProfileHeader extends StatelessWidget {
       ],
     );
 
+    // Don't make zero stats tappable if dimmed
     return Expanded(
-      child: onTap != null
+      child: (onTap != null && !dimmed)
           ? GestureDetector(
               onTap: onTap,
               behavior: HitTestBehavior.opaque,
@@ -178,6 +197,9 @@ class ProfileHeader extends StatelessWidget {
   /// Build avatar with gradient border for moderators
   Widget _buildAvatar(BuildContext context) {
     final size = 80.0; // Instagram-style smaller avatar
+
+    // DEBUG: Print avatar URL to diagnose Android loading issue
+    debugPrint('🖼️ ProfileHeader avatar URL: ${profile.avatarUrl}');
 
     // Avatar container with optional gradient border
     Widget avatar = Container(
@@ -211,7 +233,10 @@ class ProfileHeader extends StatelessWidget {
                   height: size - 4,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => _buildInitialsAvatar(size - 4),
-                  errorWidget: (context, url, error) => _buildInitialsAvatar(size - 4),
+                  errorWidget: (context, url, error) {
+                    debugPrint('❌ ProfileHeader avatar error: $error for URL: $url');
+                    return _buildInitialsAvatar(size - 4);
+                  },
                   fadeInDuration: Duration.zero,
                   fadeOutDuration: Duration.zero,
                 ),

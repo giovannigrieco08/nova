@@ -15,7 +15,7 @@ import '../widgets/events_grid.dart';
 import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/screens/event_detail_screen.dart';
 import '../../../../core/animations/page_transitions.dart';
-import '../widgets/share_profile_sheet.dart';
+import 'profile_photo_viewer_screen.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
@@ -30,14 +30,12 @@ import '../../../tutoring/presentation/widgets/tutor_profile_section.dart';
 ///
 /// **Features**:
 /// - Compact profile header with avatar, name, class, bio, badges
-/// - Share button in app bar (compact)
 /// - Tutor section if user is a tutor
 /// - Events grid only shown if user has events
 ///
 /// **Optimizations**:
 /// - Removed duplicate stats (ProfileHeader already shows them)
 /// - Removed ProfileTabs (only one tab was visible anyway)
-/// - Share button moved to app bar as icon
 /// - Events section hidden if empty
 ///
 /// **Privacy Enforcement**:
@@ -98,6 +96,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
                 profile: profile,
                 stats: statsAsync.valueOrNull,
                 isOwnProfile: false,
+                onAvatarTap: () => _navigateToPhotoViewer(profile),
                 onEventiTap: () => setState(() => _selectedTab = ProfileTab.eventi),
                 onPartecipazioniTap: () => setState(() => _selectedTab = ProfileTab.partecipazioni),
               ),
@@ -134,7 +133,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
     );
   }
 
-  /// Build app bar with profile name and share action
+  /// Build app bar with profile name
   PreferredSizeWidget _buildAppBar(Profile profile) {
     final displayName = profile.fullName.isNotEmpty ? profile.fullName : profile.username;
 
@@ -146,15 +145,6 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         previousPageTitle: 'Indietro',
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: () => _shareProfile(profile),
-          child: Icon(
-            CupertinoIcons.share,
-            color: NovaColors.primary(context),
-            size: 22,
-          ),
-        ),
       );
     } else {
       return AppBar(
@@ -171,17 +161,6 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
           style: NovaTypography.headingMedium,
           overflow: TextOverflow.ellipsis,
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.share_rounded,
-              color: NovaColors.primary(context),
-              size: 22,
-            ),
-            onPressed: () => _shareProfile(profile),
-            tooltip: 'Condividi Profilo',
-          ),
-        ],
         backgroundColor: NovaColors.background(context),
         elevation: 0,
       );
@@ -239,9 +218,23 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
     }
   }
 
-  /// Share profile (T075 - show ShareProfileSheet)
-  void _shareProfile(Profile profile) {
-    ShareProfileSheet.show(context, profile);
+  /// Navigate to full-screen photo viewer (read-only for other profiles)
+  void _navigateToPhotoViewer(Profile profile) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.transparent,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return ProfilePhotoViewerScreen(
+            profile: profile,
+            isOwnProfile: false,
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
   }
 
   /// Navigate to event detail

@@ -392,6 +392,8 @@ class ChatRemoteDataSource {
           .createSignedUrl(storagePath, 60);
       return response;
     } catch (e, stackTrace) {
+      debugPrint('[Datasource] getSignedMediaUrl FAILED for path: $storagePath');
+      debugPrint('[Datasource] Error: $e');
       return null;
     }
   }
