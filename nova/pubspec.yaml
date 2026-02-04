@@ -18,7 +18,6 @@ dependencies:
   flutter_riverpod: ^2.4.0
 
   # Design System & UI
-  cupertino_native: ^0.1.0  # iOS native UIKit components (requires Xcode 26 beta)
   google_fonts: ^6.1.0      # Inter font for Android (iOS uses SF Pro system font)
   # Removed liquid_glass_renderer: 0.1.1-dev.10 (using BackdropFilter native - design-system v2.0)
 
