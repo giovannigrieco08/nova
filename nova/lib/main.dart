@@ -79,19 +79,6 @@ Future<void> main() async {
   // Initialize Hive for offline-first storage (profiles + events)
   await Hive.initFlutter();
 
-  // TEMPORARY: Delete corrupted Hive boxes due to typeId changes
-  // This ensures old data with wrong typeIds doesn't cause errors
-  // Remove this code after all users have updated
-  try {
-    await Hive.deleteBoxFromDisk('events_cache');
-    await Hive.deleteBoxFromDisk('profiles');
-    await Hive.deleteBoxFromDisk('event_drafts');
-    await Hive.deleteBoxFromDisk('offline_actions_queue');
-    await Hive.deleteBoxFromDisk('chat_pending_messages');
-  } catch (e) {
-    // Hive box cleanup - ignore errors
-  }
-
   // Register adapters (with error handling for hot reload/restart)
   // TypeIds must match @HiveType(typeId: X) in each model:
   // ProfileModel=1, EventModel=2, OfflineAction=3, CommentModel=4,
