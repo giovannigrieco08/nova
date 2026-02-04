@@ -241,28 +241,28 @@ class ProfileRemoteDataSource {
 
     // Set up listeners on both channels
     _supabase.channel('events_stats_$userId').onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'events',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'creator_id',
-        value: userId,
-      ),
-      callback: (_) => controller.add(null),
-    );
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'creator_id',
+            value: userId,
+          ),
+          callback: (_) => controller.add(null),
+        );
 
     _supabase.channel('participants_stats_$userId').onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'participations',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'user_id',
-        value: userId,
-      ),
-      callback: (_) => controller.add(null),
-    );
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'participations',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (_) => controller.add(null),
+        );
 
     controller.onCancel = () {
       _supabase.removeChannel(eventsChannel);

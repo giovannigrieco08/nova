@@ -29,10 +29,13 @@ class NotificationPreferences {
     return NotificationPreferences(
       eventiModeratiEnabled: json['eventi_moderati_enabled'] as bool? ?? true,
       nuoviCommentiEnabled: json['nuovi_commenti_enabled'] as bool? ?? true,
-      risposteCommentiEnabled: json['risposte_commenti_enabled'] as bool? ?? true,
+      risposteCommentiEnabled:
+          json['risposte_commenti_enabled'] as bool? ?? true,
       likeEventiEnabled: json['like_eventi_enabled'] as bool? ?? true,
-      nuovePartecipazioniEnabled: json['nuove_partecipazioni_enabled'] as bool? ?? true,
-      coorganizerUpdatesEnabled: json['coorganizer_updates_enabled'] as bool? ?? true,
+      nuovePartecipazioniEnabled:
+          json['nuove_partecipazioni_enabled'] as bool? ?? true,
+      coorganizerUpdatesEnabled:
+          json['coorganizer_updates_enabled'] as bool? ?? true,
     );
   }
 
@@ -45,18 +48,23 @@ class NotificationPreferences {
     bool? coorganizerUpdatesEnabled,
   }) {
     return NotificationPreferences(
-      eventiModeratiEnabled: eventiModeratiEnabled ?? this.eventiModeratiEnabled,
+      eventiModeratiEnabled:
+          eventiModeratiEnabled ?? this.eventiModeratiEnabled,
       nuoviCommentiEnabled: nuoviCommentiEnabled ?? this.nuoviCommentiEnabled,
-      risposteCommentiEnabled: risposteCommentiEnabled ?? this.risposteCommentiEnabled,
+      risposteCommentiEnabled:
+          risposteCommentiEnabled ?? this.risposteCommentiEnabled,
       likeEventiEnabled: likeEventiEnabled ?? this.likeEventiEnabled,
-      nuovePartecipazioniEnabled: nuovePartecipazioniEnabled ?? this.nuovePartecipazioniEnabled,
-      coorganizerUpdatesEnabled: coorganizerUpdatesEnabled ?? this.coorganizerUpdatesEnabled,
+      nuovePartecipazioniEnabled:
+          nuovePartecipazioniEnabled ?? this.nuovePartecipazioniEnabled,
+      coorganizerUpdatesEnabled:
+          coorganizerUpdatesEnabled ?? this.coorganizerUpdatesEnabled,
     );
   }
 }
 
 /// Notification preferences state notifier
-class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferences> {
+class NotificationPreferencesNotifier
+    extends AsyncNotifier<NotificationPreferences> {
   @override
   Future<NotificationPreferences> build() async {
     return _loadPreferences();
@@ -97,10 +105,12 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
 
   /// Toggle a specific preference
   Future<void> togglePreference(String columnName, bool value) async {
-    final currentPreferences = state.valueOrNull ?? const NotificationPreferences();
+    final currentPreferences =
+        state.valueOrNull ?? const NotificationPreferences();
 
     // Optimistic update
-    final updatedPreferences = _updatePreference(currentPreferences, columnName, value);
+    final updatedPreferences =
+        _updatePreference(currentPreferences, columnName, value);
     state = AsyncValue.data(updatedPreferences);
 
     try {
@@ -146,8 +156,8 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
 }
 
 /// Provider for notification preferences
-final notificationPreferencesNotifierProvider =
-    AsyncNotifierProvider<NotificationPreferencesNotifier, NotificationPreferences>(
+final notificationPreferencesNotifierProvider = AsyncNotifierProvider<
+    NotificationPreferencesNotifier, NotificationPreferences>(
   NotificationPreferencesNotifier.new,
 );
 
@@ -214,8 +224,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     try {
       await _supabase
           .from('notifications')
-          .update({'is_read': true})
-          .eq('id', notificationId);
+          .update({'is_read': true}).eq('id', notificationId);
     } catch (e) {
       // Revert on error
       await loadNotifications();
@@ -228,7 +237,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     if (userId == null) return;
 
     // Optimistic update
-    final updated = state.notifications.map((n) => n.copyWith(isRead: true)).toList();
+    final updated =
+        state.notifications.map((n) => n.copyWith(isRead: true)).toList();
     state = state.copyWith(notifications: updated);
 
     try {
@@ -246,14 +256,12 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Delete notification
   Future<void> deleteNotification(String notificationId) async {
     // Optimistic update
-    final updated = state.notifications.where((n) => n.id != notificationId).toList();
+    final updated =
+        state.notifications.where((n) => n.id != notificationId).toList();
     state = state.copyWith(notifications: updated);
 
     try {
-      await _supabase
-          .from('notifications')
-          .delete()
-          .eq('id', notificationId);
+      await _supabase.from('notifications').delete().eq('id', notificationId);
     } catch (e) {
       // Revert on error
       await loadNotifications();

@@ -50,7 +50,8 @@ class CommentsRepository implements CommentsRepositoryInterface {
       // Cache comments for offline viewing (only cache first page)
       if (cursorCreatedAt == null && result.comments.isNotEmpty) {
         // Convert entities to models for caching
-        final models = result.comments.map((e) => CommentModel.fromEntity(e)).toList();
+        final models =
+            result.comments.map((e) => CommentModel.fromEntity(e)).toList();
         await _localDataSource.cacheComments(
           eventId: eventId,
           comments: models,
@@ -377,9 +378,8 @@ class CommentsRepository implements CommentsRepositoryInterface {
     required List<Comment> comments,
   }) async {
     // Convert entities to models for caching
-    final models = comments
-        .map((entity) => CommentModel.fromEntity(entity))
-        .toList();
+    final models =
+        comments.map((entity) => CommentModel.fromEntity(entity)).toList();
 
     await _localDataSource.cacheComments(
       eventId: eventId,

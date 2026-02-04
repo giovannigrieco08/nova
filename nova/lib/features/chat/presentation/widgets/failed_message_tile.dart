@@ -180,7 +180,8 @@ class _FailedMessageTileState extends ConsumerState<FailedMessageTile> {
                                       SizedBox(width: 4),
                                       Text(
                                         'Riprova',
-                                        style: NovaTypography.bodySmall.copyWith(
+                                        style:
+                                            NovaTypography.bodySmall.copyWith(
                                           color: NovaColors.onErrorLight,
                                           fontWeight: FontWeight.w600,
                                         ),

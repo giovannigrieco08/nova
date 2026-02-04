@@ -45,7 +45,8 @@ class ModerationQueueNotifier extends StateNotifier<AsyncValue<List<Event>>> {
   void _removeEventLocally(String eventId) {
     if (state.hasValue) {
       final currentEvents = state.value!;
-      final updatedEvents = currentEvents.where((e) => e.id != eventId).toList();
+      final updatedEvents =
+          currentEvents.where((e) => e.id != eventId).toList();
       state = AsyncValue.data(updatedEvents);
     }
   }
@@ -66,9 +67,9 @@ class ModerationQueueNotifier extends StateNotifier<AsyncValue<List<Event>>> {
     Event? removedEvent;
     if (state.hasValue) {
       removedEvent = state.value!.cast<Event?>().firstWhere(
-        (e) => e?.id == eventId,
-        orElse: () => null,
-      );
+            (e) => e?.id == eventId,
+            orElse: () => null,
+          );
     }
 
     // Optimistic update: remove immediately
@@ -101,9 +102,9 @@ class ModerationQueueNotifier extends StateNotifier<AsyncValue<List<Event>>> {
     Event? removedEvent;
     if (state.hasValue) {
       removedEvent = state.value!.cast<Event?>().firstWhere(
-        (e) => e?.id == eventId,
-        orElse: () => null,
-      );
+            (e) => e?.id == eventId,
+            orElse: () => null,
+          );
     }
 
     // Optimistic update: remove immediately
@@ -126,7 +127,8 @@ class ModerationQueueNotifier extends StateNotifier<AsyncValue<List<Event>>> {
 
 /// Provider for moderation queue with optimistic updates
 final moderationQueueProvider =
-    StateNotifierProvider<ModerationQueueNotifier, AsyncValue<List<Event>>>((ref) {
+    StateNotifierProvider<ModerationQueueNotifier, AsyncValue<List<Event>>>(
+        (ref) {
   return ModerationQueueNotifier(ref);
 });
 
@@ -148,7 +150,6 @@ final pendingEventsCountProvider = FutureProvider<int>((ref) async {
 
 /// Legacy provider for backwards compatibility
 /// @deprecated Use moderationQueueProvider.notifier instead
-final moderationNotifierProvider =
-    Provider<ModerationQueueNotifier>((ref) {
+final moderationNotifierProvider = Provider<ModerationQueueNotifier>((ref) {
   return ref.watch(moderationQueueProvider.notifier);
 });

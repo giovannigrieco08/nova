@@ -153,7 +153,8 @@ class TutorFilterParams {
           classFilter == other.classFilter;
 
   @override
-  int get hashCode => subject.hashCode ^ priceFilter.hashCode ^ classFilter.hashCode;
+  int get hashCode =>
+      subject.hashCode ^ priceFilter.hashCode ^ classFilter.hashCode;
 }
 
 final filteredTutorsProvider =
@@ -210,7 +211,8 @@ class CreateTutorResult {
 ///   showSnackbar(result.error!);
 /// }
 /// ```
-class CreateTutorProfileNotifier extends StateNotifier<AsyncValue<CreateTutorResult?>> {
+class CreateTutorProfileNotifier
+    extends StateNotifier<AsyncValue<CreateTutorResult?>> {
   final TutorRepository _repository;
   final Ref _ref;
 
@@ -269,8 +271,8 @@ class CreateTutorProfileNotifier extends StateNotifier<AsyncValue<CreateTutorRes
   }
 }
 
-final createTutorProfileProvider =
-    StateNotifierProvider<CreateTutorProfileNotifier, AsyncValue<CreateTutorResult?>>((ref) {
+final createTutorProfileProvider = StateNotifierProvider<
+    CreateTutorProfileNotifier, AsyncValue<CreateTutorResult?>>((ref) {
   final repository = ref.watch(tutorRepositoryProvider);
   return CreateTutorProfileNotifier(repository, ref);
 });
@@ -286,7 +288,8 @@ class UpdateTutorResult {
 }
 
 /// Update tutor profile provider
-class UpdateTutorProfileNotifier extends StateNotifier<AsyncValue<UpdateTutorResult?>> {
+class UpdateTutorProfileNotifier
+    extends StateNotifier<AsyncValue<UpdateTutorResult?>> {
   final TutorRepository _repository;
   final Ref _ref;
 
@@ -341,14 +344,15 @@ class UpdateTutorProfileNotifier extends StateNotifier<AsyncValue<UpdateTutorRes
   }
 }
 
-final updateTutorProfileProvider =
-    StateNotifierProvider<UpdateTutorProfileNotifier, AsyncValue<UpdateTutorResult?>>((ref) {
+final updateTutorProfileProvider = StateNotifierProvider<
+    UpdateTutorProfileNotifier, AsyncValue<UpdateTutorResult?>>((ref) {
   final repository = ref.watch(tutorRepositoryProvider);
   return UpdateTutorProfileNotifier(repository, ref);
 });
 
 /// Toggle tutor active provider
-class ToggleTutorActiveNotifier extends StateNotifier<AsyncValue<TutorProfile?>> {
+class ToggleTutorActiveNotifier
+    extends StateNotifier<AsyncValue<TutorProfile?>> {
   final TutorRepository _repository;
   final Ref _ref;
 
@@ -383,7 +387,8 @@ class ToggleTutorActiveNotifier extends StateNotifier<AsyncValue<TutorProfile?>>
 }
 
 final toggleTutorActiveProvider =
-    StateNotifierProvider<ToggleTutorActiveNotifier, AsyncValue<TutorProfile?>>((ref) {
+    StateNotifierProvider<ToggleTutorActiveNotifier, AsyncValue<TutorProfile?>>(
+        (ref) {
   final repository = ref.watch(tutorRepositoryProvider);
   return ToggleTutorActiveNotifier(repository, ref);
 });

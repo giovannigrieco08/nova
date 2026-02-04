@@ -47,8 +47,7 @@ class ClassPickerBottomSheet extends StatefulWidget {
   }
 
   @override
-  State<ClassPickerBottomSheet> createState() =>
-      _ClassPickerBottomSheetState();
+  State<ClassPickerBottomSheet> createState() => _ClassPickerBottomSheetState();
 }
 
 class _ClassPickerBottomSheetState extends State<ClassPickerBottomSheet> {

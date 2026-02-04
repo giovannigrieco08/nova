@@ -174,7 +174,9 @@ class _BioEditorState extends State<BioEditor> {
           child: Text(
             '$currentLength/${widget.maxLength}',
             style: NovaTypography.bodySmall.copyWith(
-              color: isOverLimit ? NovaColors.error(context) : NovaColors.textSecondary(context),
+              color: isOverLimit
+                  ? NovaColors.error(context)
+                  : NovaColors.textSecondary(context),
               fontWeight: isOverLimit ? FontWeight.w600 : FontWeight.normal,
             ),
           ),

@@ -83,7 +83,8 @@ class _NotificationBannerWidget extends StatefulWidget {
   });
 
   @override
-  State<_NotificationBannerWidget> createState() => _NotificationBannerWidgetState();
+  State<_NotificationBannerWidget> createState() =>
+      _NotificationBannerWidgetState();
 }
 
 class _NotificationBannerWidgetState extends State<_NotificationBannerWidget>

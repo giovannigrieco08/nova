@@ -131,7 +131,8 @@ class PushPermissionNotifier extends StateNotifier<PushPermissionState> {
       // Store that we've asked
       final prefs = await _getPrefs();
       await prefs.setBool(_kHasAskedPermission, true);
-      await prefs.setInt(_kLastAskedTimestamp, DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt(
+          _kLastAskedTimestamp, DateTime.now().millisecondsSinceEpoch);
 
       // Request permission
       final result = await _pushService.requestPermission();
@@ -171,7 +172,8 @@ class PushPermissionNotifier extends StateNotifier<PushPermissionState> {
   Future<void> markAskedLater() async {
     final prefs = await _getPrefs();
     await prefs.setBool(_kHasAskedPermission, true);
-    await prefs.setInt(_kLastAskedTimestamp, DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+        _kLastAskedTimestamp, DateTime.now().millisecondsSinceEpoch);
 
     state = state.copyWith(hasAskedBefore: true);
   }

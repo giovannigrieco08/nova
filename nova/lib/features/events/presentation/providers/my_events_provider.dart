@@ -41,7 +41,9 @@ final myEventsProvider = StreamProvider.autoDispose<List<Event>>((ref) {
       .eq('creator_id', userId)
       .order('created_at', ascending: false)
       .map((data) {
-        return data.map((json) => EventModel.fromJson(json).toEntity()).toList();
+        return data
+            .map((json) => EventModel.fromJson(json).toEntity())
+            .toList();
       });
 });
 

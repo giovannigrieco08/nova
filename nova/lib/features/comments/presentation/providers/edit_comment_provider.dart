@@ -220,8 +220,9 @@ class EditCommentNotifier extends StateNotifier<EditCommentState> {
 }
 
 /// Provider for edit comment state (per event)
-final editCommentNotifierProvider = StateNotifierProvider.family<
-    EditCommentNotifier, EditCommentState, String>((ref, eventId) {
+final editCommentNotifierProvider =
+    StateNotifierProvider.family<EditCommentNotifier, EditCommentState, String>(
+        (ref, eventId) {
   final editComment = ref.read(editCommentUseCaseProvider);
   return EditCommentNotifier(editComment, ref, eventId);
 });

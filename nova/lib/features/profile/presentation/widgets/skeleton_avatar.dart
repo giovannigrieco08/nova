@@ -24,8 +24,7 @@ class SkeletonAvatar extends StatelessWidget {
 
     return Shimmer.fromColors(
       baseColor: isDark ? NovaColors.surfaceDark : NovaColors.borderLight,
-      highlightColor:
-          isDark ? NovaColors.cardDark : NovaColors.dividerLight,
+      highlightColor: isDark ? NovaColors.cardDark : NovaColors.dividerLight,
       period: const Duration(milliseconds: 1500),
       child: Container(
         width: size,

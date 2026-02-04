@@ -163,7 +163,8 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: Text('Scegli dalla Galleria', style: NovaTypography.bodyMedium),
+              title: Text('Scegli dalla Galleria',
+                  style: NovaTypography.bodyMedium),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.gallery);

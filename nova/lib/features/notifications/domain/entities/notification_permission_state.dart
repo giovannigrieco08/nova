@@ -28,7 +28,8 @@ enum NotificationPermissionState {
 /// Extension methods for NotificationPermissionState
 extension NotificationPermissionStateX on NotificationPermissionState {
   /// Check if permission allows receiving notifications
-  bool get canReceiveNotifications => this == NotificationPermissionState.granted;
+  bool get canReceiveNotifications =>
+      this == NotificationPermissionState.granted;
 
   /// Check if we should show permission request
   bool get shouldRequestPermission =>

@@ -40,8 +40,7 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
 
   @override
-  ConsumerState<ProfileSetupScreen> createState() =>
-      _ProfileSetupScreenState();
+  ConsumerState<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
 
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
@@ -331,7 +330,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     // Username is still required even when skipping
     final usernameError = Validators.validateUsername(_usernameController.text);
     if (usernameError != null) {
-      NovaToast.showError(context, 'Inserisci uno username valido prima di continuare');
+      NovaToast.showError(
+          context, 'Inserisci uno username valido prima di continuare');
       return;
     }
 
@@ -457,7 +457,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                           _selectedAvatarFile != null
                               ? CircleAvatar(
                                   radius: 64,
-                                  backgroundImage: FileImage(_selectedAvatarFile!),
+                                  backgroundImage:
+                                      FileImage(_selectedAvatarFile!),
                                 )
                               : AvatarInitials(
                                   fullName: _nameController.text.isNotEmpty
@@ -469,7 +470,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             width: 128,
                             height: 128,
                             decoration: BoxDecoration(
-                              color: NovaColors.overlayDark.withValues(alpha: 0.6),
+                              color:
+                                  NovaColors.overlayDark.withValues(alpha: 0.6),
                               shape: BoxShape.circle,
                             ),
                             child: Column(
@@ -629,14 +631,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                               ? getClassById(_selectedClass!)?.displayName ??
                                   'Classe non trovata'
                               : 'Seleziona classe *',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(
-                                color: _selectedClass != null
-                                    ? NovaColors.textPrimary(context)
-                                    : NovaColors.textSecondary(context),
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: _selectedClass != null
+                                        ? NovaColors.textPrimary(context)
+                                        : NovaColors.textSecondary(context),
+                                  ),
                         ),
                       ),
                       Icon(
@@ -660,8 +660,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: NovaColors.primary(context),
-                    disabledBackgroundColor:
-                        NovaColors.textSecondary(context).withValues(alpha: 0.3),
+                    disabledBackgroundColor: NovaColors.textSecondary(context)
+                        .withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(NovaRadius.m),
                     ),

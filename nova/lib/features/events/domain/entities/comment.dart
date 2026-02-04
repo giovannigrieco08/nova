@@ -6,7 +6,8 @@ class Comment {
   final String id;
   final String eventId;
   final String authorId;
-  final String content; // Max 500 characters (renamed from 'text' to match DB schema)
+  final String
+      content; // Max 500 characters (renamed from 'text' to match DB schema)
   final DateTime createdAt;
 
   // Optional author profile data (from joins)

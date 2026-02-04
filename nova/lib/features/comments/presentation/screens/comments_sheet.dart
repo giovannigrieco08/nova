@@ -102,7 +102,8 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
   Widget build(BuildContext context) {
     final commentsAsync = ref.watch(commentsNotifierProvider(widget.eventId));
     final replyModeState = ref.watch(replyModeNotifierProvider(widget.eventId));
-    final editModeState = ref.watch(editCommentNotifierProvider(widget.eventId));
+    final editModeState =
+        ref.watch(editCommentNotifierProvider(widget.eventId));
 
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
@@ -131,8 +132,7 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
                 _buildReplyModeHeader(replyModeState),
 
               // Edit mode header
-              if (editModeState.isEditing)
-                _buildEditModeHeader(editModeState),
+              if (editModeState.isEditing) _buildEditModeHeader(editModeState),
 
               // Comments list
               Expanded(
@@ -243,7 +243,8 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
             onDelete: comment.userId == currentUserId
                 ? () => _handleDeleteComment(comment.id)
                 : null,
-            onEdit: comment.userId == currentUserId && comment.canEdit(DateTime.now())
+            onEdit: comment.userId == currentUserId &&
+                    comment.canEdit(DateTime.now())
                 ? () => _handleEditComment(comment)
                 : null,
           );
@@ -265,7 +266,8 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
   }
 
   /// Recursively add a comment and its replies with correct depth
-  void _addCommentAndReplies(List<_CommentItem> items, Comment comment, int depth) {
+  void _addCommentAndReplies(
+      List<_CommentItem> items, Comment comment, int depth) {
     items.add(_CommentItem(comment: comment, depth: depth));
 
     // Add nested replies if present
@@ -346,7 +348,9 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
           ),
           GestureDetector(
             onTap: () {
-              ref.read(replyModeNotifierProvider(widget.eventId).notifier).cancelReply();
+              ref
+                  .read(replyModeNotifierProvider(widget.eventId).notifier)
+                  .cancelReply();
             },
             child: Icon(
               Icons.close,
@@ -397,7 +401,9 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
             ),
           GestureDetector(
             onTap: () {
-              ref.read(editCommentNotifierProvider(widget.eventId).notifier).cancelEdit();
+              ref
+                  .read(editCommentNotifierProvider(widget.eventId).notifier)
+                  .cancelEdit();
             },
             child: Icon(
               Icons.close,
@@ -422,7 +428,8 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
       final message = switch (result) {
         DeleteOperationResult.success => 'Commento eliminato',
         DeleteOperationResult.notFound => 'Commento non trovato',
-        DeleteOperationResult.unauthorized => 'Non puoi eliminare questo commento',
+        DeleteOperationResult.unauthorized =>
+          'Non puoi eliminare questo commento',
         DeleteOperationResult.alreadyDeleted => 'Commento già eliminato',
         DeleteOperationResult.error => 'Errore durante l\'eliminazione',
       };
@@ -438,7 +445,9 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
 
   void _handleEditComment(Comment comment) {
     ref.read(replyModeNotifierProvider(widget.eventId).notifier).cancelReply();
-    ref.read(editCommentNotifierProvider(widget.eventId).notifier).startEdit(comment);
+    ref
+        .read(editCommentNotifierProvider(widget.eventId).notifier)
+        .startEdit(comment);
   }
 
   void _showFeedback(String message) {
@@ -455,6 +464,7 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
 /// Helper class for building flat comment list with nested replies
 class _CommentItem {
   final Comment comment;
+
   /// Nesting depth: 0=top-level, 1-3=replies
   final int depth;
 

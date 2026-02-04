@@ -37,9 +37,9 @@ class ModeratorCard extends ConsumerWidget {
 
     if (confirmed == true && context.mounted) {
       await ref.read(adminActionsNotifierProvider.notifier).removeUser(
-        moderator.userId,
-        moderator.fullName,
-      );
+            moderator.userId,
+            moderator.fullName,
+          );
 
       // Show success/error message
       if (context.mounted) {

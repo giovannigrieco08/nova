@@ -14,7 +14,7 @@ import '../../../../core/theme/nova_typography.dart';
 class ShareProfileSheet extends StatelessWidget {
   final Profile profile;
   final ShareService shareService;
-  
+
   const ShareProfileSheet({
     required this.profile,
     required this.shareService,
@@ -23,7 +23,7 @@ class ShareProfileSheet extends StatelessWidget {
 
   static void show(BuildContext context, Profile profile) {
     final shareService = ShareService();
-    
+
     if (Platform.isIOS) {
       showCupertinoModalPopup(
         context: context,
@@ -74,7 +74,9 @@ class ShareProfileSheet extends StatelessWidget {
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),
-          child: Text('Annulla', style: NovaTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+          child: Text('Annulla',
+              style: NovaTypography.bodyMedium
+                  .copyWith(fontWeight: FontWeight.w600)),
         ),
       );
     } else {
@@ -93,13 +95,16 @@ class ShareProfileSheet extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.chat_bubble_rounded),
-                title: Text('Condividi in Chat', style: NovaTypography.bodyMedium),
+                title:
+                    Text('Condividi in Chat', style: NovaTypography.bodyMedium),
                 onTap: () => _shareInChat(context),
               ),
               SizedBox(height: NovaSpacing.small),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Annulla', style: NovaTypography.bodyMedium.copyWith(color: NovaColors.textSecondary(context))),
+                child: Text('Annulla',
+                    style: NovaTypography.bodyMedium
+                        .copyWith(color: NovaColors.textSecondary(context))),
               ),
             ],
           ),

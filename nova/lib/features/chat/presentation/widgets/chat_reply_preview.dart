@@ -16,8 +16,10 @@ class ChatReplyPreview extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDismiss;
   final bool isCompact;
+
   /// Current user ID to determine if replying to own message
   final String? currentUserId;
+
   /// Whether the reply preview is for own message (affects alignment)
   final bool isOwnMessage;
 
@@ -70,9 +72,7 @@ class ChatReplyPreview extends StatelessWidget {
                 children: [
                   // Author name
                   Text(
-                    isDeleted
-                        ? 'Messaggio eliminato'
-                        : replyTo.author.fullName,
+                    isDeleted ? 'Messaggio eliminato' : replyTo.author.fullName,
                     style: NovaTypography.bodySmall.copyWith(
                       color: NovaColors.primary(context),
                       fontWeight: FontWeight.w600,
@@ -85,14 +85,13 @@ class ChatReplyPreview extends StatelessWidget {
 
                   // Message preview
                   Text(
-                    isDeleted
-                        ? '[Messaggio eliminato]'
-                        : replyTo.content,
+                    isDeleted ? '[Messaggio eliminato]' : replyTo.content,
                     style: NovaTypography.bodySmall.copyWith(
                       color: isDeleted
                           ? NovaColors.textTertiary(context)
                           : NovaColors.textSecondary(context),
-                      fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+                      fontStyle:
+                          isDeleted ? FontStyle.italic : FontStyle.normal,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -123,7 +122,8 @@ class ChatReplyPreview extends StatelessWidget {
   Widget _buildChatBubbleStyle(BuildContext context) {
     // Check if message is hidden (moderation) or soft-deleted (user deleted)
     final isDeleted = replyTo.isHidden || replyTo.isDeleted;
-    final isReplyToSelf = currentUserId != null && replyTo.userId == currentUserId;
+    final isReplyToSelf =
+        currentUserId != null && replyTo.userId == currentUserId;
 
     // Determine label text
     final String replyLabel;
@@ -138,9 +138,8 @@ class ChatReplyPreview extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Column(
-        crossAxisAlignment: isOwnMessage
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isOwnMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           // Reply label (like Instagram)
@@ -173,9 +172,7 @@ class ChatReplyPreview extends StatelessWidget {
               borderRadius: NovaRadius.circularM,
             ),
             child: Text(
-              isDeleted
-                  ? '[Messaggio eliminato]'
-                  : replyTo.content,
+              isDeleted ? '[Messaggio eliminato]' : replyTo.content,
               style: NovaTypography.bodySmall.copyWith(
                 color: isDeleted
                     ? NovaColors.textTertiary(context)

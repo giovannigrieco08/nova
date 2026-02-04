@@ -213,18 +213,15 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
               ? NovaColors.primary(context)
               : NovaColors.card(context),
           borderRadius: NovaRadius.circularL,
-          border: isSelected
-              ? null
-              : Border.all(color: NovaColors.border(context)),
+          border:
+              isSelected ? null : Border.all(color: NovaColors.border(context)),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: isSelected
-                ? Colors.white
-                : NovaColors.textPrimary(context),
+            color: isSelected ? Colors.white : NovaColors.textPrimary(context),
           ),
         ),
       ),
@@ -379,7 +376,8 @@ class _TutorsListScreenState extends ConsumerState<TutorsListScreen> {
     );
   }
 
-  void _showContactSheet(BuildContext context, TutorProfileWithAuthorData tutor) {
+  void _showContactSheet(
+      BuildContext context, TutorProfileWithAuthorData tutor) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

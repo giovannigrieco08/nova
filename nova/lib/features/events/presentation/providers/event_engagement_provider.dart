@@ -24,7 +24,8 @@ class EventEngagement {
 
 /// Provider for a single event's engagement data
 /// Uses family modifier to cache per event ID
-final eventEngagementProvider = FutureProvider.family<EventEngagement, String>((ref, eventId) async {
+final eventEngagementProvider =
+    FutureProvider.family<EventEngagement, String>((ref, eventId) async {
   final supabase = ref.watch(supabaseClientProvider);
   final userId = supabase.auth.currentUser?.id;
 
@@ -38,12 +39,20 @@ final eventEngagementProvider = FutureProvider.family<EventEngagement, String>((
     supabase.from('participations').select('id').eq('event_id', eventId),
     // Is liked by current user
     if (userId != null)
-      supabase.from('likes').select('id').eq('event_id', eventId).eq('user_id', userId)
+      supabase
+          .from('likes')
+          .select('id')
+          .eq('event_id', eventId)
+          .eq('user_id', userId)
     else
       Future.value([]),
     // Is participating by current user
     if (userId != null)
-      supabase.from('participations').select('id').eq('event_id', eventId).eq('user_id', userId)
+      supabase
+          .from('participations')
+          .select('id')
+          .eq('event_id', eventId)
+          .eq('user_id', userId)
     else
       Future.value([]),
   ]);
@@ -59,7 +68,9 @@ final eventEngagementProvider = FutureProvider.family<EventEngagement, String>((
 
 /// Provider for batch fetching engagement for multiple events
 /// More efficient for feed screens
-final batchEventEngagementProvider = FutureProvider.family<Map<String, EventEngagement>, List<String>>((ref, eventIds) async {
+final batchEventEngagementProvider =
+    FutureProvider.family<Map<String, EventEngagement>, List<String>>(
+        (ref, eventIds) async {
   if (eventIds.isEmpty) return {};
 
   final supabase = ref.watch(supabaseClientProvider);
@@ -72,15 +83,26 @@ final batchEventEngagementProvider = FutureProvider.family<Map<String, EventEnga
     // All comments for these events
     supabase.from('comments').select('event_id').inFilter('event_id', eventIds),
     // All participations for these events
-    supabase.from('participations').select('event_id').inFilter('event_id', eventIds),
+    supabase
+        .from('participations')
+        .select('event_id')
+        .inFilter('event_id', eventIds),
     // User's likes
     if (userId != null)
-      supabase.from('likes').select('event_id').inFilter('event_id', eventIds).eq('user_id', userId)
+      supabase
+          .from('likes')
+          .select('event_id')
+          .inFilter('event_id', eventIds)
+          .eq('user_id', userId)
     else
       Future.value([]),
     // User's participations
     if (userId != null)
-      supabase.from('participations').select('event_id').inFilter('event_id', eventIds).eq('user_id', userId)
+      supabase
+          .from('participations')
+          .select('event_id')
+          .inFilter('event_id', eventIds)
+          .eq('user_id', userId)
     else
       Future.value([]),
   ]);

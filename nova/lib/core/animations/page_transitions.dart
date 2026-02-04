@@ -57,8 +57,8 @@ class NovaPageRoute {
         final begin = _getBeginOffset(direction);
         const end = Offset.zero;
 
-        final tween = Tween(begin: begin, end: end)
-            .chain(CurveTween(curve: curve));
+        final tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
 
         return SlideTransition(
           position: animation.drive(tween),

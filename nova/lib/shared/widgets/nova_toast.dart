@@ -37,7 +37,8 @@ class NovaToast {
   }
 
   /// Internal method to show toast using Overlay (Cupertino-compatible)
-  static void _show(BuildContext context, String message, ToastType type, {Duration duration = const Duration(seconds: 2)}) {
+  static void _show(BuildContext context, String message, ToastType type,
+      {Duration duration = const Duration(seconds: 2)}) {
     // Remove any existing toast
     _currentToast?.remove();
     _currentToast = null;
@@ -107,7 +108,8 @@ class _ToastWidget extends StatefulWidget {
   State<_ToastWidget> createState() => _ToastWidgetState();
 }
 
-class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderStateMixin {
+class _ToastWidgetState extends State<_ToastWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;

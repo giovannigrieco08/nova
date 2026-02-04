@@ -27,9 +27,11 @@ class EventsRemoteDataSource {
 
     final response = await _supabase
         .from('events')
-        .select('*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)') // Changed users→profiles, id→user_id, name→full_name
+        .select(
+            '*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)') // Changed users→profiles, id→user_id, name→full_name
         .eq('status', 'approved')
-        .gte('event_date', DateTime.now().toIso8601String().split('T')[0]) // >= today
+        .gte('event_date',
+            DateTime.now().toIso8601String().split('T')[0]) // >= today
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
 
@@ -43,7 +45,8 @@ class EventsRemoteDataSource {
   Future<EventModel> fetchEventById(String eventId) async {
     final response = await _supabase
         .from('events')
-        .select('*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)') // Changed users→profiles, id→user_id, name→full_name
+        .select(
+            '*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)') // Changed users→profiles, id→user_id, name→full_name
         .eq('id', eventId)
         .single();
 
@@ -63,7 +66,8 @@ class EventsRemoteDataSource {
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', eventId)
-        .select('*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)') // Changed users→profiles, id→user_id, name→full_name
+        .select(
+            '*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)') // Changed users→profiles, id→user_id, name→full_name
         .single();
 
     return EventModel.fromJson(response);
@@ -108,10 +112,8 @@ class EventsRemoteDataSource {
   /// Get like count for event
   /// FR-016: Display like count
   Future<int> getLikeCount(String eventId) async {
-    final response = await _supabase
-        .from('likes')
-        .select()
-        .eq('event_id', eventId) as List;
+    final response =
+        await _supabase.from('likes').select().eq('event_id', eventId) as List;
 
     return response.length;
   }
@@ -230,7 +232,8 @@ class EventsRemoteDataSource {
   Future<List<EventModel>> fetchEventsByCreator(String userId) async {
     final response = await _supabase
         .from('events')
-        .select('*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)')
         .eq('creator_id', userId)
         .order('event_date', ascending: false);
 
@@ -244,7 +247,8 @@ class EventsRemoteDataSource {
   Future<List<EventModel>> fetchUserPendingEvents(String userId) async {
     final response = await _supabase
         .from('events')
-        .select('*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)')
         .eq('creator_id', userId)
         .eq('status', 'pending')
         .order('created_at', ascending: false);
@@ -274,7 +278,8 @@ class EventsRemoteDataSource {
     // Then fetch those events with creator info
     final eventsResponse = await _supabase
         .from('events')
-        .select('*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, creator:profiles!creator_id(user_id, full_name, avatar_url, class)')
         .inFilter('id', eventIds)
         .order('event_date', ascending: false);
 
@@ -292,7 +297,8 @@ class EventsRemoteDataSource {
   Future<List<CommentModel>> fetchComments(String eventId) async {
     final response = await _supabase
         .from('comments')
-        .select('*, author:profiles!user_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, author:profiles!user_id(user_id, full_name, avatar_url, class)')
         .eq('event_id', eventId)
         .order('created_at', ascending: true); // Oldest first (chronological)
 
@@ -324,7 +330,8 @@ class EventsRemoteDataSource {
           'text': text,
           'created_at': DateTime.now().toIso8601String(),
         })
-        .select('*, author:profiles!user_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, author:profiles!user_id(user_id, full_name, avatar_url, class)')
         .single();
 
     return CommentModel.fromJson(response);
@@ -430,17 +437,15 @@ class EventsRemoteDataSource {
 
   /// Delete a help request
   Future<void> deleteHelpRequest(String requestId) async {
-    await _supabase
-        .from('event_help_requests')
-        .delete()
-        .eq('id', requestId);
+    await _supabase.from('event_help_requests').delete().eq('id', requestId);
   }
 
   /// Fetch offers for a help request (with user profiles)
   Future<List<Map<String, dynamic>>> fetchHelpOffers(String requestId) async {
     final response = await _supabase
         .from('event_help_offers')
-        .select('*, profile:profiles!user_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, profile:profiles!user_id(user_id, full_name, avatar_url, class)')
         .eq('request_id', requestId)
         .order('created_at', ascending: true);
 
@@ -463,7 +468,8 @@ class EventsRemoteDataSource {
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
         })
-        .select('*, profile:profiles!user_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, profile:profiles!user_id(user_id, full_name, avatar_url, class)')
         .single();
 
     return response;
@@ -481,7 +487,8 @@ class EventsRemoteDataSource {
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', offerId)
-        .select('*, profile:profiles!user_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, profile:profiles!user_id(user_id, full_name, avatar_url, class)')
         .single();
 
     return response;
@@ -489,10 +496,7 @@ class EventsRemoteDataSource {
 
   /// Delete an offer (withdraw)
   Future<void> deleteHelpOffer(String offerId) async {
-    await _supabase
-        .from('event_help_offers')
-        .delete()
-        .eq('id', offerId);
+    await _supabase.from('event_help_offers').delete().eq('id', offerId);
   }
 
   /// Check if user has already offered to help for a request
@@ -575,7 +579,8 @@ class EventsRemoteDataSource {
         .toList();
 
     // Combine excluded IDs
-    final excludedIds = {...invitedIds, ...participatingIds, currentUserId}.toList();
+    final excludedIds =
+        {...invitedIds, ...participatingIds, currentUserId}.toList();
 
     // Search profiles
     var queryBuilder = _supabase
@@ -612,7 +617,8 @@ class EventsRemoteDataSource {
           'inviter_id': inviterId,
           'invitee_id': inviteeId,
         })
-        .select('*, invitee:profiles!invitee_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, invitee:profiles!invitee_id(user_id, full_name, avatar_url, class)')
         .single();
 
     return response;
@@ -622,7 +628,8 @@ class EventsRemoteDataSource {
   Future<List<Map<String, dynamic>>> getEventInvitations(String eventId) async {
     final response = await _supabase
         .from('event_invitations')
-        .select('*, invitee:profiles!invitee_id(user_id, full_name, avatar_url, class)')
+        .select(
+            '*, invitee:profiles!invitee_id(user_id, full_name, avatar_url, class)')
         .eq('event_id', eventId)
         .order('created_at', ascending: false);
 
@@ -630,7 +637,8 @@ class EventsRemoteDataSource {
   }
 
   /// Get invitations received by user
-  Future<List<Map<String, dynamic>>> getReceivedInvitations(String userId) async {
+  Future<List<Map<String, dynamic>>> getReceivedInvitations(
+      String userId) async {
     final response = await _supabase
         .from('event_invitations')
         .select('''
@@ -650,20 +658,14 @@ class EventsRemoteDataSource {
     required String invitationId,
     required String status,
   }) async {
-    await _supabase
-        .from('event_invitations')
-        .update({
-          'status': status,
-          'responded_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', invitationId);
+    await _supabase.from('event_invitations').update({
+      'status': status,
+      'responded_at': DateTime.now().toIso8601String(),
+    }).eq('id', invitationId);
   }
 
   /// Cancel a pending invitation
   Future<void> cancelInvitation(String invitationId) async {
-    await _supabase
-        .from('event_invitations')
-        .delete()
-        .eq('id', invitationId);
+    await _supabase.from('event_invitations').delete().eq('id', invitationId);
   }
 }

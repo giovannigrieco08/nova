@@ -172,7 +172,8 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
             CircleAvatar(
               radius: 24,
               backgroundColor: NovaColors.brandViolet.withValues(alpha: 0.2),
-              backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+              backgroundImage:
+                  avatarUrl != null ? NetworkImage(avatarUrl) : null,
               child: avatarUrl == null
                   ? Text(
                       name.isNotEmpty ? name[0].toUpperCase() : '?',

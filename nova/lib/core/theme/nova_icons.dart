@@ -23,7 +23,8 @@ class NovaIcons {
     BuildContext context, {
     required String sfSymbol, // Kept for reference/documentation
     required IconData materialIcon,
-    IconData? cupertinoIcon, // Deprecated: no longer used due to rendering issues
+    IconData?
+        cupertinoIcon, // Deprecated: no longer used due to rendering issues
     double? size,
     Color? color,
   }) {

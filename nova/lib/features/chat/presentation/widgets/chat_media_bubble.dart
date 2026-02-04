@@ -122,11 +122,15 @@ class ChatMediaBubble extends ConsumerWidget {
 
     if (isViewed) {
       icon = Icons.check_circle_outline;
-      color = isOwnMessage ? NovaColors.onPrimaryLight.withValues(alpha: 0.7) : NovaColors.textSecondary(context);
+      color = isOwnMessage
+          ? NovaColors.onPrimaryLight.withValues(alpha: 0.7)
+          : NovaColors.textSecondary(context);
     } else {
       // Can view - show media type icon
       icon = _getMediaTypeIcon();
-      color = isOwnMessage ? NovaColors.onPrimaryLight : NovaColors.primary(context);
+      color = isOwnMessage
+          ? NovaColors.onPrimaryLight
+          : NovaColors.primary(context);
     }
 
     // Wrap in a circle container for better visibility
@@ -135,7 +139,9 @@ class ChatMediaBubble extends ConsumerWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: (isOwnMessage ? NovaColors.onPrimaryLight : NovaColors.primary(context))
+          color: (isOwnMessage
+                  ? NovaColors.onPrimaryLight
+                  : NovaColors.primary(context))
               .withValues(alpha: 0.15),
           shape: BoxShape.circle,
         ),
@@ -165,9 +171,8 @@ class ChatMediaBubble extends ConsumerWidget {
     final badgeColor = isOwnMessage
         ? NovaColors.onPrimaryLight.withValues(alpha: 0.2)
         : NovaColors.primary(context).withValues(alpha: 0.2);
-    final textColor = isOwnMessage
-        ? NovaColors.onPrimaryLight
-        : NovaColors.primary(context);
+    final textColor =
+        isOwnMessage ? NovaColors.onPrimaryLight : NovaColors.primary(context);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -227,7 +232,9 @@ class ChatMediaBubble extends ConsumerWidget {
     // - Own message (purple bg): white when viewable, light gray when expired/viewed
     // - Other message (light bg): purple when viewable, dark gray when expired/viewed
     if (canView) {
-      return isOwnMessage ? NovaColors.onPrimaryLight : NovaColors.primary(context);
+      return isOwnMessage
+          ? NovaColors.onPrimaryLight
+          : NovaColors.primary(context);
     } else {
       // Expired or fully viewed - use muted but readable colors
       return isOwnMessage
@@ -269,8 +276,7 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
   double get _currentSpeed => _speeds[_speedIndex];
 
   /// Get the saved duration from media metadata (if available)
-  Duration get _savedDuration =>
-      widget.media.duration ?? Duration.zero;
+  Duration get _savedDuration => widget.media.duration ?? Duration.zero;
 
   @override
   void initState() {
@@ -392,19 +398,20 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
 
     // For own messages (purple bg): white icons/text, gray waveform unplayed, white played
     // For others (light bg): purple icons, gray waveform unplayed, purple played
-    final iconColor = isOwn ? NovaColors.onPrimaryLight : NovaColors.primary(context);
+    final iconColor =
+        isOwn ? NovaColors.onPrimaryLight : NovaColors.primary(context);
 
     // Duration text - make it clearly readable!
     // Own message: white text on purple background
     // Other message: dark text on light background
-    final durationColor = isOwn
-        ? NovaColors.onPrimaryLight
-        : NovaColors.textPrimary(context);
+    final durationColor =
+        isOwn ? NovaColors.onPrimaryLight : NovaColors.textPrimary(context);
 
     // Waveform colors:
     // Played (active) = WHITE for own, PURPLE for others
     // Unplayed (inactive) = GRAY for both
-    final waveformPlayedColor = isOwn ? NovaColors.onPrimaryLight : NovaColors.primary(context);
+    final waveformPlayedColor =
+        isOwn ? NovaColors.onPrimaryLight : NovaColors.primary(context);
     final waveformUnplayedColor = isOwn
         ? NovaColors.onPrimaryLight.withValues(alpha: 0.35)
         : NovaColors.textTertiary(context);
@@ -429,7 +436,8 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
         children: [
           // 1. Play/Pause button
           GestureDetector(
-            onTap: _isInitialized && _audioUrl != null ? _togglePlayPause : null,
+            onTap:
+                _isInitialized && _audioUrl != null ? _togglePlayPause : null,
             child: Container(
               width: 40,
               height: 40,
@@ -501,12 +509,14 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
           Text(
             _isPlaying || _position > Duration.zero
                 ? _formatDuration(_position)
-                : _formatDuration(_duration > Duration.zero ? _duration : _savedDuration),
+                : _formatDuration(
+                    _duration > Duration.zero ? _duration : _savedDuration),
             style: NovaTypography.bodySmall.copyWith(
               color: durationColor,
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              decoration: TextDecoration.none, // Prevent Android spell-check underline
+              decoration:
+                  TextDecoration.none, // Prevent Android spell-check underline
             ),
           ),
         ],
@@ -524,9 +534,30 @@ class _WaveformPainter extends CustomPainter {
 
   // Precomputed waveform heights (pseudo-random pattern)
   static const List<double> _heights = [
-    0.35, 0.7, 0.5, 0.9, 0.4, 0.85, 0.55, 1.0, 0.5, 0.75,
-    0.4, 0.8, 0.6, 0.95, 0.35, 0.7, 0.5, 0.85, 0.45, 0.65,
-    0.5, 0.75, 0.4, 0.6
+    0.35,
+    0.7,
+    0.5,
+    0.9,
+    0.4,
+    0.85,
+    0.55,
+    1.0,
+    0.5,
+    0.75,
+    0.4,
+    0.8,
+    0.6,
+    0.95,
+    0.35,
+    0.7,
+    0.5,
+    0.85,
+    0.45,
+    0.65,
+    0.5,
+    0.75,
+    0.4,
+    0.6
   ];
 
   _WaveformPainter({

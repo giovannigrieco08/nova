@@ -22,7 +22,8 @@ final deleteCommentProvider = Provider<DeleteComment>((ref) {
 class DeleteCommentNotifier extends StateNotifier<AsyncValue<void>> {
   final DeleteComment _deleteComment;
 
-  DeleteCommentNotifier(this._deleteComment) : super(const AsyncValue.data(null));
+  DeleteCommentNotifier(this._deleteComment)
+      : super(const AsyncValue.data(null));
 
   /// Execute delete operation
   ///
@@ -60,19 +61,24 @@ class DeleteCommentNotifier extends StateNotifier<AsyncValue<void>> {
 enum DeleteOperationResult {
   /// Comment was successfully deleted
   success,
+
   /// Comment not found
   notFound,
+
   /// User not authorized to delete
   unauthorized,
+
   /// Comment already deleted
   alreadyDeleted,
+
   /// Generic error
   error,
 }
 
 /// Provider for delete operation state
 final deleteCommentNotifierProvider =
-    StateNotifierProvider.autoDispose<DeleteCommentNotifier, AsyncValue<void>>((ref) {
+    StateNotifierProvider.autoDispose<DeleteCommentNotifier, AsyncValue<void>>(
+        (ref) {
   final deleteComment = ref.read(deleteCommentProvider);
   return DeleteCommentNotifier(deleteComment);
 });

@@ -278,7 +278,8 @@ class _ProfilePhotoViewerScreenState
 
   /// Build main profile photo
   Widget _buildProfilePhoto(double size) {
-    final hasAvatar = _currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty;
+    final hasAvatar =
+        _currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty;
 
     return Container(
       width: size,

@@ -82,8 +82,7 @@ class CreateProfile {
     }
 
     if (fullName.trim().length < 2) {
-      throw ValidationException(
-          'Il nome deve contenere almeno 2 caratteri');
+      throw ValidationException('Il nome deve contenere almeno 2 caratteri');
     }
 
     if (fullName.trim().length > 50) {

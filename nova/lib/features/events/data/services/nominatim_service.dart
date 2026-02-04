@@ -60,7 +60,8 @@ class NominatimPlace {
 /// Service for searching locations using OpenStreetMap Nominatim API
 class NominatimService {
   static const String _baseUrl = 'https://nominatim.openstreetmap.org';
-  static const String _userAgent = 'Nova School Events App (contact@galileimoro.edu.it)';
+  static const String _userAgent =
+      'Nova School Events App (contact@galileimoro.edu.it)';
 
   final http.Client _client;
 

@@ -175,10 +175,12 @@ class EventsLocalDataSource {
   }
 
   /// Set participation state for event (optimistic UI)
-  final Map<String, Set<String>> _participationCache = {}; // eventId -> Set of userIds
+  final Map<String, Set<String>> _participationCache =
+      {}; // eventId -> Set of userIds
 
   /// Add participation to optimistic cache
-  void setParticipationState(String eventId, String userId, {required bool participating}) {
+  void setParticipationState(String eventId, String userId,
+      {required bool participating}) {
     if (participating) {
       _participationCache[eventId] ??= {};
       _participationCache[eventId]!.add(userId);

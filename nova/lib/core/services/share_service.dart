@@ -182,16 +182,20 @@ $deepLink
     required void Function(String message) onNavigateToChat,
   }) {
     final deepLink = _generateProfileDeepLink(profile.userId);
-    final displayName = profile.fullName.isNotEmpty ? profile.fullName : profile.username;
-    final message = 'Dai un\'occhiata al profilo di $displayName su Nova!\n$deepLink';
+    final displayName =
+        profile.fullName.isNotEmpty ? profile.fullName : profile.username;
+    final message =
+        'Dai un\'occhiata al profilo di $displayName su Nova!\n$deepLink';
     onNavigateToChat(message);
   }
 
   /// Share profile via native share sheet
   Future<void> shareProfile(Profile profile) async {
     final deepLink = _generateProfileDeepLink(profile.userId);
-    final displayName = profile.fullName.isNotEmpty ? profile.fullName : profile.username;
-    final message = 'Dai un\'occhiata al profilo di $displayName su Nova!\n$deepLink';
+    final displayName =
+        profile.fullName.isNotEmpty ? profile.fullName : profile.username;
+    final message =
+        'Dai un\'occhiata al profilo di $displayName su Nova!\n$deepLink';
 
     try {
       await Share.share(

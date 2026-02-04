@@ -24,24 +24,35 @@ class NovaGlass {
     switch (level) {
       case GlassLevel.subtle:
         return (
-          blur: isDark ? 5.0 : 4.0,  // Reduced from 10/8
-          glassColor: isDark ? NovaColors.glassTintDarkSubtle : NovaColors.glassTintSubtle,
-          borderColor: isDark ? NovaColors.glassBorderDarkSubtle : NovaColors.glassBorderSubtle,
+          blur: isDark ? 5.0 : 4.0, // Reduced from 10/8
+          glassColor: isDark
+              ? NovaColors.glassTintDarkSubtle
+              : NovaColors.glassTintSubtle,
+          borderColor: isDark
+              ? NovaColors.glassBorderDarkSubtle
+              : NovaColors.glassBorderSubtle,
         );
 
       case GlassLevel.medium:
         return (
-          blur: isDark ? 7.0 : 6.0,  // Reduced from 14/12
+          blur: isDark ? 7.0 : 6.0, // Reduced from 14/12
           // Light mode uses more opaque white for brighter glass effect
-          glassColor: isDark ? NovaColors.glassTintDarkMedium : const Color(0xCCFFFFFF),
-          borderColor: isDark ? NovaColors.glassBorderDarkMedium : NovaColors.glassBorderMedium,
+          glassColor:
+              isDark ? NovaColors.glassTintDarkMedium : const Color(0xCCFFFFFF),
+          borderColor: isDark
+              ? NovaColors.glassBorderDarkMedium
+              : NovaColors.glassBorderMedium,
         );
 
       case GlassLevel.strong:
         return (
-          blur: isDark ? 10.0 : 8.0,  // Reduced from 18/15
-          glassColor: isDark ? NovaColors.glassTintDarkStrong : NovaColors.glassTintStrong,
-          borderColor: isDark ? NovaColors.glassBorderDarkStrong : NovaColors.glassBorderStrong,
+          blur: isDark ? 10.0 : 8.0, // Reduced from 18/15
+          glassColor: isDark
+              ? NovaColors.glassTintDarkStrong
+              : NovaColors.glassTintStrong,
+          borderColor: isDark
+              ? NovaColors.glassBorderDarkStrong
+              : NovaColors.glassBorderStrong,
         );
     }
   }

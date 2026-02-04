@@ -111,7 +111,8 @@ class _HelpRequestCardState extends ConsumerState<_HelpRequestCard> {
   Widget build(BuildContext context) {
     final offersState = ref.watch(helpOffersProvider(widget.request.id));
     final pendingOffers = offersState.offers.where((o) => o.isPending).toList();
-    final acceptedOffers = offersState.offers.where((o) => o.isAccepted).toList();
+    final acceptedOffers =
+        offersState.offers.where((o) => o.isAccepted).toList();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -270,7 +271,8 @@ class _HelpRequestCardState extends ConsumerState<_HelpRequestCard> {
               ),
             ),
             const SizedBox(height: 8),
-            ...acceptedOffers.map((offer) => _buildOfferTile(offer, isAccepted: true)),
+            ...acceptedOffers
+                .map((offer) => _buildOfferTile(offer, isAccepted: true)),
             if (pendingOffers.isNotEmpty) const SizedBox(height: 12),
           ],
 
@@ -285,7 +287,8 @@ class _HelpRequestCardState extends ConsumerState<_HelpRequestCard> {
               ),
             ),
             const SizedBox(height: 8),
-            ...pendingOffers.map((offer) => _buildOfferTile(offer, isAccepted: false)),
+            ...pendingOffers
+                .map((offer) => _buildOfferTile(offer, isAccepted: false)),
           ],
         ],
       ),
@@ -301,9 +304,7 @@ class _HelpRequestCardState extends ConsumerState<_HelpRequestCard> {
           color: Colors.white,
           borderRadius: NovaRadius.circularXs,
           border: Border.all(
-            color: isAccepted
-                ? NovaColors.successLight
-                : NovaColors.grayMedium,
+            color: isAccepted ? NovaColors.successLight : NovaColors.grayMedium,
             width: 1,
           ),
         ),
@@ -316,7 +317,8 @@ class _HelpRequestCardState extends ConsumerState<_HelpRequestCard> {
                 // Avatar
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: NovaColors.brandViolet.withValues(alpha: 0.2),
+                  backgroundColor:
+                      NovaColors.brandViolet.withValues(alpha: 0.2),
                   backgroundImage: offer.userAvatarUrl != null
                       ? NetworkImage(offer.userAvatarUrl!)
                       : null,
@@ -345,7 +347,8 @@ class _HelpRequestCardState extends ConsumerState<_HelpRequestCard> {
                           color: Colors.black,
                         ),
                       ),
-                      if (offer.userClass != null && offer.userClass!.isNotEmpty)
+                      if (offer.userClass != null &&
+                          offer.userClass!.isNotEmpty)
                         Text(
                           offer.userClass!,
                           style: const TextStyle(

@@ -123,7 +123,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           case supabase.AuthChangeEvent.signedIn:
             // User signed in successfully
             if (authState.session?.user != null) {
-              state = AsyncData(AuthStateAuthenticated(authState.session!.user));
+              state =
+                  AsyncData(AuthStateAuthenticated(authState.session!.user));
 
               // Register FCM token for push notifications
               _registerFcmTokenAfterLogin();
@@ -138,14 +139,16 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           case supabase.AuthChangeEvent.tokenRefreshed:
             // Token refreshed (silent) - update user object
             if (authState.session?.user != null) {
-              state = AsyncData(AuthStateAuthenticated(authState.session!.user));
+              state =
+                  AsyncData(AuthStateAuthenticated(authState.session!.user));
             }
             break;
 
           case supabase.AuthChangeEvent.userUpdated:
             // User data updated
             if (authState.session?.user != null) {
-              state = AsyncData(AuthStateAuthenticated(authState.session!.user));
+              state =
+                  AsyncData(AuthStateAuthenticated(authState.session!.user));
             }
             break;
 

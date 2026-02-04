@@ -54,7 +54,8 @@ class ReportComment {
   }) async {
     // Validate details length
     if (details != null && details.length > 500) {
-      throw Exception('I dettagli aggiuntivi non possono superare 500 caratteri');
+      throw Exception(
+          'I dettagli aggiuntivi non possono superare 500 caratteri');
     }
 
     // Submit report to repository

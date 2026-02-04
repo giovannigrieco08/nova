@@ -13,7 +13,8 @@ import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
-import 'package:nova/features/profile/presentation/providers/profile_provider.dart' show currentProfileProvider;
+import 'package:nova/features/profile/presentation/providers/profile_provider.dart'
+    show currentProfileProvider;
 
 /// Photo preview screen (Instagram Stories style)
 ///
@@ -290,8 +291,10 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
           // On desktop, save to Downloads folder
           final downloadsDir = await getDownloadsDirectory();
           if (downloadsDir != null) {
-            final fileName = 'nova_photo_${DateTime.now().millisecondsSinceEpoch}.png';
-            final destPath = '${downloadsDir.path}${Platform.pathSeparator}$fileName';
+            final fileName =
+                'nova_photo_${DateTime.now().millisecondsSinceEpoch}.png';
+            final destPath =
+                '${downloadsDir.path}${Platform.pathSeparator}$fileName';
             await file.copy(destPath);
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -341,7 +344,8 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
 
   Future<File?> _captureImage() async {
     try {
-      final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary = _repaintKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
       if (boundary == null) {
         return null;
       }
@@ -355,7 +359,8 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
       final bytes = byteData.buffer.asUint8List();
 
       final directory = await getTemporaryDirectory();
-      final filePath = '${directory.path}/edited_photo_${DateTime.now().millisecondsSinceEpoch}.png';
+      final filePath =
+          '${directory.path}/edited_photo_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File(filePath);
       await file.writeAsBytes(bytes);
 

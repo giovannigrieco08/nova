@@ -43,7 +43,8 @@ final moderatorsProvider = StreamProvider<List<Moderator>>((ref) {
             // Fetch moderator stats (may not exist for new moderators)
             final statsResponse = await supabase
                 .from('moderator_stats')
-                .select('total_reviews, reviews_this_week, approval_rate_percent, last_review_at')
+                .select(
+                    'total_reviews, reviews_this_week, approval_rate_percent, last_review_at')
                 .eq('user_id', userId)
                 .maybeSingle();
 
@@ -54,7 +55,8 @@ final moderatorsProvider = StreamProvider<List<Moderator>>((ref) {
               className: profileResponse['class_name'] as String,
               totalReviews: statsResponse?['total_reviews'] ?? 0,
               reviewsThisWeek: statsResponse?['reviews_this_week'] ?? 0,
-              approvalRatePercent: (statsResponse?['approval_rate_percent'] ?? 0).toDouble(),
+              approvalRatePercent:
+                  (statsResponse?['approval_rate_percent'] ?? 0).toDouble(),
               lastReviewAt: statsResponse?['last_review_at'] != null
                   ? DateTime.parse(statsResponse!['last_review_at'] as String)
                   : null,

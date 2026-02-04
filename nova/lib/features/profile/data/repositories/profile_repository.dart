@@ -256,7 +256,8 @@ class ProfileRepository {
           : current.avatarUrl,
       bio: updates.containsKey('bio') ? updates['bio'] as String? : current.bio,
       role: current.role,
-      profileVisible: updates['profile_visible'] as bool? ?? current.profileVisible,
+      profileVisible:
+          updates['profile_visible'] as bool? ?? current.profileVisible,
       createdAt: current.createdAt,
       updatedAt: DateTime.now(), // Update timestamp
       deletedAt: updates.containsKey('deleted_at')

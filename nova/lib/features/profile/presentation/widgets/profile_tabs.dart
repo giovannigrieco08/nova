@@ -135,7 +135,8 @@ class ProfileTabs extends StatelessWidget {
           child: Text(
             label,
             style: NovaTypography.bodyMedium.copyWith(
-              color: isSelected ? Colors.white : NovaColors.textPrimary(context),
+              color:
+                  isSelected ? Colors.white : NovaColors.textPrimary(context),
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -215,7 +216,9 @@ class ProfileTabs extends StatelessWidget {
           child: Text(
             label,
             style: NovaTypography.bodyMedium.copyWith(
-              color: isSelected ? NovaColors.brandViolet : NovaColors.textSecondary(context),
+              color: isSelected
+                  ? NovaColors.brandViolet
+                  : NovaColors.textSecondary(context),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
             textAlign: TextAlign.center,

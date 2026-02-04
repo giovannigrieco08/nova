@@ -54,9 +54,8 @@ class _InviteUsersSheetState extends ConsumerState<InviteUsersSheet> {
 
       // Load already invited users
       final invitations = await repository.getEventInvitations(widget.eventId);
-      _invitedUserIds = invitations
-          .map((i) => i['invitee_id'] as String)
-          .toSet();
+      _invitedUserIds =
+          invitations.map((i) => i['invitee_id'] as String).toSet();
 
       // Load initial users (empty query shows some suggestions)
       final users = await repository.searchUsersToInvite(
@@ -314,7 +313,8 @@ class _InviteUsersSheetState extends ConsumerState<InviteUsersSheet> {
               : null,
           trailing: isInvited
               ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: NovaColors.grayLight,
                     borderRadius: NovaRadius.circularXxs,
@@ -333,7 +333,8 @@ class _InviteUsersSheetState extends ConsumerState<InviteUsersSheet> {
                   style: TextButton.styleFrom(
                     backgroundColor: NovaColors.brandViolet,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: NovaRadius.circularXxs,
                     ),

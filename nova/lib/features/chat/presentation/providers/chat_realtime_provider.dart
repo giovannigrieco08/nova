@@ -138,9 +138,11 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
       debugPrint('[Realtime] Fetching full message data...');
       final fullMessage = await _dataSource.getMessage(messageId);
       if (fullMessage != null) {
-        debugPrint('[Realtime] Got message, hasMedia: ${fullMessage.mediaJson != null}');
+        debugPrint(
+            '[Realtime] Got message, hasMedia: ${fullMessage.mediaJson != null}');
         final message = fullMessage.toEntity(currentUserId: _currentUserId);
-        debugPrint('[Realtime] Entity hasMedia: ${message.hasMedia}, media: ${message.media?.id}');
+        debugPrint(
+            '[Realtime] Entity hasMedia: ${message.hasMedia}, media: ${message.media?.id}');
         _addMessage(message);
         debugPrint('[Realtime] Message added to state');
       } else {
@@ -160,9 +162,11 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
       debugPrint('[Realtime] Fetching full message data...');
       final fullMessage = await _dataSource.getMessage(messageId);
       if (fullMessage != null) {
-        debugPrint('[Realtime] Got message, content: "${fullMessage.content}", hasMedia: ${fullMessage.mediaJson != null}');
+        debugPrint(
+            '[Realtime] Got message, content: "${fullMessage.content}", hasMedia: ${fullMessage.mediaJson != null}');
         final message = fullMessage.toEntity(currentUserId: _currentUserId);
-        debugPrint('[Realtime] Entity hasMedia: ${message.hasMedia}, media: ${message.media?.id}');
+        debugPrint(
+            '[Realtime] Entity hasMedia: ${message.hasMedia}, media: ${message.media?.id}');
         _updateMessage(message);
         debugPrint('[Realtime] Message updated in state');
       } else {
@@ -277,14 +281,16 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
       final fullMessage = await _dataSource.getMessage(messageId);
       if (fullMessage != null) {
         final message = fullMessage.toEntity(currentUserId: _currentUserId);
-        debugPrint('[Realtime] refreshMessage got message, hasMedia: ${message.hasMedia}');
+        debugPrint(
+            '[Realtime] refreshMessage got message, hasMedia: ${message.hasMedia}');
 
         final messages = [...state.messages];
         final index = messages.indexWhere((m) => m.id == messageId);
         if (index >= 0) {
           // Update existing message
           messages[index] = message;
-          debugPrint('[Realtime] refreshMessage: updated existing message at index $index');
+          debugPrint(
+              '[Realtime] refreshMessage: updated existing message at index $index');
         } else {
           // Add as new message (shouldn't happen normally, but handle it)
           messages.insert(0, message);
@@ -310,6 +316,7 @@ class ChatRealtimeState {
   final List<ChatMessage> messages;
   final bool isConnected;
   final String? error;
+
   /// Counter that increments on every state change to ensure UI rebuilds
   final int updateCounter;
 

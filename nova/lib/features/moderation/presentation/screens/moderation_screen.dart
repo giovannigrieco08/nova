@@ -145,7 +145,8 @@ class _ModerationScreenState extends ConsumerState<ModerationScreen> {
                   child: Center(
                     child: event.coverImageUrl != null
                         ? ClipRRect(
-                            borderRadius: BorderRadius.circular(NovaRadius.medium),
+                            borderRadius:
+                                BorderRadius.circular(NovaRadius.medium),
                             child: Image.network(
                               event.coverImageUrl!,
                               width: 44,

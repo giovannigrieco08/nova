@@ -157,7 +157,8 @@ class EventModel {
       imageUrl: imageUrl,
       creatorId: creatorId,
       coOrganizers: coOrganizers,
-      status: EventStatus.values.byName(status), // Convert String to EventStatus enum
+      status: EventStatus.values
+          .byName(status), // Convert String to EventStatus enum
       rejectionReason: rejectionReason,
       moderatedBy: moderatedBy,
       moderatedAt: moderatedAt,
@@ -218,9 +219,7 @@ class EventModel {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is EventModel &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+      other is EventModel && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;

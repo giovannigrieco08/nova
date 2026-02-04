@@ -59,7 +59,8 @@ class ProfileStats {
   }
 
   @override
-  int get hashCode => eventsCreatedCount.hashCode ^ participationsCount.hashCode;
+  int get hashCode =>
+      eventsCreatedCount.hashCode ^ participationsCount.hashCode;
 
   @override
   String toString() {

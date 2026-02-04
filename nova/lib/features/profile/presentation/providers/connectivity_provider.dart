@@ -72,11 +72,11 @@ final checkConnectivityProvider = FutureProvider<ConnectivityResult>((ref) {
 /// Connectivity notifier for manual refresh
 ///
 /// Allows manual connectivity checks and provides current state
-class ConnectivityNotifier extends StateNotifier<AsyncValue<ConnectivityResult>> {
+class ConnectivityNotifier
+    extends StateNotifier<AsyncValue<ConnectivityResult>> {
   final Connectivity _connectivity;
 
-  ConnectivityNotifier(this._connectivity)
-      : super(const AsyncValue.loading()) {
+  ConnectivityNotifier(this._connectivity) : super(const AsyncValue.loading()) {
     _checkConnectivity();
   }
 

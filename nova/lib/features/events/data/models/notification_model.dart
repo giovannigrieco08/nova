@@ -80,7 +80,8 @@ class NotificationModel {
     return AppNotification(
       id: id,
       userId: userId,
-      channel: NotificationChannel.values.byName(channel), // Convert String to enum
+      channel:
+          NotificationChannel.values.byName(channel), // Convert String to enum
       title: title,
       body: body,
       eventId: eventId,

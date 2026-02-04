@@ -24,7 +24,8 @@ class ChatLocalDataSource {
   /// Ensure initialized before operations.
   void _ensureInitialized() {
     if (!_isInitialized) {
-      throw StateError('ChatLocalDataSource not initialized. Call init() first.');
+      throw StateError(
+          'ChatLocalDataSource not initialized. Call init() first.');
     }
   }
 

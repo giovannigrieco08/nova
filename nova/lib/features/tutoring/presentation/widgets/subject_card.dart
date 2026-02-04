@@ -37,7 +37,9 @@ class SubjectCard extends StatelessWidget {
     // Get icon for subject
     final icon = _getSubjectIcon(subject);
 
-    return Platform.isIOS ? _buildCupertinoCard(context, icon) : _buildMaterialCard(context, icon);
+    return Platform.isIOS
+        ? _buildCupertinoCard(context, icon)
+        : _buildMaterialCard(context, icon);
   }
 
   Widget _buildCupertinoCard(BuildContext context, IconData icon) {

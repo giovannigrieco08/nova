@@ -41,12 +41,12 @@ class AdaptiveSegmentedControl<T extends Object> extends StatelessWidget {
       // iOS: Standard CupertinoSegmentedControl
       return CupertinoSegmentedControl<T>(
         children: children.map((key, value) => MapEntry(
-          key,
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(value),
-          ),
-        )),
+              key,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(value),
+              ),
+            )),
         groupValue: groupValue,
         onValueChanged: (T value) {
           onValueChanged?.call(value);

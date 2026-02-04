@@ -69,9 +69,8 @@ class AvatarUploadService {
 
       // Step 5: Get public URL (permanent, no expiry)
       // Note: The 'avatars' bucket must be configured as public in Supabase
-      final publicUrl = _supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
+      final publicUrl =
+          _supabase.storage.from('avatars').getPublicUrl(filePath);
 
       if (onProgress != null) onProgress(1.0);
 
@@ -100,7 +99,8 @@ class AvatarUploadService {
       final resized = img.copyResizeCropSquare(image, size: 512);
 
       // Convert to PNG with quality adjustment to meet <200KB target
-      var quality = 9; // PNG compression level (0-9, higher = better compression)
+      var quality =
+          9; // PNG compression level (0-9, higher = better compression)
       Uint8List compressed;
 
       do {
@@ -118,8 +118,7 @@ class AvatarUploadService {
 
       return compressed;
     } catch (e) {
-      throw AvatarUploadException(
-          'Failed to compress image: ${e.toString()}');
+      throw AvatarUploadException('Failed to compress image: ${e.toString()}');
     }
   }
 
@@ -131,7 +130,9 @@ class AvatarUploadService {
 
       // Delete each file
       for (final file in files) {
-        await _supabase.storage.from('avatars').remove(['$userId/${file.name}']);
+        await _supabase.storage
+            .from('avatars')
+            .remove(['$userId/${file.name}']);
       }
     } catch (e) {
       // Non-critical error - ignore but don't throw
@@ -143,8 +144,7 @@ class AvatarUploadService {
     try {
       await _deleteOldAvatar(userId);
     } catch (e) {
-      throw AvatarUploadException(
-          'Failed to delete avatar: ${e.toString()}');
+      throw AvatarUploadException('Failed to delete avatar: ${e.toString()}');
     }
   }
 
@@ -198,8 +198,8 @@ class AvatarUploadService {
       }
 
       // Get most recent file (sorted by name which includes timestamp)
-      final latestFile = files.reduce((a, b) =>
-          a.name.compareTo(b.name) > 0 ? a : b);
+      final latestFile =
+          files.reduce((a, b) => a.name.compareTo(b.name) > 0 ? a : b);
 
       // Get public URL (permanent, no expiry)
       final publicUrl = _supabase.storage

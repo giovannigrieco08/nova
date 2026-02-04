@@ -267,7 +267,8 @@ class _BecomeTutorScreenState extends ConsumerState<BecomeTutorScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: NovaRadius.circularS,
-                borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+                borderSide:
+                    BorderSide(color: NovaColors.primary(context), width: 2),
               ),
             ),
             validator: (value) {
@@ -390,7 +391,8 @@ class _BecomeTutorScreenState extends ConsumerState<BecomeTutorScreen> {
         hintText: 'username',
         labelText: 'Instagram',
         prefixText: '@',
-        prefixIcon: Icon(Icons.camera_alt_rounded, color: NovaColors.instagramPink),
+        prefixIcon:
+            Icon(Icons.camera_alt_rounded, color: NovaColors.instagramPink),
         helperText: 'Username senza @',
         filled: true,
         fillColor: NovaColors.card(context),
@@ -427,11 +429,15 @@ class _BecomeTutorScreenState extends ConsumerState<BecomeTutorScreen> {
     try {
       final notifier = ref.read(createTutorProfileProvider.notifier);
       final result = await notifier.create(
-        bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
+        bio: _bioController.text.trim().isEmpty
+            ? null
+            : _bioController.text.trim(),
         subjects: _selectedSubjects.toList(),
         pricePerHour: double.tryParse(_priceController.text) ?? 0.0,
         availabilityDays: _selectedDays.toList(),
-        timeSlot: _timeSlotController.text.trim().isEmpty ? null : _timeSlotController.text.trim(),
+        timeSlot: _timeSlotController.text.trim().isEmpty
+            ? null
+            : _timeSlotController.text.trim(),
         whatsappPhone: whatsapp.isEmpty ? null : whatsapp,
         instagramUsername: instagram.isEmpty ? null : instagram,
       );

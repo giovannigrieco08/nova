@@ -3,7 +3,12 @@
 // Purpose: Display tutor profile info in ProfileScreen/OtherProfileScreen
 
 import 'dart:io' show Platform;
-import 'package:flutter/cupertino.dart' show CupertinoButton, CupertinoAlertDialog, CupertinoDialogAction, showCupertinoDialog;
+import 'package:flutter/cupertino.dart'
+    show
+        CupertinoButton,
+        CupertinoAlertDialog,
+        CupertinoDialogAction,
+        showCupertinoDialog;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -220,7 +225,8 @@ class TutorProfileSection extends ConsumerWidget {
 
   Widget _buildPriceAndAvailability(BuildContext context) {
     final hasAvailability = profile.availabilityDays.isNotEmpty;
-    final hasTimeSlot = profile.timeSlot != null && profile.timeSlot!.isNotEmpty;
+    final hasTimeSlot =
+        profile.timeSlot != null && profile.timeSlot!.isNotEmpty;
 
     if (!hasAvailability && !hasTimeSlot) {
       return const SizedBox.shrink();
@@ -350,7 +356,8 @@ class TutorProfileSection extends ConsumerWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: NovaColors.textSecondary(context).withValues(alpha: 0.2),
+                      color: NovaColors.textSecondary(context)
+                          .withValues(alpha: 0.2),
                       borderRadius: NovaRadius.circularXs,
                     ),
                     child: Icon(
@@ -393,45 +400,47 @@ class TutorProfileSection extends ConsumerWidget {
               ),
               const SizedBox(height: NovaSpacing.l),
               // Reactivate button
-            SizedBox(
-              width: double.infinity,
-              child: Platform.isIOS
-                  ? CupertinoButton(
-                      padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
-                      color: NovaColors.primary(context),
-                      borderRadius: NovaRadius.circularS,
-                      onPressed: () => _reactivateProfile(context, ref),
-                      child: const Text(
-                        'Riattiva Profilo',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+              SizedBox(
+                width: double.infinity,
+                child: Platform.isIOS
+                    ? CupertinoButton(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: NovaSpacing.m),
+                        color: NovaColors.primary(context),
+                        borderRadius: NovaRadius.circularS,
+                        onPressed: () => _reactivateProfile(context, ref),
+                        child: const Text(
+                          'Riattiva Profilo',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: () => _reactivateProfile(context, ref),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: NovaColors.primary(context),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: NovaSpacing.m),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: NovaRadius.circularS,
+                          ),
+                        ),
+                        child: const Text(
+                          'Riattiva Profilo',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    )
-                  : ElevatedButton(
-                      onPressed: () => _reactivateProfile(context, ref),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: NovaColors.primary(context),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: NovaRadius.circularS,
-                        ),
-                      ),
-                      child: const Text(
-                        'Riattiva Profilo',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
         ),
       ),
     );

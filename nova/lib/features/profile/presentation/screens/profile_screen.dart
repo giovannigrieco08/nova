@@ -80,109 +80,113 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   /// Build profile view with data
-  Widget _buildProfileView(Profile profile, AsyncValue<ProfileStats> statsAsync) {
+  Widget _buildProfileView(
+      Profile profile, AsyncValue<ProfileStats> statsAsync) {
     final stats = statsAsync.valueOrNull;
 
     return Scaffold(
       backgroundColor: NovaColors.background(context),
       body: SafeArea(
         child: RefreshIndicator(
-        onRefresh: () async {
-          // Refresh profile, stats, and events
-          ref.invalidate(currentProfileProvider);
-          ref.invalidate(currentProfileStatsProvider);
-          ref.invalidate(userCreatedEventsProvider);
-          ref.invalidate(userParticipatingEventsProvider);
-        },
-        child: CustomScrollView(
-          slivers: [
-            // Custom app bar matching MainFeedScreen style
-            SliverToBoxAdapter(
-              child: _buildCustomAppBar(profile),
-            ),
-
-            // Profile header with integrated stats (Instagram-style)
-            SliverToBoxAdapter(
-              child: ProfileHeader(
-                profile: profile,
-                stats: stats,
-                isOwnProfile: true,
-                onAvatarTap: () => _navigateToPhotoViewer(profile),
-                onEventiTap: () => setState(() => _selectedTab = ProfileTab.eventi),
-                onPartecipazioniTap: () => setState(() => _selectedTab = ProfileTab.partecipazioni),
+          onRefresh: () async {
+            // Refresh profile, stats, and events
+            ref.invalidate(currentProfileProvider);
+            ref.invalidate(currentProfileStatsProvider);
+            ref.invalidate(userCreatedEventsProvider);
+            ref.invalidate(userParticipatingEventsProvider);
+          },
+          child: CustomScrollView(
+            slivers: [
+              // Custom app bar matching MainFeedScreen style
+              SliverToBoxAdapter(
+                child: _buildCustomAppBar(profile),
               ),
-            ),
 
-            // Tutor profile section (T030-T032: FR-019)
-            SliverToBoxAdapter(
-              child: _buildTutorSection(),
-            ),
+              // Profile header with integrated stats (Instagram-style)
+              SliverToBoxAdapter(
+                child: ProfileHeader(
+                  profile: profile,
+                  stats: stats,
+                  isOwnProfile: true,
+                  onAvatarTap: () => _navigateToPhotoViewer(profile),
+                  onEventiTap: () =>
+                      setState(() => _selectedTab = ProfileTab.eventi),
+                  onPartecipazioniTap: () =>
+                      setState(() => _selectedTab = ProfileTab.partecipazioni),
+                ),
+              ),
 
-            // Action buttons row (Edit Profile + Moderation if admin/moderator)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
-                child: Row(
-                  children: [
-                    // Edit Profile button
-                    Expanded(
-                      child: SizedBox(
-                        height: 36,
-                        child: TextButton(
-                          onPressed: () => _navigateToEditProfile(profile),
-                          style: TextButton.styleFrom(
-                            backgroundColor: NovaColors.surface(context),
-                            foregroundColor: NovaColors.textPrimary(context),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: NovaRadius.circularFull,
+              // Tutor profile section (T030-T032: FR-019)
+              SliverToBoxAdapter(
+                child: _buildTutorSection(),
+              ),
+
+              // Action buttons row (Edit Profile + Moderation if admin/moderator)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: NovaSpacing.large),
+                  child: Row(
+                    children: [
+                      // Edit Profile button
+                      Expanded(
+                        child: SizedBox(
+                          height: 36,
+                          child: TextButton(
+                            onPressed: () => _navigateToEditProfile(profile),
+                            style: TextButton.styleFrom(
+                              backgroundColor: NovaColors.surface(context),
+                              foregroundColor: NovaColors.textPrimary(context),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: NovaRadius.circularFull,
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: NovaSpacing.medium),
                             ),
-                            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
-                          ),
-                          child: Text(
-                            'Modifica profilo',
-                            style: NovaTypography.bodyMedium.copyWith(
-                              color: NovaColors.textPrimary(context),
-                              fontWeight: FontWeight.w600,
+                            child: Text(
+                              'Modifica profilo',
+                              style: NovaTypography.bodyMedium.copyWith(
+                                color: NovaColors.textPrimary(context),
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    // Moderation button (only for moderators/admins)
-                    if (profile.isModerator) ...[
-                      SizedBox(width: NovaSpacing.small),
-                      SizedBox(
-                        height: 36,
-                        child: _buildModerationButton(),
-                      ),
+                      // Moderation button (only for moderators/admins)
+                      if (profile.isModerator) ...[
+                        SizedBox(width: NovaSpacing.small),
+                        SizedBox(
+                          height: 36,
+                          child: _buildModerationButton(),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
 
-            SizedBox(height: NovaSpacing.medium).toSliver(),
+              SizedBox(height: NovaSpacing.medium).toSliver(),
 
-            // Tabs (Eventi / Partecipazioni)
-            SliverToBoxAdapter(
-              child: ProfileTabs(
-                selectedTab: _selectedTab,
-                onTabChanged: (tab) => setState(() => _selectedTab = tab),
-                showPartecipazioni: true, // Own profile shows both tabs
+              // Tabs (Eventi / Partecipazioni)
+              SliverToBoxAdapter(
+                child: ProfileTabs(
+                  selectedTab: _selectedTab,
+                  onTabChanged: (tab) => setState(() => _selectedTab = tab),
+                  showPartecipazioni: true, // Own profile shows both tabs
+                ),
               ),
-            ),
 
-            // Events grid based on selected tab (no separate scroll)
-            SliverToBoxAdapter(
-              child: _buildEventsGrid(profile, statsAsync),
-            ),
+              // Events grid based on selected tab (no separate scroll)
+              SliverToBoxAdapter(
+                child: _buildEventsGrid(profile, statsAsync),
+              ),
 
-            // Bottom padding to prevent content being covered by navbar
-            SliverToBoxAdapter(
-              child: SizedBox(height: 100),
-            ),
-          ],
-        ),
+              // Bottom padding to prevent content being covered by navbar
+              SliverToBoxAdapter(
+                child: SizedBox(height: 100),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -225,7 +229,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   /// Build events grid based on selected tab
-  Widget _buildEventsGrid(Profile profile, AsyncValue<ProfileStats> statsAsync) {
+  Widget _buildEventsGrid(
+      Profile profile, AsyncValue<ProfileStats> statsAsync) {
     if (_selectedTab == ProfileTab.eventi) {
       // Load user's created events
       final createdEventsAsync = ref.watch(userCreatedEventsProvider);
@@ -251,12 +256,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     } else {
       // Load events user is participating in
-      final participatingEventsAsync = ref.watch(userParticipatingEventsProvider);
+      final participatingEventsAsync =
+          ref.watch(userParticipatingEventsProvider);
       return participatingEventsAsync.when(
         data: (events) => EventsGrid(
           events: events,
           onEventTap: _navigateToEventDetail,
-          emptyMessage: 'Nessuna partecipazione.\nPartecipa al tuo primo evento!',
+          emptyMessage:
+              'Nessuna partecipazione.\nPartecipa al tuo primo evento!',
           shrinkWrap: true, // Don't scroll independently
         ),
         loading: () => EventsGrid(

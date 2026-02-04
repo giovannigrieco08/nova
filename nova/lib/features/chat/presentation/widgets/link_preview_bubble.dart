@@ -142,7 +142,8 @@ class _LinkPreviewBubbleState extends State<LinkPreviewBubble> {
                   width: double.infinity,
                   height: 120,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox.shrink(),
                 ),
               ),
 
@@ -167,7 +168,8 @@ class _LinkPreviewBubbleState extends State<LinkPreviewBubble> {
                     ),
 
                   // Description
-                  if (_metadata!.desc != null && _metadata!.desc!.isNotEmpty) ...[
+                  if (_metadata!.desc != null &&
+                      _metadata!.desc!.isNotEmpty) ...[
                     SizedBox(height: NovaSpacing.xxs),
                     Text(
                       _metadata!.desc!,

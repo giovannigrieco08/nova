@@ -77,7 +77,8 @@ class NotificationListScreen extends ConsumerWidget {
     final grouped = _groupByDate(state.notifications);
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(notificationNotifierProvider.notifier).refresh(),
+      onRefresh: () =>
+          ref.read(notificationNotifierProvider.notifier).refresh(),
       color: NovaColors.primary(context),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),

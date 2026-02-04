@@ -41,6 +41,7 @@ class EventsGrid extends StatelessWidget {
   final Function(Event) onEventTap;
   final String emptyMessage;
   final bool isLoading;
+
   /// When true, the grid won't scroll independently (for embedding in CustomScrollView)
   final bool shrinkWrap;
 

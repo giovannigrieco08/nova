@@ -224,7 +224,8 @@ class EventFormState {
       lastSaved: DateTime.now(),
       // Store invite info as JSON strings
       pendingInvites: pendingInvites
-          .map((i) => '${i.id}|${i.fullName}|${i.className}|${i.avatarUrl ?? ''}')
+          .map((i) =>
+              '${i.id}|${i.fullName}|${i.className}|${i.avatarUrl ?? ''}')
           .toList(),
       latitude: latitude,
       longitude: longitude,
@@ -413,7 +414,8 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
   /// Remove pending invite by user ID
   void removePendingInvite(String userId) {
     state = state.copyWith(
-      pendingInvites: state.pendingInvites.where((i) => i.id != userId).toList(),
+      pendingInvites:
+          state.pendingInvites.where((i) => i.id != userId).toList(),
     );
     _saveDraftDebounced();
   }
@@ -577,8 +579,10 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
     validateForm();
 
     // For edit mode, we allow updating without new image if one already exists (imagePath set)
-    final titleValid = state.titleError == null && state.title.trim().length >= 5;
-    final descValid = state.descriptionError == null && state.description.trim().length >= 20;
+    final titleValid =
+        state.titleError == null && state.title.trim().length >= 5;
+    final descValid =
+        state.descriptionError == null && state.description.trim().length >= 20;
     final dateValid = state.eventDateError == null && state.eventDate != null;
 
     if (!titleValid || !descValid || !dateValid) {

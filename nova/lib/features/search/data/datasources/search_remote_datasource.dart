@@ -56,8 +56,8 @@ class SearchRemoteDataSource {
     );
 
     return (response as List)
-        .map(
-            (json) => ProfileSearchResult.fromJson(json as Map<String, dynamic>))
+        .map((json) =>
+            ProfileSearchResult.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 

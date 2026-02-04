@@ -50,10 +50,12 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
 
     // Pre-fill @mention when entering reply mode
     // Use addPostFrameCallback to avoid modifying provider during build
-    if (!oldWidget.replyModeState.isReplyMode && widget.replyModeState.isReplyMode) {
+    if (!oldWidget.replyModeState.isReplyMode &&
+        widget.replyModeState.isReplyMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
+        final inputNotifier =
+            ref.read(commentInputNotifierProvider(widget.eventId).notifier);
         inputNotifier.textController.text = widget.replyModeState.mentionPrefix;
         inputNotifier.textController.selection = TextSelection.fromPosition(
           TextPosition(offset: widget.replyModeState.mentionPrefix.length),
@@ -62,10 +64,12 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
     }
 
     // Clear @mention when exiting reply mode
-    if (oldWidget.replyModeState.isReplyMode && !widget.replyModeState.isReplyMode) {
+    if (oldWidget.replyModeState.isReplyMode &&
+        !widget.replyModeState.isReplyMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
+        final inputNotifier =
+            ref.read(commentInputNotifierProvider(widget.eventId).notifier);
         inputNotifier.textController.clear();
       });
     }
@@ -74,7 +78,8 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
   @override
   Widget build(BuildContext context) {
     final inputState = ref.watch(commentInputNotifierProvider(widget.eventId));
-    final inputNotifier = ref.read(commentInputNotifierProvider(widget.eventId).notifier);
+    final inputNotifier =
+        ref.read(commentInputNotifierProvider(widget.eventId).notifier);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -102,7 +107,8 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
               Expanded(
                 child: Semantics(
                   textField: true,
-                  label: 'Campo di testo per scrivere un commento, limite 500 caratteri',
+                  label:
+                      'Campo di testo per scrivere un commento, limite 500 caratteri',
                   hint: 'Aggiungi un commento',
                   enabled: !inputState.isPosting,
                   child: Platform.isIOS
@@ -243,7 +249,9 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
     return Semantics(
       button: true,
       label: inputState.canSend
-          ? (widget.replyModeState.isReplyMode ? 'Invia risposta' : 'Invia commento')
+          ? (widget.replyModeState.isReplyMode
+              ? 'Invia risposta'
+              : 'Invia commento')
           : 'Pulsante invia disabilitato, scrivi un commento per inviare',
       enabled: inputState.canSend,
       child: IconButton(
@@ -252,9 +260,12 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                 if (widget.replyModeState.isReplyMode &&
                     widget.replyModeState.targetComment != null) {
                   // In reply mode - post as reply
-                  inputNotifier.postReply(widget.replyModeState.targetComment!.id);
+                  inputNotifier
+                      .postReply(widget.replyModeState.targetComment!.id);
                   // Cancel reply mode after posting
-                  ref.read(replyModeNotifierProvider(widget.eventId).notifier).cancelReply();
+                  ref
+                      .read(replyModeNotifierProvider(widget.eventId).notifier)
+                      .cancelReply();
                 } else {
                   // Normal mode - post as new comment
                   inputNotifier.postComment();

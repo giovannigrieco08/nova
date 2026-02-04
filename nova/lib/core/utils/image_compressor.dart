@@ -137,7 +137,8 @@ class ImageCompressor {
           bytes[8] == 0x57 && // W
           bytes[9] == 0x45 && // E
           bytes[10] == 0x42 && // B
-          bytes[11] == 0x50) { // P
+          bytes[11] == 0x50) {
+        // P
         return 'webp';
       }
     }
@@ -155,7 +156,8 @@ class ImageCompressor {
   }
 
   /// Calculate compression ratio (for debugging/metrics)
-  static double calculateCompressionRatio(int originalSize, int compressedSize) {
+  static double calculateCompressionRatio(
+      int originalSize, int compressedSize) {
     if (originalSize == 0) return 0.0;
     return ((originalSize - compressedSize) / originalSize) * 100;
   }

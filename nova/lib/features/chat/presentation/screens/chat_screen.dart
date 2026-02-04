@@ -147,7 +147,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 scrollController: _chatScrollController,
                 // Use realtime state for messages (live updates)
                 // Filter out deleted messages - they should be completely hidden
-                messages: realtimeState.messages.where((m) => !m.isDeleted).toList(),
+                messages:
+                    realtimeState.messages.where((m) => !m.isDeleted).toList(),
                 failedMessages: failedMessages,
                 isLoading: false,
                 hasMore: realtimeState.messages.length >= 50,
@@ -158,7 +159,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 onReact: _toggleReaction,
               ),
               loading: () => const ChatMessageListSkeleton(),
-              error: (error, stack) => _buildErrorState(context, error.toString()),
+              error: (error, stack) =>
+                  _buildErrorState(context, error.toString()),
             ),
           ),
 

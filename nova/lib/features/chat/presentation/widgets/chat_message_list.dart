@@ -58,10 +58,12 @@ class ChatMessageList extends ConsumerStatefulWidget {
 class _ChatMessageListState extends ConsumerState<ChatMessageList> {
   ScrollController? _internalScrollController;
   bool _showScrollToBottom = false;
-  final Set<String> _animatedMessageIds = {};  // Track which messages have been animated
+  final Set<String> _animatedMessageIds =
+      {}; // Track which messages have been animated
 
   ScrollController get _scrollController =>
-      widget.scrollController ?? (_internalScrollController ??= ScrollController());
+      widget.scrollController ??
+      (_internalScrollController ??= ScrollController());
 
   @override
   void initState() {
@@ -120,7 +122,9 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.messages.isEmpty && widget.failedMessages.isEmpty && !widget.isLoading) {
+    if (widget.messages.isEmpty &&
+        widget.failedMessages.isEmpty &&
+        !widget.isLoading) {
       return _buildEmptyState(context);
     }
 
@@ -179,7 +183,8 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
               return RepaintBoundary(
                 child: AnimatedMessageTile(
                   key: ValueKey('animated_${message.id}'),
-                  animate: shouldAnimate && messageIndex < 5,  // Only animate first 5 new messages
+                  animate: shouldAnimate &&
+                      messageIndex < 5, // Only animate first 5 new messages
                   index: messageIndex,
                   child: ChatMessageTile(
                     key: ValueKey(message.id),

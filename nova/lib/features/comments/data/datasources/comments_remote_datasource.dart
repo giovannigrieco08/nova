@@ -50,7 +50,7 @@ class CommentsRemoteDataSource {
             .from('comments')
             .select('*')
             .eq('event_id', eventId)
-            .isFilter('parent_comment_id', null)  // Top-level only
+            .isFilter('parent_comment_id', null) // Top-level only
             .lt('created_at', cursorCreatedAt.toIso8601String())
             .order('created_at', ascending: false)
             .limit(validLimit + 1);
@@ -59,7 +59,7 @@ class CommentsRemoteDataSource {
             .from('comments')
             .select('*')
             .eq('event_id', eventId)
-            .isFilter('parent_comment_id', null)  // Top-level only
+            .isFilter('parent_comment_id', null) // Top-level only
             .order('created_at', ascending: false)
             .limit(validLimit + 1);
       }
@@ -95,9 +95,8 @@ class CommentsRemoteDataSource {
       Set<String> likedCommentIds = {};
       if (currentUserId != null && commentsData.isNotEmpty) {
         try {
-          final commentIds = commentsData
-              .map((json) => json['id'] as String)
-              .toList();
+          final commentIds =
+              commentsData.map((json) => json['id'] as String).toList();
           final likesResponse = await _supabase
               .from('comment_likes')
               .select('comment_id')
@@ -119,7 +118,8 @@ class CommentsRemoteDataSource {
         // Normalize DB schema to model schema
         final normalizedJson = _normalizeCommentJson(json);
         // Add like status for current user
-        normalizedJson['is_liked_by_current_user'] = likedCommentIds.contains(commentId);
+        normalizedJson['is_liked_by_current_user'] =
+            likedCommentIds.contains(commentId);
         return _parseCommentWithProfileData(normalizedJson, profile);
       }).toList();
 
@@ -127,7 +127,8 @@ class CommentsRemoteDataSource {
       var comments = commentModels.map((m) => m.toEntity()).toList();
 
       // Fetch replies for comments that have replyCount > 0
-      final commentsWithReplies = await _fetchRepliesForComments(comments, profilesMap);
+      final commentsWithReplies =
+          await _fetchRepliesForComments(comments, profilesMap);
       comments = commentsWithReplies;
 
       // Determine next cursor (created_at of last comment)
@@ -186,9 +187,7 @@ class CommentsRemoteDataSource {
       Set<String> likedCommentIds = {};
       if (currentUserId != null && data.isNotEmpty) {
         try {
-          final replyIds = data
-              .map((json) => json['id'] as String)
-              .toList();
+          final replyIds = data.map((json) => json['id'] as String).toList();
           final likesResponse = await _supabase
               .from('comment_likes')
               .select('comment_id')
@@ -209,7 +208,8 @@ class CommentsRemoteDataSource {
         // Normalize DB schema (author_id -> user_id, content -> text)
         final normalizedJson = _normalizeCommentJson(json);
         // Add like status for current user
-        normalizedJson['is_liked_by_current_user'] = likedCommentIds.contains(replyId);
+        normalizedJson['is_liked_by_current_user'] =
+            likedCommentIds.contains(replyId);
         return _parseCommentWithProfileData(normalizedJson, profile);
       }).toList();
     } on PostgrestException catch (e, stackTrace) {
@@ -311,7 +311,9 @@ class CommentsRemoteDataSource {
           .maybeSingle();
       profileData = profileResponse;
 
-      return data.map((json) => _parseCommentWithProfileData(json, profileData)).toList();
+      return data
+          .map((json) => _parseCommentWithProfileData(json, profileData))
+          .toList();
     } on PostgrestException catch (e, stackTrace) {
       throw _mapSupabaseError(e, stackTrace);
     } catch (e, stackTrace) {
@@ -341,8 +343,8 @@ class CommentsRemoteDataSource {
           .from('comments')
           .insert({
             'event_id': eventId,
-            'author_id': currentUserId,  // DB uses author_id
-            'content': text.trim(),       // DB uses content
+            'author_id': currentUserId, // DB uses author_id
+            'content': text.trim(), // DB uses content
           })
           .select('*')
           .single();
@@ -428,8 +430,8 @@ class CommentsRemoteDataSource {
           .insert({
             'event_id': eventId,
             'parent_comment_id': commentId,
-            'author_id': currentUserId,  // DB uses author_id
-            'content': text.trim(),       // DB uses content
+            'author_id': currentUserId, // DB uses author_id
+            'content': text.trim(), // DB uses content
           })
           .select('*')
           .single();
@@ -518,7 +520,9 @@ class CommentsRemoteDataSource {
           .eq('user_id', currentUserId) // Ownership check
           .gte(
             'created_at',
-            DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+            DateTime.now()
+                .subtract(const Duration(minutes: 5))
+                .toIso8601String(),
           ) // 5-min window
           .select('*')
           .single();
@@ -620,10 +624,12 @@ class CommentsRemoteDataSource {
       // Fetch and return the updated comment (with incremented like_count)
       developer.log('likeComment: Fetching updated comment');
       final model = await getCommentById(commentId: commentId);
-      developer.log('likeComment: Comment fetched, likeCount=${model.likeCount}');
+      developer
+          .log('likeComment: Comment fetched, likeCount=${model.likeCount}');
       return model.toEntity();
     } on PostgrestException catch (e, stackTrace) {
-      developer.log('likeComment: PostgrestException - code=${e.code}, message=${e.message}, details=${e.details}, hint=${e.hint}');
+      developer.log(
+          'likeComment: PostgrestException - code=${e.code}, message=${e.message}, details=${e.details}, hint=${e.hint}');
       if (e.code == '23505') {
         // Duplicate like (idempotent - return current comment state)
         developer.log('likeComment: Duplicate like, returning current state');
@@ -651,7 +657,8 @@ class CommentsRemoteDataSource {
       // Re-throw with more details for debugging
       throw NetworkException('DB Error [${e.code}]: ${e.message}', stackTrace);
     } catch (e, stackTrace) {
-      developer.log('likeComment: Unknown error type=${e.runtimeType} - $e', error: e, stackTrace: stackTrace);
+      developer.log('likeComment: Unknown error type=${e.runtimeType} - $e',
+          error: e, stackTrace: stackTrace);
       throw NetworkException('Failed to like comment: $e', stackTrace);
     }
   }
@@ -753,14 +760,11 @@ class CommentsRemoteDataSource {
         throw const UnauthorizedException('User not authenticated');
       }
 
-      await _supabase
-          .from('comments')
-          .update({
-            'hidden_at': DateTime.now().toIso8601String(),
-            'hidden_reason': reason ?? 'moderator_removed',
-            'moderator_id': currentUserId,
-          })
-          .eq('id', commentId);
+      await _supabase.from('comments').update({
+        'hidden_at': DateTime.now().toIso8601String(),
+        'hidden_reason': reason ?? 'moderator_removed',
+        'moderator_id': currentUserId,
+      }).eq('id', commentId);
     } on PostgrestException catch (e, stackTrace) {
       if (e.code == '42501') {
         // Insufficient privilege (RLS policy - not a moderator)
@@ -839,9 +843,8 @@ class CommentsRemoteDataSource {
           .order('created_at')
           .map((List<Map<String, dynamic>> data) {
             // Filter top-level comments only (parent_comment_id is null)
-            final topLevelComments = data.where(
-              (json) => json['parent_comment_id'] == null
-            );
+            final topLevelComments =
+                data.where((json) => json['parent_comment_id'] == null);
             return topLevelComments
                 .map((json) => _parseCommentWithProfile(json))
                 .toList();
@@ -943,11 +946,13 @@ class CommentsRemoteDataSource {
       final repliesByParent = <String, List<Comment>>{};
       for (final replyJson in repliesData) {
         final parentId = replyJson['parent_comment_id'] as String;
-        final authorId = (replyJson['author_id'] ?? replyJson['user_id']) as String?;
+        final authorId =
+            (replyJson['author_id'] ?? replyJson['user_id']) as String?;
         final profile = authorId != null ? existingProfilesMap[authorId] : null;
 
         final normalizedJson = _normalizeCommentJson(replyJson);
-        final replyModel = _parseCommentWithProfileData(normalizedJson, profile);
+        final replyModel =
+            _parseCommentWithProfileData(normalizedJson, profile);
         final reply = replyModel.toEntity();
 
         repliesByParent.putIfAbsent(parentId, () => []);

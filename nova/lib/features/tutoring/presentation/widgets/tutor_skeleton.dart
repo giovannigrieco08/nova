@@ -59,7 +59,8 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: NovaColors.border(context).withValues(alpha: _animation.value),
+                  color: NovaColors.border(context)
+                      .withValues(alpha: _animation.value),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -74,7 +75,8 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                       width: 120,
                       height: 16,
                       decoration: BoxDecoration(
-                        color: NovaColors.border(context).withValues(alpha: _animation.value),
+                        color: NovaColors.border(context)
+                            .withValues(alpha: _animation.value),
                         borderRadius: NovaRadius.circularXxs,
                       ),
                     ),
@@ -84,7 +86,8 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                       width: 80,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: NovaColors.border(context).withValues(alpha: _animation.value),
+                        color: NovaColors.border(context)
+                            .withValues(alpha: _animation.value),
                         borderRadius: NovaRadius.circularXxs,
                       ),
                     ),
@@ -94,7 +97,8 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                       width: double.infinity,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: NovaColors.border(context).withValues(alpha: _animation.value),
+                        color: NovaColors.border(context)
+                            .withValues(alpha: _animation.value),
                         borderRadius: NovaRadius.circularXxs,
                       ),
                     ),
@@ -107,7 +111,8 @@ class _TutorCardSkeletonState extends State<TutorCardSkeleton>
                 width: 50,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: NovaColors.border(context).withValues(alpha: _animation.value),
+                  color: NovaColors.border(context)
+                      .withValues(alpha: _animation.value),
                   borderRadius: NovaRadius.circularS,
                 ),
               ),
@@ -129,7 +134,8 @@ class TutorsListSkeleton extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: NovaSpacing.s),
       itemCount: 6,
-      itemBuilder: (context, index) => TutorCardSkeleton(key: ValueKey('skeleton_$index')),
+      itemBuilder: (context, index) =>
+          TutorCardSkeleton(key: ValueKey('skeleton_$index')),
     );
   }
 }
@@ -190,7 +196,8 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: NovaColors.border(context).withValues(alpha: _animation.value),
+                      color: NovaColors.border(context)
+                          .withValues(alpha: _animation.value),
                       borderRadius: NovaRadius.circularS,
                     ),
                   ),
@@ -204,7 +211,8 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
                           width: 100,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: NovaColors.border(context).withValues(alpha: _animation.value),
+                            color: NovaColors.border(context)
+                                .withValues(alpha: _animation.value),
                             borderRadius: NovaRadius.circularXxs,
                           ),
                         ),
@@ -213,7 +221,8 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
                           width: 180,
                           height: 12,
                           decoration: BoxDecoration(
-                            color: NovaColors.border(context).withValues(alpha: _animation.value),
+                            color: NovaColors.border(context)
+                                .withValues(alpha: _animation.value),
                             borderRadius: NovaRadius.circularXxs,
                           ),
                         ),
@@ -223,7 +232,8 @@ class _SubjectTileSkeletonState extends State<SubjectTileSkeleton>
                   // Arrow
                   Icon(
                     Icons.chevron_right,
-                    color: NovaColors.border(context).withValues(alpha: _animation.value),
+                    color: NovaColors.border(context)
+                        .withValues(alpha: _animation.value),
                   ),
                 ],
               ),

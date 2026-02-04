@@ -143,11 +143,13 @@ class CommentSortToggle extends StatelessWidget {
         ),
       ],
       selected: {currentSort},
-      onSelectionChanged: isLoading ? null : (selected) {
-        if (selected.isNotEmpty) {
-          onSortChanged(selected.first);
-        }
-      },
+      onSelectionChanged: isLoading
+          ? null
+          : (selected) {
+              if (selected.isNotEmpty) {
+                onSortChanged(selected.first);
+              }
+            },
       showSelectedIcon: false,
       style: ButtonStyle(
         visualDensity: VisualDensity.compact,

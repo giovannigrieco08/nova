@@ -16,7 +16,8 @@ import 'repository_providers.dart';
 /// - 'approved' events: visible to all users
 /// - 'pending' events: visible only to creator and moderators
 /// - 'rejected' events: visible only to creator and moderators
-final eventDetailProvider = FutureProvider.family<Event?, String>((ref, eventId) async {
+final eventDetailProvider =
+    FutureProvider.family<Event?, String>((ref, eventId) async {
   final repository = ref.read(eventRepositoryProvider);
 
   try {

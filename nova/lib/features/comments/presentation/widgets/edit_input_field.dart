@@ -59,7 +59,8 @@ class _EditInputFieldState extends ConsumerState<EditInputField> {
   @override
   Widget build(BuildContext context) {
     final editState = ref.watch(editCommentNotifierProvider(widget.eventId));
-    final editNotifier = ref.read(editCommentNotifierProvider(widget.eventId).notifier);
+    final editNotifier =
+        ref.read(editCommentNotifierProvider(widget.eventId).notifier);
 
     // Initialize controller with original text when edit mode starts
     if (editState.isEditing && !_initialized) {
@@ -110,7 +111,8 @@ class _EditInputFieldState extends ConsumerState<EditInputField> {
               Expanded(
                 child: Semantics(
                   textField: true,
-                  label: 'Campo di testo per modificare il commento, limite 500 caratteri',
+                  label:
+                      'Campo di testo per modificare il commento, limite 500 caratteri',
                   hint: 'Modifica il commento',
                   enabled: !editState.isSaving,
                   child: Platform.isIOS

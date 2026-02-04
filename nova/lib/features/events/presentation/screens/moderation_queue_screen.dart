@@ -33,8 +33,7 @@ class ModerationQueueScreen extends ConsumerStatefulWidget {
       _ModerationQueueScreenState();
 }
 
-class _ModerationQueueScreenState
-    extends ConsumerState<ModerationQueueScreen> {
+class _ModerationQueueScreenState extends ConsumerState<ModerationQueueScreen> {
   String? _processingEventId; // Track which event is being processed
 
   @override
@@ -267,7 +266,9 @@ class _ModerationQueueScreenState
     setState(() => _processingEventId = eventId);
 
     try {
-      await ref.read(moderationQueueProvider.notifier).rejectEvent(eventId, rejectionReason);
+      await ref
+          .read(moderationQueueProvider.notifier)
+          .rejectEvent(eventId, rejectionReason);
 
       // Refresh the feed (removes from pending events banner if creator is viewing)
       ref.invalidate(eventsFeedProvider);

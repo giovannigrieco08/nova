@@ -77,8 +77,8 @@ class CommentModel {
       userId: json['user_id'] as String,
       parentCommentId: json['parent_comment_id'] as String?,
       // Fallback for existing comments without depth column
-      depth: json['depth'] as int? ??
-          (json['parent_comment_id'] != null ? 1 : 0),
+      depth:
+          json['depth'] as int? ?? (json['parent_comment_id'] != null ? 1 : 0),
       text: json['text'] as String,
       likeCount: json['like_count'] as int? ?? 0,
       replyCount: json['reply_count'] as int? ?? 0,
@@ -106,7 +106,8 @@ class CommentModel {
       // Replies (if included in response)
       replies: json['replies'] != null
           ? (json['replies'] as List)
-              .map((reply) => CommentModel.fromJson(reply as Map<String, dynamic>))
+              .map((reply) =>
+                  CommentModel.fromJson(reply as Map<String, dynamic>))
               .toList()
           : null,
     );

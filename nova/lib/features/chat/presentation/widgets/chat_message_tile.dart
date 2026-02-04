@@ -64,7 +64,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
   double _dragExtent = 0;
   static const double _maxDragExtent = 80;
   static const double _replyThreshold = 60; // Threshold to trigger reply
-  static const double _edgeSwipeThreshold = 50; // Left edge zone for back navigation
+  static const double _edgeSwipeThreshold =
+      50; // Left edge zone for back navigation
   bool _replyTriggered = false;
 
   late AnimationController _animationController;
@@ -154,7 +155,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
 
     // Calculate opacity and scale for reply icon based on right drag
     final replyIconOpacity = (_dragExtent / _replyThreshold).clamp(0.0, 1.0);
-    final replyIconScale = 0.5 + (replyIconOpacity * 0.5); // Scale from 0.5 to 1.0
+    final replyIconScale =
+        0.5 + (replyIconOpacity * 0.5); // Scale from 0.5 to 1.0
     final isTriggered = _dragExtent >= _replyThreshold;
 
     return Padding(
@@ -165,7 +167,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
       child: RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
           _EdgeAwareHorizontalDragGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<_EdgeAwareHorizontalDragGestureRecognizer>(
+              GestureRecognizerFactoryWithHandlers<
+                  _EdgeAwareHorizontalDragGestureRecognizer>(
             () => _EdgeAwareHorizontalDragGestureRecognizer(
               edgeThreshold: _edgeSwipeThreshold,
             ),
@@ -178,7 +181,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
           ),
         },
         child: Stack(
-          alignment: isOwnMessage ? Alignment.centerRight : Alignment.centerLeft,
+          alignment:
+              isOwnMessage ? Alignment.centerRight : Alignment.centerLeft,
           children: [
             // Reply icon (revealed on swipe right)
             if (_dragExtent > 0)
@@ -238,7 +242,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                           : CrossAxisAlignment.start,
                       children: [
                         // Reply preview (Instagram style - ABOVE the bubble)
-                        if (widget.message.isReply && widget.message.replyTo != null)
+                        if (widget.message.isReply &&
+                            widget.message.replyTo != null)
                           Padding(
                             padding: EdgeInsets.only(bottom: NovaSpacing.xxs),
                             child: ChatReplyPreview(
@@ -251,7 +256,9 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                           ),
 
                         // GIF message: show GifBubble directly (unless deleted)
-                        if (widget.message.isGif && widget.message.gifUrl != null && !widget.message.isDeleted)
+                        if (widget.message.isGif &&
+                            widget.message.gifUrl != null &&
+                            !widget.message.isDeleted)
                           GestureDetector(
                             onDoubleTap: () => _handleDoubleTap(context),
                             onLongPress: () => _showContextMenu(context),
@@ -261,7 +268,9 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                             ),
                           )
                         // Media message: show ChatMediaBubble directly (unless deleted)
-                        else if (widget.message.hasMedia && widget.message.media != null && !widget.message.isDeleted)
+                        else if (widget.message.hasMedia &&
+                            widget.message.media != null &&
+                            !widget.message.isDeleted)
                           Column(
                             crossAxisAlignment: isOwnMessage
                                 ? CrossAxisAlignment.end
@@ -274,8 +283,9 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                                 // Audio plays inline - don't open MediaViewerScreen
                                 // Images/videos open full-screen viewer
                                 onTap: widget.message.media!.mediaType.isAudio
-                                    ? null  // Audio: no tap handler (plays inline in bubble)
-                                    : () => _openMediaViewer(context, widget.message.media!),
+                                    ? null // Audio: no tap handler (plays inline in bubble)
+                                    : () => _openMediaViewer(
+                                        context, widget.message.media!),
                                 child: ChatMediaBubble(
                                   media: widget.message.media!,
                                   isOwnMessage: isOwnMessage,
@@ -286,7 +296,9 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                                   widget.message.mediaCaption!.isNotEmpty)
                                 Container(
                                   constraints: BoxConstraints(
-                                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width *
+                                            0.75,
                                   ),
                                   margin: EdgeInsets.only(top: NovaSpacing.xxs),
                                   padding: EdgeInsets.symmetric(
@@ -300,7 +312,9 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                                           ? NovaColors.textPrimary(context)
                                           : NovaColors.textPrimary(context),
                                     ),
-                                    textAlign: isOwnMessage ? TextAlign.right : TextAlign.left,
+                                    textAlign: isOwnMessage
+                                        ? TextAlign.right
+                                        : TextAlign.left,
                                   ),
                                 ),
                             ],
@@ -310,11 +324,16 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                         else if (_hasDisplayableContent())
                           GestureDetector(
                             // T016-T017: Disable interactions for deleted messages
-                            onDoubleTap: widget.message.isDeleted ? null : () => _handleDoubleTap(context),
-                            onLongPress: widget.message.isDeleted ? null : () => _showContextMenu(context),
+                            onDoubleTap: widget.message.isDeleted
+                                ? null
+                                : () => _handleDoubleTap(context),
+                            onLongPress: widget.message.isDeleted
+                                ? null
+                                : () => _showContextMenu(context),
                             child: Container(
                               constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.75,
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.75,
                               ),
                               padding: EdgeInsets.symmetric(
                                 horizontal: NovaSpacing.m + 4,
@@ -329,7 +348,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                                         : NovaColors.receivedBubble(context),
                                 borderRadius: NovaRadius.circularL,
                               ),
-                              child: _buildMessageContent(context, isOwnMessage),
+                              child:
+                                  _buildMessageContent(context, isOwnMessage),
                             ),
                           ),
 
@@ -340,7 +360,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                             child: ChatReactionRow(
                               messageId: widget.message.id,
                               reactionCounts: widget.message.reactionCounts,
-                              currentUserReactions: widget.message.currentUserReactions,
+                              currentUserReactions:
+                                  widget.message.currentUserReactions,
                               onTap: widget.onReact,
                               onLongPress: () => ChatReactionDetailSheet.show(
                                 context,
@@ -371,9 +392,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
 
   Widget _buildMessageContent(BuildContext context, bool isOwnMessage) {
     // Text color: white on purple (own), dark on gray (others)
-    final textColor = isOwnMessage
-        ? Colors.white
-        : NovaColors.textPrimary(context);
+    final textColor =
+        isOwnMessage ? Colors.white : NovaColors.textPrimary(context);
 
     // Safety check: deleted messages should be filtered at the list level,
     // but if one somehow gets through, don't render its content
@@ -385,9 +405,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
       return Text(
         widget.message.displayContent,
         style: NovaTypography.bodyMedium.copyWith(
-          color: isOwnMessage
-              ? Colors.white70
-              : NovaColors.textTertiary(context),
+          color:
+              isOwnMessage ? Colors.white70 : NovaColors.textTertiary(context),
           fontStyle: FontStyle.italic,
         ),
       );
@@ -467,12 +486,10 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
     final mentions = widget.message.mentions;
 
     // Text colors based on bubble background
-    final textColor = isOwnMessage
-        ? Colors.white
-        : NovaColors.textPrimary(context);
-    final mentionColor = isOwnMessage
-        ? Colors.white70
-        : NovaColors.primary(context);
+    final textColor =
+        isOwnMessage ? Colors.white : NovaColors.textPrimary(context);
+    final mentionColor =
+        isOwnMessage ? Colors.white70 : NovaColors.primary(context);
 
     // Sort mentions by start index
     final sortedMentions = [...mentions]
@@ -528,7 +545,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
     final canDelete = isOwnMessage && widget.message.canDelete;
 
     // Only show edit option if message can be edited (within 15 minutes, not deleted)
-    final canEdit = isOwnMessage && widget.message.canEdit && !widget.message.hasMedia;
+    final canEdit =
+        isOwnMessage && widget.message.canEdit && !widget.message.hasMedia;
 
     // Don't show copy option for audio messages (can't copy audio)
     final isAudioMessage = widget.message.hasMedia &&
@@ -620,15 +638,15 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
   }
 
   /// Build a standalone message bubble for the context overlay
-  Widget _buildMessageBubbleForOverlay(BuildContext context, bool isOwnMessage) {
+  Widget _buildMessageBubbleForOverlay(
+      BuildContext context, bool isOwnMessage) {
     final currentUserId = ref.read(currentUserIdProvider);
 
     // For GIF messages, show the GIF bubble
     if (widget.message.isGif && widget.message.gifUrl != null) {
       return Column(
-        crossAxisAlignment: isOwnMessage
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isOwnMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           // Reply preview (Instagram style - ABOVE the bubble)
@@ -653,9 +671,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
     // For media messages, show the media bubble
     if (widget.message.hasMedia && widget.message.media != null) {
       return Column(
-        crossAxisAlignment: isOwnMessage
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isOwnMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           // Reply preview (Instagram style - ABOVE the bubble)
@@ -679,9 +696,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
 
     // For text messages, show the text bubble with reply above
     return Column(
-      crossAxisAlignment: isOwnMessage
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
+      crossAxisAlignment:
+          isOwnMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         // Reply preview (Instagram style - ABOVE the bubble)
@@ -725,7 +741,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
   }
 
   /// Open media viewer to display the ephemeral media
-  Future<void> _openMediaViewer(BuildContext context, ChatMediaInfo media) async {
+  Future<void> _openMediaViewer(
+      BuildContext context, ChatMediaInfo media) async {
     // Check if media can still be viewed
     if (!media.canView) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -802,7 +819,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
 
 /// Custom horizontal drag gesture recognizer that ignores drags
 /// starting from the left edge of the screen to allow back navigation.
-class _EdgeAwareHorizontalDragGestureRecognizer extends HorizontalDragGestureRecognizer {
+class _EdgeAwareHorizontalDragGestureRecognizer
+    extends HorizontalDragGestureRecognizer {
   _EdgeAwareHorizontalDragGestureRecognizer({
     required this.edgeThreshold,
   });

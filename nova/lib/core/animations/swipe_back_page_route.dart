@@ -426,7 +426,8 @@ class _SwipeBackRightGestureDetectorState
 
   void _handleDragEnd(DragEndDetails details) {
     _gestureController?.dragEnd(
-      -details.velocity.pixelsPerSecond.dx / context.size!.width, // Invert velocity
+      -details.velocity.pixelsPerSecond.dx /
+          context.size!.width, // Invert velocity
     );
     _gestureController = null;
   }
@@ -482,11 +483,10 @@ class _SwipeBackRightGestureController {
   /// Ends the gesture and decides whether to pop or animate back.
   void dragEnd(double velocity) {
     // Decide whether to pop based on velocity or position threshold
-    final shouldPop =
-        velocity > SwipeBackRightPageRoute._kMinFlingVelocity / 300 ||
-            (velocity >= 0 &&
-                controller.value <
-                    1.0 - SwipeBackRightPageRoute._kPopThreshold);
+    final shouldPop = velocity >
+            SwipeBackRightPageRoute._kMinFlingVelocity / 300 ||
+        (velocity >= 0 &&
+            controller.value < 1.0 - SwipeBackRightPageRoute._kPopThreshold);
 
     if (shouldPop) {
       navigator.pop();

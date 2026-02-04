@@ -64,13 +64,16 @@ class _EventFormState extends ConsumerState<EventForm> {
     if (shouldSyncTitle && _titleController.text != state.title) {
       _titleController.text = state.title;
       if (state.title.isNotEmpty) {
-        _titleController.selection = TextSelection.collapsed(offset: state.title.length);
+        _titleController.selection =
+            TextSelection.collapsed(offset: state.title.length);
       }
     }
-    if (shouldSyncDescription && _descriptionController.text != state.description) {
+    if (shouldSyncDescription &&
+        _descriptionController.text != state.description) {
       _descriptionController.text = state.description;
       if (state.description.isNotEmpty) {
-        _descriptionController.selection = TextSelection.collapsed(offset: state.description.length);
+        _descriptionController.selection =
+            TextSelection.collapsed(offset: state.description.length);
       }
     }
     _initialized = true;
@@ -89,53 +92,53 @@ class _EventFormState extends ConsumerState<EventForm> {
       child: SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image picker (Instagram-style: FIRST and PROMINENT)
-          ImagePickerWidget(
-            imageFile: state.imageFile,
-            imagePath: state.imagePath,
-            onImagePicked: (file) => notifier.pickImage(file),
-            onImageRemoved: () => notifier.removeImage(),
-            errorText: state.imageError,
-          ),
-
-          // Form fields with padding
-          Padding(
-            padding: EdgeInsets.all(NovaSpacing.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title field
-                _buildTitleField(context, state, notifier),
-                SizedBox(height: NovaSpacing.l),
-
-                // Description field
-                _buildDescriptionField(context, state, notifier),
-                SizedBox(height: NovaSpacing.l),
-
-                // Date/Time picker
-                _buildDateTimePicker(context, state, notifier),
-                SizedBox(height: NovaSpacing.l),
-
-                // Location field (optional)
-                _buildLocationField(context, state, notifier),
-                SizedBox(height: NovaSpacing.l),
-
-                // Collaborators picker
-                _buildCollaboratorsPicker(context, ref, state, notifier),
-                SizedBox(height: NovaSpacing.l),
-
-                // Help requests section
-                _buildHelpRequestsSection(context, state, notifier),
-                SizedBox(height: NovaSpacing.l),
-
-                // Info text
-                _buildInfoText(context),
-              ],
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image picker (Instagram-style: FIRST and PROMINENT)
+            ImagePickerWidget(
+              imageFile: state.imageFile,
+              imagePath: state.imagePath,
+              onImagePicked: (file) => notifier.pickImage(file),
+              onImageRemoved: () => notifier.removeImage(),
+              errorText: state.imageError,
             ),
-          ),
-        ],
+
+            // Form fields with padding
+            Padding(
+              padding: EdgeInsets.all(NovaSpacing.l),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title field
+                  _buildTitleField(context, state, notifier),
+                  SizedBox(height: NovaSpacing.l),
+
+                  // Description field
+                  _buildDescriptionField(context, state, notifier),
+                  SizedBox(height: NovaSpacing.l),
+
+                  // Date/Time picker
+                  _buildDateTimePicker(context, state, notifier),
+                  SizedBox(height: NovaSpacing.l),
+
+                  // Location field (optional)
+                  _buildLocationField(context, state, notifier),
+                  SizedBox(height: NovaSpacing.l),
+
+                  // Collaborators picker
+                  _buildCollaboratorsPicker(context, ref, state, notifier),
+                  SizedBox(height: NovaSpacing.l),
+
+                  // Help requests section
+                  _buildHelpRequestsSection(context, state, notifier),
+                  SizedBox(height: NovaSpacing.l),
+
+                  // Info text
+                  _buildInfoText(context),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -186,7 +189,8 @@ class _EventFormState extends ConsumerState<EventForm> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: NovaRadius.circularM,
-              borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+              borderSide:
+                  BorderSide(color: NovaColors.primary(context), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: NovaRadius.circularM,
@@ -245,7 +249,8 @@ class _EventFormState extends ConsumerState<EventForm> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: NovaRadius.circularM,
-              borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+              borderSide:
+                  BorderSide(color: NovaColors.primary(context), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: NovaRadius.circularM,
@@ -515,7 +520,8 @@ class _EventFormState extends ConsumerState<EventForm> {
             // Add button (if less than 3)
             if (state.pendingInvites.length < 3)
               InkWell(
-                onTap: () => _showCollaboratorPicker(context, ref, state, notifier),
+                onTap: () =>
+                    _showCollaboratorPicker(context, ref, state, notifier),
                 borderRadius: NovaRadius.circularM,
                 child: Container(
                   padding: EdgeInsets.symmetric(
@@ -841,7 +847,8 @@ class _EventFormState extends ConsumerState<EventForm> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: NovaRadius.circularM,
-                borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+                borderSide:
+                    BorderSide(color: NovaColors.primary(context), width: 2),
               ),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: NovaSpacing.m,
@@ -920,7 +927,8 @@ class _EventFormState extends ConsumerState<EventForm> {
     // Pick date (adaptive: iOS wheel picker, Android Material dialog)
     final date = await showAdaptiveDatePicker(
       context: context,
-      initialDate: state.eventDate ?? DateTime.now().add(const Duration(days: 1)),
+      initialDate:
+          state.eventDate ?? DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
@@ -968,10 +976,12 @@ class _CollaboratorPickerSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_CollaboratorPickerSheet> createState() => _CollaboratorPickerSheetState();
+  ConsumerState<_CollaboratorPickerSheet> createState() =>
+      _CollaboratorPickerSheetState();
 }
 
-class _CollaboratorPickerSheetState extends ConsumerState<_CollaboratorPickerSheet> {
+class _CollaboratorPickerSheetState
+    extends ConsumerState<_CollaboratorPickerSheet> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   List<ProfileSearchResult> _searchResults = [];
@@ -1175,8 +1185,8 @@ class _CollaboratorPickerSheetState extends ConsumerState<_CollaboratorPickerShe
       itemBuilder: (context, index) {
         final profile = _searchResults[index];
         final isSelected = widget.selectedIds.contains(profile.id);
-        final canSelect = !isSelected &&
-            widget.selectedIds.length < widget.maxSelections;
+        final canSelect =
+            !isSelected && widget.selectedIds.length < widget.maxSelections;
 
         return ListTile(
           leading: Container(

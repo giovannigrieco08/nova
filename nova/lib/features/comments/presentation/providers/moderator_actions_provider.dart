@@ -11,7 +11,8 @@ final moderatorRemoveCommentProvider = Provider<ModeratorRemoveComment>((ref) {
 });
 
 /// Provider for ModeratorRestoreComment use case
-final moderatorRestoreCommentProvider = Provider<ModeratorRestoreComment>((ref) {
+final moderatorRestoreCommentProvider =
+    Provider<ModeratorRestoreComment>((ref) {
   final repository = ref.read(commentsRepositoryProvider);
   return ModeratorRestoreComment(repository);
 });
@@ -97,23 +98,29 @@ class ModeratorActionsNotifier extends StateNotifier<AsyncValue<void>> {
 enum ModeratorActionResult {
   /// Action completed successfully
   success,
+
   /// Comment not found
   notFound,
+
   /// User not authorized (not a moderator)
   unauthorized,
+
   /// Comment already hidden
   alreadyHidden,
+
   /// Comment is not hidden (for restore)
   notHidden,
+
   /// Validation error (e.g., empty reason)
   validationError,
+
   /// Generic error
   error,
 }
 
 /// Provider for moderator actions state
-final moderatorActionsNotifierProvider =
-    StateNotifierProvider.autoDispose<ModeratorActionsNotifier, AsyncValue<void>>((ref) {
+final moderatorActionsNotifierProvider = StateNotifierProvider.autoDispose<
+    ModeratorActionsNotifier, AsyncValue<void>>((ref) {
   final removeComment = ref.read(moderatorRemoveCommentProvider);
   final restoreComment = ref.read(moderatorRestoreCommentProvider);
   return ModeratorActionsNotifier(removeComment, restoreComment);

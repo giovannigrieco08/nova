@@ -392,7 +392,8 @@ NovaException novaExceptionFromSupabaseError(
       }
 
       // Server errors
-      if ((code?.startsWith('XX') ?? false) || (code?.startsWith('58') ?? false)) {
+      if ((code?.startsWith('XX') ?? false) ||
+          (code?.startsWith('58') ?? false)) {
         return ServerException(
           'Errore del server. Riprova piu tardi.',
           serverMessage: message,

@@ -98,8 +98,8 @@ final moderationStatsProvider = FutureProvider<ModerationStats>((ref) async {
     final moderatedResponse = await supabase
         .from('events')
         .select('id, status, updated_at, created_at')
-        .inFilter('status', ['approved', 'rejected'])
-        .gte('updated_at', startOfMonth.toIso8601String());
+        .inFilter('status', ['approved', 'rejected']).gte(
+            'updated_at', startOfMonth.toIso8601String());
 
     final moderatedEvents = moderatedResponse as List;
 
@@ -139,12 +139,10 @@ final moderationStatsProvider = FutureProvider<ModerationStats>((ref) async {
 
     // Calculate rates
     final totalModerated = approvedThisMonth + rejectedThisMonth;
-    final approvalRatePercent = totalModerated > 0
-        ? (approvedThisMonth / totalModerated) * 100
-        : 0.0;
-    final rejectionRatePercent = totalModerated > 0
-        ? (rejectedThisMonth / totalModerated) * 100
-        : 0.0;
+    final approvalRatePercent =
+        totalModerated > 0 ? (approvedThisMonth / totalModerated) * 100 : 0.0;
+    final rejectionRatePercent =
+        totalModerated > 0 ? (rejectedThisMonth / totalModerated) * 100 : 0.0;
 
     // Calculate average moderation time
     final averageModerationTimeHours = moderationTimeCount > 0

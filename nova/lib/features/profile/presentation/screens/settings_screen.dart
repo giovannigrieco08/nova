@@ -211,7 +211,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Section 1: Account (read-only info)
   Widget _buildAccountSection(Profile profile) {
-    final formattedDate = '${profile.createdAt.day}/${profile.createdAt.month}/${profile.createdAt.year}';
+    final formattedDate =
+        '${profile.createdAt.day}/${profile.createdAt.month}/${profile.createdAt.year}';
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: NovaSpacing.medium),
@@ -299,7 +300,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                NovaPageRoute.swipeBack(page: const NotificationPreferencesScreen()),
+                NovaPageRoute.swipeBack(
+                    page: const NotificationPreferencesScreen()),
               );
             },
           ),
@@ -654,7 +656,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    final titleColor = isDestructive ? NovaColors.error(context) : NovaColors.textPrimary(context);
+    final titleColor = isDestructive
+        ? NovaColors.error(context)
+        : NovaColors.textPrimary(context);
 
     return ListTile(
       leading: Icon(icon, color: titleColor),
@@ -759,7 +763,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Navigator.pop(context);
                 _softDeleteAccount(profile);
               },
-              style: TextButton.styleFrom(foregroundColor: NovaColors.error(context)),
+              style: TextButton.styleFrom(
+                  foregroundColor: NovaColors.error(context)),
               child: const Text('Conferma eliminazione'),
             ),
           ],
@@ -770,7 +775,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Soft delete account (T067)
   Future<void> _softDeleteAccount(Profile profile) async {
-    debugPrint('[DeleteAccount] Starting soft delete for user: ${profile.userId}');
+    debugPrint(
+        '[DeleteAccount] Starting soft delete for user: ${profile.userId}');
 
     try {
       final deleteNotifier = ref.read(accountDeletionProvider.notifier);
@@ -779,12 +785,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       debugPrint('[DeleteAccount] softDeleteAccount completed');
 
       final deleteState = ref.read(accountDeletionProvider);
-      debugPrint('[DeleteAccount] State: isDeleted=${deleteState.isDeleted}, error=${deleteState.errorMessage}');
+      debugPrint(
+          '[DeleteAccount] State: isDeleted=${deleteState.isDeleted}, error=${deleteState.errorMessage}');
 
       if (deleteState.isDeleted) {
         // Show confirmation toast
         if (mounted) {
-          NovaToast.showInfo(context, 'Account eliminato. Hai 30 giorni per annullare.');
+          NovaToast.showInfo(
+              context, 'Account eliminato. Hai 30 giorni per annullare.');
         }
 
         // Logout user after account deletion
@@ -798,9 +806,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
       } else {
         // Unexpected state - show generic error
-        debugPrint('[DeleteAccount] Unexpected state: neither deleted nor error');
+        debugPrint(
+            '[DeleteAccount] Unexpected state: neither deleted nor error');
         if (mounted) {
-          NovaToast.showError(context, 'Errore durante l\'eliminazione. Riprova.');
+          NovaToast.showError(
+              context, 'Errore durante l\'eliminazione. Riprova.');
         }
       }
     } catch (e, stack) {
@@ -904,7 +914,8 @@ Ultimo aggiornamento: Dicembre 2024
           color: NovaColors.brandViolet,
         ),
       ),
-      applicationLegalese: '© 2024 Liceo Galilei Moro\nTutti i diritti riservati.',
+      applicationLegalese:
+          '© 2024 Liceo Galilei Moro\nTutti i diritti riservati.',
     );
   }
 
@@ -915,7 +926,8 @@ Ultimo aggiornamento: Dicembre 2024
       path: 'support@galileimoro.edu.it',
       queryParameters: {
         'subject': '[Nova] Segnalazione problema',
-        'body': 'Descrivi il problema:\n\n\n---\nVersione app: 1.0.0\nDispositivo: ${Platform.isIOS ? 'iOS' : 'Android'}',
+        'body':
+            'Descrivi il problema:\n\n\n---\nVersione app: 1.0.0\nDispositivo: ${Platform.isIOS ? 'iOS' : 'Android'}',
       },
     );
 
@@ -977,31 +989,38 @@ Ultimo aggiornamento: Dicembre 2024
                 children: const [
                   _FAQItem(
                     question: 'Come creo un evento?',
-                    answer: 'Tocca il pulsante + nella schermata Home, compila i dettagli dell\'evento e invialo per l\'approvazione. Un moderatore verificherà il contenuto prima della pubblicazione.',
+                    answer:
+                        'Tocca il pulsante + nella schermata Home, compila i dettagli dell\'evento e invialo per l\'approvazione. Un moderatore verificherà il contenuto prima della pubblicazione.',
                   ),
                   _FAQItem(
                     question: 'Quanto tempo ci vuole per approvare un evento?',
-                    answer: 'Gli eventi vengono generalmente approvati entro 24 ore. Riceverai una notifica quando il tuo evento sarà pubblicato.',
+                    answer:
+                        'Gli eventi vengono generalmente approvati entro 24 ore. Riceverai una notifica quando il tuo evento sarà pubblicato.',
                   ),
                   _FAQItem(
                     question: 'Come cancello il mio account?',
-                    answer: 'Vai su Impostazioni > Privacy > Elimina account. Hai 30 giorni per annullare la cancellazione.',
+                    answer:
+                        'Vai su Impostazioni > Privacy > Elimina account. Hai 30 giorni per annullare la cancellazione.',
                   ),
                   _FAQItem(
                     question: 'I messaggi della chat vengono salvati?',
-                    answer: 'No, i messaggi della chat vengono automaticamente eliminati dopo 24 ore per proteggere la tua privacy.',
+                    answer:
+                        'No, i messaggi della chat vengono automaticamente eliminati dopo 24 ore per proteggere la tua privacy.',
                   ),
                   _FAQItem(
                     question: 'Come segnalo un contenuto inappropriato?',
-                    answer: 'Tocca i tre puntini (...) su un evento o commento e seleziona "Segnala". Un moderatore esaminerà la segnalazione.',
+                    answer:
+                        'Tocca i tre puntini (...) su un evento o commento e seleziona "Segnala". Un moderatore esaminerà la segnalazione.',
                   ),
                   _FAQItem(
                     question: 'Come divento tutor?',
-                    answer: 'Vai su Impostazioni > Ripetizioni > Diventa Tutor. Compila il tuo profilo con le materie che offri e il tuo prezzo.',
+                    answer:
+                        'Vai su Impostazioni > Ripetizioni > Diventa Tutor. Compila il tuo profilo con le materie che offri e il tuo prezzo.',
                   ),
                   _FAQItem(
                     question: 'Chi può vedere il mio profilo?',
-                    answer: 'Solo gli altri studenti del Liceo Galilei Moro possono vedere il tuo profilo. Puoi renderlo privato dalle Impostazioni.',
+                    answer:
+                        'Solo gli altri studenti del Liceo Galilei Moro possono vedere il tuo profilo. Puoi renderlo privato dalle Impostazioni.',
                   ),
                 ],
               ),
@@ -1073,7 +1092,8 @@ Ultimo aggiornamento: Dicembre 2024
                 Navigator.pop(context);
                 _performLogout();
               },
-              style: TextButton.styleFrom(foregroundColor: NovaColors.error(context)),
+              style: TextButton.styleFrom(
+                  foregroundColor: NovaColors.error(context)),
               child: const Text('Esci'),
             ),
           ],

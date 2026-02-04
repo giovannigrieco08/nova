@@ -6,7 +6,8 @@ enum Subject {
   filosofia('Filosofia', 'filosofia', 'Autori, Correnti, Pensiero critico'),
   fisica('Fisica', 'fisica', 'Meccanica, Termodinamica, Elettromagnetismo'),
   greco('Greco', 'greco', 'Grammatica, Versioni, Letteratura'),
-  informatica('Informatica', 'informatica', 'Programmazione, Algoritmi, Database'),
+  informatica(
+      'Informatica', 'informatica', 'Programmazione, Algoritmi, Database'),
   inglese('Inglese', 'inglese', 'Grammar, Speaking, Writing'),
   italiano('Italiano', 'italiano', 'Letteratura, Grammatica, Scrittura'),
   latino('Latino', 'latino', 'Grammatica, Versioni, Letteratura'),
@@ -35,10 +36,7 @@ enum Subject {
 
   /// Parse a list of database values to Subject list.
   static List<Subject> fromDbValues(List<String> values) {
-    return values
-        .map((v) => fromDbValue(v))
-        .whereType<Subject>()
-        .toList();
+    return values.map((v) => fromDbValue(v)).whereType<Subject>().toList();
   }
 }
 

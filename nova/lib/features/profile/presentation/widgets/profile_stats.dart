@@ -43,7 +43,9 @@ class UserProfileStats extends StatelessWidget {
           _buildStatItem(
             context,
             count: stats.eventsCreatedCount,
-            label: stats.eventsCreatedCount == 1 ? 'evento creato' : 'eventi creati',
+            label: stats.eventsCreatedCount == 1
+                ? 'evento creato'
+                : 'eventi creati',
           ),
 
           // Divider
@@ -61,7 +63,9 @@ class UserProfileStats extends StatelessWidget {
           _buildStatItem(
             context,
             count: stats.participationsCount,
-            label: stats.participationsCount == 1 ? 'partecipazione' : 'partecipazioni',
+            label: stats.participationsCount == 1
+                ? 'partecipazione'
+                : 'partecipazioni',
           ),
         ],
       ),
@@ -69,7 +73,8 @@ class UserProfileStats extends StatelessWidget {
   }
 
   /// Build individual stat item (number + label)
-  Widget _buildStatItem(BuildContext context, {required int count, required String label}) {
+  Widget _buildStatItem(BuildContext context,
+      {required int count, required String label}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

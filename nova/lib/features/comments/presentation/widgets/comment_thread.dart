@@ -38,6 +38,7 @@ import 'comment_card.dart';
 class CommentThread extends ConsumerStatefulWidget {
   final Comment parentComment;
   final String eventId;
+
   /// Current depth level (0=top-level, 1-3=nested)
   final int depth;
 
@@ -56,7 +57,8 @@ class _CommentThreadState extends ConsumerState<CommentThread>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _animation;
-  bool _isExpanded = true; // Default value, updated in initState based on reply count
+  bool _isExpanded =
+      true; // Default value, updated in initState based on reply count
 
   @override
   void initState() {
@@ -220,5 +222,4 @@ class _CommentThreadState extends ConsumerState<CommentThread>
       ),
     );
   }
-
 }

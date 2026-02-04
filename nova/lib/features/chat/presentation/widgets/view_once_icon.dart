@@ -123,7 +123,7 @@ class _DashedCirclePainter extends CustomPainter {
     // Calculate dash and gap angles
     final totalAngle = 2 * math.pi;
     final dashAngle = totalAngle / dashCount * 0.6; // 60% dash
-    final gapAngle = totalAngle / dashCount * 0.4;  // 40% gap
+    final gapAngle = totalAngle / dashCount * 0.4; // 40% gap
 
     // Draw each dash
     for (int i = 0; i < dashCount; i++) {

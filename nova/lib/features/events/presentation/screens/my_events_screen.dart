@@ -66,7 +66,8 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
       child: ListView.separated(
         padding: EdgeInsets.all(NovaSpacing.medium),
         itemCount: events.length,
-        separatorBuilder: (context, index) => SizedBox(height: NovaSpacing.medium),
+        separatorBuilder: (context, index) =>
+            SizedBox(height: NovaSpacing.medium),
         itemBuilder: (context, index) => _buildEventCard(events[index]),
       ),
     );
@@ -242,7 +243,8 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.delete_outline, color: NovaColors.error(context)),
+                leading: Icon(Icons.delete_outline,
+                    color: NovaColors.error(context)),
                 title: Text(
                   'Elimina evento',
                   style: TextStyle(color: NovaColors.error(context)),
@@ -275,7 +277,8 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: NovaColors.error(context)),
+            style: TextButton.styleFrom(
+                foregroundColor: NovaColors.error(context)),
             child: const Text('Elimina'),
           ),
         ],

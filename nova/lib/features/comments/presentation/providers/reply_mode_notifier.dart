@@ -7,10 +7,9 @@ import '../../domain/entities/comment.dart';
 /// Tracks whether user is replying to a comment:
 /// - null: Normal comment mode (posting top-level comment)
 /// - Comment: Replying to this specific comment
-final replyModeNotifierProvider = StateNotifierProvider.family<
-    ReplyModeNotifier,
-    ReplyModeState,
-    String>((ref, eventId) {
+final replyModeNotifierProvider =
+    StateNotifierProvider.family<ReplyModeNotifier, ReplyModeState, String>(
+        (ref, eventId) {
   return ReplyModeNotifier();
 });
 

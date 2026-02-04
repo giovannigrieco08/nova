@@ -195,7 +195,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             onPressed: _isLoading ? null : _handleSendMagicLink,
             style: ElevatedButton.styleFrom(
               backgroundColor: NovaColors.primary(context),
-              disabledBackgroundColor: NovaColors.textSecondary(context).withValues(alpha: 0.3),
+              disabledBackgroundColor:
+                  NovaColors.textSecondary(context).withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(NovaRadius.m),
               ),
@@ -218,7 +219,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
           ),
         ),
-
       ],
     );
   }

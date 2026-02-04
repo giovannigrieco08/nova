@@ -187,11 +187,13 @@ Future<void> main() async {
   debugPrint('🚀 [INIT] profiles box opened');
   await Hive.openBox<EventModel>('events_cache');
   debugPrint('🚀 [INIT] events_cache box opened');
-  await Hive.openBox<EventDraft>('event_drafts'); // Feature 004: Event creation drafts
+  await Hive.openBox<EventDraft>(
+      'event_drafts'); // Feature 004: Event creation drafts
   debugPrint('🚀 [INIT] event_drafts box opened');
   await Hive.openBox<OfflineAction>('offline_actions_queue');
   debugPrint('🚀 [INIT] offline_actions_queue box opened');
-  await Hive.openBox<Map<dynamic, dynamic>>('chat_pending_messages'); // Feature 011: Chat offline queue
+  await Hive.openBox<Map<dynamic, dynamic>>(
+      'chat_pending_messages'); // Feature 011: Chat offline queue
   debugPrint('🚀 [INIT] chat_pending_messages box opened');
 
   // Initialize SharedPreferences for banner dismissal state
@@ -245,8 +247,7 @@ class _NovaAppState extends ConsumerState<NovaApp> {
     await _deepLinkService.initialize(
       onLink: (uri) async {
         // Check if this is an auth callback (magic link)
-        if (uri.scheme == 'novaapp' &&
-            uri.host == 'auth') {
+        if (uri.scheme == 'novaapp' && uri.host == 'auth') {
           // Ensure we're still mounted
           if (!mounted) return;
 
@@ -394,7 +395,8 @@ class AuthGuard extends ConsumerWidget {
         return switch (state) {
           // User authenticated - pass user ID to profile guard
           // This ensures the ID is available immediately after magic link verification
-          AuthStateAuthenticated(:final user) => _ProfileCheckGuard(userId: user.id),
+          AuthStateAuthenticated(:final user) =>
+            _ProfileCheckGuard(userId: user.id),
 
           // User not authenticated - show login
           AuthStateUnauthenticated() => const LoginScreen(),
@@ -446,7 +448,8 @@ class _ProfileCheckGuard extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.warning_amber, size: 64, color: NovaColors.warningLight),
+                  const Icon(Icons.warning_amber,
+                      size: 64, color: NovaColors.warningLight),
                   const SizedBox(height: 16),
                   const Text(
                     'DEV MODE: No Session',

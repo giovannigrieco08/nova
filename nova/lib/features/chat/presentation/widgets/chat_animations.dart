@@ -478,7 +478,8 @@ class MessageStatusIndicator extends StatelessWidget {
             Icon(Icons.check, size: 14, color: NovaColors.primary(context)),
             Padding(
               padding: const EdgeInsets.only(left: 6),
-              child: Icon(Icons.check, size: 14, color: NovaColors.primary(context)),
+              child: Icon(Icons.check,
+                  size: 14, color: NovaColors.primary(context)),
             ),
           ],
         );

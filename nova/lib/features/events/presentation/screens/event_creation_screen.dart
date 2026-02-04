@@ -34,7 +34,8 @@ class EventCreationScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<EventCreationScreen> createState() => _EventCreationScreenState();
+  ConsumerState<EventCreationScreen> createState() =>
+      _EventCreationScreenState();
 }
 
 class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
@@ -43,7 +44,8 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
   bool get isEditMode => widget.eventToEdit != null;
 
   /// Show a toast-style notification (Cupertino compatible)
-  void _showToast(String message, {bool isError = false, bool isSuccess = false}) {
+  void _showToast(String message,
+      {bool isError = false, bool isSuccess = false}) {
     if (!mounted) return;
 
     final overlay = Overlay.of(context);
@@ -93,7 +95,9 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!_initialized) {
           _initialized = true;
-          ref.read(eventCreationProvider.notifier).loadEventForEdit(widget.eventToEdit!);
+          ref
+              .read(eventCreationProvider.notifier)
+              .loadEventForEdit(widget.eventToEdit!);
         }
       });
     }
@@ -152,10 +156,13 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
   ) {
     // Debug: log validation state
     debugPrint('=== EVENT FORM VALIDATION ===');
-    debugPrint('Title: "${state.title}" (${state.title.trim().length} chars, needs 5-100)');
-    debugPrint('Description: "${state.description.length > 50 ? state.description.substring(0, 50) + '...' : state.description}" (${state.description.trim().length} chars, needs 20-500)');
+    debugPrint(
+        'Title: "${state.title}" (${state.title.trim().length} chars, needs 5-100)');
+    debugPrint(
+        'Description: "${state.description.length > 50 ? state.description.substring(0, 50) + '...' : state.description}" (${state.description.trim().length} chars, needs 20-500)');
     debugPrint('Event date: ${state.eventDate} (needs future date)');
-    debugPrint('Has image: ${state.imageFile != null || state.imagePath != null}');
+    debugPrint(
+        'Has image: ${state.imageFile != null || state.imagePath != null}');
     debugPrint('Title error: ${state.titleError}');
     debugPrint('Description error: ${state.descriptionError}');
     debugPrint('Date error: ${state.eventDateError}');
@@ -263,7 +270,8 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: const AlwaysStoppedAnimation<Color>(NovaColors.onPrimaryLight),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              NovaColors.onPrimaryLight),
                         ),
                       )
                     : Text(
@@ -308,15 +316,16 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
         // Show success message before navigation
         _showToast(
           isEditMode
-            ? 'Evento modificato con successo'
-            : 'Evento creato! Sarà visibile dopo l\'approvazione',
+              ? 'Evento modificato con successo'
+              : 'Evento creato! Sarà visibile dopo l\'approvazione',
           isSuccess: true,
         );
 
         // Navigate back
         navigator.pop(event);
       } else {
-        debugPrint('>>> Event creation returned null, check submitError in state');
+        debugPrint(
+            '>>> Event creation returned null, check submitError in state');
       }
     } catch (e, stackTrace) {
       debugPrint('>>> UNHANDLED ERROR in _submitForm: $e');

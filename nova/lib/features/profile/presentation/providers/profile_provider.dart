@@ -16,7 +16,8 @@ import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/models/profile_model.dart';
 import '../../data/services/avatar_upload_service.dart';
 // Events imports for user events providers
-import '../../../events/presentation/providers/events_feed_provider.dart' show eventsRepositoryProvider;
+import '../../../events/presentation/providers/events_feed_provider.dart'
+    show eventsRepositoryProvider;
 import '../../../events/domain/entities/event.dart';
 
 // ============================================================================
@@ -279,7 +280,8 @@ final currentProfileStatsProvider = StreamProvider<ProfileStats>((ref) {
 /// Update profile use case provider
 ///
 /// Wraps ProfileRepository.updateProfile for use in screens
-final updateProfileUseCaseProvider = Provider<Future<void> Function(String, Map<String, dynamic>)>((ref) {
+final updateProfileUseCaseProvider =
+    Provider<Future<void> Function(String, Map<String, dynamic>)>((ref) {
   final repository = ref.watch(profileRepositoryProvider);
   return (userId, updates) => repository.updateProfile(userId, updates);
 });
@@ -306,7 +308,8 @@ final userCreatedEventsProvider = FutureProvider<List<Event>>((ref) async {
 
 /// Events user is participating in
 /// Used for profile "Partecipazioni" tab
-final userParticipatingEventsProvider = FutureProvider<List<Event>>((ref) async {
+final userParticipatingEventsProvider =
+    FutureProvider<List<Event>>((ref) async {
   final supabase = ref.watch(supabaseClientProvider);
   final repository = ref.watch(eventsRepositoryProvider);
 

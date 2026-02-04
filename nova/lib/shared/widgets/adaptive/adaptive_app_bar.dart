@@ -111,8 +111,7 @@ class AdaptiveAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: actions,
       elevation: 0,
       scrolledUnderElevation: 1,
-      backgroundColor:
-          backgroundColor ?? NovaColors.background(context),
+      backgroundColor: backgroundColor ?? NovaColors.background(context),
       surfaceTintColor: Colors.transparent,
     );
   }

@@ -91,7 +91,8 @@ class PushNotificationService {
 
   /// Initialize local notifications plugin
   Future<void> _initializeLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -171,7 +172,6 @@ class PushNotificationService {
   /// On iOS: Shows system permission dialog
   /// On Android 13+: Shows runtime permission dialog
   Future<NotificationPermissionState> requestPermission() async {
-
     final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,

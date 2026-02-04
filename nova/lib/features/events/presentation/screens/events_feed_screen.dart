@@ -71,7 +71,8 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
   void _onScroll() {
     final controller = _scrollController;
     if (controller != null &&
-        controller.position.pixels >= controller.position.maxScrollExtent - 500) {
+        controller.position.pixels >=
+            controller.position.maxScrollExtent - 500) {
       ref.read(eventsFeedProvider.notifier).loadNextPage();
     }
   }
@@ -106,33 +107,34 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     final feedState = ref.watch(eventsFeedProvider);
 
     final bodyContent = Column(
-        children: [
-          // Offline banner
-          if (_isOffline)
-            OfflineBanner(
-              isOffline: _isOffline,
-              onDismiss: () {
-                setState(() {
-                  _isOffline = false;
-                });
-              },
-            ),
-
-          // Feed content
-          Expanded(
-            child: feedState.when(
-              data: (state) => _buildFeedContent(state),
-              loading: () => _buildLoadingIndicator(),
-              error: (error, stack) => _buildErrorState(error.toString()),
-            ),
+      children: [
+        // Offline banner
+        if (_isOffline)
+          OfflineBanner(
+            isOffline: _isOffline,
+            onDismiss: () {
+              setState(() {
+                _isOffline = false;
+              });
+            },
           ),
-        ],
-      );
+
+        // Feed content
+        Expanded(
+          child: feedState.when(
+            data: (state) => _buildFeedContent(state),
+            loading: () => _buildLoadingIndicator(),
+            error: (error, stack) => _buildErrorState(error.toString()),
+          ),
+        ),
+      ],
+    );
 
     // Conditionally wrap with Scaffold + AppBar
     if (widget.showAppBar) {
       return Scaffold(
-        backgroundColor: NovaColors.backgroundLight, // Pure white background (Instagram-style)
+        backgroundColor: NovaColors
+            .backgroundLight, // Pure white background (Instagram-style)
         appBar: AppBar(
           title: Text(
             'Eventi',
@@ -142,7 +144,8 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
                   : NovaColors.textPrimaryLight,
             ),
           ),
-          backgroundColor: isDark ? NovaColors.surfaceDark : NovaColors.surfaceLight,
+          backgroundColor:
+              isDark ? NovaColors.surfaceDark : NovaColors.surfaceLight,
           elevation: 0,
           centerTitle: true,
           actions: [
@@ -177,7 +180,9 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     final engagementMap = engagementAsync.valueOrNull ?? {};
 
     // Calculate item count: pending events + approved events + loading indicator
-    final itemCount = pendingEvents.length + state.events.length + (state.isLoadingMore ? 1 : 0);
+    final itemCount = pendingEvents.length +
+        state.events.length +
+        (state.isLoadingMore ? 1 : 0);
 
     final listView = ListView.builder(
       // Use own controller only in standalone mode
@@ -229,7 +234,7 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
             isLiked: engagement.isLiked,
             isParticipating: engagement.isParticipating,
             collaborators: const [], // TODO: Fetch real collaborators
-            helpRequests: const [],  // TODO: Fetch real help requests from DB
+            helpRequests: const [], // TODO: Fetch real help requests from DB
           ),
         );
       },

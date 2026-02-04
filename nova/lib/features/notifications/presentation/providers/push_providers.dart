@@ -62,7 +62,8 @@ final pushRepositoryProvider = Provider<PushRepository>((ref) {
 /// await pushService.initialize();
 /// await pushService.registerToken();
 /// ```
-final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {
+final pushNotificationServiceProvider =
+    Provider<PushNotificationService>((ref) {
   final messaging = ref.watch(_firebaseMessagingProvider);
   final localNotifications = ref.watch(_localNotificationsProvider);
   final repository = ref.watch(pushRepositoryProvider);

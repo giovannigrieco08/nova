@@ -70,7 +70,8 @@ class TutorRemoteDataSource {
           .map((json) => TutorProfileWithAuthor.fromJson(json))
           .toList();
     } on PostgrestException catch (e) {
-      throw TutorQueryException('Failed to fetch tutors for $subject: ${e.message}');
+      throw TutorQueryException(
+          'Failed to fetch tutors for $subject: ${e.message}');
     }
   }
 
@@ -83,9 +84,7 @@ class TutorRemoteDataSource {
     int limit = 20,
   }) async {
     try {
-      var query = _supabase
-          .from('tutor_profiles')
-          .select('''
+      var query = _supabase.from('tutor_profiles').select('''
             *,
             profiles:user_id (
               full_name,
@@ -93,9 +92,7 @@ class TutorRemoteDataSource {
               class,
               username
             )
-          ''')
-          .contains('subjects', [subject])
-          .eq('is_active', true);
+          ''').contains('subjects', [subject]).eq('is_active', true);
 
       // Apply price filter
       if (priceFilter == 'free') {
@@ -115,7 +112,8 @@ class TutorRemoteDataSource {
           .map((json) => TutorProfileWithAuthor.fromJson(json))
           .toList();
     } on PostgrestException catch (e) {
-      throw TutorQueryException('Failed to fetch filtered tutors: ${e.message}');
+      throw TutorQueryException(
+          'Failed to fetch filtered tutors: ${e.message}');
     }
   }
 
@@ -170,10 +168,12 @@ class TutorRemoteDataSource {
           throw TutorValidationException('Inserisci almeno un contatto');
         }
         if (e.message.contains('bio') == true) {
-          throw TutorValidationException('La bio non può superare 200 caratteri');
+          throw TutorValidationException(
+              'La bio non può superare 200 caratteri');
         }
         if (e.message.contains('subjects') == true) {
-          throw TutorValidationException('Puoi selezionare al massimo 5 materie');
+          throw TutorValidationException(
+              'Puoi selezionare al massimo 5 materie');
         }
       }
       rethrow;
@@ -197,10 +197,12 @@ class TutorRemoteDataSource {
       if (bio != null) updates['bio'] = bio;
       if (subjects != null) updates['subjects'] = subjects;
       if (pricePerHour != null) updates['price_per_hour'] = pricePerHour;
-      if (availabilityDays != null) updates['availability_days'] = availabilityDays;
+      if (availabilityDays != null)
+        updates['availability_days'] = availabilityDays;
       if (timeSlot != null) updates['time_slot'] = timeSlot;
       if (whatsappPhone != null) updates['whatsapp_phone'] = whatsappPhone;
-      if (instagramUsername != null) updates['instagram_username'] = instagramUsername;
+      if (instagramUsername != null)
+        updates['instagram_username'] = instagramUsername;
       if (isActive != null) updates['is_active'] = isActive;
 
       final response = await _supabase
@@ -238,12 +240,10 @@ class TutorRemoteDataSource {
   /// Delete tutor profile permanently
   Future<void> deleteTutorProfile(String userId) async {
     try {
-      await _supabase
-          .from('tutor_profiles')
-          .delete()
-          .eq('user_id', userId);
+      await _supabase.from('tutor_profiles').delete().eq('user_id', userId);
     } on PostgrestException catch (e) {
-      throw TutorDeletionException('Impossibile eliminare il profilo tutor: ${e.message}');
+      throw TutorDeletionException(
+          'Impossibile eliminare il profilo tutor: ${e.message}');
     }
   }
 }

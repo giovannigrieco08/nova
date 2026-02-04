@@ -198,7 +198,8 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
                 iconColorSelected: NovaColors.primary(context),
                 iconColor: NovaColors.textSecondary(context),
               ),
-              bottomActionBarConfig: const BottomActionBarConfig(enabled: false),
+              bottomActionBarConfig:
+                  const BottomActionBarConfig(enabled: false),
               searchViewConfig: SearchViewConfig(
                 backgroundColor: NovaColors.surface(context),
                 buttonIconColor: NovaColors.textSecondary(context),
@@ -278,7 +279,8 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
 
                       // Message bubble
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: NovaSpacing.l),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: NovaSpacing.l),
                         child: widget.messageBubble,
                       ),
                       SizedBox(height: NovaSpacing.s),
@@ -415,7 +417,9 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
           ],
 
           // Edit (only for own messages within 15-minute window)
-          if (widget.isOwnMessage && widget.canEdit && widget.onEdit != null) ...[
+          if (widget.isOwnMessage &&
+              widget.canEdit &&
+              widget.onEdit != null) ...[
             _buildActionItem(
               context: context,
               icon: Icons.edit_outlined,

@@ -9,9 +9,7 @@ import 'comments_notifier.dart';
 
 /// Provider for comment input state
 final commentInputNotifierProvider = StateNotifierProvider.family<
-    CommentInputNotifier,
-    CommentInputState,
-    String>((ref, eventId) {
+    CommentInputNotifier, CommentInputState, String>((ref, eventId) {
   return CommentInputNotifier(
     ref.read(commentsRepositoryProvider),
     ref,
@@ -112,7 +110,8 @@ class CommentInputNotifier extends StateNotifier<CommentInputState> {
     }
 
     if (text.length > 500) {
-      state = state.copyWith(error: 'Il commento non può superare i 500 caratteri');
+      state =
+          state.copyWith(error: 'Il commento non può superare i 500 caratteri');
       return;
     }
 
@@ -186,7 +185,8 @@ class CommentInputNotifier extends StateNotifier<CommentInputState> {
       // Network error - keep optimistic comment, queue for sync
       state = state.copyWith(
         isPosting: false,
-        error: 'Nessuna connessione. Il commento sarà inviato quando torni online.',
+        error:
+            'Nessuna connessione. Il commento sarà inviato quando torni online.',
       );
 
       // Clear input anyway
@@ -219,7 +219,8 @@ class CommentInputNotifier extends StateNotifier<CommentInputState> {
     }
 
     if (text.length > 500) {
-      state = state.copyWith(error: 'La risposta non può superare i 500 caratteri');
+      state =
+          state.copyWith(error: 'La risposta non può superare i 500 caratteri');
       return;
     }
 
@@ -262,9 +263,7 @@ class CommentInputNotifier extends StateNotifier<CommentInputState> {
           .removeOptimisticComment(tempId);
 
       // Refresh comments to get the reply in proper threaded position
-      await _ref
-          .read(commentsNotifierProvider(_eventId).notifier)
-          .refresh();
+      await _ref.read(commentsNotifierProvider(_eventId).notifier).refresh();
 
       // Clear input
       textController.clear();
@@ -293,7 +292,8 @@ class CommentInputNotifier extends StateNotifier<CommentInputState> {
     } on NetworkException catch (_) {
       state = state.copyWith(
         isPosting: false,
-        error: 'Nessuna connessione. La risposta sarà inviata quando torni online.',
+        error:
+            'Nessuna connessione. La risposta sarà inviata quando torni online.',
       );
 
       textController.clear();

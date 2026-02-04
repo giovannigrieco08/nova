@@ -95,7 +95,8 @@ class ChatReactionDetailSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, List<ReactionWithUserInfo> reactions) {
+  Widget _buildContent(
+      BuildContext context, List<ReactionWithUserInfo> reactions) {
     if (reactions.isEmpty) {
       return Padding(
         padding: EdgeInsets.all(NovaSpacing.xl),

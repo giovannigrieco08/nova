@@ -16,10 +16,13 @@ final subscribeToRealtimeProvider = Provider<SubscribeToRealtime>((ref) {
 enum RealtimeStatus {
   /// Connected and receiving updates
   connected,
+
   /// Connecting to WebSocket
   connecting,
+
   /// Disconnected - show fallback banner
   disconnected,
+
   /// Error occurred - show retry option
   error,
 }
@@ -87,9 +90,8 @@ class RealtimeCommentsNotifier extends StateNotifier<RealtimeCommentsState> {
       final stream = _subscribeToRealtime(eventId: eventId);
 
       // T085: Apply 100ms debounce to prevent UI thrashing
-      _subscription = stream
-          .debounceTime(const Duration(milliseconds: 100))
-          .listen(
+      _subscription =
+          stream.debounceTime(const Duration(milliseconds: 100)).listen(
         (incomingComments) {
           _handleRealtimeUpdate(incomingComments);
         },
@@ -210,7 +212,8 @@ final realtimeCommentsProvider = StateNotifierProvider.autoDispose
 /// Provider for realtime connection status banner visibility
 ///
 /// Returns true if the offline banner should be shown
-final showRealtimeBannerProvider = Provider.family<bool, String>((ref, eventId) {
+final showRealtimeBannerProvider =
+    Provider.family<bool, String>((ref, eventId) {
   final state = ref.watch(realtimeCommentsProvider(eventId));
   return state.status == RealtimeStatus.disconnected ||
       state.status == RealtimeStatus.error;

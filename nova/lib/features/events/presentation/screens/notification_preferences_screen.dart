@@ -88,7 +88,8 @@ class _NotificationPreferencesScreenState
                 _buildSwitchTile(
                   context,
                   title: 'Eventi Propri',
-                  subtitle: 'Notifiche quando i tuoi eventi vengono approvati o rifiutati',
+                  subtitle:
+                      'Notifiche quando i tuoi eventi vengono approvati o rifiutati',
                   value: _ownEventsEnabled,
                   onChanged: (value) {
                     setState(() => _ownEventsEnabled = value);
@@ -102,7 +103,8 @@ class _NotificationPreferencesScreenState
                 _buildSwitchTile(
                   context,
                   title: 'Aggiornamenti Co-Organizer',
-                  subtitle: 'Notifiche quando vieni aggiunto come co-organizer o un evento viene modificato',
+                  subtitle:
+                      'Notifiche quando vieni aggiunto come co-organizer o un evento viene modificato',
                   value: _coOrganizerEnabled,
                   onChanged: (value) {
                     setState(() => _coOrganizerEnabled = value);
@@ -120,7 +122,8 @@ class _NotificationPreferencesScreenState
                         _buildSwitchTile(
                           context,
                           title: 'Moderazione',
-                          subtitle: 'Notifiche quando nuovi eventi richiedono moderazione',
+                          subtitle:
+                              'Notifiche quando nuovi eventi richiedono moderazione',
                           value: _moderationEnabled,
                           onChanged: (value) {
                             setState(() => _moderationEnabled = value);

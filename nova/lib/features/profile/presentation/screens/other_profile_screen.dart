@@ -69,7 +69,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
   }
 
   /// Build profile view with data (OPTIMIZED)
-  Widget _buildProfileView(Profile? profile, AsyncValue<ProfileStats?> statsAsync) {
+  Widget _buildProfileView(
+      Profile? profile, AsyncValue<ProfileStats?> statsAsync) {
     if (profile == null) {
       return _buildErrorView(Exception('Profile not found'));
     }
@@ -97,8 +98,10 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
                 stats: statsAsync.valueOrNull,
                 isOwnProfile: false,
                 onAvatarTap: () => _navigateToPhotoViewer(profile),
-                onEventiTap: () => setState(() => _selectedTab = ProfileTab.eventi),
-                onPartecipazioniTap: () => setState(() => _selectedTab = ProfileTab.partecipazioni),
+                onEventiTap: () =>
+                    setState(() => _selectedTab = ProfileTab.eventi),
+                onPartecipazioniTap: () =>
+                    setState(() => _selectedTab = ProfileTab.partecipazioni),
               ),
             ),
 
@@ -135,7 +138,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
 
   /// Build app bar with profile name
   PreferredSizeWidget _buildAppBar(Profile profile) {
-    final displayName = profile.fullName.isNotEmpty ? profile.fullName : profile.username;
+    final displayName =
+        profile.fullName.isNotEmpty ? profile.fullName : profile.username;
 
     if (Platform.isIOS) {
       return CupertinoNavigationBar(
@@ -171,7 +175,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
   Widget _buildEventsGrid() {
     if (_selectedTab == ProfileTab.eventi) {
       // Load user's created events
-      final createdEventsAsync = ref.watch(otherUserCreatedEventsProvider(widget.userId));
+      final createdEventsAsync =
+          ref.watch(otherUserCreatedEventsProvider(widget.userId));
       return createdEventsAsync.when(
         data: (events) => EventsGrid(
           events: events,
@@ -194,7 +199,8 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
       );
     } else {
       // Load events user is participating in
-      final participatingEventsAsync = ref.watch(otherUserParticipatingEventsProvider(widget.userId));
+      final participatingEventsAsync =
+          ref.watch(otherUserParticipatingEventsProvider(widget.userId));
       return participatingEventsAsync.when(
         data: (events) => EventsGrid(
           events: events,
@@ -263,7 +269,9 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
         return TutorProfileSection(
           profile: tutorProfile,
           isOwnProfile: false, // T046: External profile view
-          authorName: profile.fullName.isNotEmpty ? profile.fullName : profile.username, // For ContactTutorSheet
+          authorName: profile.fullName.isNotEmpty
+              ? profile.fullName
+              : profile.username, // For ContactTutorSheet
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -320,7 +328,9 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
                   ? Icons.lock_outline_rounded
                   : Icons.error_outline_rounded,
               size: 64,
-              color: isPrivacyError ? NovaColors.textTertiary(context) : NovaColors.error(context),
+              color: isPrivacyError
+                  ? NovaColors.textTertiary(context)
+                  : NovaColors.error(context),
             ),
             SizedBox(height: NovaSpacing.medium),
             Text(

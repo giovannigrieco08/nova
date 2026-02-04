@@ -41,7 +41,8 @@ class MainFeedScreen extends ConsumerStatefulWidget {
 }
 
 class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
-  int _currentNavIndex = 0; // Bottom nav index (0=Home, 1=Search, 2=Tutoring, 3=Chat, 4=Profile)
+  int _currentNavIndex =
+      0; // Bottom nav index (0=Home, 1=Search, 2=Tutoring, 3=Chat, 4=Profile)
 
   // Swipe gesture tracking
   bool _isHorizontalDragActive = false;
@@ -73,7 +74,8 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
           if (targetType == 'event') {
             Navigator.push(
               context,
-              NovaPageRoute.swipeBack(page: EventDetailScreen(eventId: targetId)),
+              NovaPageRoute.swipeBack(
+                  page: EventDetailScreen(eventId: targetId)),
             );
           } else if (targetType == 'chat') {
             Navigator.push(
@@ -257,7 +259,9 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
     // Index 4: Profile
 
     return IndexedStack(
-      index: _currentNavIndex > 3 ? _currentNavIndex - 1 : _currentNavIndex, // Skip Chat index
+      index: _currentNavIndex > 3
+          ? _currentNavIndex - 1
+          : _currentNavIndex, // Skip Chat index
       children: [
         // 0: Home with Eventi/Bacheche tabs
         _buildHomeScreen(),

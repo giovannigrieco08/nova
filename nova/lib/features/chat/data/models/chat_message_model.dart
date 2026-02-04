@@ -156,8 +156,7 @@ class ChatMessageModel {
     ChatMessage? replyTo,
   }) {
     // Parse mentions
-    final mentions =
-        mentionsJson.map((m) => MentionInfo.fromJson(m)).toList();
+    final mentions = mentionsJson.map((m) => MentionInfo.fromJson(m)).toList();
 
     // Parse author from joined data
     final resolvedAuthor = author ?? _parseAuthor();
@@ -263,9 +262,7 @@ class ChatMessageModel {
   static List<Map<String, dynamic>> _parseMentionsJson(dynamic mentions) {
     if (mentions == null) return [];
     if (mentions is List) {
-      return mentions
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
+      return mentions.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
     return [];
   }
@@ -274,9 +271,7 @@ class ChatMessageModel {
     if (reactions == null) return null;
     if (reactions is List) {
       if (reactions.isEmpty) return [];
-      return reactions
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
+      return reactions.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
     return null;
   }
@@ -300,4 +295,3 @@ class ChatMessageModel {
     return null;
   }
 }
-

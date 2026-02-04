@@ -31,7 +31,9 @@ class TutorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Platform.isIOS ? _buildCupertinoCard(context) : _buildMaterialCard(context);
+    return Platform.isIOS
+        ? _buildCupertinoCard(context)
+        : _buildMaterialCard(context);
   }
 
   Widget _buildCupertinoCard(BuildContext context) {
@@ -107,7 +109,8 @@ class TutorCard extends StatelessWidget {
                             vertical: NovaSpacing.xxs,
                           ),
                           decoration: BoxDecoration(
-                            color: NovaColors.primary(context).withValues(alpha: 0.1),
+                            color: NovaColors.primary(context)
+                                .withValues(alpha: 0.1),
                             borderRadius: NovaRadius.circularXs,
                           ),
                           child: Text(
@@ -145,7 +148,8 @@ class TutorCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: profile.isFree
-                              ? NovaColors.success(context).withValues(alpha: 0.1)
+                              ? NovaColors.success(context)
+                                  .withValues(alpha: 0.1)
                               : NovaColors.surface(context),
                           borderRadius: NovaRadius.circularXs,
                           border: profile.isFree

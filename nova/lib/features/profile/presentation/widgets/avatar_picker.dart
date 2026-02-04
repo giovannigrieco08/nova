@@ -186,7 +186,8 @@ class AvatarPicker extends StatelessWidget {
                 children: [
                   const Icon(Icons.photo_library, size: 20),
                   SizedBox(width: NovaSpacing.small),
-                  Text('Scegli dalla galleria', style: NovaTypography.bodyMedium),
+                  Text('Scegli dalla galleria',
+                      style: NovaTypography.bodyMedium),
                 ],
               ),
             ),
@@ -209,9 +210,10 @@ class AvatarPicker extends StatelessWidget {
           ],
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.pop(context),
-            child: Text('Annulla', style: NovaTypography.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-            )),
+            child: Text('Annulla',
+                style: NovaTypography.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                )),
           ),
         );
       },
@@ -265,7 +267,8 @@ class AvatarPicker extends StatelessWidget {
               // Gallery option
               ListTile(
                 leading: const Icon(Icons.photo_library_rounded),
-                title: Text('Scegli dalla galleria', style: NovaTypography.bodyMedium),
+                title: Text('Scegli dalla galleria',
+                    style: NovaTypography.bodyMedium),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImage(context, ImageSource.gallery);
@@ -275,7 +278,8 @@ class AvatarPicker extends StatelessWidget {
               // Remove photo option (if avatar exists)
               if (currentAvatarUrl != null && onRemoveAvatar != null)
                 ListTile(
-                  leading: Icon(Icons.delete_rounded, color: NovaColors.error(ctx)),
+                  leading:
+                      Icon(Icons.delete_rounded, color: NovaColors.error(ctx)),
                   title: Text(
                     'Rimuovi foto',
                     style: NovaTypography.bodyMedium.copyWith(
@@ -334,7 +338,8 @@ class AvatarPicker extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        _showError(context, 'Errore nel selezionare l\'immagine: ${e.toString()}');
+        _showError(
+            context, 'Errore nel selezionare l\'immagine: ${e.toString()}');
       }
     }
   }

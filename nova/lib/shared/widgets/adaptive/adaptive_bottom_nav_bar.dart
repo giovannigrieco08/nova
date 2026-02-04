@@ -83,8 +83,7 @@ class AdaptiveBottomNavBar extends StatelessWidget {
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
                 decoration: BoxDecoration(
-                  color:
-                      NovaColors.background(context).withValues(alpha: 0.8),
+                  color: NovaColors.background(context).withValues(alpha: 0.8),
                   border: Border(
                     top: BorderSide(
                       color: NovaColors.border(context).withValues(alpha: 0.3),

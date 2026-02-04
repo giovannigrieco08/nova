@@ -36,7 +36,8 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final defaultColor = isDark ? NovaColors.backgroundLight : NovaColors.backgroundDark;
+    final defaultColor =
+        isDark ? NovaColors.backgroundLight : NovaColors.backgroundDark;
 
     return Container(
       width: width,
@@ -53,12 +54,14 @@ class GlassContainer extends StatelessWidget {
               borderRadius: BorderRadius.circular(borderRadius),
               border: border ??
                   Border.all(
-                    color: (color ?? defaultColor).withValues(alpha: 0.4), // Increased from 0.2
+                    color: (color ?? defaultColor)
+                        .withValues(alpha: 0.4), // Increased from 0.2
                     width: 2.0, // Increased from 1.5 for more prominent border
                   ),
               boxShadow: [
                 BoxShadow(
-                  color: NovaColors.backgroundDark.withValues(alpha: isDark ? 0.3 : 0.15),
+                  color: NovaColors.backgroundDark
+                      .withValues(alpha: isDark ? 0.3 : 0.15),
                   blurRadius: 30, // Increased for stronger shadow
                   offset: const Offset(0, 12),
                   spreadRadius: 2,

@@ -61,9 +61,10 @@ class MentionText extends StatelessWidget {
 
     return RichText(
       text: TextSpan(
-        style: style ?? NovaTextStyles.body.copyWith(
-          color: NovaColors.textPrimaryLight,
-        ),
+        style: style ??
+            NovaTextStyles.body.copyWith(
+              color: NovaColors.textPrimaryLight,
+            ),
         children: spans,
       ),
       maxLines: maxLines,

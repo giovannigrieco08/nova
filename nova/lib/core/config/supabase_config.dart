@@ -49,13 +49,11 @@ class SupabaseConfig {
       try {
         await dotenv.load(fileName: '.env');
       } catch (e) {
-        throw Exception(
-          '⚠️  Missing .env file!\n\n'
-          'Setup steps:\n'
-          '1. Copy .env.example to .env\n'
-          '2. Fill in your Supabase credentials\n\n'
-          'See CREDENTIALS.md for detailed instructions'
-        );
+        throw Exception('⚠️  Missing .env file!\n\n'
+            'Setup steps:\n'
+            '1. Copy .env.example to .env\n'
+            '2. Fill in your Supabase credentials\n\n'
+            'See CREDENTIALS.md for detailed instructions');
       }
 
       // Validate required environment variables
@@ -63,13 +61,11 @@ class SupabaseConfig {
       final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
 
       if (url == null || url.isEmpty || anonKey == null || anonKey.isEmpty) {
-        throw Exception(
-          '⚠️  Incomplete .env configuration!\n\n'
-          'Required variables:\n'
-          '- SUPABASE_URL\n'
-          '- SUPABASE_ANON_KEY\n\n'
-          'Check CREDENTIALS.md for setup guide'
-        );
+        throw Exception('⚠️  Incomplete .env configuration!\n\n'
+            'Required variables:\n'
+            '- SUPABASE_URL\n'
+            '- SUPABASE_ANON_KEY\n\n'
+            'Check CREDENTIALS.md for setup guide');
       }
 
       // Initialize Supabase client

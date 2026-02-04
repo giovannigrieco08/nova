@@ -34,7 +34,8 @@ class ChatRemoteDataSource {
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .limit(limit)
-        .map((data) => data.map((json) => ChatMessageModel.fromJson(json)).toList());
+        .map((data) =>
+            data.map((json) => ChatMessageModel.fromJson(json)).toList());
   }
 
   /// Get messages with full joins (for initial load).
@@ -43,9 +44,7 @@ class ChatRemoteDataSource {
     DateTime? beforeTimestamp,
   }) async {
     // Build the query with filters first, then transformations
-    var queryBuilder = _supabase
-        .from('chat_messages')
-        .select('''
+    var queryBuilder = _supabase.from('chat_messages').select('''
           *,
           profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
           reply_to:reply_to_id(
@@ -58,17 +57,16 @@ class ChatRemoteDataSource {
 
     // Apply filter if timestamp provided
     if (beforeTimestamp != null) {
-      queryBuilder = queryBuilder.lt('created_at', beforeTimestamp.toIso8601String());
+      queryBuilder =
+          queryBuilder.lt('created_at', beforeTimestamp.toIso8601String());
     }
 
     // Apply ordering and limit
     List<dynamic> responseList;
     try {
-      final response = await queryBuilder
-          .order('created_at', ascending: false)
-          .limit(limit);
+      final response =
+          await queryBuilder.order('created_at', ascending: false).limit(limit);
       responseList = response;
-
     } catch (e) {
       throw Exception(
         'Database error: le tabelle della chat potrebbero non esistere. '
@@ -84,9 +82,7 @@ class ChatRemoteDataSource {
   /// Get a single message by ID with full joins.
   Future<ChatMessageModel?> getMessage(String messageId) async {
     debugPrint('[Datasource] getMessage: $messageId');
-    final response = await _supabase
-        .from('chat_messages')
-        .select('''
+    final response = await _supabase.from('chat_messages').select('''
           *,
           profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
           reply_to:reply_to_id(
@@ -95,9 +91,7 @@ class ChatRemoteDataSource {
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)
-        ''')
-        .eq('id', messageId)
-        .maybeSingle();
+        ''').eq('id', messageId).maybeSingle();
 
     if (response == null) {
       debugPrint('[Datasource] getMessage: null response');
@@ -130,8 +124,7 @@ class ChatRemoteDataSource {
         .select('''
           *,
           profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
-        ''')
-        .single();
+        ''').single();
 
     return ChatMessageModel.fromJson(response);
   }
@@ -159,13 +152,10 @@ class ChatRemoteDataSource {
     }
 
     // Soft delete: set deleted_at timestamp
-    await _supabase
-        .from('chat_messages')
-        .update({
-          'deleted_at': DateTime.now().toUtc().toIso8601String(),
-          'deleted_by_user': true,
-        })
-        .eq('id', messageId);
+    await _supabase.from('chat_messages').update({
+      'deleted_at': DateTime.now().toUtc().toIso8601String(),
+      'deleted_by_user': true,
+    }).eq('id', messageId);
   }
 
   // =========================================================================
@@ -179,13 +169,13 @@ class ChatRemoteDataSource {
     required String emoji,
   }) async {
     await _supabase.from('chat_reactions').upsert(
-      ChatReactionModel.toInsertJson(
-        messageId: messageId,
-        userId: userId,
-        emoji: emoji,
-      ),
-      onConflict: 'message_id, user_id, emoji',
-    );
+          ChatReactionModel.toInsertJson(
+            messageId: messageId,
+            userId: userId,
+            emoji: emoji,
+          ),
+          onConflict: 'message_id, user_id, emoji',
+        );
   }
 
   /// Remove a reaction from a message.
@@ -219,11 +209,11 @@ class ChatRemoteDataSource {
   /// Get all reactions for a message with user profile info.
   ///
   /// Returns list of (emoji, userId, fullName, avatarUrl) tuples.
-  Future<List<ReactionWithUser>> getReactionsWithUsers(
-      String messageId) async {
+  Future<List<ReactionWithUser>> getReactionsWithUsers(String messageId) async {
     final response = await _supabase
         .from('chat_reactions')
-        .select('emoji, user_id, created_at, profiles:user_id(full_name, avatar_url)')
+        .select(
+            'emoji, user_id, created_at, profiles:user_id(full_name, avatar_url)')
         .eq('message_id', messageId)
         .order('created_at');
 
@@ -392,7 +382,8 @@ class ChatRemoteDataSource {
           .createSignedUrl(storagePath, 60);
       return response;
     } catch (e, stackTrace) {
-      debugPrint('[Datasource] getSignedMediaUrl FAILED for path: $storagePath');
+      debugPrint(
+          '[Datasource] getSignedMediaUrl FAILED for path: $storagePath');
       debugPrint('[Datasource] Error: $e');
       return null;
     }
@@ -474,20 +465,16 @@ class ChatRemoteDataSource {
     required String gifId,
     String? replyToId,
   }) async {
-    final response = await _supabase
-        .from('chat_messages')
-        .insert({
-          'user_id': userId,
-          'content': '[GIF]',
-          'gif_url': gifUrl,
-          'gif_id': gifId,
-          'reply_to_id': replyToId,
-        })
-        .select('''
+    final response = await _supabase.from('chat_messages').insert({
+      'user_id': userId,
+      'content': '[GIF]',
+      'gif_url': gifUrl,
+      'gif_id': gifId,
+      'reply_to_id': replyToId,
+    }).select('''
           *,
           profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
-        ''')
-        .single();
+        ''').single();
 
     return ChatMessageModel.fromJson(response);
   }
@@ -533,14 +520,11 @@ class ChatRemoteDataSource {
     required String pinnedByUserId,
   }) async {
     // First, unpin any currently pinned message
-    await _supabase
-        .from('chat_messages')
-        .update({
-          'is_pinned': false,
-          'pinned_at': null,
-          'pinned_by_user_id': null,
-        })
-        .eq('is_pinned', true);
+    await _supabase.from('chat_messages').update({
+      'is_pinned': false,
+      'pinned_at': null,
+      'pinned_by_user_id': null,
+    }).eq('is_pinned', true);
 
     // Then pin the new message
     final response = await _supabase
@@ -568,21 +552,16 @@ class ChatRemoteDataSource {
 
   /// Unpin a message.
   Future<void> unpinMessage(String messageId) async {
-    await _supabase
-        .from('chat_messages')
-        .update({
-          'is_pinned': false,
-          'pinned_at': null,
-          'pinned_by_user_id': null,
-        })
-        .eq('id', messageId);
+    await _supabase.from('chat_messages').update({
+      'is_pinned': false,
+      'pinned_at': null,
+      'pinned_by_user_id': null,
+    }).eq('id', messageId);
   }
 
   /// Get the currently pinned message.
   Future<ChatMessageModel?> getPinnedMessage() async {
-    final response = await _supabase
-        .from('chat_messages')
-        .select('''
+    final response = await _supabase.from('chat_messages').select('''
           *,
           profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
           reply_to:reply_to_id(
@@ -591,9 +570,7 @@ class ChatRemoteDataSource {
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)
-        ''')
-        .eq('is_pinned', true)
-        .maybeSingle();
+        ''').eq('is_pinned', true).maybeSingle();
 
     if (response == null) return null;
     return ChatMessageModel.fromJson(response);

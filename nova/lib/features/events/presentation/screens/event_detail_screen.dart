@@ -170,7 +170,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             backgroundColor: NovaColors.backgroundLight,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new, color: NovaColors.textPrimaryLight, size: 24),
+              icon: Icon(Icons.arrow_back_ios_new,
+                  color: NovaColors.textPrimaryLight, size: 24),
               onPressed: () => Navigator.of(context).pop(),
               tooltip: 'Indietro',
             ),
@@ -211,7 +212,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       backgroundColor: NovaColors.backgroundLight,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new, color: NovaColors.textPrimaryLight, size: 24),
+        icon: Icon(Icons.arrow_back_ios_new,
+            color: NovaColors.textPrimaryLight, size: 24),
         onPressed: () => Navigator.of(context).pop(),
         tooltip: 'Indietro',
       ),
@@ -435,7 +437,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           ),
           if (_shouldShowMoreButton(organizerName, description))
             GestureDetector(
-              onTap: () => setState(() => _isCaptionExpanded = !_isCaptionExpanded),
+              onTap: () =>
+                  setState(() => _isCaptionExpanded = !_isCaptionExpanded),
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
@@ -483,7 +486,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           // Partecipo button (toggle)
           Expanded(
             child: ElevatedButton(
-              onPressed: _isParticipateLoading ? null : _handleParticipateToggle,
+              onPressed:
+                  _isParticipateLoading ? null : _handleParticipateToggle,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isParticipating
                     ? NovaColors.grayMedium
@@ -963,7 +967,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   void _navigateToOrganizerProfile(Event event) {
     Navigator.push(
       context,
-      NovaPageRoute.swipeBack(page: OtherProfileScreen(userId: event.creatorId)),
+      NovaPageRoute.swipeBack(
+          page: OtherProfileScreen(userId: event.creatorId)),
     );
   }
 
@@ -1118,8 +1123,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               // Delete option (only for owner)
               if (isOwner)
                 ListTile(
-                  leading: Icon(Icons.delete_outline, color: NovaColors.error(context)),
-                  title: Text('Elimina evento', style: TextStyle(color: NovaColors.error(context))),
+                  leading: Icon(Icons.delete_outline,
+                      color: NovaColors.error(context)),
+                  title: Text('Elimina evento',
+                      style: TextStyle(color: NovaColors.error(context))),
                   onTap: () {
                     Navigator.pop(context);
                     _confirmDeleteEvent(event);
@@ -1148,7 +1155,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Elimina evento'),
-        content: const Text('Sei sicuro di voler eliminare questo evento? Questa azione non può essere annullata.'),
+        content: const Text(
+            'Sei sicuro di voler eliminare questo evento? Questa azione non può essere annullata.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1156,7 +1164,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: NovaColors.error(context)),
+            style: TextButton.styleFrom(
+                foregroundColor: NovaColors.error(context)),
             child: const Text('Elimina'),
           ),
         ],

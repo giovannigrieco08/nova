@@ -28,7 +28,8 @@ final systemStatsProvider = FutureProvider<SystemStats>((ref) async {
 /// Provider for periodic refresh of system stats
 ///
 /// Auto-refreshes every 30 seconds to keep statistics current
-final systemStatsAutoRefreshProvider = StreamProvider<SystemStats>((ref) async* {
+final systemStatsAutoRefreshProvider =
+    StreamProvider<SystemStats>((ref) async* {
   while (true) {
     // Invalidate and wait for new stats
     ref.invalidate(systemStatsProvider);

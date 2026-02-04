@@ -65,7 +65,8 @@ class ContactTutorSheet extends StatelessWidget {
                   _buildTutorHeader(context),
                   const SizedBox(height: NovaSpacing.xl),
                   // Bio (if available)
-                  if (tutor.profile.bio != null && tutor.profile.bio!.isNotEmpty) ...[
+                  if (tutor.profile.bio != null &&
+                      tutor.profile.bio!.isNotEmpty) ...[
                     Text(
                       tutor.profile.bio!,
                       textAlign: TextAlign.center,
@@ -125,7 +126,8 @@ class ContactTutorSheet extends StatelessWidget {
                     imageUrl: tutor.authorAvatarUrl!,
                     fit: BoxFit.cover,
                     placeholder: (_, __) => _buildAvatarPlaceholder(context),
-                    errorWidget: (_, __, ___) => _buildAvatarPlaceholder(context),
+                    errorWidget: (_, __, ___) =>
+                        _buildAvatarPlaceholder(context),
                   )
                 : _buildAvatarPlaceholder(context),
           ),
@@ -205,7 +207,8 @@ class ContactTutorSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, {required IconData icon, required String text}) {
+  Widget _buildInfoRow(BuildContext context,
+      {required IconData icon, required String text}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: NovaSpacing.xxs),
       child: Row(

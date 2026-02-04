@@ -93,7 +93,8 @@ class _LikeButtonState extends ConsumerState<LikeButton>
 
   @override
   Widget build(BuildContext context) {
-    final likesState = ref.watch(commentLikesNotifierProvider(widget.commentId));
+    final likesState =
+        ref.watch(commentLikesNotifierProvider(widget.commentId));
     final likesNotifier =
         ref.read(commentLikesNotifierProvider(widget.commentId).notifier);
 
@@ -129,7 +130,8 @@ class _LikeButtonState extends ConsumerState<LikeButton>
           : 'Aggiungi mi piace, ${_formatLikeCount(likesState.likeCount)} mi piace',
       enabled: !likesState.isProcessing,
       child: GestureDetector(
-        onTap: likesState.isProcessing ? null : () => _handleLike(likesNotifier),
+        onTap:
+            likesState.isProcessing ? null : () => _handleLike(likesNotifier),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -174,7 +176,8 @@ class _LikeButtonState extends ConsumerState<LikeButton>
   /// Triggers pop animation and calls toggleLike on notifier.
   void _handleLike(CommentLikesNotifier notifier) {
     // Play pop animation (only when liking, not unliking)
-    final currentState = ref.read(commentLikesNotifierProvider(widget.commentId));
+    final currentState =
+        ref.read(commentLikesNotifierProvider(widget.commentId));
     if (!currentState.isLiked) {
       _animationController.forward(from: 0.0);
     }

@@ -247,7 +247,8 @@ class _NavItemWidgetState extends State<_NavItemWidget>
   @override
   Widget build(BuildContext context) {
     final isDark = NovaColors.isDark(context);
-    final showBadge = widget.item.badgeCount != null && widget.item.badgeCount! > 0;
+    final showBadge =
+        widget.item.badgeCount != null && widget.item.badgeCount! > 0;
 
     // Colors for selected/unselected states - higher contrast
     final Color iconColor;
@@ -279,7 +280,8 @@ class _NavItemWidgetState extends State<_NavItemWidget>
           child: widget.item.customIcon!,
         ),
       );
-    } else if (widget.item.sfSymbol != null && widget.item.materialIcon != null) {
+    } else if (widget.item.sfSymbol != null &&
+        widget.item.materialIcon != null) {
       iconWidget = NovaIcons.adaptive(
         context,
         sfSymbol: widget.item.sfSymbol!,
@@ -348,7 +350,9 @@ class _NavItemWidgetState extends State<_NavItemWidget>
                       ),
                       child: Center(
                         child: Text(
-                          widget.item.badgeCount! > 99 ? '99+' : widget.item.badgeCount.toString(),
+                          widget.item.badgeCount! > 99
+                              ? '99+'
+                              : widget.item.badgeCount.toString(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,

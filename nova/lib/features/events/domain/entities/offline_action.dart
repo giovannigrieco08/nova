@@ -12,10 +12,12 @@ class OfflineAction {
   final String id; // Unique action ID (UUID)
 
   @HiveField(1)
-  final String type; // Action type: like_event, unlike_event, participate_event, post_comment, etc.
+  final String
+      type; // Action type: like_event, unlike_event, participate_event, post_comment, etc.
 
   @HiveField(2)
-  final Map<String, dynamic> payload; // Action-specific data (event_id, user_id, comment_text, etc.)
+  final Map<String, dynamic>
+      payload; // Action-specific data (event_id, user_id, comment_text, etc.)
 
   @HiveField(3)
   final DateTime queuedAt; // When action was queued

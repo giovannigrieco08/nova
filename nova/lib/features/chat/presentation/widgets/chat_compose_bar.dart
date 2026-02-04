@@ -81,7 +81,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   static const int _maxCharacters = 500;
 
   /// Show a toast-style notification (Cupertino compatible)
-  void _showToast(String message, {bool isError = false, bool isWarning = false}) {
+  void _showToast(String message,
+      {bool isError = false, bool isWarning = false}) {
     if (!mounted) return;
 
     final overlay = Overlay.of(context);
@@ -216,7 +217,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
     // Replace @query with @fullName
     final beforeMention = text.substring(0, _mentionStartIndex!);
-    final afterCursor = cursorPosition < text.length ? text.substring(cursorPosition) : '';
+    final afterCursor =
+        cursorPosition < text.length ? text.substring(cursorPosition) : '';
     final mentionText = '@${result.fullName} ';
     final newText = beforeMention + mentionText + afterCursor;
 
@@ -225,7 +227,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       'user_id': result.userId,
       'username': result.fullName,
       'start_index': _mentionStartIndex!,
-      'end_index': _mentionStartIndex! + mentionText.length - 1, // -1 for trailing space
+      'end_index':
+          _mentionStartIndex! + mentionText.length - 1, // -1 for trailing space
     });
 
     // Update text field
@@ -305,12 +308,15 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
     // Insert emoji at cursor position
     final newText = cursorPosition >= 0
-        ? text.substring(0, cursorPosition) + emoji.emoji + text.substring(cursorPosition)
+        ? text.substring(0, cursorPosition) +
+            emoji.emoji +
+            text.substring(cursorPosition)
         : text + emoji.emoji;
 
     _controller.text = newText;
     _controller.selection = TextSelection.collapsed(
-      offset: (cursorPosition >= 0 ? cursorPosition : text.length) + emoji.emoji.length,
+      offset: (cursorPosition >= 0 ? cursorPosition : text.length) +
+          emoji.emoji.length,
     );
   }
 
@@ -323,7 +329,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     if (cursorPosition <= 0) return;
 
     // Remove character before cursor
-    final newText = text.substring(0, cursorPosition - 1) + text.substring(cursorPosition);
+    final newText =
+        text.substring(0, cursorPosition - 1) + text.substring(cursorPosition);
     _controller.text = newText;
     _controller.selection = TextSelection.collapsed(offset: cursorPosition - 1);
   }
@@ -353,8 +360,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
           NovaPageRoute.swipeBack(
             page: PhotoEditorScreen(
               imageFile: file,
-              onSend: (File editedFile, {bool allowReplay = true, String? caption}) {
-                _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay, caption: caption);
+              onSend: (File editedFile,
+                  {bool allowReplay = true, String? caption}) {
+                _handleMediaFromEditor(
+                    editedFile, ChatMediaType.image, allowReplay,
+                    caption: caption);
                 Navigator.pop(context);
               },
             ),
@@ -367,8 +377,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
           NovaPageRoute.swipeBack(
             page: VideoPreviewScreen(
               videoFile: file,
-              onSend: (File videoFile, {bool allowReplay = true, String? caption}) {
-                _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay, caption: caption);
+              onSend: (File videoFile,
+                  {bool allowReplay = true, String? caption}) {
+                _handleMediaFromEditor(
+                    videoFile, ChatMediaType.video, allowReplay,
+                    caption: caption);
                 Navigator.pop(context);
               },
             ),
@@ -381,14 +394,17 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   }
 
   /// Handle media from photo/video editor screens
-  Future<void> _handleMediaFromEditor(File file, ChatMediaType mediaType, bool allowReplay, {String? caption}) async {
+  Future<void> _handleMediaFromEditor(
+      File file, ChatMediaType mediaType, bool allowReplay,
+      {String? caption}) async {
     debugPrint('[MediaUpload] _handleMediaFromEditor called');
     debugPrint('[MediaUpload] - file: ${file.path}');
     debugPrint('[MediaUpload] - mediaType: ${mediaType.value}');
     debugPrint('[MediaUpload] - allowReplay: $allowReplay');
     debugPrint('[MediaUpload] - caption: $caption');
     final maxViews = allowReplay ? 2 : 1;
-    await _uploadMedia(file.path, mediaType, maxViews: maxViews, caption: caption);
+    await _uploadMedia(file.path, mediaType,
+        maxViews: maxViews, caption: caption);
   }
 
   /// Open gallery to pick an image or video - optimized for speed
@@ -411,7 +427,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       if (media != null && mounted) {
         // Determine if it's a video or image based on extension
         final extension = media.path.toLowerCase().split('.').last;
-        final isVideo = ['mp4', 'mov', 'avi', 'mkv', 'm4v', '3gp', 'webm'].contains(extension);
+        final isVideo = ['mp4', 'mov', 'avi', 'mkv', 'm4v', '3gp', 'webm']
+            .contains(extension);
 
         if (isVideo) {
           _handleSelectedVideo(media);
@@ -444,7 +461,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         page: PhotoEditorScreen(
           imageFile: file,
           onSend: (editedFile, {bool allowReplay = true, String? caption}) {
-            _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay, caption: caption);
+            _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay,
+                caption: caption);
             Navigator.pop(context);
           },
         ),
@@ -463,7 +481,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         page: VideoPreviewScreen(
           videoFile: file,
           onSend: (videoFile, {bool allowReplay = true, String? caption}) {
-            _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay, caption: caption);
+            _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay,
+                caption: caption);
             Navigator.pop(context);
           },
         ),
@@ -499,7 +518,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
             context: context,
             builder: (context) => CupertinoAlertDialog(
               title: const Text('Permesso microfono'),
-              content: const Text('Per registrare messaggi vocali, abilita il microfono nelle Impostazioni.'),
+              content: const Text(
+                  'Per registrare messaggi vocali, abilita il microfono nelle Impostazioni.'),
               actions: [
                 CupertinoDialogAction(
                   child: const Text('Annulla'),
@@ -530,7 +550,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
         final initialized = await _initRecorder();
         debugPrint('[VoiceRecorder] Recorder initialized: $initialized');
         if (!initialized) {
-          _showToast('Impossibile inizializzare il registratore', isError: true);
+          _showToast('Impossibile inizializzare il registratore',
+              isError: true);
           return;
         }
       }
@@ -544,7 +565,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       debugPrint('[VoiceRecorder] Recording path: $_recordingPath');
 
       // Start recording (use aacMP4 for better iOS compatibility)
-      debugPrint('[VoiceRecorder] Starting recorder with codec: ${Platform.isIOS ? "aacMP4" : "aacADTS"}');
+      debugPrint(
+          '[VoiceRecorder] Starting recorder with codec: ${Platform.isIOS ? "aacMP4" : "aacADTS"}');
       await _audioRecorder.startRecorder(
         toFile: _recordingPath,
         codec: Platform.isIOS ? Codec.aacMP4 : Codec.aacADTS,
@@ -561,7 +583,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       // Start duration timer using Timer.periodic (replaces while loop)
       _durationTimer?.cancel();
       final random = Random();
-      _durationTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _durationTimer =
+          Timer.periodic(const Duration(milliseconds: 100), (timer) {
         if (_isRecording && !_isPaused && mounted) {
           setState(() {
             // Update duration every second
@@ -569,7 +592,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
               _recordingDuration += const Duration(seconds: 1);
             }
             // Update waveform with random levels (simulated)
-            _waveformLevels = List.generate(50, (_) => 0.2 + random.nextDouble() * 0.8);
+            _waveformLevels =
+                List.generate(50, (_) => 0.2 + random.nextDouble() * 0.8);
           });
         } else if (!_isRecording) {
           timer.cancel();
@@ -734,8 +758,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
       // Refresh the specific message in the realtime state
       // This ensures the message displays immediately with media attached
-      debugPrint('[MediaUpload] Refreshing message ${result.messageId} in realtime state...');
-      await ref.read(chatRealtimeProvider.notifier).refreshMessage(result.messageId);
+      debugPrint(
+          '[MediaUpload] Refreshing message ${result.messageId} in realtime state...');
+      await ref
+          .read(chatRealtimeProvider.notifier)
+          .refreshMessage(result.messageId);
       debugPrint('[MediaUpload] Message refreshed!');
 
       // Notify parent that something was sent
@@ -752,9 +779,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       String errorMsg = 'Errore durante l\'invio. Riprova.';
       if (e.toString().contains('storage')) {
         errorMsg = 'Errore upload. Controlla la connessione.';
-      } else if (e.toString().contains('permission') || e.toString().contains('403')) {
+      } else if (e.toString().contains('permission') ||
+          e.toString().contains('403')) {
         errorMsg = 'Permesso negato. Riprova più tardi.';
-      } else if (e.toString().contains('timeout') || e.toString().contains('network')) {
+      } else if (e.toString().contains('timeout') ||
+          e.toString().contains('network')) {
         errorMsg = 'Connessione lenta. Riprova.';
       }
       _showToast(errorMsg, isError: true);
@@ -1055,7 +1084,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                                 focusNode: _focusNode,
                                 maxLines: 4,
                                 minLines: 1,
-                                textCapitalization: TextCapitalization.sentences,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
                                 onTap: () {
                                   // Hide emoji picker when text field is tapped
                                   if (_showEmojiPicker) {
@@ -1097,17 +1127,21 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                                         ),
                                       )
                                     : TextButton(
-                                        onPressed: canSend ? _sendMessage : null,
+                                        onPressed:
+                                            canSend ? _sendMessage : null,
                                         style: TextButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(horizontal: 12),
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 12),
                                           minimumSize: Size(0, 36),
                                         ),
                                         child: Text(
                                           'Invia',
-                                          style: NovaTypography.bodyMedium.copyWith(
+                                          style: NovaTypography.bodyMedium
+                                              .copyWith(
                                             color: canSend
                                                 ? NovaColors.primary(context)
-                                                : NovaColors.textTertiary(context),
+                                                : NovaColors.textTertiary(
+                                                    context),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -1126,7 +1160,8 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
-                          debugPrint('[VoiceRecorder] Microphone button TAPPED!');
+                          debugPrint(
+                              '[VoiceRecorder] Microphone button TAPPED!');
                           _startRecording();
                         },
                         child: Padding(

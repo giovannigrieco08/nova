@@ -234,7 +234,8 @@ class ProfileHeader extends StatelessWidget {
                   fit: BoxFit.cover,
                   placeholder: (context, url) => _buildInitialsAvatar(size - 4),
                   errorWidget: (context, url, error) {
-                    debugPrint('❌ ProfileHeader avatar error: $error for URL: $url');
+                    debugPrint(
+                        '❌ ProfileHeader avatar error: $error for URL: $url');
                     return _buildInitialsAvatar(size - 4);
                   },
                   fadeInDuration: Duration.zero,

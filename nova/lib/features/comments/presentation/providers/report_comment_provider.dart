@@ -29,7 +29,8 @@ final reportCommentProvider = Provider<ReportComment>((ref) {
 class ReportCommentNotifier extends StateNotifier<AsyncValue<void>> {
   final ReportComment _reportComment;
 
-  ReportCommentNotifier(this._reportComment) : super(const AsyncValue.data(null));
+  ReportCommentNotifier(this._reportComment)
+      : super(const AsyncValue.data(null));
 
   /// Submit a report
   ///
@@ -79,7 +80,8 @@ enum ReportSubmissionResult {
 
 /// Provider for report submission state
 final reportCommentNotifierProvider =
-    StateNotifierProvider.autoDispose<ReportCommentNotifier, AsyncValue<void>>((ref) {
+    StateNotifierProvider.autoDispose<ReportCommentNotifier, AsyncValue<void>>(
+        (ref) {
   final reportComment = ref.read(reportCommentProvider);
   return ReportCommentNotifier(reportComment);
 });

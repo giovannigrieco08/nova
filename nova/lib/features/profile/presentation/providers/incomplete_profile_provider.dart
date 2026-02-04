@@ -30,8 +30,7 @@ class BannerDismissalNotifier extends StateNotifier<bool> {
   final SharedPreferences _prefs;
   static const String _key = 'incomplete_profile_banner_dismissed';
 
-  BannerDismissalNotifier(this._prefs)
-      : super(_prefs.getBool(_key) ?? false);
+  BannerDismissalNotifier(this._prefs) : super(_prefs.getBool(_key) ?? false);
 
   /// Dismiss the banner (hide for this session)
   Future<void> dismiss() async {

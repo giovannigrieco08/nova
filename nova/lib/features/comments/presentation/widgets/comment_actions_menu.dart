@@ -78,13 +78,15 @@ class CommentActionsMenu extends StatelessWidget {
     required this.child,
   });
 
-  bool get _isOwnComment => currentUserId != null && comment.userId == currentUserId;
+  bool get _isOwnComment =>
+      currentUserId != null && comment.userId == currentUserId;
   bool get _canEdit => _isOwnComment && comment.canEdit(DateTime.now());
   bool get _canDelete => _isOwnComment && !comment.isDeleted;
   bool get _canReply => !comment.isDeleted;
   bool get _canReport => !_isOwnComment && !comment.isDeleted;
   bool get _canCopy => !comment.isDeleted;
-  bool get _canModeratorRemove => isModerator && !comment.isDeleted && !comment.isHidden;
+  bool get _canModeratorRemove =>
+      isModerator && !comment.isDeleted && !comment.isHidden;
   bool get _canModeratorRestore => isModerator && comment.isHidden;
 
   @override
@@ -137,12 +139,14 @@ class CommentActionsMenu extends StatelessWidget {
               return ListTile(
                 leading: Icon(
                   action.icon,
-                  color: action.isDestructive ? NovaColors.error(context) : null,
+                  color:
+                      action.isDestructive ? NovaColors.error(context) : null,
                 ),
                 title: Text(
                   action.label,
                   style: NovaTypography.bodyMedium.copyWith(
-                    color: action.isDestructive ? NovaColors.error(context) : null,
+                    color:
+                        action.isDestructive ? NovaColors.error(context) : null,
                   ),
                 ),
                 onTap: () {
@@ -280,7 +284,8 @@ class _CommentAction {
 /// Copy comment text to clipboard
 ///
 /// Shows platform-adaptive feedback message.
-Future<void> copyCommentToClipboard(BuildContext context, Comment comment) async {
+Future<void> copyCommentToClipboard(
+    BuildContext context, Comment comment) async {
   await Clipboard.setData(ClipboardData(text: comment.displayText));
 
   if (context.mounted) {

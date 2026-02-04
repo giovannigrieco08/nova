@@ -73,7 +73,8 @@ class EventsRepository {
   ///
   /// Throws:
   /// - Exception if network fails and no cache available
-  Future<Event> getEventById(String eventId, {bool forceRefresh = false}) async {
+  Future<Event> getEventById(String eventId,
+      {bool forceRefresh = false}) async {
     // If not forcing refresh, try cache first
     if (!forceRefresh) {
       final cachedEvent = await _localDataSource.getCachedEventById(eventId);
@@ -348,7 +349,8 @@ class EventsRepository {
   }
 
   /// Get invitations received by user
-  Future<List<Map<String, dynamic>>> getReceivedInvitations(String userId) async {
+  Future<List<Map<String, dynamic>>> getReceivedInvitations(
+      String userId) async {
     return await _remoteDataSource.getReceivedInvitations(userId);
   }
 

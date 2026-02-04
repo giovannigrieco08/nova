@@ -87,17 +87,15 @@ class EventRemoteDataSource {
   /// RLS: coorganizers_view_events policy
   Future<List<EventModel>> getCoOrganizedEvents(String userId) async {
     try {
-      final response = await _supabase
-          .from('events')
-          .select()
-          .contains('co_organizers', [userId])
-          .order('created_at', ascending: false);
+      final response = await _supabase.from('events').select().contains(
+          'co_organizers', [userId]).order('created_at', ascending: false);
 
       return (response as List)
           .map((json) => EventModel.fromJson(json))
           .toList();
     } catch (e) {
-      throw RemoteDataSourceException('Failed to fetch co-organized events: $e');
+      throw RemoteDataSourceException(
+          'Failed to fetch co-organized events: $e');
     }
   }
 
@@ -183,7 +181,8 @@ class EventRemoteDataSource {
   Future<void> approveEvent(String eventId) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) throw RemoteDataSourceException('User not authenticated');
+      if (userId == null)
+        throw RemoteDataSourceException('User not authenticated');
 
       await _supabase.from('events').update({
         'status': 'approved',
@@ -202,7 +201,8 @@ class EventRemoteDataSource {
   Future<void> rejectEvent(String eventId, String rejectionReason) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) throw RemoteDataSourceException('User not authenticated');
+      if (userId == null)
+        throw RemoteDataSourceException('User not authenticated');
 
       // Validate rejection reason (min 10 chars)
       if (rejectionReason.trim().length < 10) {
@@ -261,9 +261,8 @@ class EventRemoteDataSource {
       }
 
       // Remove from array
-      final updatedCoOrganizers = event.coOrganizers
-          .where((id) => id != coOrganizerId)
-          .toList();
+      final updatedCoOrganizers =
+          event.coOrganizers.where((id) => id != coOrganizerId).toList();
 
       await _supabase.from('events').update({
         'co_organizers': updatedCoOrganizers,

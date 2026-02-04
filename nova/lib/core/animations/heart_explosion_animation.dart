@@ -33,7 +33,8 @@ class HeartExplosionAnimation extends StatefulWidget {
   });
 
   @override
-  State<HeartExplosionAnimation> createState() => _HeartExplosionAnimationState();
+  State<HeartExplosionAnimation> createState() =>
+      _HeartExplosionAnimationState();
 }
 
 class _HeartExplosionAnimationState extends State<HeartExplosionAnimation>

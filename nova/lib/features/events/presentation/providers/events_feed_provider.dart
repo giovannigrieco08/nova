@@ -218,7 +218,8 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
 /// Provider for the current user's pending events with real-time updates.
 /// Used to show a compact banner at the top of the feed.
 /// Updates automatically when event status changes (approved/rejected).
-final userPendingEventsProvider = StreamProvider.autoDispose<List<Event>>((ref) {
+final userPendingEventsProvider =
+    StreamProvider.autoDispose<List<Event>>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
   final userId = supabase.auth.currentUser?.id;
 

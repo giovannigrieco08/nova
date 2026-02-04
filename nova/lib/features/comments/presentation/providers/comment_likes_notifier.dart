@@ -8,9 +8,7 @@ import 'comments_notifier.dart';
 
 /// Provider for comment likes state management
 final commentLikesNotifierProvider = StateNotifierProvider.family<
-    CommentLikesNotifier,
-    CommentLikesState,
-    String>((ref, commentId) {
+    CommentLikesNotifier, CommentLikesState, String>((ref, commentId) {
   return CommentLikesNotifier(
     ref.read(commentsRepositoryProvider),
     ref,
@@ -100,7 +98,8 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
   /// 5. On success: Update comments list with server data
   /// 6. On error: Rollback to previous state, show error
   Future<void> toggleLike() async {
-    developer.log('toggleLike called for comment $_commentId, current state: isLiked=${state.isLiked}, likeCount=${state.likeCount}, isProcessing=${state.isProcessing}');
+    developer.log(
+        'toggleLike called for comment $_commentId, current state: isLiked=${state.isLiked}, likeCount=${state.likeCount}, isProcessing=${state.isProcessing}');
 
     // Prevent duplicate actions
     if (state.isProcessing) {
@@ -115,7 +114,8 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
     final newIsLiked = !state.isLiked;
     final newLikeCount = newIsLiked ? state.likeCount + 1 : state.likeCount - 1;
 
-    developer.log('toggleLike: Optimistic update - newIsLiked=$newIsLiked, newLikeCount=$newLikeCount');
+    developer.log(
+        'toggleLike: Optimistic update - newIsLiked=$newIsLiked, newLikeCount=$newLikeCount');
 
     state = state.copyWith(
       isLiked: newIsLiked,
@@ -131,7 +131,8 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
         final updatedComment = await _repository.likeComment(
           commentId: _commentId,
         );
-        developer.log('toggleLike: Like successful, server likeCount=${updatedComment.likeCount}');
+        developer.log(
+            'toggleLike: Like successful, server likeCount=${updatedComment.likeCount}');
 
         // Update comment in comments list
         _updateCommentInList(updatedComment);
@@ -148,7 +149,8 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
         final updatedComment = await _repository.unlikeComment(
           commentId: _commentId,
         );
-        developer.log('toggleLike: Unlike successful, server likeCount=${updatedComment.likeCount}');
+        developer.log(
+            'toggleLike: Unlike successful, server likeCount=${updatedComment.likeCount}');
 
         // Update comment in comments list
         _updateCommentInList(updatedComment);
@@ -165,7 +167,8 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
       // Rate limit exceeded - rollback and show error
       state = previousState.copyWith(
         isProcessing: false,
-        error: 'Hai raggiunto il limite di like. Riprova tra ${e.retryAfter.inMinutes} minuti.',
+        error:
+            'Hai raggiunto il limite di like. Riprova tra ${e.retryAfter.inMinutes} minuti.',
       );
     } on NetworkException catch (e) {
       developer.log('toggleLike: NetworkException - ${e.message}');
@@ -182,7 +185,8 @@ class CommentLikesNotifier extends StateNotifier<CommentLikesState> {
         isProcessing: false,
       );
     } catch (e, stackTrace) {
-      developer.log('toggleLike: Unknown error - $e', error: e, stackTrace: stackTrace);
+      developer.log('toggleLike: Unknown error - $e',
+          error: e, stackTrace: stackTrace);
       // Unknown error - rollback and show generic error
       state = previousState.copyWith(
         isProcessing: false,

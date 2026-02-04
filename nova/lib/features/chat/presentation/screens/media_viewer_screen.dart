@@ -184,7 +184,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Screenshot rilevato - il mittente è stato notificato'),
+          content: const Text(
+              'Screenshot rilevato - il mittente è stato notificato'),
           backgroundColor: NovaColors.warning(context),
         ),
       );
@@ -351,7 +352,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             return Center(
               child: CircularProgressIndicator(
                 value: progress.expectedTotalBytes != null
-                    ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                    ? progress.cumulativeBytesLoaded /
+                        progress.expectedTotalBytes!
                     : null,
                 color: Colors.white,
               ),

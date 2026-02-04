@@ -227,7 +227,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (_originalAvatarUrl != null && _originalAvatarUrl!.isNotEmpty) {
         await CachedNetworkImage.evictFromCache(_originalAvatarUrl!);
       }
-      if (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != _originalAvatarUrl) {
+      if (_avatarUrl != null &&
+          _avatarUrl!.isNotEmpty &&
+          _avatarUrl != _originalAvatarUrl) {
         await CachedNetworkImage.evictFromCache(_avatarUrl!);
       }
 
@@ -320,9 +322,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                             FileImage(_selectedAvatarFile!),
                                       )
                                     : AvatarInitials(
-                                        fullName: _nameController.text.isNotEmpty
-                                            ? _nameController.text
-                                            : 'Utente Nova',
+                                        fullName:
+                                            _nameController.text.isNotEmpty
+                                                ? _nameController.text
+                                                : 'Utente Nova',
                                       ),
                                 // Upload progress overlay
                                 Container(
@@ -416,15 +419,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         hintText: 'Giovanni Rossi',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(NovaRadius.m),
-                          borderSide: BorderSide(color: NovaColors.border(context)),
+                          borderSide:
+                              BorderSide(color: NovaColors.border(context)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(NovaRadius.m),
-                          borderSide: BorderSide(color: NovaColors.border(context)),
+                          borderSide:
+                              BorderSide(color: NovaColors.border(context)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(NovaRadius.m),
-                          borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+                          borderSide: BorderSide(
+                              color: NovaColors.primary(context), width: 2),
                         ),
                       ),
                       validator: Validators.validateName,
@@ -493,15 +499,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         hintText: 'Racconta qualcosa di te...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(NovaRadius.m),
-                          borderSide: BorderSide(color: NovaColors.border(context)),
+                          borderSide:
+                              BorderSide(color: NovaColors.border(context)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(NovaRadius.m),
-                          borderSide: BorderSide(color: NovaColors.border(context)),
+                          borderSide:
+                              BorderSide(color: NovaColors.border(context)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(NovaRadius.m),
-                          borderSide: BorderSide(color: NovaColors.primary(context), width: 2),
+                          borderSide: BorderSide(
+                              color: NovaColors.primary(context), width: 2),
                         ),
                         helperText: '$_bioCharCount/150 caratteri',
                         helperStyle: TextStyle(
@@ -515,7 +524,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       validator: Validators.validateBio,
                       enabled: !_isSaving,
                     ),
-
                   ],
                 ),
               ),

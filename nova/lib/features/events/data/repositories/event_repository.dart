@@ -80,7 +80,8 @@ class EventRepositoryImpl implements EventRepository {
       String? imageUrl;
       if (imageFile != null) {
         // Pass both userId and eventId - storage path uses userId for RLS
-        imageUrl = await uploadEventImage(imageFile, event.id, userId: event.creatorId);
+        imageUrl = await uploadEventImage(imageFile, event.id,
+            userId: event.creatorId);
       }
 
       // Step 2: Create event model with image URL
@@ -129,9 +130,11 @@ class EventRepositoryImpl implements EventRepository {
   }
 
   @override
-  Future<Event> updateEvent(String eventId, Map<String, dynamic> updates) async {
+  Future<Event> updateEvent(
+      String eventId, Map<String, dynamic> updates) async {
     try {
-      final updatedModel = await _remoteDataSource.updateEvent(eventId, updates);
+      final updatedModel =
+          await _remoteDataSource.updateEvent(eventId, updates);
       return updatedModel.toEntity();
     } catch (e) {
       throw EventRepositoryException('Failed to update event: $e');
@@ -202,7 +205,8 @@ class EventRepositoryImpl implements EventRepository {
   // =========================================================================
 
   @override
-  Future<String> uploadEventImage(File imageFile, String eventId, {String? userId}) async {
+  Future<String> uploadEventImage(File imageFile, String eventId,
+      {String? userId}) async {
     try {
       // Step 1: Compress image (WebP → JPEG fallback, max 200KB)
       final compressedBytes = await ImageCompressor.compressImage(imageFile);
@@ -214,7 +218,8 @@ class EventRepositoryImpl implements EventRepository {
       // Use userId as first path segment to comply with RLS policy
       // Path format: {userId}/{eventId}/{timestamp}.{ext}
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final uploadUserId = userId ?? _supabase.auth.currentUser?.id ?? 'unknown';
+      final uploadUserId =
+          userId ?? _supabase.auth.currentUser?.id ?? 'unknown';
       final fileName = '$uploadUserId/$eventId/$timestamp.$extension';
 
       // Step 4: Upload to Supabase Storage bucket 'event-images'
@@ -228,9 +233,8 @@ class EventRepositoryImpl implements EventRepository {
           );
 
       // Step 5: Get public URL
-      final publicUrl = _supabase.storage
-          .from('event-images')
-          .getPublicUrl(fileName);
+      final publicUrl =
+          _supabase.storage.from('event-images').getPublicUrl(fileName);
 
       return publicUrl;
     } catch (e) {

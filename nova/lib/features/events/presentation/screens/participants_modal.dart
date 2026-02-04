@@ -80,7 +80,8 @@ class ParticipantsModal extends StatelessWidget {
         children: [
           // Header with close button
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: NovaSpacing.l, vertical: NovaSpacing.m),
+            padding: const EdgeInsets.symmetric(
+                horizontal: NovaSpacing.l, vertical: NovaSpacing.m),
             child: Row(
               children: [
                 // Title
@@ -148,7 +149,8 @@ class ParticipantsModal extends StatelessWidget {
   /// Build single participant tile (Instagram-style)
   Widget _buildParticipantTile(BuildContext context, UserProfile participant) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: NovaSpacing.l, vertical: NovaSpacing.s),
+      padding: const EdgeInsets.symmetric(
+          horizontal: NovaSpacing.l, vertical: NovaSpacing.s),
       child: Row(
         children: [
           // Avatar (40x40 circle)

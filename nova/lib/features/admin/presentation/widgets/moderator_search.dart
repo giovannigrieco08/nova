@@ -21,7 +21,8 @@ import 'package:nova/features/admin/presentation/providers/admin_actions_notifie
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
 /// Provider for search results
-final searchResultsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final searchResultsProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final query = ref.watch(searchQueryProvider);
 
   if (query.isEmpty || query.length < 2) {
@@ -78,9 +79,9 @@ class _ModeratorSearchState extends ConsumerState<ModeratorSearch> {
 
     if (confirmed == true && mounted) {
       await ref.read(adminActionsNotifierProvider.notifier).promoteUser(
-        user['id'] as String,
-        user['full_name'] as String,
-      );
+            user['id'] as String,
+            user['full_name'] as String,
+          );
 
       // Clear search after successful promotion
       _clearSearch();

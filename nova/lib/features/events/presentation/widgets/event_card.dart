@@ -104,7 +104,7 @@ class EventCard extends ConsumerStatefulWidget {
 }
 
 class _EventCardState extends ConsumerState<EventCard> {
-  bool _isCaptionExpanded = false;  // Caption "altro" expansion
+  bool _isCaptionExpanded = false; // Caption "altro" expansion
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeLoading = false;
@@ -151,9 +151,12 @@ class _EventCardState extends ConsumerState<EventCard> {
   /// Supports collaborative events with multiple organizers
   Widget _buildHeader() {
     // Use creator info from event entity (joined from profiles table)
-    final organizerName = widget.event.creatorName ?? widget.organizerName ?? 'Organizer';
-    final organizerClass = widget.event.creatorClass ?? widget.organizerClass ?? '';
-    final organizerAvatarUrl = widget.event.creatorAvatarUrl ?? widget.organizerAvatarUrl;
+    final organizerName =
+        widget.event.creatorName ?? widget.organizerName ?? 'Organizer';
+    final organizerClass =
+        widget.event.creatorClass ?? widget.organizerClass ?? '';
+    final organizerAvatarUrl =
+        widget.event.creatorAvatarUrl ?? widget.organizerAvatarUrl;
     final hasCollaborators = widget.collaborators.isNotEmpty;
     final namesInfo = _buildCollaboratorNamesWithCount(organizerName);
     final hasTappableOthers = namesInfo.othersCount > 0;
@@ -168,7 +171,8 @@ class _EventCardState extends ConsumerState<EventCard> {
                 ? () => _showOrganizersSheet(organizerName, organizerClass)
                 : () => _navigateToCreatorProfile(),
             child: hasCollaborators
-                ? _buildCollaboratorAvatars(organizerName, avatarUrl: organizerAvatarUrl)
+                ? _buildCollaboratorAvatars(organizerName,
+                    avatarUrl: organizerAvatarUrl)
                 : _buildAvatar(organizerName, avatarUrl: organizerAvatarUrl),
           ),
           const SizedBox(width: 10),
@@ -181,7 +185,8 @@ class _EventCardState extends ConsumerState<EventCard> {
                 // Names row - tappable to show organizers sheet or navigate to profile
                 GestureDetector(
                   onTap: hasTappableOthers
-                      ? () => _showOrganizersSheet(organizerName, organizerClass)
+                      ? () =>
+                          _showOrganizersSheet(organizerName, organizerClass)
                       : () => _navigateToCreatorProfile(),
                   child: Text(
                     namesInfo.text,
@@ -189,7 +194,9 @@ class _EventCardState extends ConsumerState<EventCard> {
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
-                      decoration: hasTappableOthers ? TextDecoration.none : TextDecoration.none,
+                      decoration: hasTappableOthers
+                          ? TextDecoration.none
+                          : TextDecoration.none,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -199,7 +206,9 @@ class _EventCardState extends ConsumerState<EventCard> {
                 Text(
                   hasCollaborators
                       ? _buildCollaboratorClasses(organizerClass)
-                      : organizerClass.isNotEmpty ? organizerClass : 'Studente',
+                      : organizerClass.isNotEmpty
+                          ? organizerClass
+                          : 'Studente',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
@@ -284,7 +293,8 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Build overlapping avatars for collaborative events
-  Widget _buildCollaboratorAvatars(String mainOrganizerName, {String? avatarUrl}) {
+  Widget _buildCollaboratorAvatars(String mainOrganizerName,
+      {String? avatarUrl}) {
     final totalCount = 1 + widget.collaborators.length; // Main + collaborators
     final maxShow = 3; // Max avatars to show
     final showCount = totalCount > maxShow ? maxShow : totalCount;
@@ -308,7 +318,9 @@ class _EventCardState extends ConsumerState<EventCard> {
             child: _buildAvatar(mainOrganizerName, avatarUrl: avatarUrl),
           ),
           // Collaborator avatars (overlapping)
-          for (int i = 0; i < widget.collaborators.length && i < maxShow - 1; i++)
+          for (int i = 0;
+              i < widget.collaborators.length && i < maxShow - 1;
+              i++)
             Positioned(
               left: (i + 1) * overlapOffset,
               top: 0,
@@ -317,7 +329,8 @@ class _EventCardState extends ConsumerState<EventCard> {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: borderWidth),
                 ),
-                child: _buildAvatar(widget.collaborators[i].name, avatarUrl: widget.collaborators[i].avatarUrl),
+                child: _buildAvatar(widget.collaborators[i].name,
+                    avatarUrl: widget.collaborators[i].avatarUrl),
               ),
             ),
           // "+N" indicator if more than maxShow
@@ -352,18 +365,26 @@ class _EventCardState extends ConsumerState<EventCard> {
 
   /// Build comma-separated names for collaborative events
   /// Returns a record with (displayText, othersCount) for tap handling
-  ({String text, int othersCount}) _buildCollaboratorNamesWithCount(String mainOrganizerName) {
+  ({String text, int othersCount}) _buildCollaboratorNamesWithCount(
+      String mainOrganizerName) {
     if (widget.collaborators.isEmpty) {
       return (text: mainOrganizerName, othersCount: 0);
     }
 
-    final names = [mainOrganizerName, ...widget.collaborators.map((c) => c.name)];
+    final names = [
+      mainOrganizerName,
+      ...widget.collaborators.map((c) => c.name)
+    ];
     if (names.length == 2) {
       return (text: names.join(' e '), othersCount: 0);
     } else {
       final othersCount = names.length - 2;
-      final othersText = othersCount == 1 ? 'e 1 altro' : 'e altri $othersCount';
-      return (text: '${names.first}, ${names[1]} $othersText', othersCount: othersCount);
+      final othersText =
+          othersCount == 1 ? 'e 1 altro' : 'e altri $othersCount';
+      return (
+        text: '${names.first}, ${names[1]} $othersText',
+        othersCount: othersCount
+      );
     }
   }
 
@@ -535,7 +556,9 @@ class _EventCardState extends ConsumerState<EventCard> {
         children: [
           RichText(
             maxLines: _isCaptionExpanded ? null : 2,
-            overflow: _isCaptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+            overflow: _isCaptionExpanded
+                ? TextOverflow.visible
+                : TextOverflow.ellipsis,
             text: TextSpan(
               style: const TextStyle(
                 fontSize: 14,
@@ -554,7 +577,8 @@ class _EventCardState extends ConsumerState<EventCard> {
           ),
           if (_shouldShowMoreButton())
             GestureDetector(
-              onTap: () => setState(() => _isCaptionExpanded = !_isCaptionExpanded),
+              onTap: () =>
+                  setState(() => _isCaptionExpanded = !_isCaptionExpanded),
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
@@ -593,7 +617,8 @@ class _EventCardState extends ConsumerState<EventCard> {
           // Partecipo button (expanded) - toggles participation status
           Expanded(
             child: ElevatedButton(
-              onPressed: _isParticipateLoading ? null : _handleParticipateToggle,
+              onPressed:
+                  _isParticipateLoading ? null : _handleParticipateToggle,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isParticipating
                     ? NovaColors.grayMedium
@@ -734,7 +759,8 @@ class _EventCardState extends ConsumerState<EventCard> {
   /// Only shows unfulfilled requests and handles selection logic
   Widget _buildHelpRequestsBadge() {
     // Filter only unfulfilled requests
-    final openRequests = widget.helpRequests.where((r) => !r.isFulfilled).toList();
+    final openRequests =
+        widget.helpRequests.where((r) => !r.isFulfilled).toList();
     if (openRequests.isEmpty) return const SizedBox.shrink();
 
     final requestCount = openRequests.length;
@@ -807,7 +833,8 @@ class _EventCardState extends ConsumerState<EventCard> {
               style: TextButton.styleFrom(
                 backgroundColor: NovaColors.helpAccent,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: NovaRadius.circularFull,
                 ),
@@ -1048,7 +1075,8 @@ class _EventCardState extends ConsumerState<EventCard> {
                 ),
                 // Search bar + Invite button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       // Search field
@@ -1076,7 +1104,8 @@ class _EventCardState extends ConsumerState<EventCard> {
                             filled: true,
                             fillColor: NovaColors.grayLight,
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 10),
                           ),
                           style: const TextStyle(
                             fontSize: 16,
@@ -1115,9 +1144,11 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Build participants list or empty state
-  Widget _buildParticipantsList(ScrollController scrollController, [String searchQuery = '']) {
+  Widget _buildParticipantsList(ScrollController scrollController,
+      [String searchQuery = '']) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: ref.read(eventsRepositoryProvider).getParticipants(widget.event.id),
+      future:
+          ref.read(eventsRepositoryProvider).getParticipants(widget.event.id),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -1155,7 +1186,8 @@ class _EventCardState extends ConsumerState<EventCard> {
           participants = participants.where((p) {
             final name = (p['full_name'] as String? ?? '').toLowerCase();
             final className = (p['class'] as String? ?? '').toLowerCase();
-            return name.contains(searchQuery) || className.contains(searchQuery);
+            return name.contains(searchQuery) ||
+                className.contains(searchQuery);
           }).toList();
         }
 
@@ -1173,7 +1205,9 @@ class _EventCardState extends ConsumerState<EventCard> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  isSearching ? 'Nessun risultato' : 'Nessun partecipante ancora',
+                  isSearching
+                      ? 'Nessun risultato'
+                      : 'Nessun partecipante ancora',
                   style: const TextStyle(
                     fontSize: 16,
                     color: NovaColors.grayDark,
@@ -1181,7 +1215,9 @@ class _EventCardState extends ConsumerState<EventCard> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  isSearching ? 'Prova con un altro nome' : 'Sii il primo a partecipare!',
+                  isSearching
+                      ? 'Prova con un altro nome'
+                      : 'Sii il primo a partecipare!',
                   style: const TextStyle(
                     fontSize: 14,
                     color: NovaColors.textTertiaryLight,
@@ -1205,7 +1241,8 @@ class _EventCardState extends ConsumerState<EventCard> {
               leading: CircleAvatar(
                 radius: 24,
                 backgroundColor: NovaColors.brandViolet.withValues(alpha: 0.2),
-                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                backgroundImage:
+                    avatarUrl != null ? NetworkImage(avatarUrl) : null,
                 child: avatarUrl == null
                     ? Text(
                         name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -1267,10 +1304,12 @@ class _EventCardState extends ConsumerState<EventCard> {
       final repository = ref.read(eventsRepositoryProvider);
       if (!wasParticipating) {
         // Was not participating, now participate
-        await repository.participateInEvent(eventId: widget.event.id, userId: userId);
+        await repository.participateInEvent(
+            eventId: widget.event.id, userId: userId);
       } else {
         // Was participating, now unparticipate
-        await repository.unparticipateFromEvent(eventId: widget.event.id, userId: userId);
+        await repository.unparticipateFromEvent(
+            eventId: widget.event.id, userId: userId);
       }
     } catch (e) {
       // Revert on error
@@ -1280,9 +1319,10 @@ class _EventCardState extends ConsumerState<EventCard> {
           _participantCount += wasParticipating ? 1 : -1;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(wasParticipating
-            ? 'Errore durante l\'annullamento'
-            : 'Errore durante la partecipazione')),
+          SnackBar(
+              content: Text(wasParticipating
+                  ? 'Errore durante l\'annullamento'
+                  : 'Errore durante la partecipazione')),
         );
       }
     } finally {
@@ -1305,7 +1345,8 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Show bottom sheet with all organizers (main + collaborators)
-  void _showOrganizersSheet(String mainOrganizerName, String mainOrganizerClass) {
+  void _showOrganizersSheet(
+      String mainOrganizerName, String mainOrganizerClass) {
     final allOrganizers = [
       EventCollaborator(
         name: mainOrganizerName,
@@ -1349,7 +1390,8 @@ class _EventCardState extends ConsumerState<EventCard> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: NovaColors.placeholder,
                       borderRadius: NovaRadius.circularS,
@@ -1415,7 +1457,8 @@ class _EventCardState extends ConsumerState<EventCard> {
                     if (isMain) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: NovaColors.brandViolet.withValues(alpha: 0.1),
                           borderRadius: NovaRadius.circularXxs,
@@ -1433,7 +1476,9 @@ class _EventCardState extends ConsumerState<EventCard> {
                   ],
                 ),
                 subtitle: Text(
-                  organizer.className.isNotEmpty ? organizer.className : 'Studente',
+                  organizer.className.isNotEmpty
+                      ? organizer.className
+                      : 'Studente',
                   style: const TextStyle(
                     fontSize: 14,
                     color: NovaColors.grayDark,
@@ -1505,7 +1550,8 @@ class _EventCardState extends ConsumerState<EventCard> {
         eventTitle: widget.event.title,
         onReport: (reason, description) async {
           try {
-            final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
+            final userId =
+                ref.read(supabaseClientProvider).auth.currentUser?.id;
             if (userId == null) {
               throw Exception('Utente non autenticato');
             }
@@ -1521,7 +1567,8 @@ class _EventCardState extends ConsumerState<EventCard> {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Segnalazione inviata. Grazie per il feedback!'),
+                  content:
+                      Text('Segnalazione inviata. Grazie per il feedback!'),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -1568,10 +1615,18 @@ class _ReportEventDialogState extends State<_ReportEventDialog> {
   bool _isSubmitting = false;
 
   static const _reportReasons = [
-    ('inappropriate', 'Contenuto inappropriato', 'Contenuti offensivi, volgari o non adatti'),
+    (
+      'inappropriate',
+      'Contenuto inappropriato',
+      'Contenuti offensivi, volgari o non adatti'
+    ),
     ('spam', 'Spam', 'Contenuti pubblicitari o ripetitivi'),
     ('harassment', 'Molestie', 'Bullismo, minacce o contenuti intimidatori'),
-    ('misleading', 'Informazioni false', 'Informazioni fuorvianti o non veritiere'),
+    (
+      'misleading',
+      'Informazioni false',
+      'Informazioni fuorvianti o non veritiere'
+    ),
     ('other', 'Altro', 'Altra motivazione'),
   ];
 
@@ -1599,20 +1654,20 @@ class _ReportEventDialogState extends State<_ReportEventDialog> {
             ),
             const SizedBox(height: 12),
             ..._reportReasons.map((reason) => RadioListTile<String>(
-              title: Text(reason.$2),
-              subtitle: Text(
-                reason.$3,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: NovaColors.textTertiary(context),
-                ),
-              ),
-              value: reason.$1,
-              groupValue: _selectedReason,
-              onChanged: (value) => setState(() => _selectedReason = value),
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-            )),
+                  title: Text(reason.$2),
+                  subtitle: Text(
+                    reason.$3,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: NovaColors.textTertiary(context),
+                    ),
+                  ),
+                  value: reason.$1,
+                  groupValue: _selectedReason,
+                  onChanged: (value) => setState(() => _selectedReason = value),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                )),
             const SizedBox(height: 12),
             TextField(
               controller: _descriptionController,
@@ -1635,9 +1690,8 @@ class _ReportEventDialogState extends State<_ReportEventDialog> {
           child: const Text('Annulla'),
         ),
         ElevatedButton(
-          onPressed: _selectedReason == null || _isSubmitting
-              ? null
-              : _submitReport,
+          onPressed:
+              _selectedReason == null || _isSubmitting ? null : _submitReport,
           child: _isSubmitting
               ? const SizedBox(
                   width: 20,

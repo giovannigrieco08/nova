@@ -300,7 +300,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          _allowReplay ? Icons.replay : Icons.looks_one_outlined,
+                          _allowReplay
+                              ? Icons.replay
+                              : Icons.looks_one_outlined,
                           color: Colors.white,
                           size: 20,
                         ),
@@ -310,7 +312,8 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                             _allowReplay
                                 ? 'Consenti di riprodurre di nuovo'
                                 : 'Consenti 1 sola visualizzazione',
-                            style: NovaTypography.bodySmall.copyWith(color: Colors.white),
+                            style: NovaTypography.bodySmall
+                                .copyWith(color: Colors.white),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),

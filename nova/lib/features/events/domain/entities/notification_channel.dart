@@ -45,7 +45,8 @@ extension NotificationChannelExtension on NotificationChannel {
       NotificationChannel.eventApproved => 'Evento Approvato',
       NotificationChannel.eventRejected => 'Evento Rifiutato',
       NotificationChannel.newPendingEvent => 'Nuovo Evento Pendente',
-      NotificationChannel.addedAsCoorganizer => 'Aggiunto come Co-Organizzatore',
+      NotificationChannel.addedAsCoorganizer =>
+        'Aggiunto come Co-Organizzatore',
       NotificationChannel.eventModified => 'Evento Modificato',
     };
   }

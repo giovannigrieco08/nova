@@ -106,7 +106,8 @@ class _ShimmerEffectState extends State<ShimmerEffect>
       animation: _animation,
       builder: (context, child) {
         // Map animation value (-1.0 to 2.0) to opacity (0.3 to 0.7)
-        final normalizedValue = ((_animation.value + 1.0) / 3.0).clamp(0.0, 1.0);
+        final normalizedValue =
+            ((_animation.value + 1.0) / 3.0).clamp(0.0, 1.0);
         final opacity = 0.3 + (normalizedValue * 0.4);
         return Opacity(
           opacity: opacity,
@@ -172,8 +173,8 @@ class ShimmerBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final base = baseColor ??
-        (isDark ? NovaColors.cardDark : NovaColors.cardLight);
+    final base =
+        baseColor ?? (isDark ? NovaColors.cardDark : NovaColors.cardLight);
 
     return ShimmerEffect(
       baseColor: baseColor,

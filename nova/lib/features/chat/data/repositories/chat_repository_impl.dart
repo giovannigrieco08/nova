@@ -152,8 +152,7 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<Map<String, List<String>>> getReactionsForMessage(
       String messageId) async {
-    final reactions =
-        await _remoteDataSource.getReactionsForMessage(messageId);
+    final reactions = await _remoteDataSource.getReactionsForMessage(messageId);
 
     final result = <String, List<String>>{};
     for (final reaction in reactions) {

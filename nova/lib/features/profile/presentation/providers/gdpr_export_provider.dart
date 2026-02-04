@@ -41,7 +41,9 @@ class GDPRExportState {
   bool get isSuccess => downloadUrl != null && error == null && !isExporting;
   bool get isError => error != null;
   String? get errorMessage => error;
-  GDPRExportMetadata? get metadata => downloadUrl != null ? GDPRExportMetadata(downloadUrl: downloadUrl!) : null;
+  GDPRExportMetadata? get metadata => downloadUrl != null
+      ? GDPRExportMetadata(downloadUrl: downloadUrl!)
+      : null;
 }
 
 /// GDPR Export Notifier
@@ -83,7 +85,8 @@ class GDPRExportNotifier extends StateNotifier<GDPRExportState> {
 }
 
 /// Provider for GDPR export functionality
-final gdprExportProvider = StateNotifierProvider<GDPRExportNotifier, GDPRExportState>((ref) {
+final gdprExportProvider =
+    StateNotifierProvider<GDPRExportNotifier, GDPRExportState>((ref) {
   return GDPRExportNotifier();
 });
 
@@ -163,7 +166,8 @@ class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
         isDeleting: false,
         error: _getErrorMessage(e),
       );
-      debugPrint('[AccountDeletion] State updated with error: ${_getErrorMessage(e)}');
+      debugPrint(
+          '[AccountDeletion] State updated with error: ${_getErrorMessage(e)}');
     }
   }
 
@@ -189,6 +193,7 @@ class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
 }
 
 /// Provider for account deletion
-final accountDeletionProvider = StateNotifierProvider<AccountDeletionNotifier, AccountDeletionState>((ref) {
+final accountDeletionProvider =
+    StateNotifierProvider<AccountDeletionNotifier, AccountDeletionState>((ref) {
   return AccountDeletionNotifier(ref);
 });

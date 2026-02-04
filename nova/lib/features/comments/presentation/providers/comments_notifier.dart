@@ -25,10 +25,9 @@ final commentsRepositoryProvider = Provider<CommentsRepositoryInterface>((ref) {
 /// ```dart
 /// final commentsAsync = ref.watch(commentsNotifierProvider(eventId));
 /// ```
-final commentsNotifierProvider = AsyncNotifierProvider.family<
-    CommentsNotifier,
-    CommentsState,
-    String>(CommentsNotifier.new);
+final commentsNotifierProvider =
+    AsyncNotifierProvider.family<CommentsNotifier, CommentsState, String>(
+        CommentsNotifier.new);
 
 /// Paginated comments state
 ///
@@ -327,7 +326,8 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
   void removeComment(String commentId) {
     state.whenData((currentState) {
       state = AsyncValue.data(currentState.copyWith(
-        comments: currentState.comments.where((c) => c.id != commentId).toList(),
+        comments:
+            currentState.comments.where((c) => c.id != commentId).toList(),
       ));
     });
   }

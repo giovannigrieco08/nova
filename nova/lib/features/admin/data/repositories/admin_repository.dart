@@ -85,15 +85,11 @@ class AdminRepository {
   /// Joins user_roles, profiles, and moderator_stats tables.
   Future<List<Moderator>> getModerators() async {
     try {
-      final response = await _supabase
-          .from('user_roles')
-          .select('''
+      final response = await _supabase.from('user_roles').select('''
             user_id,
             profiles!inner(full_name, email, class_name),
             moderator_stats(total_reviews, reviews_this_week, approval_rate_percent, last_review_at)
-          ''')
-          .eq('role', 'moderator')
-          .order('profiles(full_name)');
+          ''').eq('role', 'moderator').order('profiles(full_name)');
 
       return (response as List).map((json) {
         final profile = json['profiles'] as Map<String, dynamic>;
@@ -106,7 +102,8 @@ class AdminRepository {
           className: profile['class_name'] as String,
           totalReviews: stats?['total_reviews'] ?? 0,
           reviewsThisWeek: stats?['reviews_this_week'] ?? 0,
-          approvalRatePercent: (stats?['approval_rate_percent'] ?? 0).toDouble(),
+          approvalRatePercent:
+              (stats?['approval_rate_percent'] ?? 0).toDouble(),
           lastReviewAt: stats?['last_review_at'] != null
               ? DateTime.parse(stats!['last_review_at'] as String)
               : null,
@@ -167,9 +164,7 @@ class AdminRepository {
       if (actionType == null ||
           actionType == 'approved' ||
           actionType == 'rejected') {
-        var moderationQuery = _supabase
-            .from('moderation_log')
-            .select('''
+        var moderationQuery = _supabase.from('moderation_log').select('''
               id,
               event_id,
               moderator_id,
@@ -185,13 +180,16 @@ class AdminRepository {
           moderationQuery = moderationQuery.eq('action', actionType);
         }
         if (startDate != null) {
-          moderationQuery = moderationQuery.gte('created_at', startDate.toIso8601String());
+          moderationQuery =
+              moderationQuery.gte('created_at', startDate.toIso8601String());
         }
         if (endDate != null) {
-          moderationQuery = moderationQuery.lte('created_at', endDate.toIso8601String());
+          moderationQuery =
+              moderationQuery.lte('created_at', endDate.toIso8601String());
         }
 
-        final moderationResponse = await moderationQuery.order('created_at', ascending: false);
+        final moderationResponse =
+            await moderationQuery.order('created_at', ascending: false);
 
         for (final item in moderationResponse as List) {
           final event = item['events'] as Map<String, dynamic>?;
@@ -201,7 +199,8 @@ class AdminRepository {
             id: item['id'] as String,
             type: 'moderation',
             actorId: item['moderator_id'] as String,
-            actorName: profile?['full_name'] as String? ?? 'Moderatore sconosciuto',
+            actorName:
+                profile?['full_name'] as String? ?? 'Moderatore sconosciuto',
             action: item['action'] as String,
             timestamp: DateTime.parse(item['created_at'] as String),
             eventId: item['event_id'] as String?,
@@ -232,23 +231,27 @@ class AdminRepository {
           adminQuery = adminQuery.eq('action', actionType);
         }
         if (startDate != null) {
-          adminQuery = adminQuery.gte('created_at', startDate.toIso8601String());
+          adminQuery =
+              adminQuery.gte('created_at', startDate.toIso8601String());
         }
         if (endDate != null) {
           adminQuery = adminQuery.lte('created_at', endDate.toIso8601String());
         }
 
-        final adminResponse = await adminQuery.order('created_at', ascending: false);
+        final adminResponse =
+            await adminQuery.order('created_at', ascending: false);
 
         for (final item in adminResponse as List) {
           final adminProfile = item['admin_profiles'] as Map<String, dynamic>?;
-          final targetProfile = item['target_profiles'] as Map<String, dynamic>?;
+          final targetProfile =
+              item['target_profiles'] as Map<String, dynamic>?;
 
           entries.add(ActivityLogEntry(
             id: item['id'] as String,
             type: 'admin',
             actorId: item['admin_id'] as String,
-            actorName: adminProfile?['full_name'] as String? ?? 'Admin sconosciuto',
+            actorName:
+                adminProfile?['full_name'] as String? ?? 'Admin sconosciuto',
             action: item['action'] as String,
             timestamp: DateTime.parse(item['created_at'] as String),
             targetUserId: item['target_user_id'] as String?,

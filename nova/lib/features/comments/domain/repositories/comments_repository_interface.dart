@@ -24,7 +24,8 @@ enum CommentSortOrder {
 class PaginatedComments {
   final List<Comment> comments;
   final bool hasMore; // True if more pages available
-  final DateTime? nextCursor; // Cursor for next page (created_at of last comment)
+  final DateTime?
+      nextCursor; // Cursor for next page (created_at of last comment)
 
   const PaginatedComments({
     required this.comments,

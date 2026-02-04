@@ -17,7 +17,11 @@ class AppRoute {
   const AppRoute({
     required this.path,
     required this.builder,
-    this.allowedRoles = const [UserRole.student, UserRole.moderator, UserRole.admin],
+    this.allowedRoles = const [
+      UserRole.student,
+      UserRole.moderator,
+      UserRole.admin
+    ],
   });
 }
 

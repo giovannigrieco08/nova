@@ -108,9 +108,13 @@ class NotificationRemoteDataSource {
   /// Batch update for current user
   Future<void> markAllAsRead(String userId) async {
     try {
-      await _supabase.from('notifications').update({
-        'read': true,
-      }).eq('user_id', userId).eq('read', false); // Only update unread ones
+      await _supabase
+          .from('notifications')
+          .update({
+            'read': true,
+          })
+          .eq('user_id', userId)
+          .eq('read', false); // Only update unread ones
     } catch (e) {
       throw NotificationDataSourceException('Failed to mark all as read: $e');
     }

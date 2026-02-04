@@ -94,7 +94,8 @@ class AdaptiveButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(
           horizontal: NovaSpacing.l,
           vertical: NovaSpacing.m,
-        ), minimumSize: Size(height, height),
+        ),
+        minimumSize: Size(height, height),
         child: child,
       );
     }

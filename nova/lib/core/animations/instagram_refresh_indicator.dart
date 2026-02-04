@@ -67,7 +67,8 @@ class _InstagramRefreshIndicatorState extends State<InstagramRefreshIndicator>
   @override
   Widget build(BuildContext context) {
     // Calculate opacity based on pull progress or refreshing state
-    final opacity = widget.isRefreshing ? 1.0 : widget.pullProgress.clamp(0.0, 1.0);
+    final opacity =
+        widget.isRefreshing ? 1.0 : widget.pullProgress.clamp(0.0, 1.0);
 
     if (opacity == 0) {
       return const SizedBox.shrink();
@@ -119,7 +120,8 @@ class _InstagramSpinnerPainter extends CustomPainter {
 
     for (int i = 0; i < lineCount; i++) {
       // Vary opacity for each line (creates the gradient effect)
-      final lineOpacity = (0.3 + (0.7 * ((lineCount - i) / lineCount))).clamp(0.0, 1.0);
+      final lineOpacity =
+          (0.3 + (0.7 * ((lineCount - i) / lineCount))).clamp(0.0, 1.0);
 
       final paint = Paint()
         ..color = color.withValues(alpha: lineOpacity * progress)
@@ -169,7 +171,8 @@ class InstagramRefreshWrapper extends StatefulWidget {
   });
 
   @override
-  State<InstagramRefreshWrapper> createState() => _InstagramRefreshWrapperState();
+  State<InstagramRefreshWrapper> createState() =>
+      _InstagramRefreshWrapperState();
 }
 
 class _InstagramRefreshWrapperState extends State<InstagramRefreshWrapper> {
@@ -206,7 +209,8 @@ class _InstagramRefreshWrapperState extends State<InstagramRefreshWrapper> {
         // Pulling down (overscroll)
         final overscroll = -notification.metrics.pixels;
         setState(() {
-          _pullProgress = (overscroll / _refreshTriggerDistance).clamp(0.0, 1.0);
+          _pullProgress =
+              (overscroll / _refreshTriggerDistance).clamp(0.0, 1.0);
         });
       } else if (_pullProgress > 0) {
         setState(() {
@@ -239,7 +243,8 @@ class _InstagramRefreshWrapperState extends State<InstagramRefreshWrapper> {
           // Instagram-style indicator (positioned below app bar)
           if (_isRefreshing || _pullProgress > 0)
             Positioned(
-              top: _indicatorOffset - (_pullProgress * 20), // Slight bounce effect
+              top: _indicatorOffset -
+                  (_pullProgress * 20), // Slight bounce effect
               left: 0,
               right: 0,
               child: Center(

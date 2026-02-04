@@ -11,8 +11,8 @@ class ChatMediaInfo {
   final String storagePath;
   final ChatMediaType mediaType;
   final int fileSizeBytes;
-  final int maxViews;        // Maximum views allowed (1 or 2)
-  final int viewCount;       // Current view count
+  final int maxViews; // Maximum views allowed (1 or 2)
+  final int viewCount; // Current view count
   final DateTime? viewedAt;
   final String? viewedByUserId;
   final bool screenshotDetected;

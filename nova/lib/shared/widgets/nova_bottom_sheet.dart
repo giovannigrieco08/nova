@@ -42,7 +42,8 @@ class NovaBottomSheet {
       isDismissible: isDismissible,
       enableDrag: true,
       // Transparent on iOS for glass effect, solid on Android
-      backgroundColor: isIOS ? Colors.transparent : NovaColors.background(context),
+      backgroundColor:
+          isIOS ? Colors.transparent : NovaColors.background(context),
       // Use lighter barrier in light mode for better glass effect visibility
       barrierColor: isDark ? Colors.black54 : Colors.black38,
       shape: RoundedRectangleBorder(

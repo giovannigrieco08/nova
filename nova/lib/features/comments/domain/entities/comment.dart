@@ -234,8 +234,7 @@ class Comment {
       authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
       authorClass: authorClass ?? this.authorClass,
       authorRole: authorRole ?? this.authorRole,
-      isLikedByCurrentUser:
-          isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+      isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
       replies: replies ?? this.replies,
     );
   }

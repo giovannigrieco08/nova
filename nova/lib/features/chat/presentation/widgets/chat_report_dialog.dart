@@ -65,7 +65,8 @@ class _ChatReportDialogState extends ConsumerState<ChatReportDialog> {
             SizedBox(height: NovaSpacing.m),
 
             // Reason options
-            ...ChatReportReason.values.map((reason) => _buildReasonOption(context, reason)),
+            ...ChatReportReason.values
+                .map((reason) => _buildReasonOption(context, reason)),
 
             SizedBox(height: NovaSpacing.l),
 
@@ -74,7 +75,8 @@ class _ChatReportDialogState extends ConsumerState<ChatReportDialog> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                  onPressed:
+                      _isSubmitting ? null : () => Navigator.pop(context),
                   child: Text(
                     'Annulla',
                     style: NovaTypography.bodyMedium.copyWith(
@@ -124,7 +126,9 @@ class _ChatReportDialogState extends ConsumerState<ChatReportDialog> {
               : NovaColors.card(context),
           borderRadius: BorderRadius.circular(NovaRadius.m),
           border: Border.all(
-            color: isSelected ? NovaColors.error(context) : NovaColors.card(context).withValues(alpha: 0.0),
+            color: isSelected
+                ? NovaColors.error(context)
+                : NovaColors.card(context).withValues(alpha: 0.0),
           ),
         ),
         child: Row(
@@ -136,7 +140,9 @@ class _ChatReportDialogState extends ConsumerState<ChatReportDialog> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? NovaColors.error(context) : NovaColors.textTertiary(context),
+                  color: isSelected
+                      ? NovaColors.error(context)
+                      : NovaColors.textTertiary(context),
                   width: 2,
                 ),
               ),

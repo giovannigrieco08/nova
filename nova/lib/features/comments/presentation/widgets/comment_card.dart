@@ -38,6 +38,7 @@ class CommentCard extends ConsumerStatefulWidget {
   final String? currentUserId;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
+
   /// Nesting depth: 0=top-level, 1-3=replies
   final int depth;
   final VoidCallback? onLikeTap;
@@ -116,8 +117,7 @@ class _CommentCardState extends ConsumerState<CommentCard>
   void _onHorizontalDragEnd(DragEndDetails details) {
     // Check if threshold was reached to trigger reply
     // Only allow reply if depth < maxDepth
-    if (_dragOffset.abs() >= CommentCard._swipeThreshold &&
-        widget.canReply) {
+    if (_dragOffset.abs() >= CommentCard._swipeThreshold && widget.canReply) {
       ref
           .read(replyModeNotifierProvider(widget.eventId).notifier)
           .startReply(widget.comment);
@@ -164,11 +164,9 @@ class _CommentCardState extends ConsumerState<CommentCard>
       onDelete: widget.onDelete,
       onEdit: widget.onEdit,
       child: GestureDetector(
-        onHorizontalDragUpdate: widget.canReply
-            ? _onHorizontalDragUpdate
-            : null,
-        onHorizontalDragEnd:
-            widget.canReply ? _onHorizontalDragEnd : null,
+        onHorizontalDragUpdate:
+            widget.canReply ? _onHorizontalDragUpdate : null,
+        onHorizontalDragEnd: widget.canReply ? _onHorizontalDragEnd : null,
         child: Stack(
           children: [
             // Reply icon (revealed on swipe)
@@ -338,8 +336,10 @@ class _CommentCardState extends ConsumerState<CommentCard>
   /// Like button column with heart icon and count below
   /// Instagram-style: consistent size for all comments
   Widget _buildLikeColumn() {
-    final likesState = ref.watch(commentLikesNotifierProvider(widget.comment.id));
-    final likesNotifier = ref.read(commentLikesNotifierProvider(widget.comment.id).notifier);
+    final likesState =
+        ref.watch(commentLikesNotifierProvider(widget.comment.id));
+    final likesNotifier =
+        ref.read(commentLikesNotifierProvider(widget.comment.id).notifier);
 
     // Initialize likes state from comment on first render
     // Use post-frame callback to avoid modifying state during build
@@ -347,20 +347,26 @@ class _CommentCardState extends ConsumerState<CommentCard>
       // Only initialize if state hasn't been set yet (default state)
       // Check if state matches default values AND differs from comment
       final needsInit = likesState.likeCount == 0 &&
-                        !likesState.isLiked &&
-                        !likesState.isProcessing &&
-                        (widget.comment.likeCount > 0 || widget.comment.isLikedByCurrentUser);
+          !likesState.isLiked &&
+          !likesState.isProcessing &&
+          (widget.comment.likeCount > 0 || widget.comment.isLikedByCurrentUser);
       if (needsInit) {
-        developer.log('CommentCard: Initializing likes state from comment ${widget.comment.id}');
+        developer.log(
+            'CommentCard: Initializing likes state from comment ${widget.comment.id}');
         likesNotifier.initializeFromComment(widget.comment);
       }
     });
 
     // Use state from notifier if it's been initialized (likeCount > 0, isLiked true, or isProcessing)
     // Otherwise fallback to comment data
-    final isInitialized = likesState.likeCount > 0 || likesState.isLiked || likesState.isProcessing;
-    final isLiked = isInitialized ? likesState.isLiked : widget.comment.isLikedByCurrentUser;
-    final likeCount = isInitialized ? likesState.likeCount : widget.comment.likeCount;
+    final isInitialized = likesState.likeCount > 0 ||
+        likesState.isLiked ||
+        likesState.isProcessing;
+    final isLiked = isInitialized
+        ? likesState.isLiked
+        : widget.comment.isLikedByCurrentUser;
+    final likeCount =
+        isInitialized ? likesState.likeCount : widget.comment.likeCount;
 
     // Show error if present using Overlay (works without Scaffold)
     if (likesState.error != null) {
@@ -384,7 +390,8 @@ class _CommentCardState extends ConsumerState<CommentCard>
             onTap: likesState.isProcessing
                 ? null
                 : () {
-                    developer.log('CommentCard: Like tapped for ${widget.comment.id}, isInitialized=$isInitialized, isLiked=$isLiked');
+                    developer.log(
+                        'CommentCard: Like tapped for ${widget.comment.id}, isInitialized=$isInitialized, isLiked=$isLiked');
                     // Haptic feedback on like
                     HapticFeedback.lightImpact();
                     // Initialize if first interaction (state not yet set)
@@ -492,12 +499,25 @@ class _CommentCardState extends ConsumerState<CommentCard>
   }
 
   /// Show feedback for report submission
-  void _showReportFeedback(BuildContext context, ReportSubmissionResult result) {
+  void _showReportFeedback(
+      BuildContext context, ReportSubmissionResult result) {
     final (message, backgroundColor) = switch (result) {
-      ReportSubmissionResult.success => ('Segnalazione inviata', NovaColors.successLight),
-      ReportSubmissionResult.duplicate => ('Hai già segnalato questo commento', NovaColors.warningLight),
-      ReportSubmissionResult.validationError => ('I dettagli sono troppo lunghi (max 500 caratteri)', NovaColors.errorLight),
-      ReportSubmissionResult.error => ('Errore durante l\'invio. Riprova più tardi.', NovaColors.errorLight),
+      ReportSubmissionResult.success => (
+          'Segnalazione inviata',
+          NovaColors.successLight
+        ),
+      ReportSubmissionResult.duplicate => (
+          'Hai già segnalato questo commento',
+          NovaColors.warningLight
+        ),
+      ReportSubmissionResult.validationError => (
+          'I dettagli sono troppo lunghi (max 500 caratteri)',
+          NovaColors.errorLight
+        ),
+      ReportSubmissionResult.error => (
+          'Errore durante l\'invio. Riprova più tardi.',
+          NovaColors.errorLight
+        ),
     };
 
     ScaffoldMessenger.of(context).showSnackBar(

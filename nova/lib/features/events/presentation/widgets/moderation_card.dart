@@ -162,7 +162,7 @@ class ModerationCard extends StatelessWidget {
         ),
 
         // Location (if provided)
-        if (event.location != null) ...  [
+        if (event.location != null) ...[
           SizedBox(height: NovaSpacing.xs),
           Row(
             children: [

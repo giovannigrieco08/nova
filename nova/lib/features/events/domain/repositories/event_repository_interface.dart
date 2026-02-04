@@ -135,7 +135,8 @@ abstract class EventRepository {
   ///
   /// [userId] - Optional user ID for folder path (required for RLS compliance).
   /// If not provided, uses current authenticated user.
-  Future<String> uploadEventImage(File imageFile, String eventId, {String? userId});
+  Future<String> uploadEventImage(File imageFile, String eventId,
+      {String? userId});
 
   /// Delete event image from Supabase Storage
   Future<void> deleteEventImage(String imageUrl);

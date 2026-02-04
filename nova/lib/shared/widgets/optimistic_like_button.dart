@@ -43,8 +43,8 @@ class OptimisticLikeButton extends StatelessWidget {
         size: iconSize,
       ),
       color: isLiked
-        ? (activeColor ?? NovaColors.likeActive) // Instagram red
-        : (inactiveColor ?? NovaColors.backgroundDark), // Black
+          ? (activeColor ?? NovaColors.likeActive) // Instagram red
+          : (inactiveColor ?? NovaColors.backgroundDark), // Black
       onPressed: _handleTap,
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),

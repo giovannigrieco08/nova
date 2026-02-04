@@ -120,7 +120,8 @@ class AvatarPickerBottomSheet {
                 children: [
                   const Icon(Icons.photo_library, size: 20),
                   SizedBox(width: NovaSpacing.small),
-                  Text('Scegli dalla galleria', style: NovaTypography.bodyMedium),
+                  Text('Scegli dalla galleria',
+                      style: NovaTypography.bodyMedium),
                 ],
               ),
             ),
@@ -204,7 +205,8 @@ class AvatarPickerBottomSheet {
               // Gallery option
               ListTile(
                 leading: const Icon(Icons.photo_library_rounded),
-                title: Text('Scegli dalla galleria', style: NovaTypography.bodyMedium),
+                title: Text('Scegli dalla galleria',
+                    style: NovaTypography.bodyMedium),
                 onTap: () {
                   Navigator.pop(ctx, {'source': ImageSource.gallery});
                 },
@@ -213,7 +215,8 @@ class AvatarPickerBottomSheet {
               // Remove photo option (if avatar exists)
               if (hasExistingAvatar)
                 ListTile(
-                  leading: Icon(Icons.delete_rounded, color: NovaColors.error(ctx)),
+                  leading:
+                      Icon(Icons.delete_rounded, color: NovaColors.error(ctx)),
                   title: Text(
                     'Rimuovi foto',
                     style: NovaTypography.bodyMedium.copyWith(

@@ -168,7 +168,8 @@ class HelpOffersNotifier extends StateNotifier<HelpOffersState> {
     try {
       final response = await _supabase
           .from('event_help_offers')
-          .select('*, profile:profiles!user_id(user_id, full_name, avatar_url, class)')
+          .select(
+              '*, profile:profiles!user_id(user_id, full_name, avatar_url, class)')
           .eq('request_id', requestId)
           .order('created_at', ascending: true);
 
@@ -293,8 +294,8 @@ class HelpOffersNotifier extends StateNotifier<HelpOffersState> {
 }
 
 /// Provider family for help offers of a specific request
-final helpOffersProvider = StateNotifierProvider.family<
-    HelpOffersNotifier, HelpOffersState, String>(
+final helpOffersProvider =
+    StateNotifierProvider.family<HelpOffersNotifier, HelpOffersState, String>(
   (ref, requestId) {
     final supabase = Supabase.instance.client;
     return HelpOffersNotifier(
@@ -326,7 +327,8 @@ final hasUserOfferedProvider = FutureProvider.family<bool, String>(
 );
 
 /// Get unfulfilled help requests count for an event (for badge display)
-final unfullfilledHelpRequestsCountProvider = FutureProvider.family<int, String>(
+final unfullfilledHelpRequestsCountProvider =
+    FutureProvider.family<int, String>(
   (ref, eventId) async {
     final supabase = Supabase.instance.client;
     final response = await supabase

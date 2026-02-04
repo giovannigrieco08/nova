@@ -47,7 +47,9 @@ class EventStatusBadge extends StatelessWidget {
           SizedBox(width: NovaSpacing.xsmall),
           Text(
             status.label,
-            style: (compact ? NovaTypography.bodySmall : NovaTypography.bodyMedium).copyWith(
+            style:
+                (compact ? NovaTypography.bodySmall : NovaTypography.bodyMedium)
+                    .copyWith(
               color: _getTextColor(context),
               fontWeight: FontWeight.w600,
             ),

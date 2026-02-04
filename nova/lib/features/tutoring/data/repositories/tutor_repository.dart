@@ -45,13 +45,15 @@ class TutorRepository {
       limit: limit,
     );
 
-    return models.map((m) => TutorProfileWithAuthorData(
-      profile: m.toEntity(),
-      authorName: m.authorName ?? '',
-      authorAvatarUrl: m.authorAvatarUrl,
-      authorClass: m.authorClass,
-      authorUsername: m.authorUsername,
-    )).toList();
+    return models
+        .map((m) => TutorProfileWithAuthorData(
+              profile: m.toEntity(),
+              authorName: m.authorName ?? '',
+              authorAvatarUrl: m.authorAvatarUrl,
+              authorClass: m.authorClass,
+              authorUsername: m.authorUsername,
+            ))
+        .toList();
   }
 
   /// Get tutors filtered by subject and price
@@ -69,13 +71,15 @@ class TutorRepository {
       limit: limit,
     );
 
-    return models.map((m) => TutorProfileWithAuthorData(
-      profile: m.toEntity(),
-      authorName: m.authorName ?? '',
-      authorAvatarUrl: m.authorAvatarUrl,
-      authorClass: m.authorClass,
-      authorUsername: m.authorUsername,
-    )).toList();
+    return models
+        .map((m) => TutorProfileWithAuthorData(
+              profile: m.toEntity(),
+              authorName: m.authorName ?? '',
+              authorAvatarUrl: m.authorAvatarUrl,
+              authorClass: m.authorClass,
+              authorUsername: m.authorUsername,
+            ))
+        .toList();
   }
 
   /// Check if user is already a tutor

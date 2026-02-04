@@ -73,10 +73,12 @@ class _ChatReactionRowState extends State<ChatReactionRow> {
           count: count,
           isSelected: isSelected,
           animateIn: isNewlyAdded,
-          onTap: widget.onTap != null ? () {
-            HapticFeedback.lightImpact();
-            widget.onTap!(emoji);
-          } : null,
+          onTap: widget.onTap != null
+              ? () {
+                  HapticFeedback.lightImpact();
+                  widget.onTap!(emoji);
+                }
+              : null,
           onLongPress: widget.onLongPress,
         );
       }).toList(),
@@ -215,7 +217,8 @@ class _ReactionChipState extends State<_ReactionChip>
                   color: widget.isSelected
                       ? NovaColors.primary(context)
                       : NovaColors.textSecondary(context),
-                  fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight:
+                      widget.isSelected ? FontWeight.w600 : FontWeight.normal,
                   decoration: TextDecoration.none,
                 ),
                 child: Text(widget.count.toString()),

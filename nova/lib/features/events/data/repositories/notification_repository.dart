@@ -29,7 +29,8 @@ class NotificationRepositoryImpl implements NotificationRepository {
       final models = await _remoteDataSource.getMyNotifications(userId);
       return models.map((model) => model.toEntity()).toList();
     } catch (e) {
-      throw NotificationRepositoryException('Failed to fetch notifications: $e');
+      throw NotificationRepositoryException(
+          'Failed to fetch notifications: $e');
     }
   }
 
@@ -87,7 +88,8 @@ class NotificationRepositoryImpl implements NotificationRepository {
     try {
       await _remoteDataSource.deleteNotification(notificationId);
     } catch (e) {
-      throw NotificationRepositoryException('Failed to delete notification: $e');
+      throw NotificationRepositoryException(
+          'Failed to delete notification: $e');
     }
   }
 

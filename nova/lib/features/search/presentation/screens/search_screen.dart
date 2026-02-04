@@ -159,7 +159,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildUpcomingEventsSection(AsyncValue<EventsFeedState> eventsFeedAsync) {
+  Widget _buildUpcomingEventsSection(
+      AsyncValue<EventsFeedState> eventsFeedAsync) {
     return eventsFeedAsync.when(
       data: (feedState) {
         if (feedState.events.isEmpty) {

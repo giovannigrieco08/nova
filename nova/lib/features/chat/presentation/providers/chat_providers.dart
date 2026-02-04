@@ -17,8 +17,7 @@ import 'package:nova/features/chat/presentation/providers/chat_realtime_provider
 
 /// Hive box for pending messages (offline queue)
 /// Note: Box is opened in main.dart before runApp(), so it's guaranteed to be available
-final pendingMessagesBoxProvider =
-    Provider<Box<Map<dynamic, dynamic>>>((ref) {
+final pendingMessagesBoxProvider = Provider<Box<Map<dynamic, dynamic>>>((ref) {
   return Hive.box<Map<dynamic, dynamic>>('chat_pending_messages');
 });
 
@@ -65,9 +64,8 @@ final chatMessagesStreamProvider =
   // Also initialize the realtime provider with these messages
   // so it has the full data for incremental updates
   final realtimeNotifier = ref.read(chatRealtimeProvider.notifier);
-  final entities = messages
-      .map((m) => m.toEntity(currentUserId: currentUserId))
-      .toList();
+  final entities =
+      messages.map((m) => m.toEntity(currentUserId: currentUserId)).toList();
   realtimeNotifier.setMessages(entities);
 
   return entities;
@@ -84,8 +82,8 @@ final loadMoreMessagesProvider = FutureProvider.autoDispose
 });
 
 /// Get single message by ID
-final chatMessageProvider =
-    FutureProvider.autoDispose.family<ChatMessage?, String>((ref, messageId) async {
+final chatMessageProvider = FutureProvider.autoDispose
+    .family<ChatMessage?, String>((ref, messageId) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.getMessage(messageId);
 });
@@ -229,7 +227,8 @@ class ComposeState {
       replyToId: replyToId ?? this.replyToId,
       replyToMessage: replyToMessage ?? this.replyToMessage,
       mentionResults: mentionResults ?? this.mentionResults,
-      isShowingMentionPicker: isShowingMentionPicker ?? this.isShowingMentionPicker,
+      isShowingMentionPicker:
+          isShowingMentionPicker ?? this.isShowingMentionPicker,
       isSending: isSending ?? this.isSending,
       error: error,
     );
@@ -339,7 +338,8 @@ class ComposeStateNotifier extends StateNotifier<ComposeState> {
 
 /// Compose state provider
 final composeStateProvider =
-    StateNotifierProvider.autoDispose<ComposeStateNotifier, ComposeState>((ref) {
+    StateNotifierProvider.autoDispose<ComposeStateNotifier, ComposeState>(
+        (ref) {
   final repository = ref.watch(chatRepositoryProvider);
   return ComposeStateNotifier(repository);
 });
@@ -349,9 +349,8 @@ final composeStateProvider =
 // =============================================================================
 
 /// Add reaction to a message
-final addReactionProvider =
-    FutureProvider.autoDispose.family<void, ({String messageId, String emoji})>(
-        (ref, params) async {
+final addReactionProvider = FutureProvider.autoDispose
+    .family<void, ({String messageId, String emoji})>((ref, params) async {
   final repository = ref.watch(chatRepositoryProvider);
   await repository.addReaction(
     messageId: params.messageId,
@@ -360,9 +359,8 @@ final addReactionProvider =
 });
 
 /// Remove reaction from a message
-final removeReactionProvider =
-    FutureProvider.autoDispose.family<void, ({String messageId, String emoji})>(
-        (ref, params) async {
+final removeReactionProvider = FutureProvider.autoDispose
+    .family<void, ({String messageId, String emoji})>((ref, params) async {
   final repository = ref.watch(chatRepositoryProvider);
   await repository.removeReaction(
     messageId: params.messageId,
@@ -397,8 +395,8 @@ final hasUserReportedProvider =
 // =============================================================================
 
 /// Delete a message (only within 30 minutes of sending)
-final deleteMessageProvider = FutureProvider.autoDispose.family<bool, String>(
-    (ref, messageId) async {
+final deleteMessageProvider =
+    FutureProvider.autoDispose.family<bool, String>((ref, messageId) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.deleteMessage(messageId);
 });
@@ -412,9 +410,15 @@ final deleteMessageProvider = FutureProvider.autoDispose.family<bool, String>(
 /// [maxViews] determines how many times the media can be viewed (1 or 2).
 /// [durationSeconds] is the duration for audio messages.
 /// [caption] is an optional caption for images/videos.
-final uploadMediaProvider = FutureProvider.autoDispose
-    .family<ChatMediaInfo, ({String filePath, ChatMediaType mediaType, int maxViews, int? durationSeconds, String? caption})>(
-        (ref, params) async {
+final uploadMediaProvider = FutureProvider.autoDispose.family<
+    ChatMediaInfo,
+    ({
+      String filePath,
+      ChatMediaType mediaType,
+      int maxViews,
+      int? durationSeconds,
+      String? caption
+    })>((ref, params) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.uploadMedia(
     filePath: params.filePath,
@@ -426,8 +430,8 @@ final uploadMediaProvider = FutureProvider.autoDispose
 });
 
 /// Get a signed URL for viewing media (60 second expiry)
-final signedMediaUrlProvider = FutureProvider.autoDispose
-    .family<String?, String>((ref, mediaId) async {
+final signedMediaUrlProvider =
+    FutureProvider.autoDispose.family<String?, String>((ref, mediaId) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.getSignedMediaUrl(mediaId);
 });
@@ -449,12 +453,14 @@ final reactionsWithUsersProvider = FutureProvider.autoDispose
   final dataSource = ref.watch(chatRemoteDataSourceProvider);
   final reactions = await dataSource.getReactionsWithUsers(messageId);
 
-  return reactions.map((r) => ReactionWithUserInfo(
-    emoji: r.emoji,
-    userId: r.userId,
-    fullName: r.fullName,
-    avatarUrl: r.avatarUrl,
-  )).toList();
+  return reactions
+      .map((r) => ReactionWithUserInfo(
+            emoji: r.emoji,
+            userId: r.userId,
+            fullName: r.fullName,
+            avatarUrl: r.avatarUrl,
+          ))
+      .toList();
 });
 
 /// Reaction with user info for display
@@ -515,14 +521,15 @@ final pinMessageProvider = FutureProvider.autoDispose
 });
 
 /// Unpin a message
-final unpinMessageProvider = FutureProvider.autoDispose
-    .family<void, String>((ref, messageId) async {
+final unpinMessageProvider =
+    FutureProvider.autoDispose.family<void, String>((ref, messageId) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.unpinMessage(messageId);
 });
 
 /// Get currently pinned message
-final pinnedMessageProvider = FutureProvider.autoDispose<ChatMessage?>((ref) async {
+final pinnedMessageProvider =
+    FutureProvider.autoDispose<ChatMessage?>((ref) async {
   final repository = ref.watch(chatRepositoryProvider);
   return repository.getPinnedMessage();
 });

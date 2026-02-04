@@ -71,7 +71,8 @@ class CommentModel {
     String? authorClass;
 
     if (authorData != null) {
-      authorName = authorData!['full_name'] as String?; // Changed from 'name' to 'full_name' to match profiles table
+      authorName = authorData!['full_name']
+          as String?; // Changed from 'name' to 'full_name' to match profiles table
       authorAvatarUrl = authorData!['avatar_url'] as String?;
       authorClass = authorData!['class'] as String?;
     }
