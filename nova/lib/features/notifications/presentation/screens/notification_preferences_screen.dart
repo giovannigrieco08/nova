@@ -202,7 +202,10 @@ class NotificationPreferencesScreen extends ConsumerWidget {
               // Rebuild widget
               (context as Element).markNeedsBuild();
             },
-            activeThumbColor: NovaColors.primary(context),
+            thumbColor: WidgetStateProperty.resolveWith((states) =>
+                states.contains(WidgetState.selected)
+                    ? NovaColors.primary(context)
+                    : null),
             contentPadding: EdgeInsets.symmetric(
               horizontal: NovaSpacing.m,
               vertical: NovaSpacing.xs,
@@ -254,7 +257,10 @@ class NotificationPreferencesScreen extends ConsumerWidget {
         ),
         value: value,
         onChanged: (newValue) => _togglePreference(ref, columnName, newValue),
-        activeThumbColor: NovaColors.primary(context),
+        thumbColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? NovaColors.primary(context)
+                : null),
         contentPadding: EdgeInsets.symmetric(
           horizontal: NovaSpacing.m,
           vertical: NovaSpacing.xs,

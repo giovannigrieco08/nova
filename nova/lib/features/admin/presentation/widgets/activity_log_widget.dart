@@ -90,7 +90,7 @@ class ActivityLogWidget extends ConsumerWidget {
     ActivityLogFilter filter,
   ) {
     return DropdownButtonFormField<String?>(
-      initialValue: filter.actionType,
+      value: filter.actionType,
       decoration: InputDecoration(
         labelText: 'Tipo azione',
         border: OutlineInputBorder(

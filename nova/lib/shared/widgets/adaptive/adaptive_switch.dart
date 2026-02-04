@@ -44,10 +44,12 @@ class AdaptiveSwitch extends StatelessWidget {
     }
 
     // Android: Material Switch
+    final thumbColorValue = activeColor ?? NovaColors.primary(context);
     return Switch(
       value: value,
       onChanged: onChanged,
-      activeThumbColor: activeColor ?? NovaColors.primary(context),
+      thumbColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected) ? thumbColorValue : null),
     );
   }
 }

@@ -219,7 +219,10 @@ class _NotificationPreferencesScreenState
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: NovaColors.primary(context),
+            thumbColor: WidgetStateProperty.resolveWith((states) =>
+                states.contains(WidgetState.selected)
+                    ? NovaColors.primary(context)
+                    : null),
           ),
         ],
       ),
