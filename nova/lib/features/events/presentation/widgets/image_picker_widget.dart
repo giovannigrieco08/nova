@@ -1,6 +1,6 @@
 // Widget: ImagePickerWidget
 // Feature: 004-event-creation-moderation (US1 - Event Creation)
-// Purpose: Image picker with camera/gallery options and preview
+// Purpose: Image picker with camera/gallery options, cropping, and preview
 //
 // Features:
 // - Show placeholder if no image selected
@@ -8,6 +8,7 @@
 // - Buttons: "Camera" and "Gallery"
 // - Tap image to change/remove
 // - Loading indicator during compression
+// - 3:4 aspect ratio cropper for precise image framing
 
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
@@ -18,6 +19,7 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/utils/image_orientation_fixer.dart';
+import 'event_image_cropper.dart';
 
 /// Image picker widget for event creation
 class ImagePickerWidget extends StatefulWidget {
@@ -276,34 +278,49 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
     );
   }
 
-  /// Pick image from camera or gallery
+  /// Pick image from camera or gallery, then show cropper for 3:4 ratio
   Future<void> _pickImage(ImageSource source) async {
     try {
       setState(() => _isLoading = true);
 
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        maxWidth: 1200, // Limit resolution before compression (3:4 ratio)
-        maxHeight: 1600,
-        imageQuality: 92, // Higher pre-compression quality for better final result
+        // Don't limit resolution here - let the cropper handle final size
+        // This gives user full image to crop from
+        imageQuality: 95, // High quality for cropping
       );
 
       if (pickedFile != null) {
-        // Fix orientation issues on iOS
+        // Fix orientation issues on iOS first
         // For events, assume rear camera (not selfies) - don't flip horizontally
         final fixedPath = await ImageOrientationFixer.fixOrientation(
           pickedFile.path,
           isFrontCamera: false, // Events use rear camera, not selfies
         );
-        final imageFile = File(fixedPath);
-        widget.onImagePicked(imageFile);
+        final fixedFile = File(fixedPath);
+
+        // Show loading is done before cropper opens
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+
+        // Show the cropper for 3:4 aspect ratio
+        if (mounted) {
+          final croppedFile = await EventImageCropper.show(context, fixedFile);
+
+          if (croppedFile != null && mounted) {
+            widget.onImagePicked(croppedFile);
+          }
+        }
+      } else {
+        // User cancelled image selection
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     } catch (e) {
       if (mounted) {
         _showErrorToast('Errore durante la selezione: ${e.toString()}');
-      }
-    } finally {
-      if (mounted) {
         setState(() => _isLoading = false);
       }
     }

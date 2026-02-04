@@ -72,11 +72,11 @@ String goldenFileName(String testName) {
   return 'goldens/${testName.replaceAll(' ', '_').toLowerCase()}.png';
 }
 
-/// Matcher for checking if a widget has specific text
-Matcher hasText(String text) => find.text(text);
+/// Finder for checking if a widget has specific text
+Finder hasText(String text) => find.text(text);
 
-/// Matcher for checking if widget contains a substring
-Matcher containsText(String substring) {
+/// Finder for checking if widget contains a substring
+Finder containsText(String substring) {
   return find.byWidgetPredicate((widget) {
     if (widget is Text) {
       final data = widget.data;

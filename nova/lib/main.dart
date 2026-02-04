@@ -17,7 +17,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/theme/app_theme.dart';
 import 'package:nova/core/theme/nova_colors.dart';
-import 'package:nova/core/widgets/nova_logo.dart';
 import 'package:nova/core/theme/cupertino_theme.dart';
 import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/core/utils/platform_utils.dart';
