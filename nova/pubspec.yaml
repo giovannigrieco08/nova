@@ -149,7 +149,6 @@ flutter:
   assets:
     - .env  # Environment variables (Supabase credentials)
     - assets/logos/  # Nova logo and branding assets
-    - assets/images/  # Event images and other visual content
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
