@@ -31,7 +31,7 @@ jobs:
   analyze:
     name: Analyze & Format
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: nova
@@ -62,7 +62,17 @@ jobs:
         run: flutter pub get
 
       - name: Generate code (Freezed/JSON)
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: |
+          echo "Running build_runner..."
+          dart run build_runner build --delete-conflicting-outputs --verbose
+          echo "Verifying generated files exist..."
+          find lib -name "*.freezed.dart" | head -20
+          FREEZED_COUNT=$(find lib -name "*.freezed.dart" | wc -l)
+          echo "Found $FREEZED_COUNT .freezed.dart files"
+          if [ "$FREEZED_COUNT" -lt 1 ]; then
+            echo "::error::No .freezed.dart files generated!"
+            exit 1
+          fi
 
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed lib/
