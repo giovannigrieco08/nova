@@ -246,6 +246,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate code (Freezed/JSON)
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: Create .env file for build
         run: |
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
@@ -313,6 +316,9 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate code (Freezed/JSON)
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Create .env file for build
         run: |
