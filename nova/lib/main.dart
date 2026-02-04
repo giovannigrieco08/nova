@@ -57,27 +57,37 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('🚀 [INIT] Flutter binding initialized');
 
   // Lock screen orientation to portrait mode only
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  debugPrint('🚀 [INIT] Screen orientation locked');
 
   // Initialize Italian locale for date formatting
   await initializeDateFormatting('it_IT', null);
+  debugPrint('🚀 [INIT] Date formatting initialized');
 
   // Initialize Firebase (for FCM push notifications)
+  debugPrint('🚀 [INIT] Starting Firebase...');
   await Firebase.initializeApp();
+  debugPrint('🚀 [INIT] Firebase initialized');
 
   // Configure FCM background message handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  debugPrint('🚀 [INIT] FCM handler configured');
 
   // Initialize Supabase BEFORE runApp
+  debugPrint('🚀 [INIT] Starting Supabase...');
   await SupabaseConfig.initialize();
+  debugPrint('🚀 [INIT] Supabase initialized');
 
   // Initialize Hive for offline-first storage (profiles + events)
+  debugPrint('🚀 [INIT] Starting Hive...');
   await Hive.initFlutter();
+  debugPrint('🚀 [INIT] Hive initialized');
 
   // Register adapters (with error handling for hot reload/restart)
   // TypeIds must match @HiveType(typeId: X) in each model:
@@ -173,15 +183,24 @@ Future<void> main() async {
     // CachedProfileResultAdapter already registered
   }
 
+  debugPrint('🚀 [INIT] Opening Hive boxes...');
   await Hive.openBox<ProfileModel>('profiles');
+  debugPrint('🚀 [INIT] profiles box opened');
   await Hive.openBox<EventModel>('events_cache');
+  debugPrint('🚀 [INIT] events_cache box opened');
   await Hive.openBox<EventDraft>('event_drafts'); // Feature 004: Event creation drafts
+  debugPrint('🚀 [INIT] event_drafts box opened');
   await Hive.openBox<OfflineAction>('offline_actions_queue');
+  debugPrint('🚀 [INIT] offline_actions_queue box opened');
   await Hive.openBox<Map<dynamic, dynamic>>('chat_pending_messages'); // Feature 011: Chat offline queue
+  debugPrint('🚀 [INIT] chat_pending_messages box opened');
 
   // Initialize SharedPreferences for banner dismissal state
+  debugPrint('🚀 [INIT] Getting SharedPreferences...');
   final prefs = await SharedPreferences.getInstance();
+  debugPrint('🚀 [INIT] SharedPreferences ready');
 
+  debugPrint('🚀 [INIT] Starting runApp...');
   runApp(
     // ProviderScope wraps entire app for Riverpod with profile overrides
     ProviderScope(
@@ -486,13 +505,26 @@ class _LoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Show same UI as splash screen - no spinner, just the logo
-    // Using 200px for splash to be prominent and sharp on all screen sizes
-    // SVG scales perfectly at any size since it's vector-based
+    // Simple loading indicator for debugging
     return const Scaffold(
-      backgroundColor: NovaColors.backgroundDark,
+      backgroundColor: NovaColors.backgroundLight,
       body: Center(
-        child: NovaLogo(height: 200, color: NovaColors.backgroundLight),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: NovaColors.primaryLight,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Caricamento...',
+              style: TextStyle(
+                color: NovaColors.textPrimaryLight,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
