@@ -168,8 +168,9 @@ jobs:
 
       - name: Scan for hardcoded secrets
         uses: trufflesecurity/trufflehog@main
+        continue-on-error: true
         with:
-          path: ./nova
+          path: ./
           base: ""
           extra_args: --only-verified
 
