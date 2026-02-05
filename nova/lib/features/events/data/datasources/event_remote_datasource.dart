@@ -18,6 +18,12 @@ class EventRemoteDataSource {
   // READ OPERATIONS
   // =========================================================================
 
+  // Select query with creator profile join
+  static const String _selectWithCreator = '''
+    *,
+    creator:profiles!creator_id(full_name, class, avatar_url)
+  ''';
+
   /// Fetch approved upcoming events for feed
   ///
   /// RLS: users_view_approved_upcoming_events policy
@@ -25,7 +31,7 @@ class EventRemoteDataSource {
     try {
       final response = await _supabase
           .from('events')
-          .select()
+          .select(_selectWithCreator)
           .eq('status', 'approved')
           .gte('event_date', DateTime.now().toIso8601String())
           .order('created_at', ascending: false);
@@ -45,7 +51,7 @@ class EventRemoteDataSource {
     try {
       final response = await _supabase
           .from('events')
-          .select()
+          .select(_selectWithCreator)
           .eq('creator_id', userId)
           .order('created_at', ascending: false);
 
@@ -64,7 +70,7 @@ class EventRemoteDataSource {
     try {
       final response = await _supabase
           .from('events')
-          .select()
+          .select(_selectWithCreator)
           .eq('status', 'pending')
           .order('created_at', ascending: true); // FIFO ordering
 
@@ -87,8 +93,11 @@ class EventRemoteDataSource {
   /// RLS: coorganizers_view_events policy
   Future<List<EventModel>> getCoOrganizedEvents(String userId) async {
     try {
-      final response = await _supabase.from('events').select().contains(
-          'co_organizers', [userId]).order('created_at', ascending: false);
+      final response = await _supabase
+          .from('events')
+          .select(_selectWithCreator)
+          .contains('co_organizers', [userId])
+          .order('created_at', ascending: false);
 
       return (response as List)
           .map((json) => EventModel.fromJson(json))
@@ -106,7 +115,7 @@ class EventRemoteDataSource {
     try {
       final response = await _supabase
           .from('events')
-          .select()
+          .select(_selectWithCreator)
           .eq('id', eventId)
           .maybeSingle();
 
@@ -129,7 +138,7 @@ class EventRemoteDataSource {
       final response = await _supabase
           .from('events')
           .insert(event.toJson())
-          .select()
+          .select(_selectWithCreator)
           .single();
 
       return EventModel.fromJson(response);
@@ -151,7 +160,7 @@ class EventRemoteDataSource {
           .from('events')
           .update(updates)
           .eq('id', eventId)
-          .select()
+          .select(_selectWithCreator)
           .single();
 
       return EventModel.fromJson(response);

@@ -334,24 +334,31 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                     vertical: NovaSpacing.s,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(NovaRadius.xl),
+                    color: NovaColors.primaryDark,
+                    borderRadius: NovaRadius.circularFull,
+                    boxShadow: [
+                      BoxShadow(
+                        color: NovaColors.primaryDark.withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: NovaColors.primary(context),
-                        child: Icon(Icons.send, size: 14, color: Colors.white),
-                      ),
-                      SizedBox(width: 8),
                       Text(
                         'Invia',
                         style: NovaTypography.bodyMedium.copyWith(
-                          color: Colors.black,
+                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
+                      ),
+                      SizedBox(width: NovaSpacing.xs),
+                      const Icon(
+                        Icons.send,
+                        color: Colors.white,
+                        size: 18,
                       ),
                     ],
                   ),

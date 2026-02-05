@@ -87,9 +87,10 @@ async function createJwt(serviceAccount: ServiceAccount): Promise<string> {
   const payload = {
     iss: serviceAccount.client_email,
     sub: serviceAccount.client_email,
-    aud: 'https://fcm.googleapis.com/',
+    aud: 'https://oauth2.googleapis.com/token',
     iat: now,
     exp: now + 3600, // 1 hour expiry
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
   }
 
   // Encode header and payload

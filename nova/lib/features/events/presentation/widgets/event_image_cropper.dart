@@ -75,9 +75,6 @@ class _EventImageCropperState extends State<EventImageCropper> {
   late double _cropWidth;
   late double _cropHeight;
 
-  // Minimum scale to ensure image covers crop area
-  double _minScale = 1.0;
-
   // Aspect ratio for event images (3:4 portrait, BeReal-style)
   static const double _aspectRatio = 3 / 4;
 
@@ -93,104 +90,15 @@ class _EventImageCropperState extends State<EventImageCropper> {
     super.dispose();
   }
 
-  /// Constrain bounds at the end of interaction for smooth gesture handling
-  void _onInteractionEnd(ScaleEndDetails details) {
-    if (_displayedImageSize == Size.zero) return;
-
-    final matrix = _transformationController.value;
-    final constrainedMatrix = _constrainMatrix(matrix);
-
-    // Only update if changed
-    if (constrainedMatrix != matrix) {
-      _transformationController.value = constrainedMatrix;
-    }
-  }
-
-  /// Constrain the transformation matrix to keep crop area within image bounds
-  Matrix4 _constrainMatrix(Matrix4 matrix) {
-    final screenSize = MediaQuery.of(context).size;
-    final scale = matrix.getMaxScaleOnAxis();
-    var translationX = matrix[12];
-    var translationY = matrix[13];
-
-    // Enforce minimum scale
-    final constrainedScale = math.max(scale, _minScale);
-
-    // Calculate image bounds after transformation
-    final baseOffsetX = (screenSize.width - _displayedImageSize.width) / 2;
-    final baseOffsetY = (screenSize.height - _displayedImageSize.height) / 2;
-
-    final scaledWidth = _displayedImageSize.width * constrainedScale;
-    final scaledHeight = _displayedImageSize.height * constrainedScale;
-
-    // Crop area center (screen center)
-    final cropCenterX = screenSize.width / 2;
-    final cropCenterY = screenSize.height / 2;
-
-    // Crop area bounds
-    final cropLeft = cropCenterX - _cropWidth / 2;
-    final cropRight = cropCenterX + _cropWidth / 2;
-    final cropTop = cropCenterY - _cropHeight / 2;
-    final cropBottom = cropCenterY + _cropHeight / 2;
-
-    // Image bounds after transformation
-    final imageLeft = constrainedScale * baseOffsetX + translationX;
-    final imageRight = imageLeft + scaledWidth;
-    final imageTop = constrainedScale * baseOffsetY + translationY;
-    final imageBottom = imageTop + scaledHeight;
-
-    // Constrain translation so crop area stays within image
-    // Image left edge must be <= crop left edge
-    if (imageLeft > cropLeft) {
-      translationX -= (imageLeft - cropLeft);
-    }
-    // Image right edge must be >= crop right edge
-    if (imageRight < cropRight) {
-      translationX += (cropRight - imageRight);
-    }
-    // Image top edge must be <= crop top edge
-    if (imageTop > cropTop) {
-      translationY -= (imageTop - cropTop);
-    }
-    // Image bottom edge must be >= crop bottom edge
-    if (imageBottom < cropBottom) {
-      translationY += (cropBottom - imageBottom);
-    }
-
-    // Build constrained matrix
-    final constrainedMatrix = Matrix4.identity()
-      ..setEntry(0, 3, translationX)
-      ..setEntry(1, 3, translationY)
-      ..setEntry(0, 0, constrainedScale)
-      ..setEntry(1, 1, constrainedScale)
-      ..setEntry(2, 2, constrainedScale);
-
-    return constrainedMatrix;
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Calculate crop size based on screen dimensions
+    // Calculate crop size to maximize usable space
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final safeAreaTop = MediaQuery.of(context).padding.top;
-    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
 
-    // Available height minus safe areas and minimal UI element padding (~100px total)
-    final availableHeight = screenHeight - safeAreaTop - safeAreaBottom - 100;
-    final availableWidth = screenWidth - 24; // 12px padding on each side
-
-    // Calculate crop dimensions to fit within available space while maintaining 3:4 ratio
-    if (availableWidth / availableHeight > _aspectRatio) {
-      // Height is the constraint
-      _cropHeight = availableHeight;
-      _cropWidth = _cropHeight * _aspectRatio;
-    } else {
-      // Width is the constraint
-      _cropWidth = availableWidth;
-      _cropHeight = _cropWidth / _aspectRatio;
-    }
+    // Use nearly full screen width for the crop area
+    _cropWidth = screenWidth - 32; // 16px margin on each side
+    _cropHeight = _cropWidth / _aspectRatio;
   }
 
   Future<void> _loadImage() async {
@@ -243,15 +151,10 @@ class _EventImageCropperState extends State<EventImageCropper> {
 
     _displayedImageSize = Size(displayWidth, displayHeight);
 
-    // Calculate minimum scale to cover the crop rectangle
-    // The image must cover the entire crop area
+    // Calculate scale to cover the crop rectangle
     final scaleToFillWidth = _cropWidth / displayWidth;
     final scaleToFillHeight = _cropHeight / displayHeight;
-    _minScale = math.max(scaleToFillWidth, scaleToFillHeight);
-
-    // Start with image scaled to fill crop area exactly (no extra margin)
-    // This ensures the image is properly positioned from the start
-    final initialScale = _minScale;
+    final initialScale = math.max(scaleToFillWidth, scaleToFillHeight);
 
     // Center the image
     final offsetX = (screenSize.width - displayWidth * initialScale) / 2;
@@ -377,17 +280,15 @@ class _EventImageCropperState extends State<EventImageCropper> {
           fit: StackFit.expand,
           children: [
             // Image with InteractiveViewer for smooth gestures
-            // Boundary constraining is handled at interaction end for smooth gestures
             if (!_isLoading && _uiImage != null)
               InteractiveViewer(
                 transformationController: _transformationController,
-                minScale: _minScale,
-                maxScale: math.max(_minScale * 4, 5.0),
+                minScale: 0.5,
+                maxScale: 5.0,
                 boundaryMargin: const EdgeInsets.all(double.infinity),
                 constrained: false,
                 panEnabled: true,
                 scaleEnabled: true,
-                onInteractionEnd: _onInteractionEnd,
                 child: Center(
                   child: Image.file(
                     widget.imageFile,

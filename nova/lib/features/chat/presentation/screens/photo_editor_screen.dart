@@ -107,47 +107,25 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
         horizontal: NovaSpacing.m,
         vertical: NovaSpacing.s,
       ),
-      child: ClipRRect(
-        borderRadius: NovaRadius.circularXl,
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: NovaSpacing.s,
-              vertical: NovaSpacing.s,
-            ),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withValues(alpha: 0.15),
-                  Colors.white.withValues(alpha: 0.05),
-                ],
-              ),
-              borderRadius: NovaRadius.circularXl,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                // Close button
-                _GlassIconButton(
-                  icon: Icons.close,
-                  onTap: () => Navigator.pop(context),
-                ),
-
-                const Spacer(),
-
-                // Download button
-                _GlassIconButton(
-                  icon: Icons.download_outlined,
-                  onTap: _saveToGallery,
-                ),
-              ],
-            ),
+      padding: EdgeInsets.symmetric(
+        horizontal: NovaSpacing.s,
+        vertical: NovaSpacing.s,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Close button
+          _GlassIconButton(
+            icon: Icons.close,
+            onTap: () => Navigator.pop(context),
           ),
-        ),
+
+          // Download button
+          _GlassIconButton(
+            icon: Icons.download_outlined,
+            onTap: _saveToGallery,
+          ),
+        ],
       ),
     );
   }
@@ -194,33 +172,42 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
           width: 1,
         ),
       ),
-      child: TextField(
-        controller: _captionController,
-        focusNode: _captionFocusNode,
-        style: NovaTypography.bodyMedium.copyWith(
-          color: Colors.white,
-        ),
-        maxLines: 2,
-        minLines: 1,
-        maxLength: 150,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(
-          prefixIcon: Icon(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(width: NovaSpacing.m),
+          Icon(
             Icons.edit_outlined,
             color: Colors.white.withValues(alpha: 0.54),
             size: 20,
           ),
-          hintText: 'Aggiungi una didascalia...',
-          hintStyle: NovaTypography.bodyMedium.copyWith(
-            color: Colors.white.withValues(alpha: 0.38),
+          SizedBox(width: NovaSpacing.s),
+          Expanded(
+            child: TextField(
+              controller: _captionController,
+              focusNode: _captionFocusNode,
+              style: NovaTypography.bodyMedium.copyWith(
+                color: Colors.white,
+              ),
+              maxLines: 2,
+              minLines: 1,
+              maxLength: 150,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Aggiungi una didascalia...',
+                hintStyle: NovaTypography.bodyMedium.copyWith(
+                  color: Colors.white.withValues(alpha: 0.38),
+                ),
+                border: InputBorder.none,
+                counterText: '',
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: NovaSpacing.s,
+                ),
+              ),
+            ),
           ),
-          border: InputBorder.none,
-          counterText: '',
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: NovaSpacing.m,
-            vertical: NovaSpacing.s,
-          ),
-        ),
+          SizedBox(width: NovaSpacing.m),
+        ],
       ),
     );
   }
@@ -261,16 +248,11 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
             vertical: NovaSpacing.s,
           ),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                NovaColors.gradientStart,
-                NovaColors.gradientEnd,
-              ],
-            ),
+            color: NovaColors.primaryDark,
             borderRadius: NovaRadius.circularFull,
             boxShadow: [
               BoxShadow(
-                color: NovaColors.gradientStart.withValues(alpha: 0.4),
+                color: NovaColors.primaryDark.withValues(alpha: 0.4),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -280,12 +262,19 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Profile picture
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                backgroundImage: profileImageUrl != null
-                    ? NetworkImage(profileImageUrl)
-                    : null,
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.2),
+                  image: profileImageUrl != null
+                      ? DecorationImage(
+                          image: NetworkImage(profileImageUrl),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
                 child: profileImageUrl == null
                     ? const Icon(Icons.person, size: 16, color: Colors.white)
                     : null,
