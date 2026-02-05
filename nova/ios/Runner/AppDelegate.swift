@@ -1,6 +1,8 @@
 import Flutter
 import UIKit
 import AVFoundation
+import FirebaseCore
+import FirebaseMessaging
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,7 +10,14 @@ import AVFoundation
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Configure Firebase
+    FirebaseApp.configure()
+
     GeneratedPluginRegistrant.register(with: self)
+
+    // Register for remote notifications
+    UNUserNotificationCenter.current().delegate = self
+    application.registerForRemoteNotifications()
 
     // Configure AVAudioSession for recording (required for flutter_sound on iOS 17+)
     // .mixWithOthers allows background audio (music, podcasts) to continue playing

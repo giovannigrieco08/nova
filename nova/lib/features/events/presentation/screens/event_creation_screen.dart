@@ -121,8 +121,8 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
         ),
         title: Text(
           isEditMode ? 'Modifica evento' : 'Crea evento',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
+          style: NovaTypography.headingSmall.copyWith(
+            color: NovaColors.textPrimary(context),
           ),
         ),
         centerTitle: true,

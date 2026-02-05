@@ -41,7 +41,7 @@ BEGIN
     p.class::text AS class_name,
     p.avatar_url::text,
     -- Ranking: FTS match gets highest priority, then ILIKE prefix, then ILIKE contains
-    CASE
+    (CASE
       -- Exact FTS match (highest priority)
       WHEN p.search_vector @@ websearch_to_tsquery('italian', search_query)
         THEN ts_rank(p.search_vector, websearch_to_tsquery('italian', search_query)) + 2.0
@@ -53,7 +53,7 @@ BEGIN
         THEN 1.0
       -- Bio or class contains query (lower priority)
       ELSE 0.5
-    END as rank
+    END)::real as rank
   FROM profiles p
   WHERE
     p.class IS NOT NULL  -- Profile is complete (has class)
@@ -115,7 +115,7 @@ BEGIN
     e.image_url::text,
     e.creator_id,
     -- Ranking: FTS match gets highest priority, then ILIKE prefix, then ILIKE contains
-    CASE
+    (CASE
       -- Exact FTS match (highest priority)
       WHEN e.search_vector @@ websearch_to_tsquery('italian', search_query)
         THEN ts_rank(e.search_vector, websearch_to_tsquery('italian', search_query)) + 2.0
@@ -127,7 +127,7 @@ BEGIN
         THEN 1.0
       -- Description or location contains query (lower priority)
       ELSE 0.5
-    END as rank
+    END)::real as rank
   FROM events e
   WHERE
     e.status = 'approved'

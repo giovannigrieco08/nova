@@ -454,7 +454,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Caption with fade animation
+          // Caption with fade animation (Instagram Stories style - plain text with shadow)
           if (widget.caption != null && widget.caption!.isNotEmpty)
             FadeTransition(
               opacity: _captionAnimation,
@@ -469,31 +469,30 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
                     }
                   });
                 },
-                child: Container(
-                  margin: EdgeInsets.only(bottom: NovaSpacing.l),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: NovaSpacing.l,
-                    vertical: NovaSpacing.m,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: NovaRadius.circularL,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      width: 1,
-                    ),
-                  ),
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: NovaSpacing.l),
                   child: Text(
                     widget.caption!,
                     textAlign: TextAlign.center,
                     style: NovaTypography.bodyLarge.copyWith(
                       color: Colors.white,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                       height: 1.4,
-                      shadows: [
-                        const Shadow(
+                      shadows: const [
+                        // Multiple layered shadows for better readability on any background
+                        Shadow(
+                          color: Colors.black,
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
+                        ),
+                        Shadow(
                           color: Colors.black,
                           blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                        Shadow(
+                          color: Color(0x80000000), // Colors.black with 0.5 alpha
+                          blurRadius: 16,
                         ),
                       ],
                     ),
@@ -683,8 +682,71 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
                 ),
               ),
             ),
+          // Video progress bar with duration
+          Positioned(
+            bottom: NovaSpacing.xl,
+            left: NovaSpacing.l,
+            right: NovaSpacing.l,
+            child: _buildVideoProgressBar(),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildVideoProgressBar() {
+    return ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: _videoController!,
+      builder: (context, value, child) {
+        final position = value.position;
+        final duration = value.duration;
+        final progress = duration.inMilliseconds > 0
+            ? position.inMilliseconds / duration.inMilliseconds
+            : 0.0;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Progress bar
+            Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: NovaRadius.circularXxs,
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: progress,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: NovaRadius.circularXxs,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: NovaSpacing.xs),
+            // Duration labels
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formatDuration(position),
+                  style: NovaTypography.bodySmall.copyWith(
+                    color: Colors.white70,
+                  ),
+                ),
+                Text(
+                  _formatDuration(duration),
+                  style: NovaTypography.bodySmall.copyWith(
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 

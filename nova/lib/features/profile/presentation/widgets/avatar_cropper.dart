@@ -71,8 +71,11 @@ class _AvatarCropperState extends State<AvatarCropper> {
   Size _imageSize = Size.zero;
   Size _displayedImageSize = Size.zero;
 
-  // Crop circle size (diameter)
+  // Crop circle size (diameter) - will be calculated in didChangeDependencies
   late double _cropSize;
+
+  // Minimum scale to ensure image covers crop area
+  double _minScale = 1.0;
 
   @override
   void initState() {
@@ -86,12 +89,88 @@ class _AvatarCropperState extends State<AvatarCropper> {
     super.dispose();
   }
 
+  /// Constrain the transformation matrix to keep crop area within image bounds
+  /// Called only at the end of gestures to avoid stuttering
+  void _constrainBounds() {
+    if (_displayedImageSize == Size.zero) return;
+
+    final screenSize = MediaQuery.of(context).size;
+    final matrix = _transformationController.value;
+    final scale = matrix.getMaxScaleOnAxis();
+    var translationX = matrix[12];
+    var translationY = matrix[13];
+
+    // Enforce minimum scale
+    final constrainedScale = math.max(scale, _minScale);
+
+    // Calculate image bounds after transformation
+    final baseOffsetX = (screenSize.width - _displayedImageSize.width) / 2;
+    final baseOffsetY = (screenSize.height - _displayedImageSize.height) / 2;
+
+    final scaledWidth = _displayedImageSize.width * constrainedScale;
+    final scaledHeight = _displayedImageSize.height * constrainedScale;
+
+    // Crop area center (screen center)
+    final cropCenterX = screenSize.width / 2;
+    final cropCenterY = screenSize.height / 2;
+    final cropRadius = _cropSize / 2;
+
+    // Crop area bounds
+    final cropLeft = cropCenterX - cropRadius;
+    final cropRight = cropCenterX + cropRadius;
+    final cropTop = cropCenterY - cropRadius;
+    final cropBottom = cropCenterY + cropRadius;
+
+    // Image bounds after transformation
+    final imageLeft = constrainedScale * baseOffsetX + translationX;
+    final imageRight = imageLeft + scaledWidth;
+    final imageTop = constrainedScale * baseOffsetY + translationY;
+    final imageBottom = imageTop + scaledHeight;
+
+    // Constrain translation so crop area stays within image
+    if (imageLeft > cropLeft) {
+      translationX -= (imageLeft - cropLeft);
+    }
+    if (imageRight < cropRight) {
+      translationX += (cropRight - imageRight);
+    }
+    if (imageTop > cropTop) {
+      translationY -= (imageTop - cropTop);
+    }
+    if (imageBottom < cropBottom) {
+      translationY += (cropBottom - imageBottom);
+    }
+
+    // Only update if something changed
+    if (constrainedScale != scale ||
+        translationX != matrix[12] ||
+        translationY != matrix[13]) {
+      final constrainedMatrix = Matrix4.identity()
+        ..setEntry(0, 3, translationX)
+        ..setEntry(1, 3, translationY)
+        ..setEntry(0, 0, constrainedScale)
+        ..setEntry(1, 1, constrainedScale)
+        ..setEntry(2, 2, constrainedScale);
+
+      _transformationController.value = constrainedMatrix;
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Calculate crop size based on screen width (80% of screen width)
+    // Calculate crop size to maximize usable space
     final screenWidth = MediaQuery.of(context).size.width;
-    _cropSize = screenWidth * 0.8;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final safeAreaTop = MediaQuery.of(context).padding.top;
+    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
+
+    // Available space minus UI elements (top bar ~60px, bottom text ~80px)
+    final availableHeight = screenHeight - safeAreaTop - safeAreaBottom - 140;
+    final availableWidth = screenWidth - 32; // 16px padding on each side
+
+    // Use the smaller dimension to ensure circle fits
+    _cropSize = math.min(availableWidth, availableHeight);
   }
 
   Future<void> _loadImage() async {
@@ -145,11 +224,13 @@ class _AvatarCropperState extends State<AvatarCropper> {
     _displayedImageSize = Size(displayWidth, displayHeight);
 
     // Calculate minimum scale to cover the crop circle
-    final minDimension = math.min(displayWidth, displayHeight);
-    final minScale = _cropSize / minDimension;
+    // Both dimensions must cover the circle diameter
+    final scaleToFillWidth = _cropSize / displayWidth;
+    final scaleToFillHeight = _cropSize / displayHeight;
+    _minScale = math.max(scaleToFillWidth, scaleToFillHeight);
 
-    // Start with image scaled to fill crop area
-    final initialScale = minScale * 1.1; // Slightly larger to allow some margin
+    // Start with image scaled to exactly fill crop area
+    final initialScale = _minScale;
 
     // Center the image
     final offsetX = (screenSize.width - displayWidth * initialScale) / 2;
@@ -276,11 +357,13 @@ class _AvatarCropperState extends State<AvatarCropper> {
             if (!_isLoading && _uiImage != null)
               InteractiveViewer(
                 transformationController: _transformationController,
-                minScale: 0.5,
-                maxScale: 5.0,
+                minScale: _minScale,
+                maxScale: math.max(_minScale * 4, 5.0),
                 boundaryMargin: const EdgeInsets.all(double.infinity),
+                constrained: false,
                 panEnabled: true,
                 scaleEnabled: true,
+                onInteractionEnd: (_) => _constrainBounds(),
                 child: Center(
                   child: Image.file(
                     widget.imageFile,

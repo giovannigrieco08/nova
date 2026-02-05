@@ -84,32 +84,25 @@ class _EventImageCropperState extends State<EventImageCropper> {
   @override
   void initState() {
     super.initState();
-    _transformationController.addListener(_onTransformChanged);
     _loadImage();
   }
 
   @override
   void dispose() {
-    _transformationController.removeListener(_onTransformChanged);
     _transformationController.dispose();
     super.dispose();
   }
 
-  /// Listener to constrain image bounds after each transformation
-  void _onTransformChanged() {
-    // Skip if not ready
+  /// Constrain bounds at the end of interaction for smooth gesture handling
+  void _onInteractionEnd(ScaleEndDetails details) {
     if (_displayedImageSize == Size.zero) return;
 
     final matrix = _transformationController.value;
     final constrainedMatrix = _constrainMatrix(matrix);
 
-    // Only update if changed (avoid infinite loop)
+    // Only update if changed
     if (constrainedMatrix != matrix) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _transformationController.value = constrainedMatrix;
-        }
-      });
+      _transformationController.value = constrainedMatrix;
     }
   }
 
@@ -184,9 +177,9 @@ class _EventImageCropperState extends State<EventImageCropper> {
     final safeAreaTop = MediaQuery.of(context).padding.top;
     final safeAreaBottom = MediaQuery.of(context).padding.bottom;
 
-    // Available height minus safe areas and some padding for UI elements
-    final availableHeight = screenHeight - safeAreaTop - safeAreaBottom - 120;
-    final availableWidth = screenWidth - 32; // 16px padding on each side
+    // Available height minus safe areas and minimal UI element padding (~100px total)
+    final availableHeight = screenHeight - safeAreaTop - safeAreaBottom - 100;
+    final availableWidth = screenWidth - 24; // 12px padding on each side
 
     // Calculate crop dimensions to fit within available space while maintaining 3:4 ratio
     if (availableWidth / availableHeight > _aspectRatio) {
@@ -384,7 +377,7 @@ class _EventImageCropperState extends State<EventImageCropper> {
           fit: StackFit.expand,
           children: [
             // Image with InteractiveViewer for smooth gestures
-            // Boundary constraining is handled by _onTransformChanged listener
+            // Boundary constraining is handled at interaction end for smooth gestures
             if (!_isLoading && _uiImage != null)
               InteractiveViewer(
                 transformationController: _transformationController,
@@ -394,6 +387,7 @@ class _EventImageCropperState extends State<EventImageCropper> {
                 constrained: false,
                 panEnabled: true,
                 scaleEnabled: true,
+                onInteractionEnd: _onInteractionEnd,
                 child: Center(
                   child: Image.file(
                     widget.imageFile,

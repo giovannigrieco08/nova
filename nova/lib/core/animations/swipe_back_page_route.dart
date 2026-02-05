@@ -295,7 +295,8 @@ class SwipeBackRightPageRoute<T> extends PageRoute<T> {
   Duration get reverseTransitionDuration => const Duration(milliseconds: 300);
 
   /// Width of the area from the right edge where the gesture is detected.
-  static const double _kEdgeWidth = 30.0;
+  /// Increased from 30 to 50 for easier gesture detection.
+  static const double _kEdgeWidth = 50.0;
 
   /// The minimum velocity to trigger a pop (pixels per second).
   static const double _kMinFlingVelocity = 300.0;
@@ -374,6 +375,13 @@ class SwipeBackRightPageRoute<T> extends PageRoute<T> {
   bool isAnimationCompleted(Animation<double> animation) {
     return animation.status == AnimationStatus.completed;
   }
+
+  /// Exposes the animation controller for gesture handling.
+  /// Returns the route's animation cast to AnimationController.
+  AnimationController? get animationController {
+    final anim = animation;
+    return anim is AnimationController ? anim : null;
+  }
 }
 
 /// Gesture detector for swipe-back-from-right functionality.
@@ -406,13 +414,13 @@ class _SwipeBackRightGestureDetectorState
     if (!_canStartGesture) return;
     if (widget.route.navigator == null) return;
 
-    // Get the animation controller from the route's animation
-    final animation = widget.animation;
-    if (animation is! AnimationController) return;
+    // Use the route's animation controller for gesture handling
+    final controller = widget.route.animationController;
+    if (controller == null) return;
 
     _gestureController = _SwipeBackRightGestureController(
       navigator: widget.route.navigator!,
-      controller: animation,
+      controller: controller,
     );
   }
 
