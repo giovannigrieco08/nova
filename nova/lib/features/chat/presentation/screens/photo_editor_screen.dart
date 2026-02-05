@@ -13,15 +13,18 @@ import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
+import 'package:nova/core/theme/nova_shadows.dart';
 import 'package:nova/features/profile/presentation/providers/profile_provider.dart'
     show currentProfileProvider;
 
-/// Photo preview screen (Instagram Stories style)
+/// Photo preview screen with premium glass UI (Instagram Stories style)
 ///
 /// Features:
-/// - Full screen photo preview with rounded corners
-/// - Top toolbar: close, text, link, sticker, music, download
-/// - Bottom bar: caption field, replay toggle, send button with profile picture
+/// - Full screen photo preview with rounded corners and shadow
+/// - Glass effect top toolbar
+/// - Glass caption input field
+/// - Segmented replay toggle control
+/// - Gradient send button with profile picture
 class PhotoEditorScreen extends ConsumerStatefulWidget {
   final XFile imageFile;
   final Function(File editedImage, {bool allowReplay, String? caption})? onSend;
@@ -61,15 +64,22 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top toolbar
+            // Top toolbar with glass effect
             _buildTopToolbar(),
 
-            // Main photo area with rounded corners
+            // Main photo area with rounded corners and shadow
             Expanded(
               child: Container(
-                margin: EdgeInsets.symmetric(horizontal: 2),
+                margin: EdgeInsets.symmetric(
+                  horizontal: NovaSpacing.xs,
+                  vertical: NovaSpacing.s,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: NovaRadius.circularXl,
+                  boxShadow: NovaShadows.large,
+                ),
                 child: ClipRRect(
-                  borderRadius: NovaRadius.circularM,
+                  borderRadius: NovaRadius.circularXl,
                   child: RepaintBoundary(
                     key: _repaintKey,
                     child: Image.file(
@@ -93,53 +103,51 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
 
   Widget _buildTopToolbar() {
     return Container(
-      padding: EdgeInsets.symmetric(
+      margin: EdgeInsets.symmetric(
         horizontal: NovaSpacing.m,
         vertical: NovaSpacing.s,
       ),
-      child: Row(
-        children: [
-          // Close button (X)
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: Center(
-                child: Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 28,
-                ),
+      child: ClipRRect(
+        borderRadius: NovaRadius.circularXl,
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: NovaSpacing.s,
+              vertical: NovaSpacing.s,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withValues(alpha: 0.15),
+                  Colors.white.withValues(alpha: 0.05),
+                ],
+              ),
+              borderRadius: NovaRadius.circularXl,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.2),
+                width: 1,
               ),
             ),
-          ),
-
-          const Spacer(),
-
-          // Download button with thin outline
-          GestureDetector(
-            onTap: _saveToGallery,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  width: 1.5,
+            child: Row(
+              children: [
+                // Close button
+                _GlassIconButton(
+                  icon: Icons.close,
+                  onTap: () => Navigator.pop(context),
                 ),
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.download_outlined,
-                  color: Colors.white,
-                  size: 24,
+
+                const Spacer(),
+
+                // Download button
+                _GlassIconButton(
+                  icon: Icons.download_outlined,
+                  onTap: _saveToGallery,
                 ),
-              ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -154,127 +162,151 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Caption input field (Instagram style)
-          Container(
-            margin: EdgeInsets.only(bottom: NovaSpacing.m),
-            padding: EdgeInsets.symmetric(horizontal: NovaSpacing.m),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              borderRadius: NovaRadius.circularXl,
-            ),
-            child: TextField(
-              controller: _captionController,
-              focusNode: _captionFocusNode,
-              style: NovaTypography.bodyMedium.copyWith(
-                color: Colors.white,
-              ),
-              maxLines: 2,
-              minLines: 1,
-              maxLength: 150,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: 'Aggiungi una didascalia...',
-                hintStyle: NovaTypography.bodyMedium.copyWith(
-                  color: Colors.white60,
-                ),
-                border: InputBorder.none,
-                counterText: '',
-                contentPadding: EdgeInsets.symmetric(vertical: NovaSpacing.s),
-              ),
-            ),
-          ),
+          // Caption input field (glass style)
+          _buildCaptionInput(),
+
+          SizedBox(height: NovaSpacing.m),
 
           // Bottom row with replay toggle and send button
           Row(
             children: [
-              // Replay toggle (tappable)
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _allowReplay = !_allowReplay;
-                    });
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white54, width: 1),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            _allowReplay ? Icons.play_arrow : Icons.looks_one,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: NovaSpacing.s),
-                      Flexible(
-                        child: Text(
-                          _allowReplay
-                              ? 'Consenti di riprodurre di nuovo'
-                              : 'Consenti 1 sola visualizzazione',
-                          style: NovaTypography.bodySmall.copyWith(
-                            color: Colors.white,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Replay toggle (segmented control style)
+              _buildReplayToggle(),
 
               SizedBox(width: NovaSpacing.m),
 
-              // Send button with profile picture
-              GestureDetector(
-                onTap: _sendPhoto,
-                child: Container(
-                  padding: EdgeInsets.only(
-                    left: 4,
-                    right: NovaSpacing.m,
-                    top: 4,
-                    bottom: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: NovaRadius.circularXl,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Profile picture
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: NovaColors.primary(context),
-                        backgroundImage: profileImageUrl != null
-                            ? NetworkImage(profileImageUrl)
-                            : null,
-                        child: profileImageUrl == null
-                            ? Icon(Icons.person, size: 16, color: Colors.white)
-                            : null,
-                      ),
-                      SizedBox(width: NovaSpacing.s),
-                      Text(
-                        'Invia',
-                        style: NovaTypography.bodyMedium.copyWith(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Send button with gradient
+              _buildSendButton(profileImageUrl),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCaptionInput() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.3),
+        borderRadius: NovaRadius.circularXl,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: TextField(
+        controller: _captionController,
+        focusNode: _captionFocusNode,
+        style: NovaTypography.bodyMedium.copyWith(
+          color: Colors.white,
+        ),
+        maxLines: 2,
+        minLines: 1,
+        maxLength: 150,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(
+          prefixIcon: Icon(
+            Icons.edit_outlined,
+            color: Colors.white.withValues(alpha: 0.54),
+            size: 20,
+          ),
+          hintText: 'Aggiungi una didascalia...',
+          hintStyle: NovaTypography.bodyMedium.copyWith(
+            color: Colors.white.withValues(alpha: 0.38),
+          ),
+          border: InputBorder.none,
+          counterText: '',
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.m,
+            vertical: NovaSpacing.s,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReplayToggle() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: NovaRadius.circularFull,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ReplayOption(
+            icon: Icons.replay,
+            label: 'Replay',
+            isSelected: _allowReplay,
+            onTap: () => setState(() => _allowReplay = true),
+          ),
+          _ReplayOption(
+            icon: Icons.looks_one_outlined,
+            label: '1x',
+            isSelected: !_allowReplay,
+            onTap: () => setState(() => _allowReplay = false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSendButton(String? profileImageUrl) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: _sendPhoto,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.m,
+            vertical: NovaSpacing.s,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                NovaColors.gradientStart,
+                NovaColors.gradientEnd,
+              ],
+            ),
+            borderRadius: NovaRadius.circularFull,
+            boxShadow: [
+              BoxShadow(
+                color: NovaColors.gradientStart.withValues(alpha: 0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Profile picture
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                backgroundImage: profileImageUrl != null
+                    ? NetworkImage(profileImageUrl)
+                    : null,
+                child: profileImageUrl == null
+                    ? const Icon(Icons.person, size: 16, color: Colors.white)
+                    : null,
+              ),
+              SizedBox(width: NovaSpacing.s),
+              Text(
+                'Invia',
+                style: NovaTypography.labelMedium.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(width: NovaSpacing.xs),
+              const Icon(
+                Icons.send,
+                color: Colors.white,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -283,12 +315,10 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
     try {
       final file = await _captureImage();
       if (file != null) {
-        // Check if we're on desktop (Windows/macOS/Linux)
         final isDesktop = !kIsWeb &&
             (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
         if (isDesktop) {
-          // On desktop, save to Downloads folder
           final downloadsDir = await getDownloadsDirectory();
           if (downloadsDir != null) {
             final fileName =
@@ -298,7 +328,7 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
             await file.copy(destPath);
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Immagine salvata in Downloads'),
                   backgroundColor: Colors.green,
                 ),
@@ -308,11 +338,10 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
             throw Exception('Cartella Downloads non trovata');
           }
         } else {
-          // On mobile, save to gallery using Gal package
           await Gal.putImage(file.path);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text('Immagine salvata nella galleria!'),
                 backgroundColor: Colors.green,
               ),
@@ -322,7 +351,7 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('Impossibile catturare l\'immagine'),
               backgroundColor: Colors.red,
             ),
@@ -335,7 +364,7 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
           SnackBar(
             content: Text('Errore: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 5),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -373,27 +402,127 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   Future<void> _sendPhoto() async {
     final file = await _captureImage();
     if (file != null && widget.onSend != null) {
-      // Get caption if provided
       final caption = _captionController.text.trim();
       widget.onSend!(
         file,
         allowReplay: _allowReplay,
         caption: caption.isNotEmpty ? caption : null,
       );
-      // Navigator.pop is handled by the callback
     } else if (file == null) {
-      // Show error if capture failed
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Impossibile preparare l\'immagine per l\'invio'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } else {
-      // No callback, just close
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
+  }
+}
+
+/// Glass effect icon button for editor toolbar
+class _GlassIconButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _GlassIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  State<_GlassIconButton> createState() => _GlassIconButtonState();
+}
+
+class _GlassIconButtonState extends State<_GlassIconButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: _isPressed
+                ? Colors.white.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Icon(
+              widget.icon,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Replay option button for segmented control
+class _ReplayOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ReplayOption({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(
+          horizontal: NovaSpacing.m,
+          vertical: NovaSpacing.s,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? NovaColors.primary(context).withValues(alpha: 0.3)
+              : Colors.transparent,
+          borderRadius: NovaRadius.circularFull,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.white70,
+              size: 18,
+            ),
+            SizedBox(width: NovaSpacing.xs),
+            Text(
+              label,
+              style: NovaTypography.labelSmall.copyWith(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

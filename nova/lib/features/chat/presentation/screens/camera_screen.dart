@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,11 +14,12 @@ import 'package:nova/core/theme/nova_typography.dart';
 ///
 /// Features:
 /// - Fullscreen camera preview
+/// - Glass effect controls
 /// - Flash toggle (off/auto/on)
 /// - Front/back camera flip
-/// - Photo/Video mode selector
+/// - Photo/Video mode selector with sliding indicator
 /// - Gallery shortcut
-/// - Maximum resolution support
+/// - Premium shutter button with glow effects
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
 
@@ -25,7 +28,7 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   CameraController? _controller;
   List<CameraDescription> _cameras = [];
   bool _isInitialized = false;
@@ -39,12 +42,43 @@ class _CameraScreenState extends State<CameraScreen>
   /// 0 = Photo, 1 = Video
   int _selectedMode = 0;
 
+  /// Flash overlay for photo capture effect
+  bool _showFlash = false;
+
   final ImagePicker _imagePicker = ImagePicker();
+
+  /// Animation controller for recording pulse effect
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  /// Animation controller for mode selector sliding indicator
+  late AnimationController _modeSlideController;
+  late Animation<double> _modeSlideAnimation;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Setup pulse animation for recording
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    _pulseController.repeat(reverse: true);
+
+    // Setup mode slide animation
+    _modeSlideController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _modeSlideAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _modeSlideController, curve: Curves.easeInOutCubic),
+    );
+
     _initializeCamera();
   }
 
@@ -52,6 +86,8 @@ class _CameraScreenState extends State<CameraScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
+    _pulseController.dispose();
+    _modeSlideController.dispose();
     super.dispose();
   }
 
@@ -78,8 +114,6 @@ class _CameraScreenState extends State<CameraScreen>
       }
       return;
     }
-
-    // Microphone permission will be requested when video mode is used
 
     try {
       _cameras = await availableCameras();
@@ -111,8 +145,8 @@ class _CameraScreenState extends State<CameraScreen>
     final camera = _cameras[cameraIndex];
     _controller = CameraController(
       camera,
-      ResolutionPreset.high, // Good quality, faster init than max
-      enableAudio: true, // Keep audio ready for video mode
+      ResolutionPreset.high,
+      enableAudio: true,
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
 
@@ -173,10 +207,15 @@ class _CameraScreenState extends State<CameraScreen>
 
     setState(() => _isProcessingShutter = true);
 
+    // Show flash effect
+    setState(() => _showFlash = true);
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) setState(() => _showFlash = false);
+
     try {
       final XFile file = await _controller!.takePicture();
 
-      // Fix orientation issues on iOS (both front and rear cameras)
+      // Fix orientation issues on iOS
       final fixedPath = await ImageOrientationFixer.fixOrientation(
         file.path,
         isFrontCamera: _isFrontCamera,
@@ -204,7 +243,6 @@ class _CameraScreenState extends State<CameraScreen>
     setState(() => _isProcessingShutter = true);
 
     try {
-      // Request microphone permission when video recording starts
       final micStatus = await Permission.microphone.request();
       if (micStatus.isDenied && mounted) {
         setState(() => _isProcessingShutter = false);
@@ -262,21 +300,20 @@ class _CameraScreenState extends State<CameraScreen>
   Future<void> _openGallery() async {
     try {
       if (_selectedMode == 0) {
-        // Photo mode
         final XFile? image = await _imagePicker.pickImage(
           source: ImageSource.gallery,
           imageQuality: 90,
         );
         if (image != null && mounted) {
-          // Fix orientation issues on iOS for gallery images
           final fixedPath = await ImageOrientationFixer.fixOrientation(
             image.path,
             isFrontCamera: false,
           );
-          Navigator.pop(context, {'type': 'photo', 'file': XFile(fixedPath)});
+          if (mounted) {
+            Navigator.pop(context, {'type': 'photo', 'file': XFile(fixedPath)});
+          }
         }
       } else {
-        // Video mode
         final XFile? video = await _imagePicker.pickVideo(
           source: ImageSource.gallery,
         );
@@ -305,39 +342,67 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
+  void _setMode(int mode) {
+    if (_isRecording) return;
+    if (mode == _selectedMode) return;
+
+    setState(() {
+      _selectedMode = mode;
+    });
+
+    if (mode == 1) {
+      _modeSlideController.forward();
+    } else {
+      _modeSlideController.reverse();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Camera preview
-            if (_isInitialized && _controller != null)
-              _buildCameraPreview()
-            else
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-
-            // Top controls
-            Positioned(
-              top: NovaSpacing.m,
-              left: NovaSpacing.m,
-              right: NovaSpacing.m,
-              child: _buildTopControls(),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Camera preview
+          if (_isInitialized && _controller != null)
+            _buildCameraPreview()
+          else
+            const Center(
+              child: CircularProgressIndicator(color: Colors.white),
             ),
 
-            // Bottom controls
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _buildBottomControls(),
+          // Flash overlay effect
+          if (_showFlash)
+            AnimatedOpacity(
+              opacity: _showFlash ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 100),
+              child: Container(color: Colors.white),
             ),
-          ],
-        ),
+
+          // Safe area content
+          SafeArea(
+            child: Stack(
+              children: [
+                // Top controls - Glass bar
+                Positioned(
+                  top: NovaSpacing.m,
+                  left: NovaSpacing.m,
+                  right: NovaSpacing.m,
+                  child: _buildTopControlsGlassBar(),
+                ),
+
+                // Bottom controls
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildBottomControls(),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -357,31 +422,51 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  Widget _buildTopControls() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Close button
-        _buildCircleButton(
-          icon: Icons.close,
-          onTap: () => Navigator.pop(context),
-        ),
+  Widget _buildTopControlsGlassBar() {
+    return ClipRRect(
+      borderRadius: NovaRadius.circularXl,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.s,
+            vertical: NovaSpacing.s,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            borderRadius: NovaRadius.circularXl,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Close button
+              _GlassIconButton(
+                icon: Icons.close,
+                onTap: () => Navigator.pop(context),
+              ),
 
-        // Flash toggle (only for back camera)
-        if (!_isFrontCamera)
-          _buildCircleButton(
-            icon: _getFlashIcon(),
-            onTap: _toggleFlash,
-          )
-        else
-          const SizedBox(width: 44),
+              // Flash toggle (only for back camera)
+              if (!_isFrontCamera)
+                _GlassIconButton(
+                  icon: _getFlashIcon(),
+                  onTap: _toggleFlash,
+                )
+              else
+                const SizedBox(width: 48),
 
-        // Flip camera
-        _buildCircleButton(
-          icon: Icons.flip_camera_ios,
-          onTap: _flipCamera,
+              // Flip camera
+              _GlassIconButton(
+                icon: Icons.flip_camera_ios,
+                onTap: _flipCamera,
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 
@@ -397,28 +482,26 @@ class _CameraScreenState extends State<CameraScreen>
           end: Alignment.topCenter,
           colors: [
             Colors.black.withValues(alpha: 0.8),
+            Colors.black.withValues(alpha: 0.4),
             Colors.transparent,
           ],
+          stops: const [0.0, 0.5, 1.0],
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Mode selector tabs
+          // Mode selector with sliding indicator
           _buildModeSelector(),
 
-          SizedBox(height: NovaSpacing.l),
+          SizedBox(height: NovaSpacing.xl),
 
           // Main controls row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // Gallery button
-              _buildCircleButton(
-                icon: Icons.photo_library_outlined,
-                size: 50,
-                onTap: _openGallery,
-              ),
+              _buildGalleryButton(),
 
               // Shutter button
               _buildShutterButton(),
@@ -433,55 +516,93 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Widget _buildModeSelector() {
-    return Container(
-      padding: EdgeInsets.all(NovaSpacing.xs),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        borderRadius: NovaRadius.circularXl,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildModeTab('FOTO', 0),
-          _buildModeTab('VIDEO', 1),
-        ],
-      ),
-    );
-  }
+    const double tabWidth = 70;
+    const double tabHeight = 36;
 
-  Widget _buildModeTab(String label, int index) {
-    final isSelected = _selectedMode == index;
-
-    return GestureDetector(
-      onTap: () {
-        if (!_isRecording) {
-          setState(() {
-            _selectedMode = index;
-          });
-        }
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: NovaSpacing.m,
-          vertical: NovaSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: NovaRadius.circularL,
-        ),
-        child: Text(
-          label,
-          style: NovaTypography.labelMedium.copyWith(
-            color: isSelected ? Colors.black : Colors.white,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+    return ClipRRect(
+      borderRadius: NovaRadius.circularFull,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          height: tabHeight,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.4),
+            borderRadius: NovaRadius.circularFull,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.15),
+              width: 1,
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Sliding indicator
+              AnimatedBuilder(
+                animation: _modeSlideAnimation,
+                builder: (context, child) {
+                  return Positioned(
+                    left: _modeSlideAnimation.value * tabWidth,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: tabWidth,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: NovaRadius.circularFull,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              // Labels
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildModeTab('FOTO', 0, tabWidth),
+                  _buildModeTab('VIDEO', 1, tabWidth),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  Widget _buildModeTab(String label, int index, double width) {
+    return GestureDetector(
+      onTap: () => _setMode(index),
+      child: AnimatedBuilder(
+        animation: _modeSlideAnimation,
+        builder: (context, child) {
+          final isSelected = _selectedMode == index;
+          final animValue = index == 0
+              ? 1 - _modeSlideAnimation.value
+              : _modeSlideAnimation.value;
+
+          return Container(
+            width: width,
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: NovaTypography.labelMedium.copyWith(
+                color: Color.lerp(
+                  Colors.white.withValues(alpha: 0.7),
+                  Colors.black,
+                  animValue,
+                ),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildShutterButton() {
     final isVideoMode = _selectedMode == 1;
+    final Color buttonColor = isVideoMode ? const Color(0xFFED4956) : Colors.white;
 
     return GestureDetector(
       onTap: _isProcessingShutter
@@ -497,53 +618,116 @@ class _CameraScreenState extends State<CameraScreen>
                 _takePhoto();
               }
             },
+      child: AnimatedBuilder(
+        animation: _pulseAnimation,
+        builder: (context, child) {
+          final double glowOpacity = _isRecording ? 0.3 + (_pulseAnimation.value * 0.3) : 0.0;
+          final double glowRadius = _isRecording ? 15 + (_pulseAnimation.value * 10) : 0.0;
+
+          return Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _isRecording ? buttonColor : Colors.white,
+                width: 5,
+              ),
+              boxShadow: [
+                if (_isRecording || isVideoMode)
+                  BoxShadow(
+                    color: buttonColor.withValues(alpha: glowOpacity),
+                    blurRadius: glowRadius,
+                    spreadRadius: 2,
+                  ),
+              ],
+            ),
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOutCubic,
+                width: _isRecording ? 36 : 72,
+                height: _isRecording ? 36 : 72,
+                decoration: BoxDecoration(
+                  color: buttonColor,
+                  borderRadius: BorderRadius.circular(_isRecording ? 10 : 36),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildGalleryButton() {
+    return GestureDetector(
+      onTap: _openGallery,
       child: Container(
-        width: 80,
-        height: 80,
+        width: 50,
+        height: 50,
         decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.4),
           shape: BoxShape.circle,
           border: Border.all(
-            color: _isRecording ? Colors.red : Colors.white,
-            width: 4,
+            color: Colors.white.withValues(alpha: 0.3),
+            width: 2,
           ),
         ),
-        padding: const EdgeInsets.all(4),
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: _isRecording ? 32 : 64,
-            height: _isRecording ? 32 : 64,
-            decoration: BoxDecoration(
-              color: isVideoMode ? Colors.red : Colors.white,
-              // Use borderRadius for both states to avoid animation issues
-              // Circle = very large radius, Square = small radius
-              borderRadius: BorderRadius.circular(_isRecording ? 8 : 32),
-            ),
+        child: const Center(
+          child: Icon(
+            Icons.photo_library_outlined,
+            color: Colors.white,
+            size: 24,
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildCircleButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    double size = 44,
-  }) {
+/// Glass effect icon button for camera controls
+class _GlassIconButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _GlassIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  State<_GlassIconButton> createState() => _GlassIconButtonState();
+}
+
+class _GlassIconButtonState extends State<_GlassIconButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.5),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: size * 0.5,
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: _isPressed
+                ? Colors.white.withValues(alpha: 0.15)
+                : Colors.white.withValues(alpha: 0.05),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Icon(
+              widget.icon,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
         ),
       ),

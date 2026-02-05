@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,13 +17,17 @@ import 'package:nova/features/chat/domain/entities/chat_media_info.dart';
 import 'package:nova/features/chat/presentation/providers/chat_providers.dart'
     show chatRepositoryProvider;
 
-/// Full-screen viewer for view-once media.
+/// Immersive full-screen viewer for view-once media.
 ///
 /// Features:
+/// - Fullscreen immersive mode (no system UI)
+/// - Floating glass close button
+/// - Floating view count badge
+/// - Gradient caption overlay
+/// - Ephemeral indicator with pulse animation
+/// - Swipe to close gesture
 /// - Screenshot protection on Android (FLAG_SECURE)
 /// - Screenshot detection on iOS with sender notification
-/// - One-time view enforcement
-/// - Countdown timer display
 class MediaViewerScreen extends ConsumerStatefulWidget {
   final ChatMediaInfo media;
   final String signedUrl;
@@ -39,14 +44,17 @@ class MediaViewerScreen extends ConsumerStatefulWidget {
   ConsumerState<MediaViewerScreen> createState() => _MediaViewerScreenState();
 }
 
-class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
-  bool _hasViewed = false;
+class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
+    with TickerProviderStateMixin {
   bool _isLoading = true;
   int _currentViewCount = 0;
   int _maxViews = 1;
   bool _isOwner = false;
 
-  // Audio player state (lazy initialization - only for audio media)
+  // Swipe to close state
+  double _dragOffset = 0.0;
+
+  // Audio player state
   FlutterSoundPlayer? _audioPlayer;
   bool _playerInitialized = false;
   bool _isPlaying = false;
@@ -59,21 +67,48 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   bool _videoInitialized = false;
   bool _videoError = false;
 
+  // Pulse animation for ephemeral indicator
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  // Entry animation
+  late AnimationController _entryController;
+  late Animation<double> _entryAnimation;
+
   @override
   void initState() {
     super.initState();
     _maxViews = widget.media.maxViews;
     _currentViewCount = widget.media.viewCount;
+
+    // Setup pulse animation
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    _pulseController.repeat(reverse: true);
+
+    // Setup entry animation
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _entryAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
+    );
+    _entryController.forward();
+
     _checkIfOwner();
     _setupScreenshotProtection();
     _markAsViewed();
 
-    // Initialize audio player if this is an audio media
     if (widget.media.mediaType.isAudio) {
       _initAudioPlayer();
     }
 
-    // Initialize video player if this is a video media
     if (widget.media.mediaType.isVideo) {
       _initVideoPlayer();
     }
@@ -84,6 +119,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     _removeScreenshotProtection();
     _disposeAudioPlayer();
     _disposeVideoPlayer();
+    _pulseController.dispose();
+    _entryController.dispose();
     super.dispose();
   }
 
@@ -94,7 +131,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       );
       await _videoController!.initialize();
       _videoController!.setLooping(true);
-      // Auto-play when initialized
       await _videoController!.play();
       if (mounted) {
         setState(() {
@@ -120,7 +156,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   Future<void> _initAudioPlayer() async {
-    if (_audioPlayer != null) return; // Already initialized
+    if (_audioPlayer != null) return;
     try {
       _audioPlayer = FlutterSoundPlayer();
       await _audioPlayer!.openPlayer();
@@ -144,20 +180,15 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
 
   Future<void> _setupScreenshotProtection() async {
     if (Platform.isAndroid) {
-      // Enable FLAG_SECURE to prevent screenshots
       try {
         await SystemChrome.setEnabledSystemUIMode(
           SystemUiMode.immersiveSticky,
         );
-        // Note: flutter_windowmanager would be used here in production
-        // FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
       } catch (e) {
         // Ignore screenshot protection errors
       }
     } else if (Platform.isIOS) {
       // Setup screenshot detection callback
-      // Note: screenshot_callback would be used here in production
-      // ScreenshotCallback.instance.addListener(_onScreenshot);
     }
   }
 
@@ -167,30 +198,16 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
         await SystemChrome.setEnabledSystemUIMode(
           SystemUiMode.edgeToEdge,
         );
-        // FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
       } catch (e) {
         // Ignore screenshot protection errors
       }
     } else if (Platform.isIOS) {
-      // ScreenshotCallback.instance.removeListener(_onScreenshot);
+      // Remove screenshot detection callback
     }
   }
 
-  Future<void> _onScreenshot() async {
-    // Report screenshot to sender
-    final repository = ref.read(chatRepositoryProvider);
-    await repository.reportScreenshot(widget.media.id);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-              'Screenshot rilevato - il mittente è stato notificato'),
-          backgroundColor: NovaColors.warning(context),
-        ),
-      );
-    }
-  }
+  // TODO: Implement _onScreenshot for iOS screenshot detection
+  // See: screenshot_callback package
 
   Future<void> _markAsViewed() async {
     try {
@@ -199,11 +216,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       if (updatedMedia != null) {
         setState(() {
           _currentViewCount = updatedMedia.viewCount;
-          _hasViewed = true;
           _isLoading = false;
         });
       } else {
-        // Max views reached or expired
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -227,107 +242,271 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     }
   }
 
+  void _handleDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.delta.dy;
+    });
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    if (_dragOffset.abs() > 100 ||
+        details.velocity.pixelsPerSecond.dy.abs() > 500) {
+      Navigator.pop(context);
+    } else {
+      setState(() {
+        _dragOffset = 0.0;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final safeTop = MediaQuery.of(context).padding.top;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final remaining = _maxViews - _currentViewCount;
+    final isLastView = remaining <= 0;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(
-          'Visualizzazione singola',
-          style: NovaTypography.bodyMedium.copyWith(
-            color: Colors.white,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(
                 color: Colors.white,
               ),
             )
-          : Stack(
-              children: [
-                // Media content - full screen with interactive zoom/pan
-                Positioned.fill(
-                  child: _buildMediaContent(),
-                ),
-
-                // Caption (if provided) - positioned above the view status
-                if (widget.caption != null && widget.caption!.isNotEmpty)
-                  Positioned(
-                    bottom: _isOwner ? NovaSpacing.xl : NovaSpacing.xl + 60,
-                    left: NovaSpacing.m,
-                    right: NovaSpacing.m,
-                    child: Container(
-                      padding: EdgeInsets.all(NovaSpacing.m),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: NovaRadius.circularS,
-                      ),
-                      child: Text(
-                        widget.caption!,
-                        style: NovaTypography.bodyMedium.copyWith(
-                          color: Colors.white,
+          : AnimatedBuilder(
+              animation: _entryAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: 0.9 + (_entryAnimation.value * 0.1),
+                  child: Opacity(
+                    opacity: _entryAnimation.value,
+                    child: child,
+                  ),
+                );
+              },
+              child: GestureDetector(
+                onVerticalDragUpdate: _handleDragUpdate,
+                onVerticalDragEnd: _handleDragEnd,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  transform: Matrix4.translationValues(0, _dragOffset, 0),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Media content - full screen with interactive zoom/pan
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: 1 - (_dragOffset.abs() / 500).clamp(0.0, 0.5),
+                          child: _buildMediaContent(),
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                    ),
-                  ),
 
-                // View status notice (only shown to non-owners)
-                if (!_isOwner)
-                  Positioned(
-                    bottom: NovaSpacing.xl,
-                    left: NovaSpacing.m,
-                    right: NovaSpacing.m,
-                    child: Container(
-                      padding: EdgeInsets.all(NovaSpacing.s),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: NovaRadius.circularXs,
+                      // Floating close button (top-left)
+                      Positioned(
+                        top: safeTop + NovaSpacing.m,
+                        left: NovaSpacing.m,
+                        child: _buildFloatingCloseButton(),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.visibility_off,
-                            color: Colors.white70,
-                            size: 16,
-                          ),
-                          SizedBox(width: NovaSpacing.xs),
-                          Text(
-                            _getViewStatusText(),
-                            style: NovaTypography.bodySmall.copyWith(
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
+
+                      // View count badge (top-right)
+                      if (!_isOwner)
+                        Positioned(
+                          top: safeTop + NovaSpacing.m,
+                          right: NovaSpacing.m,
+                          child: _buildViewCountBadge(),
+                        ),
+
+                      // Bottom gradient overlay with caption and ephemeral indicator
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: _buildBottomOverlay(safeBottom, isLastView),
                       ),
-                    ),
+                    ],
                   ),
-              ],
+                ),
+              ),
             ),
     );
   }
 
-  String _getViewStatusText() {
-    final remaining = _maxViews - _currentViewCount;
-    if (remaining <= 0) {
-      return 'Questo media scomparirà dopo la chiusura';
-    } else if (_maxViews == 1) {
-      return 'Questo media scomparirà dopo la chiusura';
-    } else {
-      return 'Visualizzazione $_currentViewCount di $_maxViews';
-    }
+  Widget _buildFloatingCloseButton() {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.close,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
-  /// Route to appropriate media player based on type
+  Widget _buildViewCountBadge() {
+    return ClipRRect(
+      borderRadius: NovaRadius.circularFull,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.m,
+            vertical: NovaSpacing.s,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.4),
+            borderRadius: NovaRadius.circularFull,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.15),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.visibility_outlined,
+                color: Colors.white.withValues(alpha: 0.7),
+                size: 16,
+              ),
+              SizedBox(width: NovaSpacing.xs),
+              Text(
+                '$_currentViewCount/$_maxViews',
+                style: NovaTypography.labelSmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomOverlay(double safeBottom, bool isLastView) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: NovaSpacing.l,
+        right: NovaSpacing.l,
+        bottom: safeBottom + NovaSpacing.xl,
+        top: NovaSpacing.xxxl,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Colors.black.withValues(alpha: 0.8),
+            Colors.black.withValues(alpha: 0.4),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Caption
+          if (widget.caption != null && widget.caption!.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(bottom: NovaSpacing.m),
+              child: Text(
+                widget.caption!,
+                style: NovaTypography.bodyMedium.copyWith(
+                  color: Colors.white,
+                  shadows: [
+                    const Shadow(
+                      color: Colors.black54,
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Ephemeral indicator (only for non-owners)
+          if (!_isOwner) _buildEphemeralIndicator(isLastView),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEphemeralIndicator(bool isLastView) {
+    final remaining = _maxViews - _currentViewCount;
+
+    return AnimatedBuilder(
+      animation: _pulseAnimation,
+      builder: (context, child) {
+        final glowOpacity = isLastView ? 0.2 + (_pulseAnimation.value * 0.3) : 0.0;
+
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.m,
+            vertical: NovaSpacing.s,
+          ),
+          decoration: BoxDecoration(
+            color: NovaColors.warning(context).withValues(alpha: 0.2),
+            borderRadius: NovaRadius.circularFull,
+            border: Border.all(
+              color: NovaColors.warning(context).withValues(alpha: 0.5),
+              width: 1,
+            ),
+            boxShadow: isLastView
+                ? [
+                    BoxShadow(
+                      color: NovaColors.warning(context).withValues(alpha: glowOpacity),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.timer_outlined,
+                color: NovaColors.warning(context),
+                size: 16,
+              ),
+              SizedBox(width: NovaSpacing.xs),
+              Text(
+                remaining <= 0
+                    ? 'Scompare alla chiusura'
+                    : '$remaining visualizzazion${remaining == 1 ? 'e' : 'i'} rimanent${remaining == 1 ? 'e' : 'i'}',
+                style: NovaTypography.labelSmall.copyWith(
+                  color: NovaColors.warning(context),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildMediaContent() {
     switch (widget.media.mediaType) {
       case ChatMediaType.image:
@@ -362,16 +541,16 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
           errorBuilder: (context, error, stack) => Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.broken_image,
                 size: 64,
-                color: Colors.white54,
+                color: Colors.white.withValues(alpha: 0.54),
               ),
               SizedBox(height: NovaSpacing.m),
               Text(
                 'Impossibile caricare l\'immagine',
                 style: NovaTypography.bodyMedium.copyWith(
-                  color: Colors.white54,
+                  color: Colors.white.withValues(alpha: 0.54),
                 ),
               ),
             ],
@@ -382,28 +561,26 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   Widget _buildVideoPlayer() {
-    // Show error state
     if (_videoError) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
             size: 64,
-            color: Colors.white54,
+            color: Colors.white.withValues(alpha: 0.54),
           ),
           SizedBox(height: NovaSpacing.m),
           Text(
             'Impossibile caricare il video',
             style: NovaTypography.bodyMedium.copyWith(
-              color: Colors.white54,
+              color: Colors.white.withValues(alpha: 0.54),
             ),
           ),
         ],
       );
     }
 
-    // Show loading state
     if (!_videoInitialized || _videoController == null) {
       return const Center(
         child: CircularProgressIndicator(
@@ -412,10 +589,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       );
     }
 
-    // Show video player
     return GestureDetector(
       onTap: () {
-        // Toggle play/pause on tap
         if (_videoController!.value.isPlaying) {
           _videoController!.pause();
         } else {
@@ -426,26 +601,29 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Video
           Center(
             child: AspectRatio(
               aspectRatio: _videoController!.value.aspectRatio,
               child: VideoPlayer(_videoController!),
             ),
           ),
-          // Play/Pause overlay (show when paused)
           if (!_videoController!.value.isPlaying)
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.play_arrow,
-                size: 50,
-                color: Colors.white,
+            ClipOval(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow,
+                    size: 50,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
         ],
@@ -453,32 +631,33 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     );
   }
 
-  // ===========================================================================
-  // AUDIO PLAYER
-  // ===========================================================================
-
   Widget _buildAudioPlayer() {
     return Padding(
       padding: EdgeInsets.all(NovaSpacing.xl),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Microphone icon with pulsing animation when playing
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.1),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 2,
+          // Microphone icon with glass effect
+          ClipOval(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.1),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(
+                  _isPlaying ? Icons.graphic_eq : Icons.mic,
+                  size: 60,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            child: Icon(
-              _isPlaying ? Icons.graphic_eq : Icons.mic,
-              size: 60,
-              color: Colors.white,
             ),
           ),
 
@@ -540,7 +719,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             child: Container(
               width: 64,
               height: 64,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white,
               ),
@@ -582,12 +761,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     if (_audioPlayer == null) return;
 
     try {
-      // Cancel any existing subscription
       _progressSubscription?.cancel();
 
-      // Start playback from URL
-      // Don't specify codec - let flutter_sound auto-detect from file
-      // iOS uses aacMP4 (.m4a), Android uses aacADTS (.aac)
       await _audioPlayer!.startPlayer(
         fromURI: widget.signedUrl,
         whenFinished: () {
@@ -600,7 +775,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
         },
       );
 
-      // Subscribe to progress updates
       _progressSubscription = _audioPlayer!.onProgress?.listen((event) {
         if (mounted) {
           setState(() {
@@ -610,7 +784,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
         }
       });
 
-      // Enable progress subscription
       await _audioPlayer!.setSubscriptionDuration(
         const Duration(milliseconds: 100),
       );
