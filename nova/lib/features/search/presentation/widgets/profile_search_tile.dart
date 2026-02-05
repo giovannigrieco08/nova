@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
@@ -108,20 +109,49 @@ class ProfileSearchTile extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: NovaColors.dividerLight,
-      backgroundImage:
-          profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null,
-      child: profile.avatarUrl == null
-          ? Text(
+    if (profile.avatarUrl != null) {
+      return ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: profile.avatarUrl!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => CircleAvatar(
+            radius: 24,
+            backgroundColor: NovaColors.dividerLight,
+            child: Text(
               _getInitials(profile.fullName),
               style: NovaTextStyles.body.copyWith(
                 fontWeight: FontWeight.w600,
                 color: NovaColors.textSecondaryStatic,
               ),
-            )
-          : null,
+            ),
+          ),
+          errorWidget: (context, url, error) => CircleAvatar(
+            radius: 24,
+            backgroundColor: NovaColors.dividerLight,
+            child: Text(
+              _getInitials(profile.fullName),
+              style: NovaTextStyles.body.copyWith(
+                fontWeight: FontWeight.w600,
+                color: NovaColors.textSecondaryStatic,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: NovaColors.dividerLight,
+      child: Text(
+        _getInitials(profile.fullName),
+        style: NovaTextStyles.body.copyWith(
+          fontWeight: FontWeight.w600,
+          color: NovaColors.textSecondaryStatic,
+        ),
+      ),
     );
   }
 

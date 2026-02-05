@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:camera/camera.dart';
@@ -45,6 +46,10 @@ class _CameraScreenState extends State<CameraScreen>
   /// Flash overlay for photo capture effect
   bool _showFlash = false;
 
+  /// Recording timer
+  Timer? _recordingTimer;
+  int _recordingSeconds = 0;
+
   final ImagePicker _imagePicker = ImagePicker();
 
   /// Animation controller for recording pulse effect
@@ -88,6 +93,7 @@ class _CameraScreenState extends State<CameraScreen>
     _controller?.dispose();
     _pulseController.dispose();
     _modeSlideController.dispose();
+    _recordingTimer?.cancel();
     super.dispose();
   }
 
@@ -257,6 +263,15 @@ class _CameraScreenState extends State<CameraScreen>
         setState(() {
           _isRecording = true;
           _isProcessingShutter = false;
+          _recordingSeconds = 0;
+        });
+        // Start recording timer
+        _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (mounted) {
+            setState(() {
+              _recordingSeconds++;
+            });
+          }
         });
       }
     } catch (e) {
@@ -274,6 +289,8 @@ class _CameraScreenState extends State<CameraScreen>
     if (_isProcessingShutter) return;
 
     setState(() => _isProcessingShutter = true);
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
 
     try {
       final XFile file = await _controller!.stopVideoRecording();
@@ -281,6 +298,7 @@ class _CameraScreenState extends State<CameraScreen>
         setState(() {
           _isRecording = false;
           _isProcessingShutter = false;
+          _recordingSeconds = 0;
         });
         Navigator.pop(context, {'type': 'video', 'file': file});
       }
@@ -289,12 +307,19 @@ class _CameraScreenState extends State<CameraScreen>
         setState(() {
           _isRecording = false;
           _isProcessingShutter = false;
+          _recordingSeconds = 0;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Errore stop registrazione: $e')),
         );
       }
     }
+  }
+
+  String _formatRecordingTime(int seconds) {
+    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$secs';
   }
 
   Future<void> _openGallery() async {
@@ -491,8 +516,11 @@ class _CameraScreenState extends State<CameraScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Mode selector with sliding indicator
-          _buildModeSelector(),
+          // Mode selector or recording timer
+          if (_isRecording)
+            _buildRecordingTimer()
+          else
+            _buildModeSelector(),
 
           SizedBox(height: NovaSpacing.xl),
 
@@ -511,6 +539,61 @@ class _CameraScreenState extends State<CameraScreen>
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRecordingTimer() {
+    return ClipRRect(
+      borderRadius: NovaRadius.circularFull,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          height: 36,
+          padding: EdgeInsets.symmetric(
+            horizontal: NovaSpacing.l,
+            vertical: NovaSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFFED4956).withValues(alpha: 0.3),
+            borderRadius: NovaRadius.circularFull,
+            border: Border.all(
+              color: const Color(0xFFED4956).withValues(alpha: 0.5),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Pulsing red dot
+              AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  return Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFED4956).withValues(
+                        alpha: 0.5 + (_pulseAnimation.value * 0.5),
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                },
+              ),
+              SizedBox(width: NovaSpacing.s),
+              // Timer text
+              Text(
+                _formatRecordingTime(_recordingSeconds),
+                style: NovaTypography.labelMedium.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: [const FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

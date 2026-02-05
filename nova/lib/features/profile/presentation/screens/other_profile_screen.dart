@@ -148,7 +148,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
           style: NovaTypography.headingMedium,
           overflow: TextOverflow.ellipsis,
         ),
-        previousPageTitle: 'Indietro',
+        previousPageTitle: '',
       );
     } else {
       return AppBar(
@@ -285,7 +285,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
       return CupertinoPageScaffold(
         navigationBar: const CupertinoNavigationBar(
           middle: Text('Profilo'),
-          previousPageTitle: 'Indietro',
+          previousPageTitle: '',
         ),
         child: const Center(
           child: AdaptiveLoadingIndicator(),
@@ -384,7 +384,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
       return CupertinoPageScaffold(
         navigationBar: const CupertinoNavigationBar(
           middle: Text('Profilo'),
-          previousPageTitle: 'Indietro',
+          previousPageTitle: '',
         ),
         child: errorBody,
       );

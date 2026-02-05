@@ -63,18 +63,20 @@ class AppNotification {
     }
 
     // Extract actor info from joined profile or metadata
-    String? actorId = json['actor_id'] as String?;
+    // Note: The database column is sender_id, which maps to actorId
+    String? actorId = json['sender_id'] as String?;
     String? actorName;
     String? actorAvatarUrl;
 
     // Try to get actor info from joined profile data
+    // The JOIN alias is 'actor' from profiles!sender_id
     final actorProfile = json['actor'] as Map<String, dynamic>?;
     if (actorProfile != null) {
       actorName = actorProfile['full_name'] as String?;
       actorAvatarUrl = actorProfile['avatar_url'] as String?;
     }
 
-    // Fallback: try metadata for actor name
+    // Fallback: try metadata for actor name (legacy support)
     if (actorName == null && json['metadata'] != null) {
       final metadata = json['metadata'] as Map<String, dynamic>?;
       actorName = metadata?['actor_name'] as String?;

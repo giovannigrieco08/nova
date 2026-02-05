@@ -75,6 +75,7 @@ class FcmTokenRemoteDataSource {
   ///
   /// Uses delete_fcm_token database function which handles:
   /// - Delete token by value (not ID)
+  /// - Uses auth.uid() internally for security
   /// - Returns success boolean
   Future<bool> deleteToken(String fcmToken) async {
     final userId = _currentUserId;
@@ -86,7 +87,6 @@ class FcmTokenRemoteDataSource {
       final response = await _supabase.rpc(
         'delete_fcm_token',
         params: {
-          'p_user_id': userId,
           'p_token': fcmToken,
         },
       );

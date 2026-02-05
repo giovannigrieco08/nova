@@ -75,6 +75,11 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
   late AnimationController _entryController;
   late Animation<double> _entryAnimation;
 
+  // Caption visibility animation
+  late AnimationController _captionController;
+  late Animation<double> _captionAnimation;
+  Timer? _captionTimer;
+
   @override
   void initState() {
     super.initState();
@@ -101,6 +106,26 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     );
     _entryController.forward();
 
+    // Setup caption fade animation
+    _captionController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+      value: 1.0, // Start visible
+    );
+    _captionAnimation = CurvedAnimation(
+      parent: _captionController,
+      curve: Curves.easeOut,
+    );
+
+    // Auto-hide caption after 4 seconds
+    if (widget.caption != null && widget.caption!.isNotEmpty) {
+      _captionTimer = Timer(const Duration(seconds: 4), () {
+        if (mounted) {
+          _captionController.reverse();
+        }
+      });
+    }
+
     _checkIfOwner();
     _setupScreenshotProtection();
     _markAsViewed();
@@ -121,6 +146,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     _disposeVideoPlayer();
     _pulseController.dispose();
     _entryController.dispose();
+    _captionController.dispose();
+    _captionTimer?.cancel();
     super.dispose();
   }
 
@@ -424,23 +451,53 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Caption
+          // Caption with fade animation
           if (widget.caption != null && widget.caption!.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.only(bottom: NovaSpacing.m),
-              child: Text(
-                widget.caption!,
-                style: NovaTypography.bodyMedium.copyWith(
-                  color: Colors.white,
-                  shadows: [
-                    const Shadow(
-                      color: Colors.black54,
-                      blurRadius: 4,
+            FadeTransition(
+              opacity: _captionAnimation,
+              child: GestureDetector(
+                onTap: () {
+                  // Show caption again on tap
+                  _captionTimer?.cancel();
+                  _captionController.forward();
+                  _captionTimer = Timer(const Duration(seconds: 4), () {
+                    if (mounted) {
+                      _captionController.reverse();
+                    }
+                  });
+                },
+                child: Container(
+                  margin: EdgeInsets.only(bottom: NovaSpacing.l),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: NovaSpacing.l,
+                    vertical: NovaSpacing.m,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: NovaRadius.circularL,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      width: 1,
                     ),
-                  ],
+                  ),
+                  child: Text(
+                    widget.caption!,
+                    textAlign: TextAlign.center,
+                    style: NovaTypography.bodyLarge.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                      shadows: [
+                        const Shadow(
+                          color: Colors.black,
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

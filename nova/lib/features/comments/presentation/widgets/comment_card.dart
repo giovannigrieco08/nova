@@ -439,20 +439,44 @@ class _CommentCardState extends ConsumerState<CommentCard>
   /// Instagram-style: 32px diameter for all comments
   Widget _buildAvatar({double radius = 16}) {
     final hasAvatar = widget.comment.authorAvatarUrl != null;
+    final initials = _getInitials(widget.comment.authorName ?? 'U');
 
     if (hasAvatar) {
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: NovaColors.dividerLight,
-        backgroundImage: CachedNetworkImageProvider(
-          widget.comment.authorAvatarUrl!,
+      return ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: widget.comment.authorAvatarUrl!,
+          width: radius * 2,
+          height: radius * 2,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => CircleAvatar(
+            radius: radius,
+            backgroundColor: NovaColors.dividerLight,
+            child: Text(
+              initials,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: NovaColors.textPrimaryLight,
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) => CircleAvatar(
+            radius: radius,
+            backgroundColor: NovaColors.dividerLight,
+            child: Text(
+              initials,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: NovaColors.textPrimaryLight,
+              ),
+            ),
+          ),
         ),
       );
     }
 
     // Fallback: Initials
-    final initials = _getInitials(widget.comment.authorName ?? 'U');
-
     return CircleAvatar(
       radius: radius,
       backgroundColor: NovaColors.dividerLight,

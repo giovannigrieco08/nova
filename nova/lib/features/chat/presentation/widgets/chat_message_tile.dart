@@ -291,32 +291,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                                   isOwnMessage: isOwnMessage,
                                 ),
                               ),
-                              // Caption for media (if provided)
-                              if (widget.message.mediaCaption != null &&
-                                  widget.message.mediaCaption!.isNotEmpty)
-                                Container(
-                                  constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.of(context).size.width *
-                                            0.75,
-                                  ),
-                                  margin: EdgeInsets.only(top: NovaSpacing.xxs),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: NovaSpacing.s,
-                                    vertical: NovaSpacing.xxs,
-                                  ),
-                                  child: Text(
-                                    widget.message.mediaCaption!,
-                                    style: NovaTypography.bodyMedium.copyWith(
-                                      color: isOwnMessage
-                                          ? NovaColors.textPrimary(context)
-                                          : NovaColors.textPrimary(context),
-                                    ),
-                                    textAlign: isOwnMessage
-                                        ? TextAlign.right
-                                        : TextAlign.left,
-                                  ),
-                                ),
+                              // Caption is now shown only in MediaViewerScreen
                             ],
                           )
                         // Text message: show in normal bubble

@@ -5,7 +5,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/notification.dart';
-import '../../domain/entities/notification_channel.dart';
 
 /// Notification preferences model
 class NotificationPreferences {
@@ -187,7 +186,13 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
       final response = await _supabase
           .from('notifications')
-          .select()
+          .select('''
+            *,
+            actor:profiles!sender_id(
+              full_name,
+              avatar_url
+            )
+          ''')
           .eq('recipient_id', userId)
           .order('created_at', ascending: false)
           .limit(50);
