@@ -35,6 +35,10 @@ enum NotificationChannel {
   /// Co-organizers + creator receive when event is modified
   @JsonValue('event_modified')
   eventModified,
+
+  /// User receives when invited to collaborate on an event
+  @JsonValue('event_invitation')
+  eventInvitation,
 }
 
 /// Extension methods for NotificationChannel
@@ -48,6 +52,7 @@ extension NotificationChannelExtension on NotificationChannel {
       NotificationChannel.addedAsCoorganizer =>
         'Aggiunto come Co-Organizzatore',
       NotificationChannel.eventModified => 'Evento Modificato',
+      NotificationChannel.eventInvitation => 'Invito a Collaborare',
     };
   }
 
@@ -59,6 +64,7 @@ extension NotificationChannelExtension on NotificationChannel {
       NotificationChannel.newPendingEvent => NotificationImportance.low,
       NotificationChannel.addedAsCoorganizer => NotificationImportance.high,
       NotificationChannel.eventModified => NotificationImportance.default_,
+      NotificationChannel.eventInvitation => NotificationImportance.high,
     };
   }
 
@@ -73,6 +79,7 @@ extension NotificationChannelExtension on NotificationChannel {
       NotificationChannel.newPendingEvent => true,
       NotificationChannel.addedAsCoorganizer => true,
       NotificationChannel.eventModified => true,
+      NotificationChannel.eventInvitation => true,
     };
   }
 }

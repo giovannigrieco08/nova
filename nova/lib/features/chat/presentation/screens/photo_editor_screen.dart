@@ -59,43 +59,50 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
     final profileAsync = ref.watch(currentProfileProvider);
     final profileImageUrl = profileAsync.valueOrNull?.avatarUrl;
 
-    return Scaffold(
-      backgroundColor: NovaColors.editorBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top toolbar with glass effect
-            _buildTopToolbar(),
+    return GestureDetector(
+      onTap: () {
+        // Close keyboard when tapping outside caption field
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: NovaColors.editorBackground,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top toolbar with glass effect
+              _buildTopToolbar(),
 
-            // Main photo area with rounded corners and shadow
-            Expanded(
-              child: Container(
-                margin: EdgeInsets.symmetric(
-                  horizontal: NovaSpacing.xs,
-                  vertical: NovaSpacing.s,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: NovaRadius.circularXl,
-                  boxShadow: NovaShadows.large,
-                ),
-                child: ClipRRect(
-                  borderRadius: NovaRadius.circularXl,
-                  child: RepaintBoundary(
-                    key: _repaintKey,
-                    child: Image.file(
-                      File(widget.imageFile.path),
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
+              // Main photo area with rounded corners and shadow
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.symmetric(
+                    horizontal: NovaSpacing.xs,
+                    vertical: NovaSpacing.s,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: NovaRadius.circularXl,
+                    boxShadow: NovaShadows.large,
+                    color: Colors.black,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: NovaRadius.circularXl,
+                    child: RepaintBoundary(
+                      key: _repaintKey,
+                      child: Image.file(
+                        File(widget.imageFile.path),
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            // Bottom send bar
-            _buildBottomBar(profileImageUrl),
-          ],
+              // Bottom send bar
+              _buildBottomBar(profileImageUrl),
+            ],
+          ),
         ),
       ),
     );
@@ -262,22 +269,26 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Profile picture
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+              ClipOval(
+                child: Container(
+                  width: 32,
+                  height: 32,
                   color: Colors.white.withValues(alpha: 0.2),
-                  image: profileImageUrl != null
-                      ? DecorationImage(
-                          image: NetworkImage(profileImageUrl),
+                  child: profileImageUrl != null
+                      ? Image.network(
+                          profileImageUrl,
                           fit: BoxFit.cover,
+                          width: 32,
+                          height: 32,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.person, size: 16, color: Colors.white),
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Icon(Icons.person, size: 16, color: Colors.white);
+                          },
                         )
-                      : null,
+                      : const Icon(Icons.person, size: 16, color: Colors.white),
                 ),
-                child: profileImageUrl == null
-                    ? const Icon(Icons.person, size: 16, color: Colors.white)
-                    : null,
               ),
               SizedBox(width: NovaSpacing.s),
               Text(
