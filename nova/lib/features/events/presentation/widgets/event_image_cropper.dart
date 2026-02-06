@@ -6,6 +6,7 @@
 // - iOS dark immersive look (matches AvatarCropper style)
 
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -68,11 +69,13 @@ class _EventImageCropperState extends State<EventImageCropper> {
   bool _isCropping = false;
   ui.Image? _uiImage;
   Size _imageSize = Size.zero;
-  Size _displayedImageSize = Size.zero;
 
   // Crop area dimensions (3:4 aspect ratio)
   late double _cropWidth;
   late double _cropHeight;
+
+  // Scale to fit image within screen (BoxFit.contain behavior)
+  double _fitScale = 1.0;
 
   // Aspect ratio for event images (3:4 portrait, BeReal-style)
   static const double _aspectRatio = 3 / 4;
@@ -132,48 +135,43 @@ class _EventImageCropperState extends State<EventImageCropper> {
 
     final screenSize = MediaQuery.of(context).size;
 
-    // Calculate the displayed image dimensions (BoxFit.contain behavior)
-    final imageAspect = _imageSize.width / _imageSize.height;
-    final screenAspect = screenSize.width / screenSize.height;
+    // With constrained: false, the Image widget displays at natural pixel size.
+    // We need to calculate the scale factor to fit it within the screen (BoxFit.contain).
+    final scaleToFitWidth = screenSize.width / _imageSize.width;
+    final scaleToFitHeight = screenSize.height / _imageSize.height;
+    _fitScale = math.min(scaleToFitWidth, scaleToFitHeight);
 
-    double displayWidth, displayHeight;
-    if (imageAspect > screenAspect) {
-      // Image is wider than screen
-      displayWidth = screenSize.width;
-      displayHeight = screenSize.width / imageAspect;
-    } else {
-      // Image is taller than screen
-      displayHeight = screenSize.height;
-      displayWidth = screenSize.height * imageAspect;
-    }
-
-    _displayedImageSize = Size(displayWidth, displayHeight);
+    // Displayed image dimensions after applying fitScale
+    final displayWidth = _imageSize.width * _fitScale;
+    final displayHeight = _imageSize.height * _fitScale;
 
     // Calculate crop area to be the LARGEST 3:4 rectangle that fits within the displayed image
-    // This allows the user to see the full image initially
+    // Use 98% to maximize the crop area while leaving a tiny visual margin
     final cropAspect = _aspectRatio; // 3:4 = 0.75
     final imageDisplayAspect = displayWidth / displayHeight;
 
     if (imageDisplayAspect > cropAspect) {
       // Image is wider than crop aspect - constrain by height
-      _cropHeight = displayHeight * 0.92; // Small margin for visual comfort
+      _cropHeight = displayHeight * 0.98;
       _cropWidth = _cropHeight * cropAspect;
     } else {
       // Image is taller or equal to crop aspect - constrain by width
-      _cropWidth = displayWidth * 0.92; // Small margin for visual comfort
+      _cropWidth = displayWidth * 0.98;
       _cropHeight = _cropWidth / cropAspect;
     }
 
-    // Trigger rebuild to update crop overlay with new dimensions
+    // Trigger rebuild to update crop overlay and InteractiveViewer minScale
     setState(() {});
 
-    // Initial scale = 1.0: show the image at natural size (full image visible)
-    // User can zoom IN to select a smaller crop region
-    const initialScale = 1.0;
+    // Use fitScale as initial scale to show full image fitted within screen
+    final initialScale = _fitScale;
 
-    // Center the image on screen
-    final offsetX = (screenSize.width - displayWidth * initialScale) / 2;
-    final offsetY = (screenSize.height - displayHeight * initialScale) / 2;
+    // Center the scaled image on screen
+    // Note: Image natural size is _imageSize, after scale it's _imageSize * initialScale
+    final scaledWidth = _imageSize.width * initialScale;
+    final scaledHeight = _imageSize.height * initialScale;
+    final offsetX = (screenSize.width - scaledWidth) / 2;
+    final offsetY = (screenSize.height - scaledHeight) / 2;
 
     final matrix = Matrix4.identity()
       ..setEntry(0, 3, offsetX)
@@ -203,33 +201,19 @@ class _EventImageCropperState extends State<EventImageCropper> {
       final cropCenterX = screenSize.width / 2;
       final cropCenterY = screenSize.height / 2;
 
-      // The Center widget positions the image at this offset (before any transform)
-      final baseOffsetX = (screenSize.width - _displayedImageSize.width) / 2;
-      final baseOffsetY = (screenSize.height - _displayedImageSize.height) / 2;
+      // Image top-left position in screen coordinates comes directly from translation
+      final imageLeft = translationX;
+      final imageTop = translationY;
 
-      // After transform, the image's top-left position in screen coordinates
-      final imageLeft = scale * baseOffsetX + translationX;
-      final imageTop = scale * baseOffsetY + translationY;
-
-      // Calculate displayed image size after scaling
-      final scaledWidth = _displayedImageSize.width * scale;
-      final scaledHeight = _displayedImageSize.height * scale;
-
-      // Crop area in displayed (scaled) image coordinates
+      // Crop area position relative to the scaled image
       final cropLeftInImage = (cropCenterX - _cropWidth / 2 - imageLeft);
       final cropTopInImage = (cropCenterY - _cropHeight / 2 - imageTop);
 
-      // Convert to normalized coordinates (0-1)
-      final normalizedLeft = cropLeftInImage / scaledWidth;
-      final normalizedTop = cropTopInImage / scaledHeight;
-      final normalizedWidth = _cropWidth / scaledWidth;
-      final normalizedHeight = _cropHeight / scaledHeight;
-
-      // Convert to original image coordinates
-      final srcX = (normalizedLeft * _imageSize.width).round();
-      final srcY = (normalizedTop * _imageSize.height).round();
-      final srcWidth = (normalizedWidth * _imageSize.width).round();
-      final srcHeight = (normalizedHeight * _imageSize.height).round();
+      // Convert to original image coordinates by dividing by scale
+      final srcX = (cropLeftInImage / scale).round();
+      final srcY = (cropTopInImage / scale).round();
+      final srcWidth = (_cropWidth / scale).round();
+      final srcHeight = (_cropHeight / scale).round();
 
       // Load and crop image using the image package
       final bytes = await widget.imageFile.readAsBytes();
@@ -298,18 +282,15 @@ class _EventImageCropperState extends State<EventImageCropper> {
             if (!_isLoading && _uiImage != null)
               InteractiveViewer(
                 transformationController: _transformationController,
-                minScale: 1.0, // Can't zoom out - start at full image view
-                maxScale: 5.0,
+                minScale: _fitScale, // Can't zoom out beyond fitted view
+                maxScale: _fitScale * 5.0, // Allow 5x zoom from fitted view
                 boundaryMargin: const EdgeInsets.all(double.infinity),
                 constrained: false,
                 panEnabled: true,
                 scaleEnabled: true,
-                child: Center(
-                  child: Image.file(
-                    widget.imageFile,
-                    key: _imageKey,
-                    fit: BoxFit.contain,
-                  ),
+                child: Image.file(
+                  widget.imageFile,
+                  key: _imageKey,
                 ),
               ),
 

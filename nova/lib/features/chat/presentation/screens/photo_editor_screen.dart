@@ -417,8 +417,10 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   Future<void> _sendPhoto() async {
     if (_isSending) return;
 
-    final file = await _captureImage();
-    if (file != null && widget.onSend != null) {
+    // Use original file directly instead of capturing the rendered view
+    // This preserves full resolution and avoids black padding from BoxFit.contain
+    final file = File(widget.imageFile.path);
+    if (await file.exists() && widget.onSend != null) {
       setState(() => _isSending = true);
 
       try {

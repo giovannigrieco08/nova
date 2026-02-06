@@ -775,18 +775,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     } catch (e, stackTrace) {
       debugPrint('[MediaUpload] ERROR: $e');
       debugPrint('[MediaUpload] StackTrace: $stackTrace');
-      // Show more specific error message
-      String errorMsg = 'Errore durante l\'invio. Riprova.';
-      if (e.toString().contains('storage')) {
-        errorMsg = 'Errore upload. Controlla la connessione.';
-      } else if (e.toString().contains('permission') ||
-          e.toString().contains('403')) {
-        errorMsg = 'Permesso negato. Riprova più tardi.';
-      } else if (e.toString().contains('timeout') ||
-          e.toString().contains('network')) {
-        errorMsg = 'Connessione lenta. Riprova.';
-      }
-      _showToast(errorMsg, isError: true);
+      // TODO: Remove debug error message after fixing
+      // Show actual error for debugging
+      _showToast('DEBUG: $e', isError: true);
     }
   }
 
