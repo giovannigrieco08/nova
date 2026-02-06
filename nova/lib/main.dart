@@ -37,6 +37,7 @@ import 'package:nova/features/events/data/models/event_draft.dart';
 import 'package:nova/features/events/data/models/comment_model.dart';
 import 'package:nova/features/events/data/models/like_model.dart';
 import 'package:nova/core/animations/page_transitions.dart';
+import 'package:nova/core/widgets/nova_logo.dart';
 import 'package:nova/features/events/data/models/participation_model.dart';
 import 'package:nova/features/events/data/models/report_model.dart';
 import 'package:nova/features/events/domain/entities/offline_action.dart';
@@ -501,31 +502,18 @@ class _ProfileCheckGuard extends ConsumerWidget {
 }
 
 /// Loading screen shown during auth initialization
-/// Uses same splash screen style for seamless experience
+/// Matches native splash screen for seamless experience (no visible loading)
 class _LoadingScreen extends StatelessWidget {
   const _LoadingScreen();
 
   @override
   Widget build(BuildContext context) {
-    // Simple loading indicator for debugging
+    // Match native splash: black background with centered white Nova logo
     return const Scaffold(
-      backgroundColor: NovaColors.backgroundLight,
+      backgroundColor: Colors.black,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              color: NovaColors.primaryLight,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Caricamento...',
-              style: TextStyle(
-                color: NovaColors.textPrimaryLight,
-                fontSize: 16,
-              ),
-            ),
-          ],
+        child: NovaLogo.extraLarge(
+          color: Colors.white,
         ),
       ),
     );

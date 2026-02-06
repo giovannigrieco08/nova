@@ -78,14 +78,21 @@ class NotificationPreferencesNotifier
         return const NotificationPreferences();
       }
 
+      // Query profiles table where notification preferences are stored
       final response = await supabase
-          .from('notification_preferences')
-          .select()
+          .from('profiles')
+          .select('''
+            eventi_moderati_enabled,
+            nuovi_commenti_enabled,
+            risposte_commenti_enabled,
+            like_eventi_enabled,
+            nuove_partecipazioni_enabled,
+            coorganizer_updates_enabled
+          ''')
           .eq('user_id', userId)
           .maybeSingle();
 
       if (response == null) {
-        // Create default preferences if not exists
         return const NotificationPreferences();
       }
 
@@ -118,11 +125,10 @@ class NotificationPreferencesNotifier
 
       if (userId == null) return;
 
-      await supabase.from('notification_preferences').upsert({
-        'user_id': userId,
-        columnName: value,
-        'updated_at': DateTime.now().toIso8601String(),
-      });
+      // Update preference in profiles table
+      await supabase
+          .from('profiles')
+          .update({columnName: value}).eq('user_id', userId);
     } catch (e) {
       // Revert on error
       state = AsyncValue.data(currentPreferences);
@@ -167,10 +173,105 @@ final notificationPreferencesNotifierProvider = AsyncNotifierProvider<
 /// Notification list state notifier
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final SupabaseClient _supabase;
+  RealtimeChannel? _realtimeChannel;
 
   NotificationNotifier(this._supabase) : super(const NotificationState()) {
     // Load notifications on initialization
     loadNotifications();
+    // Setup realtime subscription
+    _setupRealtimeSubscription();
+  }
+
+  /// Setup Supabase Realtime subscription for live notification updates
+  void _setupRealtimeSubscription() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    _realtimeChannel = _supabase
+        .channel('notifications:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'recipient_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            _handleNotificationInsert(payload.newRecord);
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'recipient_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            _handleNotificationUpdate(payload.newRecord);
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.delete,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'recipient_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            _handleNotificationDelete(payload.oldRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Handle new notification insert from Realtime
+  void _handleNotificationInsert(Map<String, dynamic> record) {
+    try {
+      final notification = AppNotification.fromJson(record);
+      final updatedList = [notification, ...state.notifications];
+      state = state.copyWith(notifications: updatedList);
+    } catch (e) {
+      // Silently ignore parse errors, will be fetched on next refresh
+    }
+  }
+
+  /// Handle notification update from Realtime
+  void _handleNotificationUpdate(Map<String, dynamic> record) {
+    try {
+      final updatedNotification = AppNotification.fromJson(record);
+      final updatedList = state.notifications.map((n) {
+        if (n.id == updatedNotification.id) {
+          return updatedNotification;
+        }
+        return n;
+      }).toList();
+      state = state.copyWith(notifications: updatedList);
+    } catch (e) {
+      // Silently ignore parse errors
+    }
+  }
+
+  /// Handle notification delete from Realtime
+  void _handleNotificationDelete(Map<String, dynamic> record) {
+    final deletedId = record['id'] as String?;
+    if (deletedId == null) return;
+
+    final updatedList =
+        state.notifications.where((n) => n.id != deletedId).toList();
+    state = state.copyWith(notifications: updatedList);
+  }
+
+  @override
+  void dispose() {
+    _realtimeChannel?.unsubscribe();
+    super.dispose();
   }
 
   /// Load notifications from Supabase

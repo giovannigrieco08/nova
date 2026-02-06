@@ -6,7 +6,6 @@
 // - iOS dark immersive look (matches AvatarCropper style)
 
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -93,11 +92,10 @@ class _EventImageCropperState extends State<EventImageCropper> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Calculate crop size to maximize usable space
+    // Crop size will be calculated after image loads to fit within image bounds
+    // Initialize with screen-based values as fallback
     final screenWidth = MediaQuery.of(context).size.width;
-
-    // Use nearly full screen width for the crop area
-    _cropWidth = screenWidth - 32; // 16px margin on each side
+    _cropWidth = screenWidth - 32;
     _cropHeight = _cropWidth / _aspectRatio;
   }
 
@@ -151,12 +149,29 @@ class _EventImageCropperState extends State<EventImageCropper> {
 
     _displayedImageSize = Size(displayWidth, displayHeight);
 
-    // Calculate scale to cover the crop rectangle
-    final scaleToFillWidth = _cropWidth / displayWidth;
-    final scaleToFillHeight = _cropHeight / displayHeight;
-    final initialScale = math.max(scaleToFillWidth, scaleToFillHeight);
+    // Calculate crop area to be the LARGEST 3:4 rectangle that fits within the displayed image
+    // This allows the user to see the full image initially
+    final cropAspect = _aspectRatio; // 3:4 = 0.75
+    final imageDisplayAspect = displayWidth / displayHeight;
 
-    // Center the image
+    if (imageDisplayAspect > cropAspect) {
+      // Image is wider than crop aspect - constrain by height
+      _cropHeight = displayHeight * 0.92; // Small margin for visual comfort
+      _cropWidth = _cropHeight * cropAspect;
+    } else {
+      // Image is taller or equal to crop aspect - constrain by width
+      _cropWidth = displayWidth * 0.92; // Small margin for visual comfort
+      _cropHeight = _cropWidth / cropAspect;
+    }
+
+    // Trigger rebuild to update crop overlay with new dimensions
+    setState(() {});
+
+    // Initial scale = 1.0: show the image at natural size (full image visible)
+    // User can zoom IN to select a smaller crop region
+    const initialScale = 1.0;
+
+    // Center the image on screen
     final offsetX = (screenSize.width - displayWidth * initialScale) / 2;
     final offsetY = (screenSize.height - displayHeight * initialScale) / 2;
 
@@ -283,7 +298,7 @@ class _EventImageCropperState extends State<EventImageCropper> {
             if (!_isLoading && _uiImage != null)
               InteractiveViewer(
                 transformationController: _transformationController,
-                minScale: 0.5,
+                minScale: 1.0, // Can't zoom out - start at full image view
                 maxScale: 5.0,
                 boundaryMargin: const EdgeInsets.all(double.infinity),
                 constrained: false,
@@ -419,7 +434,7 @@ class _EventImageCropperState extends State<EventImageCropper> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Pizzica per ingrandire • Trascina per spostare',
+                        'Pizzica per zoomare • Trascina per spostare',
                         style: NovaTypography.bodySmall.copyWith(
                           color: Colors.white.withValues(alpha: 0.6),
                         ),

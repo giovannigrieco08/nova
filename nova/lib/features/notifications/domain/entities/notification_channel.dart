@@ -35,6 +35,10 @@ enum NotificationChannel {
   chatMention(
     label: 'Menzioni in Chat',
     description: 'Notifiche quando qualcuno ti menziona nella chat globale',
+  ),
+  eventInvitation(
+    label: 'Inviti a Collaborare',
+    description: 'Notifiche quando qualcuno ti invita a collaborare su un evento',
   );
 
   const NotificationChannel({

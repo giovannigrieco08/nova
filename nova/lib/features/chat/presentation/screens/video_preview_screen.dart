@@ -20,7 +20,7 @@ import 'package:nova/core/theme/nova_typography.dart';
 /// - Send functionality
 class VideoPreviewScreen extends StatefulWidget {
   final XFile videoFile;
-  final Function(File videoFile, {bool allowReplay, String? caption})? onSend;
+  final Future<void> Function(File videoFile, {bool allowReplay, String? caption})? onSend;
 
   const VideoPreviewScreen({
     super.key,
@@ -37,6 +37,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   final TextEditingController _captionController = TextEditingController();
   bool _isInitialized = false;
   bool _isPlaying = false;
+  bool _isSending = false;
 
   /// Whether recipient can replay the media (true = unlimited, false = 1 view)
   bool _allowReplay = true;
@@ -327,14 +328,17 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
               // Send button
               GestureDetector(
-                onTap: _sendVideo,
-                child: Container(
+                onTap: _isSending ? null : _sendVideo,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   padding: EdgeInsets.symmetric(
                     horizontal: NovaSpacing.m,
                     vertical: NovaSpacing.s,
                   ),
                   decoration: BoxDecoration(
-                    color: NovaColors.primaryDark,
+                    color: _isSending
+                        ? NovaColors.primaryDark.withValues(alpha: 0.6)
+                        : NovaColors.primaryDark,
                     borderRadius: NovaRadius.circularFull,
                     boxShadow: [
                       BoxShadow(
@@ -347,19 +351,30 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Invia',
-                        style: NovaTypography.bodyMedium.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                      if (_isSending)
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      else ...[
+                        Text(
+                          'Invia',
+                          style: NovaTypography.bodyMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      SizedBox(width: NovaSpacing.xs),
-                      const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                        size: 18,
-                      ),
+                        SizedBox(width: NovaSpacing.xs),
+                        const Icon(
+                          Icons.send,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -396,14 +411,23 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   }
 
   Future<void> _sendVideo() async {
+    if (_isSending) return;
+
     if (widget.onSend != null) {
-      final caption = _captionController.text.trim();
-      widget.onSend!(
-        File(widget.videoFile.path),
-        allowReplay: _allowReplay,
-        caption: caption.isNotEmpty ? caption : null,
-      );
-      // Navigator.pop is handled by the callback
+      setState(() => _isSending = true);
+
+      try {
+        final caption = _captionController.text.trim();
+        await widget.onSend!(
+          File(widget.videoFile.path),
+          allowReplay: _allowReplay,
+          caption: caption.isNotEmpty ? caption : null,
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isSending = false);
+        }
+      }
     } else {
       // Just close if no callback
       Navigator.pop(context);

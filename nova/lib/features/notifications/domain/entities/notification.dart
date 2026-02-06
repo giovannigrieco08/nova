@@ -50,6 +50,7 @@ class AppNotification {
       'event_participation': NotificationChannel.eventParticipation,
       'coorganizer_update': NotificationChannel.coorganizerUpdate,
       'chat_mention': NotificationChannel.chatMention,
+      'event_invitation': NotificationChannel.eventInvitation,
     };
 
     // Build data map from target info and metadata
@@ -134,6 +135,8 @@ class AppNotification {
         return true; // "Rispondi"
       case NotificationChannel.moderatorAlert:
         return true; // "Modera"
+      case NotificationChannel.eventInvitation:
+        return true; // "Visualizza"
       // These don't need CTA buttons (like Instagram)
       case NotificationChannel.chatMention:
       case NotificationChannel.coorganizerUpdate:
@@ -160,6 +163,8 @@ class AppNotification {
         return 'Visualizza';
       case NotificationChannel.moderatorAlert:
         return 'Modera';
+      case NotificationChannel.eventInvitation:
+        return 'Visualizza';
     }
   }
 }

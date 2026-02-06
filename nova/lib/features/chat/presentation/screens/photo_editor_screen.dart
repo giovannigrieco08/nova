@@ -27,7 +27,7 @@ import 'package:nova/features/profile/presentation/providers/profile_provider.da
 /// - Gradient send button with profile picture
 class PhotoEditorScreen extends ConsumerStatefulWidget {
   final XFile imageFile;
-  final Function(File editedImage, {bool allowReplay, String? caption})? onSend;
+  final Future<void> Function(File editedImage, {bool allowReplay, String? caption})? onSend;
 
   const PhotoEditorScreen({
     super.key,
@@ -46,6 +46,7 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
 
   /// Whether recipient can replay the media (true = unlimited, false = 1 view)
   bool _allowReplay = true;
+  bool _isSending = false;
 
   @override
   void dispose() {
@@ -76,16 +77,16 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
               Expanded(
                 child: Container(
                   margin: EdgeInsets.symmetric(
-                    horizontal: NovaSpacing.xs,
-                    vertical: NovaSpacing.s,
+                    horizontal: NovaSpacing.xxs,
+                    vertical: NovaSpacing.xxs,
                   ),
                   decoration: BoxDecoration(
-                    borderRadius: NovaRadius.circularXl,
+                    borderRadius: NovaRadius.circularL,
                     boxShadow: NovaShadows.large,
                     color: Colors.black,
                   ),
                   child: ClipRRect(
-                    borderRadius: NovaRadius.circularXl,
+                    borderRadius: NovaRadius.circularL,
                     child: RepaintBoundary(
                       key: _repaintKey,
                       child: Image.file(
@@ -248,14 +249,17 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   Widget _buildSendButton(String? profileImageUrl) {
     return Expanded(
       child: GestureDetector(
-        onTap: _sendPhoto,
-        child: Container(
+        onTap: _isSending ? null : _sendPhoto,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: EdgeInsets.symmetric(
             horizontal: NovaSpacing.m,
             vertical: NovaSpacing.s,
           ),
           decoration: BoxDecoration(
-            color: NovaColors.primaryDark,
+            color: _isSending
+                ? NovaColors.primaryDark.withValues(alpha: 0.6)
+                : NovaColors.primaryDark,
             borderRadius: NovaRadius.circularFull,
             boxShadow: [
               BoxShadow(
@@ -268,42 +272,53 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Profile picture
-              ClipOval(
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  color: Colors.white.withValues(alpha: 0.2),
-                  child: profileImageUrl != null
-                      ? Image.network(
-                          profileImageUrl,
-                          fit: BoxFit.cover,
-                          width: 32,
-                          height: 32,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.person, size: 16, color: Colors.white),
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Icon(Icons.person, size: 16, color: Colors.white);
-                          },
-                        )
-                      : const Icon(Icons.person, size: 16, color: Colors.white),
+              if (_isSending)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              else ...[
+                // Profile picture
+                ClipOval(
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    color: Colors.white.withValues(alpha: 0.2),
+                    child: profileImageUrl != null
+                        ? Image.network(
+                            profileImageUrl,
+                            fit: BoxFit.cover,
+                            width: 32,
+                            height: 32,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.person, size: 16, color: Colors.white),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Icon(Icons.person, size: 16, color: Colors.white);
+                            },
+                          )
+                        : const Icon(Icons.person, size: 16, color: Colors.white),
+                  ),
                 ),
-              ),
-              SizedBox(width: NovaSpacing.s),
-              Text(
-                'Invia',
-                style: NovaTypography.labelMedium.copyWith(
+                SizedBox(width: NovaSpacing.s),
+                Text(
+                  'Invia',
+                  style: NovaTypography.labelMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(width: NovaSpacing.xs),
+                const Icon(
+                  Icons.send,
                   color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                  size: 18,
                 ),
-              ),
-              SizedBox(width: NovaSpacing.xs),
-              const Icon(
-                Icons.send,
-                color: Colors.white,
-                size: 18,
-              ),
+              ],
             ],
           ),
         ),
@@ -400,14 +415,24 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   }
 
   Future<void> _sendPhoto() async {
+    if (_isSending) return;
+
     final file = await _captureImage();
     if (file != null && widget.onSend != null) {
-      final caption = _captionController.text.trim();
-      widget.onSend!(
-        file,
-        allowReplay: _allowReplay,
-        caption: caption.isNotEmpty ? caption : null,
-      );
+      setState(() => _isSending = true);
+
+      try {
+        final caption = _captionController.text.trim();
+        await widget.onSend!(
+          file,
+          allowReplay: _allowReplay,
+          caption: caption.isNotEmpty ? caption : null,
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isSending = false);
+        }
+      }
     } else if (file == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

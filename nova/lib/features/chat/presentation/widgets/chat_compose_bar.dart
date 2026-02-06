@@ -361,11 +361,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
             page: PhotoEditorScreen(
               imageFile: file,
               onSend: (File editedFile,
-                  {bool allowReplay = true, String? caption}) {
-                _handleMediaFromEditor(
+                  {bool allowReplay = true, String? caption}) async {
+                await _handleMediaFromEditor(
                     editedFile, ChatMediaType.image, allowReplay,
                     caption: caption);
-                Navigator.pop(context);
+                if (mounted) Navigator.pop(context);
               },
             ),
           ),
@@ -378,11 +378,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
             page: VideoPreviewScreen(
               videoFile: file,
               onSend: (File videoFile,
-                  {bool allowReplay = true, String? caption}) {
-                _handleMediaFromEditor(
+                  {bool allowReplay = true, String? caption}) async {
+                await _handleMediaFromEditor(
                     videoFile, ChatMediaType.video, allowReplay,
                     caption: caption);
-                Navigator.pop(context);
+                if (mounted) Navigator.pop(context);
               },
             ),
           ),
@@ -460,10 +460,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       NovaPageRoute.swipeBack(
         page: PhotoEditorScreen(
           imageFile: file,
-          onSend: (editedFile, {bool allowReplay = true, String? caption}) {
-            _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay,
+          onSend: (editedFile, {bool allowReplay = true, String? caption}) async {
+            await _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay,
                 caption: caption);
-            Navigator.pop(context);
+            if (mounted) Navigator.pop(context);
           },
         ),
       ),
@@ -480,10 +480,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       NovaPageRoute.swipeBack(
         page: VideoPreviewScreen(
           videoFile: file,
-          onSend: (videoFile, {bool allowReplay = true, String? caption}) {
-            _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay,
+          onSend: (videoFile, {bool allowReplay = true, String? caption}) async {
+            await _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay,
                 caption: caption);
-            Navigator.pop(context);
+            if (mounted) Navigator.pop(context);
           },
         ),
       ),

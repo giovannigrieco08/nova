@@ -578,7 +578,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     return InteractiveViewer(
       minScale: 0.5,
       maxScale: 4.0,
-      child: Center(
+      child: SizedBox.expand(
         child: Image.network(
           widget.signedUrl,
           fit: BoxFit.contain,
