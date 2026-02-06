@@ -69,13 +69,12 @@ class _AvatarCropperState extends State<AvatarCropper> {
   bool _isCropping = false;
   ui.Image? _uiImage;
   Size _imageSize = Size.zero;
-  Size _displayedImageSize = Size.zero;
 
-  // Crop circle size (diameter) - will be calculated in didChangeDependencies
+  // Crop circle size (diameter) - will be calculated based on image
   late double _cropSize;
 
-  // Minimum scale to ensure image always covers crop circle
-  double _minScale = 1.0;
+  // Scale to fit image within screen (BoxFit.contain behavior)
+  double _fitScale = 1.0;
 
   @override
   void initState() {
@@ -133,34 +132,32 @@ class _AvatarCropperState extends State<AvatarCropper> {
 
     final screenSize = MediaQuery.of(context).size;
 
-    // Calculate the displayed image dimensions (BoxFit.contain behavior)
-    final imageAspect = _imageSize.width / _imageSize.height;
-    final screenAspect = screenSize.width / screenSize.height;
+    // With constrained: false, the Image widget displays at natural pixel size.
+    // We need to calculate the scale factor to fit it within the screen (BoxFit.contain).
+    final scaleToFitWidth = screenSize.width / _imageSize.width;
+    final scaleToFitHeight = screenSize.height / _imageSize.height;
+    _fitScale = math.min(scaleToFitWidth, scaleToFitHeight);
 
-    double displayWidth, displayHeight;
-    if (imageAspect > screenAspect) {
-      // Image is wider than screen
-      displayWidth = screenSize.width;
-      displayHeight = screenSize.width / imageAspect;
-    } else {
-      // Image is taller than screen
-      displayHeight = screenSize.height;
-      displayWidth = screenSize.height * imageAspect;
-    }
+    // Displayed image dimensions after applying fitScale
+    final displayWidth = _imageSize.width * _fitScale;
+    final displayHeight = _imageSize.height * _fitScale;
 
-    _displayedImageSize = Size(displayWidth, displayHeight);
+    // Calculate crop circle to be the LARGEST circle that fits within the displayed image
+    // Use 98% to maximize the crop area while leaving a tiny visual margin
+    final smallerDimension = math.min(displayWidth, displayHeight);
+    _cropSize = smallerDimension * 0.98;
 
-    // Calculate minimum scale to ensure crop circle is always covered
-    final scaleToFillWidth = _cropSize / displayWidth;
-    final scaleToFillHeight = _cropSize / displayHeight;
-    _minScale = math.max(scaleToFillWidth, scaleToFillHeight);
+    // Trigger rebuild to update crop overlay and InteractiveViewer minScale
+    setState(() {});
 
-    // Start at minimum scale (maximum coverage of image in crop area)
-    final initialScale = _minScale;
+    // Use fitScale as initial scale to show full image fitted within screen
+    final initialScale = _fitScale;
 
-    // Center the image
-    final offsetX = (screenSize.width - displayWidth * initialScale) / 2;
-    final offsetY = (screenSize.height - displayHeight * initialScale) / 2;
+    // Center the scaled image on screen
+    final scaledWidth = _imageSize.width * initialScale;
+    final scaledHeight = _imageSize.height * initialScale;
+    final offsetX = (screenSize.width - scaledWidth) / 2;
+    final offsetY = (screenSize.height - scaledHeight) / 2;
 
     final matrix = Matrix4.identity()
       ..setEntry(0, 3, offsetX)
@@ -170,9 +167,6 @@ class _AvatarCropperState extends State<AvatarCropper> {
       ..setEntry(2, 2, initialScale);
 
     _transformationController.value = matrix;
-
-    // Trigger rebuild to update InteractiveViewer minScale
-    setState(() {});
   }
 
   /// Constrain the transformation to keep the crop area within image bounds
@@ -186,17 +180,13 @@ class _AvatarCropperState extends State<AvatarCropper> {
     final cropCenterX = screenSize.width / 2;
     final cropCenterY = screenSize.height / 2;
 
-    // Scaled image dimensions
-    final scaledWidth = _displayedImageSize.width * scale;
-    final scaledHeight = _displayedImageSize.height * scale;
-
-    // Calculate the base offset (where image would be centered without transform)
-    final baseOffsetX = (screenSize.width - _displayedImageSize.width) / 2;
-    final baseOffsetY = (screenSize.height - _displayedImageSize.height) / 2;
+    // Scaled image dimensions (image is at natural size, transformed by scale)
+    final scaledWidth = _imageSize.width * scale;
+    final scaledHeight = _imageSize.height * scale;
 
     // Image bounds in screen coordinates
-    final imageLeft = scale * baseOffsetX + translateX;
-    final imageTop = scale * baseOffsetY + translateY;
+    final imageLeft = translateX;
+    final imageTop = translateY;
     final imageRight = imageLeft + scaledWidth;
     final imageBottom = imageTop + scaledHeight;
 
@@ -247,33 +237,18 @@ class _AvatarCropperState extends State<AvatarCropper> {
       final cropCenterX = screenSize.width / 2;
       final cropCenterY = screenSize.height / 2;
 
-      // The Center widget positions the image at this offset (before any transform)
-      // This is crucial: the image is centered within the screen before transform is applied
-      final baseOffsetX = (screenSize.width - _displayedImageSize.width) / 2;
-      final baseOffsetY = (screenSize.height - _displayedImageSize.height) / 2;
+      // Image top-left position in screen coordinates comes directly from translation
+      final imageLeft = translationX;
+      final imageTop = translationY;
 
-      // After transform, the image's top-left position in screen coordinates
-      // The transform scales the base offset and then applies translation
-      final imageLeft = scale * baseOffsetX + translationX;
-      final imageTop = scale * baseOffsetY + translationY;
-
-      // Calculate displayed image size after scaling
-      final scaledWidth = _displayedImageSize.width * scale;
-      final scaledHeight = _displayedImageSize.height * scale;
-
-      // Crop area in displayed (scaled) image coordinates
+      // Crop area position relative to the scaled image
       final cropLeftInImage = (cropCenterX - _cropSize / 2 - imageLeft);
       final cropTopInImage = (cropCenterY - _cropSize / 2 - imageTop);
 
-      // Convert to normalized coordinates (0-1)
-      final normalizedLeft = cropLeftInImage / scaledWidth;
-      final normalizedTop = cropTopInImage / scaledHeight;
-      final normalizedSize = _cropSize / scaledWidth;
-
-      // Convert to original image coordinates
-      final srcX = (normalizedLeft * _imageSize.width).round();
-      final srcY = (normalizedTop * _imageSize.height).round();
-      final srcSize = (normalizedSize * _imageSize.width).round();
+      // Convert to original image coordinates by dividing by scale
+      final srcX = (cropLeftInImage / scale).round();
+      final srcY = (cropTopInImage / scale).round();
+      final srcSize = (_cropSize / scale).round();
 
       // Load and crop image using the image package
       final bytes = await widget.imageFile.readAsBytes();
@@ -340,20 +315,17 @@ class _AvatarCropperState extends State<AvatarCropper> {
             if (!_isLoading && _uiImage != null)
               InteractiveViewer(
                 transformationController: _transformationController,
-                minScale: _minScale,
-                maxScale: _minScale * 5.0,
+                minScale: _fitScale, // Can't zoom out beyond fitted view
+                maxScale: _fitScale * 5.0, // Allow 5x zoom from fitted view
                 boundaryMargin: const EdgeInsets.all(double.infinity),
                 constrained: false,
                 panEnabled: true,
                 scaleEnabled: true,
                 onInteractionEnd: (_) => _constrainTransform(),
                 onInteractionUpdate: (_) => _constrainTransform(),
-                child: Center(
-                  child: Image.file(
-                    widget.imageFile,
-                    key: _imageKey,
-                    fit: BoxFit.contain,
-                  ),
+                child: Image.file(
+                  widget.imageFile,
+                  key: _imageKey,
                 ),
               ),
 
@@ -455,7 +427,7 @@ class _AvatarCropperState extends State<AvatarCropper> {
                 child: Padding(
                   padding: EdgeInsets.all(NovaSpacing.l),
                   child: Text(
-                    'Pizzica per ingrandire • Trascina per spostare',
+                    'Pizzica per zoomare • Trascina per spostare',
                     style: NovaTypography.bodySmall.copyWith(
                       color: Colors.white.withValues(alpha: 0.6),
                     ),

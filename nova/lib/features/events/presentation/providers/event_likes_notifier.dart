@@ -1,6 +1,6 @@
 // Provider: EventLikesNotifier
 // Feature: Event engagement
-// Purpose: Manages local like state with optimistic updates that persist across rebuilds
+// Purpose: Centralized like state management that persists across widget rebuilds
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/core_providers.dart';
@@ -31,72 +31,107 @@ class EventLikeState {
   }
 }
 
-/// Notifier that manages like state for a single event
-class EventLikeNotifier extends StateNotifier<EventLikeState> {
+/// Centralized state for all event likes
+/// Uses a Map to track like state per event ID
+class EventLikesState {
+  final Map<String, EventLikeState> _likes;
+
+  const EventLikesState([this._likes = const {}]);
+
+  EventLikeState getForEvent(String eventId) {
+    return _likes[eventId] ?? const EventLikeState();
+  }
+
+  EventLikesState copyWithEvent(String eventId, EventLikeState state) {
+    return EventLikesState({..._likes, eventId: state});
+  }
+
+  bool isInitialized(String eventId) {
+    return _likes.containsKey(eventId);
+  }
+}
+
+/// Centralized notifier for all event likes
+/// This single provider maintains state for all events, preventing state loss
+class EventLikesNotifier extends StateNotifier<EventLikesState> {
   final Ref _ref;
-  final String _eventId;
-  bool _initialized = false;
 
-  EventLikeNotifier(this._ref, this._eventId) : super(const EventLikeState());
+  EventLikesNotifier(this._ref) : super(const EventLikesState());
 
-  /// Initialize from server data (called once when engagement data is loaded)
-  void initialize({required bool isLiked, required int likeCount}) {
-    if (!_initialized) {
-      state = EventLikeState(isLiked: isLiked, likeCount: likeCount);
-      _initialized = true;
+  /// Initialize like state for an event (only if not already set or not processing)
+  void initializeEvent({
+    required String eventId,
+    required bool isLiked,
+    required int likeCount,
+  }) {
+    final current = state.getForEvent(eventId);
+    // Don't overwrite if already initialized or currently processing
+    if (!state.isInitialized(eventId) && !current.isProcessing) {
+      state = state.copyWithEvent(
+        eventId,
+        EventLikeState(isLiked: isLiked, likeCount: likeCount),
+      );
     }
   }
 
-  /// Update from server data only if not currently processing
-  /// This prevents server data from overwriting optimistic updates
-  void updateFromServer({required bool isLiked, required int likeCount}) {
-    if (!state.isProcessing) {
-      state = state.copyWith(isLiked: isLiked, likeCount: likeCount);
-      _initialized = true;
-    }
-  }
-
-  /// Toggle like with optimistic update
-  Future<void> toggleLike() async {
-    if (state.isProcessing) return;
+  /// Toggle like for an event with optimistic update
+  Future<void> toggleLike(String eventId) async {
+    final current = state.getForEvent(eventId);
+    if (current.isProcessing) return;
 
     final userId = _ref.read(supabaseClientProvider).auth.currentUser?.id;
     if (userId == null) return;
 
     // Save previous state for rollback
-    final previousState = state;
-    final willBeLiked = !state.isLiked;
+    final previousState = current;
+    final willBeLiked = !current.isLiked;
 
     // Optimistic update
-    state = state.copyWith(
-      isLiked: willBeLiked,
-      likeCount: willBeLiked ? state.likeCount + 1 : state.likeCount - 1,
-      isProcessing: true,
+    state = state.copyWithEvent(
+      eventId,
+      current.copyWith(
+        isLiked: willBeLiked,
+        likeCount: willBeLiked ? current.likeCount + 1 : current.likeCount - 1,
+        isProcessing: true,
+      ),
     );
 
     try {
       final repository = _ref.read(eventsRepositoryProvider);
       if (willBeLiked) {
-        await repository.likeEvent(eventId: _eventId, userId: userId);
+        await repository.likeEvent(eventId: eventId, userId: userId);
       } else {
-        await repository.unlikeEvent(eventId: _eventId, userId: userId);
+        await repository.unlikeEvent(eventId: eventId, userId: userId);
       }
       // Success - just clear processing flag
-      state = state.copyWith(isProcessing: false);
+      state = state.copyWithEvent(
+        eventId,
+        state.getForEvent(eventId).copyWith(isProcessing: false),
+      );
     } catch (e) {
       // Rollback on error
-      state = previousState.copyWith(isProcessing: false);
+      state = state.copyWithEvent(
+        eventId,
+        previousState.copyWith(isProcessing: false),
+      );
       rethrow;
     }
   }
 
-  /// Whether state has been initialized from server
-  bool get isInitialized => _initialized;
+  /// Get like state for a specific event
+  EventLikeState getLikeState(String eventId) {
+    return state.getForEvent(eventId);
+  }
+
+  /// Check if event has been initialized
+  bool isEventInitialized(String eventId) {
+    return state.isInitialized(eventId);
+  }
 }
 
-/// Provider family for per-event like state
-/// This maintains state across widget rebuilds
-final eventLikeNotifierProvider =
-    StateNotifierProvider.family<EventLikeNotifier, EventLikeState, String>(
-  (ref, eventId) => EventLikeNotifier(ref, eventId),
+/// Single centralized provider for all event likes
+/// This never gets disposed because it's a global provider
+final eventLikesProvider =
+    StateNotifierProvider<EventLikesNotifier, EventLikesState>(
+  (ref) => EventLikesNotifier(ref),
 );

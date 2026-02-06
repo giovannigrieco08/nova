@@ -121,18 +121,25 @@ class _EventCardState extends ConsumerState<EventCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch like state from provider (persists across rebuilds)
-    final likeState = ref.watch(eventLikeNotifierProvider(widget.event.id));
-    final likeNotifier =
-        ref.read(eventLikeNotifierProvider(widget.event.id).notifier);
+    // Watch centralized likes provider (never gets disposed)
+    final likesState = ref.watch(eventLikesProvider);
+    final likesNotifier = ref.read(eventLikesProvider.notifier);
+    final eventId = widget.event.id;
 
-    // Initialize provider from widget props if not already initialized
-    if (!likeNotifier.isInitialized) {
-      likeNotifier.initialize(
-        isLiked: widget.isLiked,
-        likeCount: widget.likeCount,
-      );
+    // Initialize from widget props if not already done
+    if (!likesState.isInitialized(eventId)) {
+      // Use post-frame callback to avoid modifying state during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        likesNotifier.initializeEvent(
+          eventId: eventId,
+          isLiked: widget.isLiked,
+          likeCount: widget.likeCount,
+        );
+      });
     }
+
+    // Get current like state for this event
+    final likeState = likesState.getForEvent(eventId);
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -143,8 +150,8 @@ class _EventCardState extends ConsumerState<EventCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            _buildImage(likeState, likeNotifier),
-            _buildActions(likeState, likeNotifier),
+            _buildImage(likeState, likesNotifier, eventId),
+            _buildActions(likeState, likesNotifier, eventId),
             _buildCaption(),
             _buildParticipateButton(),
             _buildMetaInfo(),
@@ -416,7 +423,8 @@ class _EventCardState extends ConsumerState<EventCard> {
 
   /// Image: 3:4 aspect ratio, full width, 14px radius
   /// Supports double-tap to like with Instagram-style heart animation
-  Widget _buildImage(EventLikeState likeState, EventLikeNotifier likeNotifier) {
+  Widget _buildImage(
+      EventLikeState likeState, EventLikesNotifier likesNotifier, String eventId) {
     final hasImage = widget.event.imageUrl != null;
     final emoji = widget.emoji;
 
@@ -429,7 +437,7 @@ class _EventCardState extends ConsumerState<EventCard> {
           child: DoubleTapLikeOverlay(
             onDoubleTap: likeState.isLiked || likeState.isProcessing
                 ? null
-                : () => _handleDoubleTapLike(likeNotifier),
+                : () => _handleDoubleTapLike(likesNotifier, eventId),
             child: emoji != null
                 ? _buildEmojiPlaceholder(emoji)
                 : hasImage
@@ -442,12 +450,12 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Handle double-tap like on image (Instagram-style)
-  void _handleDoubleTapLike(EventLikeNotifier likeNotifier) async {
+  void _handleDoubleTapLike(EventLikesNotifier likesNotifier, String eventId) async {
     // Haptic feedback for double-tap like
     HapticFeedback.mediumImpact();
 
     try {
-      await likeNotifier.toggleLike();
+      await likesNotifier.toggleLike(eventId);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -500,7 +508,8 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Actions: Like + Comment (left) | Share (right)
-  Widget _buildActions(EventLikeState likeState, EventLikeNotifier likeNotifier) {
+  Widget _buildActions(
+      EventLikeState likeState, EventLikesNotifier likesNotifier, String eventId) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
@@ -508,7 +517,9 @@ class _EventCardState extends ConsumerState<EventCard> {
           // Like icon with bounce animation
           AnimatedLikeButton(
             isLiked: likeState.isLiked,
-            onTap: likeState.isProcessing ? null : () => _handleLike(likeNotifier),
+            onTap: likeState.isProcessing
+                ? null
+                : () => _handleLike(likesNotifier, eventId),
             size: 24,
           ),
           const SizedBox(width: 2),
@@ -954,12 +965,12 @@ class _EventCardState extends ConsumerState<EventCard> {
   // INTERACTION HANDLERS
   // =========================================================================
 
-  void _handleLike(EventLikeNotifier likeNotifier) async {
+  void _handleLike(EventLikesNotifier likesNotifier, String eventId) async {
     // Haptic feedback
     HapticFeedback.lightImpact();
 
     try {
-      await likeNotifier.toggleLike();
+      await likesNotifier.toggleLike(eventId);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
