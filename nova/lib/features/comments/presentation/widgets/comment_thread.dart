@@ -114,7 +114,9 @@ class _CommentThreadState extends ConsumerState<CommentThread>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Parent comment (with current depth)
+        // Key preserves local like state during scroll/rebuild
         CommentCard(
+          key: ValueKey(widget.parentComment.id),
           comment: widget.parentComment,
           eventId: widget.eventId,
           depth: widget.depth,
@@ -147,7 +149,9 @@ class _CommentThreadState extends ConsumerState<CommentThread>
                           depth: replyDepth,
                         );
                       } else {
+                        // Key preserves local like state during scroll/rebuild
                         return CommentCard(
+                          key: ValueKey(reply.id),
                           comment: reply,
                           eventId: widget.eventId,
                           depth: replyDepth,

@@ -23,6 +23,7 @@ import '../../../../core/animations/animated_like_button.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../domain/entities/event.dart';
 import '../providers/events_feed_provider.dart';
+import '../providers/event_likes_notifier.dart';
 import '../../../comments/presentation/screens/comments_sheet.dart';
 import '../../../profile/presentation/screens/other_profile_screen.dart';
 import '../../../../core/animations/page_transitions.dart';
@@ -105,9 +106,6 @@ class EventCard extends ConsumerStatefulWidget {
 
 class _EventCardState extends ConsumerState<EventCard> {
   bool _isCaptionExpanded = false; // Caption "altro" expansion
-  late bool _isLiked;
-  late int _likeCount;
-  bool _isLikeLoading = false;
   late bool _isParticipating;
   late int _participantCount;
   bool _isParticipateLoading = false;
@@ -115,16 +113,27 @@ class _EventCardState extends ConsumerState<EventCard> {
   @override
   void initState() {
     super.initState();
-    _isLiked = widget.isLiked;
-    _likeCount = widget.likeCount;
     _isParticipating = widget.isParticipating;
     _participantCount = widget.participantCount;
-    // Participant data now comes from widget props (fetched by feed provider)
-    // Removed per-card network calls that caused 20+ concurrent requests
+    // Like state is managed by eventLikeNotifierProvider for persistence
+    // Participant data comes from widget props (fetched by feed provider)
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch like state from provider (persists across rebuilds)
+    final likeState = ref.watch(eventLikeNotifierProvider(widget.event.id));
+    final likeNotifier =
+        ref.read(eventLikeNotifierProvider(widget.event.id).notifier);
+
+    // Initialize provider from widget props if not already initialized
+    if (!likeNotifier.isInitialized) {
+      likeNotifier.initialize(
+        isLiked: widget.isLiked,
+        likeCount: widget.likeCount,
+      );
+    }
+
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
@@ -134,8 +143,8 @@ class _EventCardState extends ConsumerState<EventCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            _buildImage(),
-            _buildActions(),
+            _buildImage(likeState, likeNotifier),
+            _buildActions(likeState, likeNotifier),
             _buildCaption(),
             _buildParticipateButton(),
             _buildMetaInfo(),
@@ -407,7 +416,7 @@ class _EventCardState extends ConsumerState<EventCard> {
 
   /// Image: 3:4 aspect ratio, full width, 14px radius
   /// Supports double-tap to like with Instagram-style heart animation
-  Widget _buildImage() {
+  Widget _buildImage(EventLikeState likeState, EventLikeNotifier likeNotifier) {
     final hasImage = widget.event.imageUrl != null;
     final emoji = widget.emoji;
 
@@ -418,7 +427,9 @@ class _EventCardState extends ConsumerState<EventCard> {
         child: ClipRRect(
           borderRadius: NovaRadius.circularS,
           child: DoubleTapLikeOverlay(
-            onDoubleTap: _handleDoubleTapLike,
+            onDoubleTap: likeState.isLiked || likeState.isProcessing
+                ? null
+                : () => _handleDoubleTapLike(likeNotifier),
             child: emoji != null
                 ? _buildEmojiPlaceholder(emoji)
                 : hasImage
@@ -431,45 +442,19 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Handle double-tap like on image (Instagram-style)
-  void _handleDoubleTapLike() async {
-    // Only like if not already liked (Instagram behavior)
-    if (_isLiked || _isLikeLoading) return;
-
+  void _handleDoubleTapLike(EventLikeNotifier likeNotifier) async {
     // Haptic feedback for double-tap like
     HapticFeedback.mediumImpact();
 
-    // Get current user ID
-    final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
-    if (userId == null) return;
-
-    final previousCount = _likeCount;
-
-    // Optimistic update
-    setState(() {
-      _isLiked = true;
-      _likeCount = _likeCount + 1;
-      _isLikeLoading = true;
-    });
-
     try {
-      final repository = ref.read(eventsRepositoryProvider);
-      await repository.likeEvent(eventId: widget.event.id, userId: userId);
+      await likeNotifier.toggleLike();
     } catch (e) {
-      // Revert on error
       if (mounted) {
-        setState(() {
-          _isLiked = false;
-          _likeCount = previousCount;
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLikeLoading = false;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Errore durante l\'operazione')),
+        );
       }
     }
-    // Haptic feedback is handled by HeartExplosionAnimation
   }
 
   /// Emoji placeholder (120px font size, #F0F0F0 background)
@@ -515,15 +500,15 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Actions: Like + Comment (left) | Share (right)
-  Widget _buildActions() {
+  Widget _buildActions(EventLikeState likeState, EventLikeNotifier likeNotifier) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
           // Like icon with bounce animation
           AnimatedLikeButton(
-            isLiked: _isLiked,
-            onTap: _handleLike,
+            isLiked: likeState.isLiked,
+            onTap: likeState.isProcessing ? null : () => _handleLike(likeNotifier),
             size: 24,
           ),
           const SizedBox(width: 2),
@@ -969,50 +954,17 @@ class _EventCardState extends ConsumerState<EventCard> {
   // INTERACTION HANDLERS
   // =========================================================================
 
-  void _handleLike() async {
-    // Prevent multiple rapid taps
-    if (_isLikeLoading) return;
-
+  void _handleLike(EventLikeNotifier likeNotifier) async {
     // Haptic feedback
     HapticFeedback.lightImpact();
 
-    // Get current user ID
-    final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
-    if (userId == null) return;
-
-    final wasLiked = _isLiked;
-    final previousCount = _likeCount;
-
-    // Optimistic update
-    setState(() {
-      _isLiked = !_isLiked;
-      _likeCount = _isLiked ? _likeCount + 1 : _likeCount - 1;
-      _isLikeLoading = true;
-    });
-
     try {
-      final repository = ref.read(eventsRepositoryProvider);
-      if (_isLiked) {
-        await repository.likeEvent(eventId: widget.event.id, userId: userId);
-      } else {
-        await repository.unlikeEvent(eventId: widget.event.id, userId: userId);
-      }
+      await likeNotifier.toggleLike();
     } catch (e) {
-      // Revert on error
       if (mounted) {
-        setState(() {
-          _isLiked = wasLiked;
-          _likeCount = previousCount;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Errore durante l\'operazione')),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLikeLoading = false;
-        });
       }
     }
   }

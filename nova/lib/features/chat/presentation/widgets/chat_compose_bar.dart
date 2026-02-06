@@ -17,6 +17,7 @@ import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
 import 'package:nova/core/utils/image_orientation_fixer.dart';
+import 'package:nova/core/utils/video_compressor.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 import 'package:nova/features/chat/presentation/providers/chat_providers.dart';
@@ -734,20 +735,31 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       return;
     }
 
-    final fileSize = await file.length();
-    debugPrint('[MediaUpload] File size: $fileSize bytes');
+    var uploadPath = filePath;
+
+    // Compress video if needed (reduces file size for faster uploads)
+    if (mediaType == ChatMediaType.video) {
+      debugPrint('[MediaUpload] Compressing video...');
+      _showToast('Ottimizzazione video...', isWarning: false);
+      uploadPath = await VideoCompressor.compressIfNeeded(filePath);
+      debugPrint('[MediaUpload] Using path after compression: $uploadPath');
+    }
+
+    final uploadFile = File(uploadPath);
+    final fileSize = await uploadFile.length();
+    debugPrint('[MediaUpload] File size: $fileSize bytes (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB)');
 
     // Check file size limit (50MB max)
     if (fileSize > 50 * 1024 * 1024) {
       debugPrint('[MediaUpload] ERROR: File too large: $fileSize bytes');
-      _showToast('File troppo grande (max 50MB)', isError: true);
+      _showToast('Video troppo grande (max 50MB). Prova un video più corto.', isError: true);
       return;
     }
 
     try {
       debugPrint('[MediaUpload] Starting upload via provider...');
       final result = await ref.read(uploadMediaProvider((
-        filePath: filePath,
+        filePath: uploadPath,
         mediaType: mediaType,
         maxViews: maxViews,
         durationSeconds: durationSeconds,
@@ -775,9 +787,17 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     } catch (e, stackTrace) {
       debugPrint('[MediaUpload] ERROR: $e');
       debugPrint('[MediaUpload] StackTrace: $stackTrace');
-      // TODO: Remove debug error message after fixing
-      // Show actual error for debugging
-      _showToast('DEBUG: $e', isError: true);
+      // Show user-friendly error message
+      String errorMsg = 'Errore durante l\'invio. Riprova.';
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('storage') || errorStr.contains('exceeded') || errorStr.contains('413')) {
+        errorMsg = 'Video troppo grande. Prova un video più corto.';
+      } else if (errorStr.contains('permission') || errorStr.contains('403')) {
+        errorMsg = 'Permesso negato. Riprova più tardi.';
+      } else if (errorStr.contains('timeout') || errorStr.contains('network')) {
+        errorMsg = 'Connessione lenta. Riprova.';
+      }
+      _showToast(errorMsg, isError: true);
     }
   }
 

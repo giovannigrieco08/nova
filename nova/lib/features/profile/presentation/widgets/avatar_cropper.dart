@@ -74,6 +74,9 @@ class _AvatarCropperState extends State<AvatarCropper> {
   // Crop circle size (diameter) - will be calculated in didChangeDependencies
   late double _cropSize;
 
+  // Minimum scale to ensure image always covers crop circle
+  double _minScale = 1.0;
+
   @override
   void initState() {
     super.initState();
@@ -147,10 +150,13 @@ class _AvatarCropperState extends State<AvatarCropper> {
 
     _displayedImageSize = Size(displayWidth, displayHeight);
 
-    // Calculate scale to cover the crop circle
+    // Calculate minimum scale to ensure crop circle is always covered
     final scaleToFillWidth = _cropSize / displayWidth;
     final scaleToFillHeight = _cropSize / displayHeight;
-    final initialScale = math.max(scaleToFillWidth, scaleToFillHeight);
+    _minScale = math.max(scaleToFillWidth, scaleToFillHeight);
+
+    // Start at minimum scale (maximum coverage of image in crop area)
+    final initialScale = _minScale;
 
     // Center the image
     final offsetX = (screenSize.width - displayWidth * initialScale) / 2;
@@ -164,6 +170,63 @@ class _AvatarCropperState extends State<AvatarCropper> {
       ..setEntry(2, 2, initialScale);
 
     _transformationController.value = matrix;
+
+    // Trigger rebuild to update InteractiveViewer minScale
+    setState(() {});
+  }
+
+  /// Constrain the transformation to keep the crop area within image bounds
+  void _constrainTransform() {
+    final matrix = _transformationController.value.clone();
+    final scale = matrix.getMaxScaleOnAxis();
+    var translateX = matrix[12];
+    var translateY = matrix[13];
+
+    final screenSize = MediaQuery.of(context).size;
+    final cropCenterX = screenSize.width / 2;
+    final cropCenterY = screenSize.height / 2;
+
+    // Scaled image dimensions
+    final scaledWidth = _displayedImageSize.width * scale;
+    final scaledHeight = _displayedImageSize.height * scale;
+
+    // Calculate the base offset (where image would be centered without transform)
+    final baseOffsetX = (screenSize.width - _displayedImageSize.width) / 2;
+    final baseOffsetY = (screenSize.height - _displayedImageSize.height) / 2;
+
+    // Image bounds in screen coordinates
+    final imageLeft = scale * baseOffsetX + translateX;
+    final imageTop = scale * baseOffsetY + translateY;
+    final imageRight = imageLeft + scaledWidth;
+    final imageBottom = imageTop + scaledHeight;
+
+    // Crop circle bounds
+    final cropLeft = cropCenterX - _cropSize / 2;
+    final cropTop = cropCenterY - _cropSize / 2;
+    final cropRight = cropCenterX + _cropSize / 2;
+    final cropBottom = cropCenterY + _cropSize / 2;
+
+    // Constrain: crop area must stay within image bounds
+    var deltaX = 0.0;
+    var deltaY = 0.0;
+
+    if (imageLeft > cropLeft) {
+      deltaX = cropLeft - imageLeft;
+    } else if (imageRight < cropRight) {
+      deltaX = cropRight - imageRight;
+    }
+
+    if (imageTop > cropTop) {
+      deltaY = cropTop - imageTop;
+    } else if (imageBottom < cropBottom) {
+      deltaY = cropBottom - imageBottom;
+    }
+
+    if (deltaX != 0 || deltaY != 0) {
+      matrix[12] = translateX + deltaX;
+      matrix[13] = translateY + deltaY;
+      _transformationController.value = matrix;
+    }
   }
 
   Future<void> _cropImage() async {
@@ -277,12 +340,14 @@ class _AvatarCropperState extends State<AvatarCropper> {
             if (!_isLoading && _uiImage != null)
               InteractiveViewer(
                 transformationController: _transformationController,
-                minScale: 0.5,
-                maxScale: 5.0,
+                minScale: _minScale,
+                maxScale: _minScale * 5.0,
                 boundaryMargin: const EdgeInsets.all(double.infinity),
                 constrained: false,
                 panEnabled: true,
                 scaleEnabled: true,
+                onInteractionEnd: (_) => _constrainTransform(),
+                onInteractionUpdate: (_) => _constrainTransform(),
                 child: Center(
                   child: Image.file(
                     widget.imageFile,

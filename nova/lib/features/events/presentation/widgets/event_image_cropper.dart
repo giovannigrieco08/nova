@@ -183,6 +183,56 @@ class _EventImageCropperState extends State<EventImageCropper> {
     _transformationController.value = matrix;
   }
 
+  /// Constrain the transformation to keep the crop area within image bounds
+  void _constrainTransform() {
+    final matrix = _transformationController.value.clone();
+    final scale = matrix.getMaxScaleOnAxis();
+    var translateX = matrix[12];
+    var translateY = matrix[13];
+
+    final screenSize = MediaQuery.of(context).size;
+    final cropCenterX = screenSize.width / 2;
+    final cropCenterY = screenSize.height / 2;
+
+    // Scaled image dimensions (image is at natural size, transformed by scale)
+    final scaledWidth = _imageSize.width * scale;
+    final scaledHeight = _imageSize.height * scale;
+
+    // Image bounds in screen coordinates
+    final imageLeft = translateX;
+    final imageTop = translateY;
+    final imageRight = imageLeft + scaledWidth;
+    final imageBottom = imageTop + scaledHeight;
+
+    // Crop rectangle bounds
+    final cropLeft = cropCenterX - _cropWidth / 2;
+    final cropTop = cropCenterY - _cropHeight / 2;
+    final cropRight = cropCenterX + _cropWidth / 2;
+    final cropBottom = cropCenterY + _cropHeight / 2;
+
+    // Constrain: crop area must stay within image bounds
+    var deltaX = 0.0;
+    var deltaY = 0.0;
+
+    if (imageLeft > cropLeft) {
+      deltaX = cropLeft - imageLeft;
+    } else if (imageRight < cropRight) {
+      deltaX = cropRight - imageRight;
+    }
+
+    if (imageTop > cropTop) {
+      deltaY = cropTop - imageTop;
+    } else if (imageBottom < cropBottom) {
+      deltaY = cropBottom - imageBottom;
+    }
+
+    if (deltaX != 0 || deltaY != 0) {
+      matrix[12] = translateX + deltaX;
+      matrix[13] = translateY + deltaY;
+      _transformationController.value = matrix;
+    }
+  }
+
   Future<void> _cropImage() async {
     if (_uiImage == null) return;
 
@@ -288,6 +338,8 @@ class _EventImageCropperState extends State<EventImageCropper> {
                 constrained: false,
                 panEnabled: true,
                 scaleEnabled: true,
+                onInteractionEnd: (_) => _constrainTransform(),
+                onInteractionUpdate: (_) => _constrainTransform(),
                 child: Image.file(
                   widget.imageFile,
                   key: _imageKey,

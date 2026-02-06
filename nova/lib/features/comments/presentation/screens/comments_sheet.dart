@@ -235,7 +235,9 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
           final comment = item.comment;
           final currentUserId = Supabase.instance.client.auth.currentUser?.id;
 
+          // Key preserves local like state during scroll/rebuild
           return CommentCard(
+            key: ValueKey(comment.id),
             comment: comment,
             eventId: widget.eventId,
             currentUserId: currentUserId,
