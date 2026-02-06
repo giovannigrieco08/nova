@@ -221,9 +221,11 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
         final engagement = engagementMap[event.id] ?? const EventEngagement();
 
         // EventCard with staggered animation for smooth list loading
+        // Key preserves local state (isLiked, likeCount) during scroll/rebuild
         return StaggeredListItem(
           index: approvedIndex,
           child: EventCard(
+            key: ValueKey(event.id),
             event: event,
             organizerName: event.creatorName ?? 'Organizzatore',
             organizerClass: event.creatorClass ?? '',

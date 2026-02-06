@@ -73,33 +73,37 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       _isParticipating = false;
       _stateInitialized = true;
 
-      // Load participation state asynchronously
-      _loadParticipationState(event.id);
+      // Load engagement state (likes + participation) asynchronously
+      _loadEngagementState(event.id);
     }
   }
 
-  /// Load the current user's participation state and count from database
-  Future<void> _loadParticipationState(String eventId) async {
+  /// Load the current user's engagement state (likes + participation) from database
+  Future<void> _loadEngagementState(String eventId) async {
     final userId = ref.read(currentUserIdProvider);
     final repository = ref.read(eventsRepositoryProvider);
 
     try {
-      // Load participation count
-      final count = await repository.getParticipationCount(eventId);
-
-      // Load user participation state if logged in
-      bool isParticipating = false;
-      if (userId.isNotEmpty) {
-        isParticipating = await repository.isUserParticipating(
-          eventId: eventId,
-          userId: userId,
-        );
-      }
+      // Load counts and user states in parallel
+      final results = await Future.wait([
+        repository.getParticipationCount(eventId),
+        repository.getLikeCount(eventId),
+        if (userId.isNotEmpty)
+          repository.isUserParticipating(eventId: eventId, userId: userId)
+        else
+          Future.value(false),
+        if (userId.isNotEmpty)
+          repository.hasUserLikedEvent(eventId: eventId, userId: userId)
+        else
+          Future.value(false),
+      ]);
 
       if (mounted) {
         setState(() {
-          _participantCount = count;
-          _isParticipating = isParticipating;
+          _participantCount = results[0] as int;
+          _likeCount = results[1] as int;
+          _isParticipating = results[2] as bool;
+          _isLiked = results[3] as bool;
         });
       }
     } catch (e) {
