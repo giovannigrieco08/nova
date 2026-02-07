@@ -7,6 +7,7 @@
 
 import 'dart:async';
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
 
 /// Deep link handling service
 ///
@@ -48,22 +49,30 @@ class DeepLinkService {
     try {
       // Check if app was launched from a deep link
       final initialUri = await _appLinks.getInitialLink();
+      debugPrint('🔗 [DeepLinkService] Initial link: $initialUri');
+
       if (initialUri != null) {
         // Handle initial link
+        debugPrint('🔗 [DeepLinkService] Processing initial link...');
         await onLink(initialUri);
       }
 
       // Listen for deep links while app is running
+      debugPrint('🔗 [DeepLinkService] Setting up stream listener...');
       _linkSubscription = _appLinks.uriLinkStream.listen(
         (uri) async {
           // Handle incoming link
+          debugPrint('🔗 [DeepLinkService] Stream received: $uri');
           await onLink(uri);
         },
         onError: (error) {
-          // Deep link error - ignore
+          // Deep link error - log it
+          debugPrint('🔗 [DeepLinkService] Stream error: $error');
         },
       );
+      debugPrint('🔗 [DeepLinkService] Initialization complete');
     } catch (e) {
+      debugPrint('🔗 [DeepLinkService] Initialization error: $e');
       rethrow;
     }
   }

@@ -254,15 +254,15 @@ BEGIN
   PERFORM create_notification(
     p_recipient_id := NEW.invitee_id,
     p_sender_id := NEW.inviter_id,
-    p_type := 'coorganizer_update', -- Using coorganizer_update as event_invitation is not in constraint
-    p_title := 'Invito a un evento',
-    p_description := COALESCE(v_inviter_name, 'Qualcuno') || ' ti ha invitato all''evento "' || COALESCE(v_event_title, 'Evento') || '"',
+    p_type := 'event_invitation',
+    p_title := 'Richiesta di collaborazione',
+    p_description := COALESCE(v_inviter_name, 'Qualcuno') || ' ti ha invitato a collaborare all''evento "' || COALESCE(v_event_title, 'Evento') || '"',
     p_target_type := 'event',
     p_target_id := NEW.event_id,
     p_metadata := jsonb_build_object(
       'event_title', v_event_title,
       'invitation_id', NEW.id,
-      'action', 'invited'
+      'status', NEW.status
     )
   );
 

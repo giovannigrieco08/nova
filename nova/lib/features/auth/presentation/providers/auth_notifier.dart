@@ -7,6 +7,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:nova/core/models/auth_state.dart';
@@ -117,14 +118,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// - Session expires
   /// - Token refreshes (silent)
   void _setupAuthStateListener() {
+    debugPrint('🔐 [AUTH_LISTENER] Setting up auth state listener...');
     _authSubscription = _authRepository.streamAuthState().listen(
       (authState) {
+        debugPrint('🔐 [AUTH_LISTENER] Event received: ${authState.event}');
+        debugPrint('🔐 [AUTH_LISTENER] User: ${authState.session?.user?.id}');
+
         switch (authState.event) {
           case supabase.AuthChangeEvent.signedIn:
             // User signed in successfully
+            debugPrint('🔐 [AUTH_LISTENER] SignedIn event!');
             if (authState.session?.user != null) {
               state =
                   AsyncData(AuthStateAuthenticated(authState.session!.user));
+              debugPrint('🔐 [AUTH_LISTENER] State updated to Authenticated');
 
               // Register FCM token for push notifications
               _registerFcmTokenAfterLogin();
@@ -133,11 +140,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
           case supabase.AuthChangeEvent.signedOut:
             // User signed out
+            debugPrint('🔐 [AUTH_LISTENER] SignedOut event!');
             state = const AsyncData(AuthStateUnauthenticated());
             break;
 
           case supabase.AuthChangeEvent.tokenRefreshed:
             // Token refreshed (silent) - update user object
+            debugPrint('🔐 [AUTH_LISTENER] TokenRefreshed event');
             if (authState.session?.user != null) {
               state =
                   AsyncData(AuthStateAuthenticated(authState.session!.user));
@@ -146,6 +155,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
           case supabase.AuthChangeEvent.userUpdated:
             // User data updated
+            debugPrint('🔐 [AUTH_LISTENER] UserUpdated event');
             if (authState.session?.user != null) {
               state =
                   AsyncData(AuthStateAuthenticated(authState.session!.user));
@@ -154,11 +164,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
           default:
             // Other events (passwordRecovery, etc.) - ignore for now
+            debugPrint('🔐 [AUTH_LISTENER] Unhandled event: ${authState.event}');
             break;
         }
       },
       onError: (error) {
-        // Handle stream errors - logged silently
+        // Handle stream errors - logged
+        debugPrint('🔐 [AUTH_LISTENER] Stream error: $error');
       },
     );
   }
@@ -225,41 +237,53 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// }
   /// ```
   Future<bool> verifyMagicLink(Uri uri) async {
+    debugPrint('🔐 [AUTH] verifyMagicLink called with: $uri');
+
     try {
       // Check if already authenticated (Supabase may have already verified
       // the token server-side during the redirect, creating a session before
       // the app receives the deep link callback)
       final existingUser = _authRepository.getCurrentUser();
+      debugPrint('🔐 [AUTH] Existing user: ${existingUser?.id}');
+
       if (existingUser != null) {
         // Session already exists - Supabase verified token during redirect
         // Update state immediately and register FCM token
+        debugPrint('🔐 [AUTH] User already authenticated, updating state...');
         state = AsyncData(AuthStateAuthenticated(existingUser));
         _registerFcmTokenAfterLogin();
+        debugPrint('🔐 [AUTH] State updated to AuthStateAuthenticated');
         return true;
       }
 
       // Set loading state
+      debugPrint('🔐 [AUTH] No existing user, setting loading state...');
       state = const AsyncLoading();
 
       // Verify token via repository - this handles multiple scenarios:
       // 1. Session exists (PKCE completed server-side)
       // 2. token_hash in URL (traditional OTP)
       // 3. access_token/refresh_token in URL
+      debugPrint('🔐 [AUTH] Calling repository.verifyMagicLink...');
       final user = await _authRepository.verifyMagicLink(uri);
+      debugPrint('🔐 [AUTH] Repository returned user: ${user.id}');
 
       // State will be updated by auth state listener
       // But we can set it immediately for faster UI update
       state = AsyncData(AuthStateAuthenticated(user));
+      debugPrint('🔐 [AUTH] State updated to AuthStateAuthenticated');
 
       // Note: FCM registration will be triggered by auth state listener
       // when it receives the signedIn event
 
       return true;
     } on supabase.AuthException catch (e) {
+      debugPrint('🔐 [AUTH] AuthException: ${e.message}');
       // Check if user got authenticated despite the error
       // (can happen if token was already verified server-side)
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
+        debugPrint('🔐 [AUTH] User authenticated despite error, updating state...');
         state = AsyncData(AuthStateAuthenticated(currentUser));
         _registerFcmTokenAfterLogin();
         return true;
@@ -269,9 +293,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       state = AsyncError(e.message, StackTrace.current);
       return false;
     } catch (e, stackTrace) {
+      debugPrint('🔐 [AUTH] Unexpected error: $e');
       // Check if user got authenticated despite the error
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
+        debugPrint('🔐 [AUTH] User authenticated despite error, updating state...');
         state = AsyncData(AuthStateAuthenticated(currentUser));
         _registerFcmTokenAfterLogin();
         return true;

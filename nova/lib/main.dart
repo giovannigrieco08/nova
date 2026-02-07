@@ -248,10 +248,18 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
   Future<void> _initializeDeepLinks() async {
     await _deepLinkService.initialize(
       onLink: (uri) async {
+        debugPrint('🔗 [DEEP_LINK] Received: $uri');
+        debugPrint('🔗 [DEEP_LINK] Scheme: ${uri.scheme}, Host: ${uri.host}');
+
         // Check if this is an auth callback (magic link)
         if (uri.scheme == 'novaapp' && uri.host == 'auth') {
+          debugPrint('🔗 [DEEP_LINK] Processing auth callback...');
+
           // Ensure we're still mounted
-          if (!mounted) return;
+          if (!mounted) {
+            debugPrint('🔗 [DEEP_LINK] Widget not mounted, skipping');
+            return;
+          }
 
           // Process magic link - the auth repository now handles
           // PKCE flow properly by checking existing sessions first
@@ -259,14 +267,18 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
               .read(authNotifierProvider.notifier)
               .verifyMagicLink(uri);
 
+          debugPrint('🔗 [DEEP_LINK] Verification result: $success');
+
           // Force refresh auth state to trigger AuthGuard rebuild
           if (success && mounted) {
+            debugPrint('🔗 [DEEP_LINK] Refreshing auth state...');
             // Invalidate profile provider to ensure fresh data
             ref.invalidate(currentProfileProvider);
 
             // Force a frame rebuild to ensure UI updates
             if (mounted) {
               setState(() {});
+              debugPrint('🔗 [DEEP_LINK] setState called, UI should rebuild');
             }
           }
         } else {
@@ -327,8 +339,10 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    debugPrint('📱 [LIFECYCLE] State changed to: $state');
 
     if (state == AppLifecycleState.resumed) {
+      debugPrint('📱 [LIFECYCLE] App resumed, checking auth state...');
       _checkAuthStateOnResume();
     }
   }
@@ -346,9 +360,18 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
   Future<void> _checkAuthStateOnResume() async {
     if (!mounted) return;
 
+    // Small delay to allow Supabase to restore session from storage
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) return;
+
     // Check if Supabase has an authenticated session
     final supabase = ref.read(supabaseClientProvider);
     final currentUser = supabase.auth.currentUser;
+    final session = supabase.auth.currentSession;
+
+    debugPrint('📱 [RESUME] Supabase currentUser: ${currentUser?.id}');
+    debugPrint('📱 [RESUME] Supabase session: ${session != null ? "exists" : "null"}');
 
     if (currentUser != null) {
       // User is authenticated - ensure auth state reflects this
@@ -363,7 +386,10 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
         orElse: () => false,
       );
 
+      debugPrint('📱 [RESUME] Current auth state is unauthenticated: $isCurrentlyUnauthenticated');
+
       if (isCurrentlyUnauthenticated) {
+        debugPrint('📱 [RESUME] Updating auth state to authenticated...');
         // Force verification to update auth state
         // This will set state to AuthStateAuthenticated
         await authNotifier.verifyMagicLink(Uri.parse('novaapp://auth/resume'));
@@ -371,8 +397,12 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
         // Invalidate profile provider to ensure fresh data
         if (mounted) {
           ref.invalidate(currentProfileProvider);
+          setState(() {});
+          debugPrint('📱 [RESUME] Auth state updated, UI should rebuild');
         }
       }
+    } else {
+      debugPrint('📱 [RESUME] No authenticated user found');
     }
   }
 
