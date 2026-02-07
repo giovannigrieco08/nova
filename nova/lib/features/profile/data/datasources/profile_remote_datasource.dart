@@ -182,6 +182,23 @@ class ProfileRemoteDataSource {
     return result as bool;
   }
 
+  /// Check if username is available for update (excludes current user)
+  /// Use this when a user is updating their own username
+  Future<bool> isUsernameAvailableForUpdate(
+    String username,
+    String currentUserId,
+  ) async {
+    final result = await _supabase.rpc(
+      'check_username_available',
+      params: {
+        'p_username': username,
+        'p_exclude_user_id': currentUserId,
+      },
+    );
+
+    return result as bool;
+  }
+
   /// Get profile statistics (events created, participations)
   /// Uses Supabase RPC function
   Future<ProfileStats> getProfileStats(String userId) async {

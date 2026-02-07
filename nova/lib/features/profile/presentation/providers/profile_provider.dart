@@ -150,6 +150,11 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
     await _updateField('full_name', name.trim());
   }
 
+  /// Update username (instant save)
+  Future<void> updateUsername(String username) async {
+    await _updateField('username', username.trim().toLowerCase());
+  }
+
   /// Update profile class (instant save)
   Future<void> updateClass(String className) async {
     await _updateField('class', className);
@@ -194,6 +199,9 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
         switch (fieldName) {
           case 'full_name':
             updatedProfile = profile.copyWith(fullName: value as String);
+            break;
+          case 'username':
+            updatedProfile = profile.copyWith(username: value as String);
             break;
           case 'class':
             updatedProfile = profile.copyWith(classYear: value as String);

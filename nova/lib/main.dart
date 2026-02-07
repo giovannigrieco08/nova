@@ -468,6 +468,8 @@ class AuthGuard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    debugPrint('🛡️ [AuthGuard] build() called');
+
     // ⚠️ DEV BYPASS - Skip auth check in development
     if (kDevBypassAuth) {
       // In dev mode, try to get user from Supabase directly
@@ -477,19 +479,26 @@ class AuthGuard extends ConsumerWidget {
 
     // Watch auth state from provider
     final authState = ref.watch(authNotifierProvider);
+    debugPrint('🛡️ [AuthGuard] authState: $authState');
 
     // Route based on auth state
     return authState.when(
       // Data loaded - check auth state
       data: (state) {
+        debugPrint('🛡️ [AuthGuard] data state: $state');
         return switch (state) {
           // User authenticated - pass user ID to profile guard
           // This ensures the ID is available immediately after magic link verification
-          AuthStateAuthenticated(:final user) =>
-            _ProfileCheckGuard(userId: user.id),
+          AuthStateAuthenticated(:final user) => () {
+              debugPrint('🛡️ [AuthGuard] → Showing ProfileCheckGuard');
+              return _ProfileCheckGuard(userId: user.id);
+            }(),
 
           // User not authenticated - show login
-          AuthStateUnauthenticated() => const LoginScreen(),
+          AuthStateUnauthenticated() => () {
+              debugPrint('🛡️ [AuthGuard] → Showing LoginScreen');
+              return const LoginScreen();
+            }(),
 
           // Loading state (shouldn't happen in data, but handle it)
           AuthStateLoading() => const _LoadingScreen(),
@@ -500,12 +509,16 @@ class AuthGuard extends ConsumerWidget {
       },
 
       // Loading state - show loading screen
-      loading: () => const _LoadingScreen(),
+      loading: () {
+        debugPrint('🛡️ [AuthGuard] → Showing LoadingScreen');
+        return const _LoadingScreen();
+      },
 
       // Error state - show error screen
-      error: (error, stackTrace) => _ErrorScreen(
-        message: error.toString(),
-      ),
+      error: (error, stackTrace) {
+        debugPrint('🛡️ [AuthGuard] → Showing ErrorScreen: $error');
+        return _ErrorScreen(message: error.toString());
+      },
     );
   }
 }

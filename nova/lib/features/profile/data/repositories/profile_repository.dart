@@ -240,6 +240,17 @@ class ProfileRepository {
     return await _remoteDataSource.isUsernameAvailable(username);
   }
 
+  /// Check if username is available for update (excludes current user)
+  Future<bool> isUsernameAvailableForUpdate(
+    String username,
+    String currentUserId,
+  ) async {
+    return await _remoteDataSource.isUsernameAvailableForUpdate(
+      username,
+      currentUserId,
+    );
+  }
+
   /// Helper: Apply updates to profile model
   ProfileModel _applyUpdates(
     ProfileModel current,
@@ -249,7 +260,7 @@ class ProfileRepository {
       userId: current.userId,
       email: current.email,
       fullName: updates['full_name'] as String? ?? current.fullName,
-      username: current.username,
+      username: updates['username'] as String? ?? current.username,
       classYear: updates['class'] as String? ?? current.classYear,
       avatarUrl: updates.containsKey('avatar_url')
           ? updates['avatar_url'] as String?

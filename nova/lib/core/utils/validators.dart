@@ -7,26 +7,44 @@ class Validators {
   // USERNAME VALIDATION
   // ============================================================================
 
+  /// Regex for valid username: lowercase letters, numbers, dots, underscores
+  /// Cannot start/end with . or _, no consecutive .. or __
+  static final RegExp _usernameRegex = RegExp(r'^[a-z0-9._]+$');
+  static final RegExp _usernameStartEndRegex = RegExp(r'^[._]|[._]$');
+  static final RegExp _usernameConsecutiveRegex = RegExp(r'\.\.|__');
+
   /// Validates username
-  /// Rules: 3-20 characters, no spaces, any other character allowed
+  /// Rules:
+  /// - 3-30 characters
+  /// - Only lowercase letters, numbers, dots, underscores
+  /// - Cannot start or end with . or _
+  /// - No consecutive .. or __
   /// Returns null if valid, error message if invalid
   static String? validateUsername(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Lo username è obbligatorio';
     }
 
-    final trimmed = value.trim();
-
-    if (trimmed.contains(' ')) {
-      return 'Lo username non può contenere spazi';
-    }
+    final trimmed = value.trim().toLowerCase();
 
     if (trimmed.length < 3) {
       return 'Lo username deve contenere almeno 3 caratteri';
     }
 
-    if (trimmed.length > 20) {
-      return 'Lo username non può superare 20 caratteri';
+    if (trimmed.length > 30) {
+      return 'Lo username non può superare 30 caratteri';
+    }
+
+    if (!_usernameRegex.hasMatch(trimmed)) {
+      return 'Lo username può contenere solo lettere minuscole, numeri, punti e underscore';
+    }
+
+    if (_usernameStartEndRegex.hasMatch(trimmed)) {
+      return 'Lo username non può iniziare o finire con . o _';
+    }
+
+    if (_usernameConsecutiveRegex.hasMatch(trimmed)) {
+      return 'Lo username non può contenere .. o __ consecutivi';
     }
 
     return null; // Valid

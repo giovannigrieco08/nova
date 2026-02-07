@@ -133,28 +133,43 @@ class AuthRepository {
       final accessToken = uri.queryParameters['access_token'];
       final refreshToken = uri.queryParameters['refresh_token'];
 
-      // PKCE flow: If we have a 'code' parameter, the Supabase SDK
-      // handles the code exchange automatically in the background.
-      // We need to wait for it to complete.
+      // PKCE flow: If we have a 'code' parameter, use exchangeCodeForSession
+      // to explicitly exchange the authorization code for a session.
       if (code != null && code.isNotEmpty) {
-        debugPrint('🔐 [AUTH_REPO] PKCE code detected, waiting for SDK to process...');
+        debugPrint('🔐 [AUTH_REPO] PKCE code detected: $code');
 
-        // Wait for the SDK to process the code exchange
-        // This happens automatically but takes a moment
-        for (int i = 0; i < 10; i++) {
-          await Future.delayed(const Duration(milliseconds: 300));
+        try {
+          // Exchange the authorization code for a session
+          debugPrint('🔐 [AUTH_REPO] Calling exchangeCodeForSession...');
+          final response = await _supabase.auth.exchangeCodeForSession(code);
+          debugPrint('🔐 [AUTH_REPO] exchangeCodeForSession succeeded!');
 
-          // Check if session was established
+          if (response.user != null) {
+            return response.user!;
+          }
+        } catch (e) {
+          debugPrint('🔐 [AUTH_REPO] exchangeCodeForSession error: $e');
+
+          // The SDK might have already processed it, check for existing session
+          await Future.delayed(const Duration(milliseconds: 500));
           existingUser = _supabase.auth.currentUser;
           if (existingUser != null) {
-            debugPrint('🔐 [AUTH_REPO] Session established after ${(i + 1) * 300}ms');
+            debugPrint('🔐 [AUTH_REPO] Session found after delay');
             return existingUser;
           }
-        }
 
-        // If still no session after waiting, the code might be invalid
-        debugPrint('🔐 [AUTH_REPO] No session after waiting, code may be invalid');
-        throw AuthException('Magic link verification timed out. Please try again.');
+          // If still no session, wait a bit more and check again
+          // The auth listener might be processing in parallel
+          await Future.delayed(const Duration(milliseconds: 1000));
+          existingUser = _supabase.auth.currentUser;
+          if (existingUser != null) {
+            debugPrint('🔐 [AUTH_REPO] Session found after second delay');
+            return existingUser;
+          }
+
+          // No session found, throw the original error
+          throw AuthException('Magic link verification failed. Please try again.');
+        }
       }
 
       // If we have access_token and refresh_token, set session directly

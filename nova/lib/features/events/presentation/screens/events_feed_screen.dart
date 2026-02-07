@@ -13,6 +13,7 @@ import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../providers/events_feed_provider.dart';
 import '../providers/event_engagement_provider.dart';
 import '../providers/event_likes_notifier.dart';
+import '../providers/event_help_provider.dart';
 import '../widgets/event_card.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/pending_event_banner.dart';
@@ -180,6 +181,10 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     final engagementAsync = ref.watch(batchEventEngagementProvider(eventIds));
     final engagementMap = engagementAsync.valueOrNull ?? {};
 
+    // Fetch help requests for all events in batch
+    final helpRequestsAsync = ref.watch(batchHelpRequestsProvider(eventIds));
+    final helpRequestsMap = helpRequestsAsync.valueOrNull ?? {};
+
     // Initialize likes provider with engagement data (only for events not yet initialized)
     final likesNotifier = ref.read(eventLikesProvider.notifier);
     for (final event in state.events) {
@@ -234,6 +239,16 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
         final event = state.events[approvedIndex];
         final engagement = engagementMap[event.id] ?? const EventEngagement();
 
+        // Convert help requests to HelpRequestInfo for display
+        final eventHelpRequests = helpRequestsMap[event.id] ?? [];
+        final helpRequestInfos = eventHelpRequests
+            .map((r) => HelpRequestInfo(
+                  id: r.id,
+                  description: r.description,
+                  isFulfilled: r.isFulfilled,
+                ))
+            .toList();
+
         // EventCard with staggered animation for smooth list loading
         // Key on StaggeredListItem preserves child's local state during scroll/rebuild
         return StaggeredListItem(
@@ -250,7 +265,7 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
             isLiked: engagement.isLiked,
             isParticipating: engagement.isParticipating,
             collaborators: const [], // TODO: Fetch real collaborators
-            helpRequests: const [], // TODO: Fetch real help requests from DB
+            helpRequests: helpRequestInfos,
           ),
         );
       },

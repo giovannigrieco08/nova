@@ -2,6 +2,7 @@
 // Feature: 002-profile-setup
 // Purpose: Edit existing profile with pre-populated fields
 
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,11 +42,13 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _bioController = TextEditingController();
 
   String? _selectedClass;
   String? _avatarUrl;
   String? _originalAvatarUrl; // Track original URL for cache eviction
+  String? _originalUsername; // Track original username for availability check
   File? _selectedAvatarFile;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -53,18 +56,94 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   double _uploadProgress = 0.0;
   int _bioCharCount = 0;
 
+  // Username availability state
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable;
+  Timer? _usernameDebounceTimer;
+
   @override
   void initState() {
     super.initState();
     _loadExistingProfile();
     _bioController.addListener(_updateBioCharCount);
+    _usernameController.addListener(_onUsernameChanged);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _bioController.dispose();
+    _usernameDebounceTimer?.cancel();
     super.dispose();
+  }
+
+  /// Handle username changes with debounced availability check
+  void _onUsernameChanged() {
+    final username = _usernameController.text.trim().toLowerCase();
+
+    // Cancel previous timer
+    _usernameDebounceTimer?.cancel();
+
+    // Reset availability state
+    setState(() {
+      _isUsernameAvailable = null;
+      _isCheckingUsername = false;
+    });
+
+    // If username is same as original, no need to check
+    if (username == _originalUsername) {
+      setState(() {
+        _isUsernameAvailable = true;
+      });
+      return;
+    }
+
+    // Validate format first
+    final validationError = Validators.validateUsername(username);
+    if (validationError != null || username.isEmpty) {
+      return;
+    }
+
+    // Debounce the availability check (500ms)
+    setState(() {
+      _isCheckingUsername = true;
+    });
+
+    _usernameDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      await _checkUsernameAvailability(username);
+    });
+  }
+
+  /// Check if username is available
+  Future<void> _checkUsernameAvailability(String username) async {
+    if (!mounted) return;
+
+    try {
+      final repository = ref.read(profileRepositoryProvider);
+      final supabase = ref.read(supabaseClientProvider);
+      final userId = supabase.auth.currentUser?.id;
+
+      if (userId == null) return;
+
+      final isAvailable = await repository.isUsernameAvailableForUpdate(
+        username,
+        userId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isUsernameAvailable = isAvailable;
+          _isCheckingUsername = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCheckingUsername = false;
+        });
+      }
+    }
   }
 
   /// Update bio character count
@@ -72,6 +151,39 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     setState(() {
       _bioCharCount = _bioController.text.length;
     });
+  }
+
+  /// Build username status icon (loading/available/taken)
+  Widget? _buildUsernameStatusIcon() {
+    if (_isCheckingUsername) {
+      return Padding(
+        padding: EdgeInsets.all(NovaSpacing.m),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: NovaColors.textSecondary(context),
+          ),
+        ),
+      );
+    }
+
+    if (_isUsernameAvailable == true) {
+      return Icon(
+        Icons.check_circle,
+        color: NovaColors.success(context),
+      );
+    }
+
+    if (_isUsernameAvailable == false) {
+      return Icon(
+        Icons.cancel,
+        color: NovaColors.error(context),
+      );
+    }
+
+    return null;
   }
 
   /// Handle avatar selection and upload
@@ -159,6 +271,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           if (mounted) {
             setState(() {
               _nameController.text = profile.fullName;
+              _usernameController.text = profile.username;
+              _originalUsername = profile.username;
+              _isUsernameAvailable = true; // Current username is always available
               _selectedClass = profile.classYear;
               _avatarUrl = profile.avatarUrl;
               _originalAvatarUrl = profile.avatarUrl; // Save for cache eviction
@@ -199,6 +314,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       return;
     }
 
+    // Check username availability before saving
+    final newUsername = _usernameController.text.trim().toLowerCase();
+    if (newUsername != _originalUsername && _isUsernameAvailable != true) {
+      NovaToast.showError(context, 'Username non disponibile');
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -215,6 +337,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       // Update profile
       await repository.updateProfile(userId, {
         'full_name': _nameController.text.trim(),
+        'username': newUsername,
         'class': _selectedClass,
         'avatar_url': _avatarUrl,
         'bio': _bioController.text.trim().isNotEmpty
@@ -435,6 +558,42 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ),
                       validator: Validators.validateName,
                       enabled: !_isSaving,
+                    ),
+
+                    SizedBox(height: NovaSpacing.l),
+
+                    // Username field
+                    TextFormField(
+                      controller: _usernameController,
+                      decoration: InputDecoration(
+                        labelText: 'Username *',
+                        hintText: 'giovannigrieco08',
+                        prefixText: '@',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide:
+                              BorderSide(color: NovaColors.border(context)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide:
+                              BorderSide(color: NovaColors.border(context)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(NovaRadius.m),
+                          borderSide: BorderSide(
+                              color: NovaColors.primary(context), width: 2),
+                        ),
+                        suffixIcon: _buildUsernameStatusIcon(),
+                        helperText: 'Lettere minuscole, numeri, punti e underscore',
+                        helperStyle: TextStyle(
+                          color: NovaColors.textSecondary(context),
+                        ),
+                      ),
+                      validator: Validators.validateUsername,
+                      enabled: !_isSaving,
+                      autocorrect: false,
+                      textInputAction: TextInputAction.next,
                     ),
 
                     SizedBox(height: NovaSpacing.l),

@@ -306,6 +306,42 @@ final helpOffersProvider =
 );
 
 // =============================================================================
+// BATCH PROVIDER (for feed efficiency)
+// =============================================================================
+
+/// Batch fetch help requests for multiple events (for feed display)
+/// Returns a map of eventId -> list of unfulfilled help requests
+final batchHelpRequestsProvider =
+    FutureProvider.family<Map<String, List<EventHelpRequest>>, List<String>>(
+  (ref, eventIds) async {
+    if (eventIds.isEmpty) return {};
+
+    final supabase = Supabase.instance.client;
+
+    // Fetch all unfulfilled help requests for these events in one query
+    final response = await supabase
+        .from('event_help_requests')
+        .select()
+        .inFilter('event_id', eventIds)
+        .eq('is_fulfilled', false)
+        .order('created_at', ascending: true);
+
+    // Group by event ID
+    final result = <String, List<EventHelpRequest>>{};
+    for (final eventId in eventIds) {
+      result[eventId] = [];
+    }
+
+    for (final json in response as List) {
+      final request = EventHelpRequestModel.fromJson(json).toEntity();
+      result[request.eventId]?.add(request);
+    }
+
+    return result;
+  },
+);
+
+// =============================================================================
 // HELPER PROVIDERS
 // =============================================================================
 
