@@ -123,6 +123,18 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     return false;
   }
 
+  /// Safely update state, catching defunct widget errors
+  /// This can happen when widgets are disposed during state transitions
+  void _safeSetState(AsyncValue<AuthState> newState) {
+    try {
+      state = newState;
+    } catch (e) {
+      // Ignore defunct widget errors - the state update will be picked up
+      // by any active widgets on their next build
+      debugPrint('🔐 [AUTH] State update caught error (likely defunct widget): $e');
+    }
+  }
+
   /// Setup listener for Supabase auth state changes
   ///
   /// Automatically updates state when:
@@ -154,7 +166,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 // Double-check we still need to update
                 if (!_isAlreadyAuthenticated(user.id)) {
-                  state = AsyncData(AuthStateAuthenticated(user));
+                  _safeSetState(AsyncData(AuthStateAuthenticated(user)));
                   debugPrint('🔐 [AUTH_LISTENER] State updated to Authenticated');
                 } else {
                   debugPrint('🔐 [AUTH_LISTENER] State already authenticated, skipping');
@@ -173,7 +185,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               final currentState = state.valueOrNull;
               if (currentState is! AuthStateUnauthenticated) {
-                state = const AsyncData(AuthStateUnauthenticated());
+                _safeSetState(const AsyncData(AuthStateUnauthenticated()));
               }
             });
             break;
@@ -193,7 +205,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
                 if (currentState is AuthStateAuthenticated) {
                   // Only update if user data actually changed
                   if (currentState.user.id == user.id) {
-                    state = AsyncData(AuthStateAuthenticated(user));
+                    _safeSetState(AsyncData(AuthStateAuthenticated(user)));
                   }
                 }
               });
@@ -285,8 +297,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       debugPrint('🔐 [AUTH] Existing user: ${existingUser?.id}');
 
       if (existingUser != null) {
-        // Session already exists - auth listener will have already updated state
-        debugPrint('🔐 [AUTH] User already authenticated');
+        // Session already exists - manually update state since the signedIn
+        // event might have fired before our listener was set up, or might not
+        // fire at all when restoring session from storage
+        debugPrint('🔐 [AUTH] User already authenticated, forcing state update...');
+        _forceAuthStateUpdate(existingUser);
         return true;
       }
 
@@ -312,7 +327,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // (can happen if token was already verified server-side)
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
-        debugPrint('🔐 [AUTH] User authenticated despite error');
+        debugPrint('🔐 [AUTH] User authenticated despite error, updating state...');
+        _forceAuthStateUpdate(currentUser);
         return true;
       }
 
@@ -325,7 +341,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Check if user got authenticated despite the error
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
-        debugPrint('🔐 [AUTH] User authenticated despite error');
+        debugPrint('🔐 [AUTH] User authenticated despite error, updating state...');
+        _forceAuthStateUpdate(currentUser);
         return true;
       }
 
@@ -333,6 +350,41 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       debugPrint('🔐 [AUTH] Verification failed: $e');
       return false;
     }
+  }
+
+  /// Force auth state update to Authenticated
+  ///
+  /// This is called when we detect the user is authenticated but the
+  /// Riverpod state hasn't been updated yet (e.g., after PKCE redirect).
+  void _forceAuthStateUpdate(supabase.User user) {
+    _lastAuthenticatedUserId = user.id;
+
+    // Update state synchronously
+    final newState = AsyncData(AuthStateAuthenticated(user));
+    debugPrint('🔐 [AUTH] Setting state to: $newState');
+
+    try {
+      state = newState;
+      debugPrint('🔐 [AUTH] State set successfully');
+    } catch (e) {
+      debugPrint('🔐 [AUTH] State set error: $e');
+      // If sync update fails, try deferred update
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          state = newState;
+          debugPrint('🔐 [AUTH] Deferred state set successful');
+        } catch (e2) {
+          debugPrint('🔐 [AUTH] Deferred state set also failed: $e2');
+        }
+      });
+    }
+
+    // Verify state was updated
+    final currentState = state.valueOrNull;
+    debugPrint('🔐 [AUTH] Current state after update: $currentState');
+
+    // Register FCM token
+    _registerFcmTokenAfterLogin();
   }
 
   /// Sign out current user

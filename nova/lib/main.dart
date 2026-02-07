@@ -268,16 +268,9 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
               .verifyMagicLink(uri);
 
           debugPrint('🔗 [DEEP_LINK] Verification result: $success');
-
           // The AuthGuard automatically watches authNotifierProvider and will
-          // rebuild when the state changes. We just need to invalidate the
-          // profile provider to ensure fresh data is loaded.
-          // Note: Don't call setState() here as the widget tree may have
-          // already changed due to the auth state update.
-          if (success && mounted) {
-            debugPrint('🔗 [DEEP_LINK] Auth successful, invalidating profile...');
-            ref.invalidate(currentProfileProvider);
-          }
+          // rebuild when the state changes. _ProfileCheckGuard will then
+          // watch currentProfileProvider and load fresh data.
         } else {
           // Try parsing as Nova event/profile deep link (nova://events/{id})
           final deepLinkInfo = _deepLinkHandler.parse(uri);
@@ -376,6 +369,7 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
 
       // Get current auth state to check if we need to update
       final currentAuthState = ref.read(authNotifierProvider);
+      debugPrint('📱 [RESUME] Current Riverpod auth state: $currentAuthState');
 
       // Only update if currently showing as unauthenticated
       final isCurrentlyUnauthenticated = currentAuthState.maybeWhen(
@@ -392,10 +386,24 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
         // The AuthGuard will automatically rebuild when state changes
         await authNotifier.verifyMagicLink(Uri.parse('novaapp://auth/resume'));
 
-        // Invalidate profile provider to ensure fresh data
-        if (mounted) {
-          ref.invalidate(currentProfileProvider);
-          debugPrint('📱 [RESUME] Auth state updated');
+        // Verify state was updated after call
+        final newAuthState = ref.read(authNotifierProvider);
+        debugPrint('📱 [RESUME] Auth state after update: $newAuthState');
+
+        // If still unauthenticated after a delay, force a refresh
+        await Future.delayed(const Duration(milliseconds: 200));
+        if (!mounted) return;
+
+        final finalAuthState = ref.read(authNotifierProvider);
+        final stillUnauthenticated = finalAuthState.maybeWhen(
+          data: (state) => state is AuthStateUnauthenticated,
+          orElse: () => false,
+        );
+
+        if (stillUnauthenticated) {
+          debugPrint('📱 [RESUME] State still unauthenticated, forcing rebuild...');
+          // Force invalidate to trigger rebuild
+          ref.invalidate(authNotifierProvider);
         }
       }
     } else {

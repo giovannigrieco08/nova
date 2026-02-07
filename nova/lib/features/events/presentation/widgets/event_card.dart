@@ -855,8 +855,8 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Show the offer help sheet for a specific request
-  void _showOfferHelpSheet(HelpRequestInfo request) {
-    showModalBottomSheet(
+  void _showOfferHelpSheet(HelpRequestInfo request) async {
+    final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -869,6 +869,20 @@ class _EventCardState extends ConsumerState<EventCard> {
         eventId: widget.event.id,
       ),
     );
+
+    // Show feedback snackbar based on result
+    if (mounted && result != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result == 'success'
+                ? 'Offerta inviata! L\'organizzatore ti contatterà presto.'
+                : result,
+          ),
+          backgroundColor: result == 'success' ? NovaColors.successLight : Colors.red,
+        ),
+      );
+    }
   }
 
   /// Show picker sheet when there are multiple help requests

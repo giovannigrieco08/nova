@@ -483,45 +483,39 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
     );
   }
 
+  /// Show snackbar safely (handles missing ScaffoldMessenger in bottom sheets)
+  void _showSnackBar(String message, {bool isError = false}) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Colors.red : NovaColors.successLight,
+        ),
+      );
+    }
+  }
+
   /// Handle form submission
   Future<void> _handleSubmit() async {
     // Close keyboard first
     FocusScope.of(context).unfocus();
 
-    // ignore: avoid_print
-    print('DEBUG _handleSubmit: called');
-    print('DEBUG _handleSubmit: contactType=$_contactType, contactInfo=${_contactController.text}');
-
     // Validate contact info
     if (_contactController.text.trim().isEmpty) {
-      // ignore: avoid_print
-      print('DEBUG _handleSubmit: contact info is empty');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Inserisci il tuo contatto per essere ricontattato'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar('Inserisci il tuo contatto per essere ricontattato', isError: true);
       return;
     }
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    // ignore: avoid_print
-    print('DEBUG _handleSubmit: userId=$userId');
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Devi essere loggato per offrire aiuto')),
-      );
+      _showSnackBar('Devi essere loggato per offrire aiuto', isError: true);
       return;
     }
 
     setState(() => _isSubmitting = true);
-    // ignore: avoid_print
-    print('DEBUG _handleSubmit: isSubmitting set to true');
 
     try {
-      // ignore: avoid_print
-      print('DEBUG _handleSubmit: calling notifier.createOffer with requestId=${widget.requestId}');
       final notifier = ref.read(helpOffersProvider(widget.requestId).notifier);
       final error = await notifier.createOffer(
         userId: userId,
@@ -531,36 +525,15 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
             ? null
             : _messageController.text.trim(),
       );
-      // ignore: avoid_print
-      print('DEBUG _handleSubmit: createOffer returned error=$error');
 
       if (mounted) {
-        if (error == null) {
-          // Success - close sheet and show confirmation
-          // ignore: avoid_print
-          print('DEBUG _handleSubmit: SUCCESS, closing sheet');
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Offerta inviata! L\'organizzatore ti contatterà presto.'),
-              backgroundColor: NovaColors.successLight,
-            ),
-          );
-        } else {
-          // Error - show specific error message
-          // ignore: avoid_print
-          print('DEBUG _handleSubmit: ERROR=$error');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        // Close sheet first, then show snackbar on parent scaffold
+        Navigator.pop(context, error == null ? 'success' : error);
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('DEBUG _handleSubmit: EXCEPTION=$e');
+      if (mounted) {
+        Navigator.pop(context, 'Errore imprevisto');
+      }
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
