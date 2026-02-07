@@ -870,16 +870,12 @@ class _EventCardState extends ConsumerState<EventCard> {
       ),
     );
 
-    // Show feedback snackbar based on result
-    if (mounted && result != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    // Show error snackbar (success already shows dialog in OfferHelpSheet)
+    if (mounted && result != null && result != 'success') {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
-          content: Text(
-            result == 'success'
-                ? 'Offerta inviata! L\'organizzatore ti contatterà presto.'
-                : result,
-          ),
-          backgroundColor: result == 'success' ? NovaColors.successLight : Colors.red,
+          content: Text(result),
+          backgroundColor: Colors.red,
         ),
       );
     }
