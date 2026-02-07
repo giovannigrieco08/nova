@@ -160,21 +160,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
                 debugPrint('🔐 [AUTH_LISTENER] Skipping duplicate signedIn event');
                 return;
               }
-              _lastAuthenticatedUserId = user.id;
 
-              // Use post-frame callback to defer state update
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                // Double-check we still need to update
-                if (!_isAlreadyAuthenticated(user.id)) {
-                  _safeSetState(AsyncData(AuthStateAuthenticated(user)));
-                  debugPrint('🔐 [AUTH_LISTENER] State updated to Authenticated');
-                } else {
-                  debugPrint('🔐 [AUTH_LISTENER] State already authenticated, skipping');
-                }
-              });
-
-              // Register FCM token for push notifications
-              _registerFcmTokenAfterLogin();
+              // Use _forceAuthStateUpdate for synchronous state update
+              // This ensures Riverpod listeners are notified immediately
+              debugPrint('🔐 [AUTH_LISTENER] Calling _forceAuthStateUpdate...');
+              _forceAuthStateUpdate(user);
             }
             break;
 
@@ -182,12 +172,17 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             // User signed out
             debugPrint('🔐 [AUTH_LISTENER] SignedOut event!');
             _lastAuthenticatedUserId = null;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              final currentState = state.valueOrNull;
-              if (currentState is! AuthStateUnauthenticated) {
-                _safeSetState(const AsyncData(AuthStateUnauthenticated()));
+            // Update state synchronously
+            final currentState = state.valueOrNull;
+            if (currentState is! AuthStateUnauthenticated) {
+              debugPrint('🔐 [AUTH_LISTENER] Setting state to Unauthenticated...');
+              try {
+                state = const AsyncData(AuthStateUnauthenticated());
+                debugPrint('🔐 [AUTH_LISTENER] State set to Unauthenticated');
+              } catch (e) {
+                debugPrint('🔐 [AUTH_LISTENER] State update error: $e');
               }
-            });
+            }
             break;
 
           case supabase.AuthChangeEvent.tokenRefreshed:
@@ -200,15 +195,18 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             debugPrint('🔐 [AUTH_LISTENER] UserUpdated event');
             final user = authState.session?.user;
             if (user != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                final currentState = state.valueOrNull;
-                if (currentState is AuthStateAuthenticated) {
-                  // Only update if user data actually changed
-                  if (currentState.user.id == user.id) {
-                    _safeSetState(AsyncData(AuthStateAuthenticated(user)));
+              final currentState = state.valueOrNull;
+              if (currentState is AuthStateAuthenticated) {
+                // Only update if user data actually changed
+                if (currentState.user.id == user.id) {
+                  try {
+                    state = AsyncData(AuthStateAuthenticated(user));
+                    debugPrint('🔐 [AUTH_LISTENER] User data updated');
+                  } catch (e) {
+                    debugPrint('🔐 [AUTH_LISTENER] User update error: $e');
                   }
                 }
-              });
+              }
             }
             break;
 
@@ -357,24 +355,38 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// This is called when we detect the user is authenticated but the
   /// Riverpod state hasn't been updated yet (e.g., after PKCE redirect).
   void _forceAuthStateUpdate(supabase.User user) {
+    debugPrint('🔐 [AUTH] _forceAuthStateUpdate called for user: ${user.id}');
+
+    // Check if already authenticated with same user
+    if (_lastAuthenticatedUserId == user.id) {
+      debugPrint('🔐 [AUTH] Already authenticated with same user, checking state...');
+      final currentState = state.valueOrNull;
+      if (currentState is AuthStateAuthenticated) {
+        debugPrint('🔐 [AUTH] State already correct, skipping update');
+        return;
+      }
+    }
+
     _lastAuthenticatedUserId = user.id;
 
-    // Update state synchronously
+    // Update state synchronously - this MUST trigger Riverpod listeners
     final newState = AsyncData(AuthStateAuthenticated(user));
     debugPrint('🔐 [AUTH] Setting state to: $newState');
 
     try {
+      // Direct state assignment triggers Riverpod notifications
       state = newState;
-      debugPrint('🔐 [AUTH] State set successfully');
+      debugPrint('🔐 [AUTH] State set successfully! Riverpod should notify listeners now.');
     } catch (e) {
       debugPrint('🔐 [AUTH] State set error: $e');
-      // If sync update fails, try deferred update
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      // This error might happen if the notifier is in a weird state
+      // Try using a microtask to update in the next event loop iteration
+      Future.microtask(() {
         try {
           state = newState;
-          debugPrint('🔐 [AUTH] Deferred state set successful');
+          debugPrint('🔐 [AUTH] Microtask state set successful');
         } catch (e2) {
-          debugPrint('🔐 [AUTH] Deferred state set also failed: $e2');
+          debugPrint('🔐 [AUTH] Microtask state set also failed: $e2');
         }
       });
     }
@@ -382,6 +394,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     // Verify state was updated
     final currentState = state.valueOrNull;
     debugPrint('🔐 [AUTH] Current state after update: $currentState');
+    debugPrint('🔐 [AUTH] Is authenticated: ${currentState is AuthStateAuthenticated}');
 
     // Register FCM token
     _registerFcmTokenAfterLogin();

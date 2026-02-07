@@ -242,6 +242,39 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initializeDeepLinks();
+    _setupAuthListener();
+  }
+
+  /// Setup explicit listener for auth state changes
+  /// This ensures the widget tree rebuilds when auth state changes
+  void _setupAuthListener() {
+    // Use addPostFrameCallback to ensure the widget is fully built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      // Listen to auth state changes and force rebuild if needed
+      ref.listenManual(
+        authNotifierProvider,
+        (previous, next) {
+          debugPrint('🔔 [AUTH_LISTENER_MAIN] State changed: $previous -> $next');
+
+          // Check if we transitioned from unauthenticated to authenticated
+          final wasUnauthenticated = previous?.valueOrNull is AuthStateUnauthenticated;
+          final isAuthenticated = next.valueOrNull is AuthStateAuthenticated;
+
+          if (wasUnauthenticated && isAuthenticated) {
+            debugPrint('🔔 [AUTH_LISTENER_MAIN] Auth transition detected! Triggering rebuild...');
+            // Force a rebuild by calling setState
+            if (mounted) {
+              setState(() {
+                debugPrint('🔔 [AUTH_LISTENER_MAIN] setState called');
+              });
+            }
+          }
+        },
+        fireImmediately: false,
+      );
+    });
   }
 
   /// Initialize deep link handling
