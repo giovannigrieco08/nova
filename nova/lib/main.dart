@@ -532,17 +532,25 @@ class _ProfileCheckGuard extends ConsumerWidget {
 
     // Watch profile for current user
     final profileAsync = ref.watch(currentProfileProvider);
+    debugPrint('👤 [ProfileCheckGuard] build() userId: $userId, profileAsync: $profileAsync');
 
     return profileAsync.when(
       // Profile loaded successfully - always show main feed
       // Profile completeness is handled by prompts within the app, not blocking
-      data: (profile) => const MainFeedScreen(),
+      data: (profile) {
+        debugPrint('👤 [ProfileCheckGuard] → Showing MainFeedScreen');
+        return const MainFeedScreen();
+      },
 
       // Loading profile
-      loading: () => const _LoadingScreen(),
+      loading: () {
+        debugPrint('👤 [ProfileCheckGuard] → Showing LoadingScreen (profile loading)');
+        return const _LoadingScreen();
+      },
 
       // Error loading profile (likely profile doesn't exist yet)
       error: (error, stackTrace) {
+        debugPrint('👤 [ProfileCheckGuard] → Showing ProfileSetupScreen (error: $error)');
         // Profile doesn't exist - show setup screen to create it
         return const ProfileSetupScreen();
       },

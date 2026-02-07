@@ -9,6 +9,7 @@
 // - Notification when offers are received
 
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/event_help_request_model.dart';
@@ -209,12 +210,17 @@ class HelpOffersNotifier extends StateNotifier<HelpOffersState> {
     required String contactInfo,
     String? message,
   }) async {
+    debugPrint('[HELP_OFFER] Creating offer for request: $requestId');
+    debugPrint('[HELP_OFFER] Data: userId=$userId, contactType=$contactType, contactInfo=$contactInfo');
+
     // Validate contact info
     if (contactInfo.trim().isEmpty) {
+      debugPrint('[HELP_OFFER] Validation failed: empty contact info');
       return 'Inserisci il tuo contatto';
     }
 
     try {
+      debugPrint('[HELP_OFFER] Inserting into event_help_offers...');
       await _supabase.from('event_help_offers').insert({
         'request_id': requestId,
         'user_id': userId,
@@ -225,8 +231,10 @@ class HelpOffersNotifier extends StateNotifier<HelpOffersState> {
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       });
+      debugPrint('[HELP_OFFER] Offer created successfully!');
       return null; // Success
     } on PostgrestException catch (e) {
+      debugPrint('[HELP_OFFER] PostgrestException: code=${e.code}, message=${e.message}');
       // Specific error messages based on PostgreSQL error codes
       if (e.code == '23503') {
         // Foreign key violation - profile doesn't exist
@@ -240,6 +248,7 @@ class HelpOffersNotifier extends StateNotifier<HelpOffersState> {
       }
       return 'Errore database: ${e.message}';
     } catch (e) {
+      debugPrint('[HELP_OFFER] Unexpected error: $e');
       return 'Errore imprevisto: $e';
     }
   }

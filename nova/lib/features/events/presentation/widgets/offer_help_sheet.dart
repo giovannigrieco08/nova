@@ -496,27 +496,107 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
     }
   }
 
+  /// Show success dialog after offer is sent
+  Future<void> _showSuccessDialog() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: NovaRadius.circularM,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: NovaColors.successLight.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                size: 40,
+                color: NovaColors.successLight,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Offerta inviata!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'L\'organizzatore riceverà una notifica e potrà contattarti.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: NovaColors.grayDark,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NovaColors.helpAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: NovaRadius.circularXs,
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Handle form submission
   Future<void> _handleSubmit() async {
+    debugPrint('[SUBMIT] Starting help offer submission');
+    debugPrint('[SUBMIT] requestId=${widget.requestId}, contactType=$_contactType');
+
     // Close keyboard first
     FocusScope.of(context).unfocus();
 
     // Validate contact info
     if (_contactController.text.trim().isEmpty) {
+      debugPrint('[SUBMIT] Validation failed: empty contact info');
       _showSnackBar('Inserisci il tuo contatto per essere ricontattato', isError: true);
       return;
     }
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) {
+      debugPrint('[SUBMIT] Validation failed: user not logged in');
       _showSnackBar('Devi essere loggato per offrire aiuto', isError: true);
       return;
     }
 
+    debugPrint('[SUBMIT] User authenticated: $userId');
     setState(() => _isSubmitting = true);
 
     try {
       final notifier = ref.read(helpOffersProvider(widget.requestId).notifier);
+      debugPrint('[SUBMIT] Calling createOffer...');
       final error = await notifier.createOffer(
         userId: userId,
         contactType: _contactType,
@@ -526,11 +606,24 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
             : _messageController.text.trim(),
       );
 
+      debugPrint('[SUBMIT] createOffer result: ${error ?? 'SUCCESS'}');
+
       if (mounted) {
-        // Close sheet first, then show snackbar on parent scaffold
-        Navigator.pop(context, error == null ? 'success' : error);
+        if (error == null) {
+          // Show success dialog, then close sheet
+          debugPrint('[SUBMIT] Showing success dialog');
+          await _showSuccessDialog();
+          if (mounted) {
+            Navigator.pop(context, 'success');
+          }
+        } else {
+          // Close sheet with error
+          debugPrint('[SUBMIT] Error occurred: $error');
+          Navigator.pop(context, error);
+        }
       }
     } catch (e) {
+      debugPrint('[SUBMIT] Exception caught: $e');
       if (mounted) {
         Navigator.pop(context, 'Errore imprevisto');
       }
