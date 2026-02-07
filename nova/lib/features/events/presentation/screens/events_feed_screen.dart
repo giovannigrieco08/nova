@@ -182,7 +182,9 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     final engagementMap = engagementAsync.valueOrNull ?? {};
 
     // Fetch help requests for all events in batch
-    final helpRequestsAsync = ref.watch(batchHelpRequestsProvider(eventIds));
+    // Use joined string as key to prevent infinite rebuilds (List creates new instance each time)
+    final eventIdsKey = eventIds.join(',');
+    final helpRequestsAsync = ref.watch(batchHelpRequestsKeyProvider(eventIdsKey));
     final helpRequestsMap = helpRequestsAsync.valueOrNull ?? {};
 
     // Initialize likes provider with engagement data (only for events not yet initialized)

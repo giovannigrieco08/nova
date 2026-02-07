@@ -133,9 +133,7 @@ class EventRepositoryImpl implements EventRepository {
         'updated_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      // Log error for debugging but don't block event creation
-      // ignore: avoid_print
-      print('ERROR creating help request for event $eventId: $e');
+      // Silently fail - don't block event creation for help request failure
     }
   }
 

@@ -310,12 +310,14 @@ final helpOffersProvider =
 // =============================================================================
 
 /// Batch fetch help requests for multiple events (for feed display)
+/// Uses comma-separated string key to prevent infinite rebuilds
 /// Returns a map of eventId -> list of unfulfilled help requests
-final batchHelpRequestsProvider =
-    FutureProvider.family<Map<String, List<EventHelpRequest>>, List<String>>(
-  (ref, eventIds) async {
-    if (eventIds.isEmpty) return {};
+final batchHelpRequestsKeyProvider =
+    FutureProvider.family<Map<String, List<EventHelpRequest>>, String>(
+  (ref, eventIdsKey) async {
+    if (eventIdsKey.isEmpty) return {};
 
+    final eventIds = eventIdsKey.split(',');
     final supabase = Supabase.instance.client;
 
     try {
@@ -327,26 +329,19 @@ final batchHelpRequestsProvider =
           .eq('is_fulfilled', false)
           .order('created_at', ascending: true);
 
-      // ignore: avoid_print
-      print('DEBUG batchHelpRequests: fetched ${(response as List).length} help requests for ${eventIds.length} events');
-
       // Group by event ID
       final result = <String, List<EventHelpRequest>>{};
       for (final eventId in eventIds) {
         result[eventId] = [];
       }
 
-      for (final json in response) {
+      for (final json in response as List) {
         final request = EventHelpRequestModel.fromJson(json).toEntity();
         result[request.eventId]?.add(request);
-        // ignore: avoid_print
-        print('DEBUG: Found help request "${request.description}" for event ${request.eventId}');
       }
 
       return result;
     } catch (e) {
-      // ignore: avoid_print
-      print('ERROR batchHelpRequests: $e');
       return {};
     }
   },

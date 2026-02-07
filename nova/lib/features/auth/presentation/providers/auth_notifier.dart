@@ -247,34 +247,25 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       debugPrint('🔐 [AUTH] Existing user: ${existingUser?.id}');
 
       if (existingUser != null) {
-        // Session already exists - Supabase verified token during redirect
-        // Update state immediately and register FCM token
-        debugPrint('🔐 [AUTH] User already authenticated, updating state...');
-        state = AsyncData(AuthStateAuthenticated(existingUser));
-        _registerFcmTokenAfterLogin();
-        debugPrint('🔐 [AUTH] State updated to AuthStateAuthenticated');
+        // Session already exists - auth listener will have already updated state
+        debugPrint('🔐 [AUTH] User already authenticated');
         return true;
       }
 
-      // Set loading state
-      debugPrint('🔐 [AUTH] No existing user, setting loading state...');
-      state = const AsyncLoading();
-
       // Verify token via repository - this handles multiple scenarios:
-      // 1. Session exists (PKCE completed server-side)
+      // 1. PKCE code exchange
       // 2. token_hash in URL (traditional OTP)
       // 3. access_token/refresh_token in URL
+      // NOTE: Don't set loading state here - the auth listener will update
+      // the state when the signedIn event fires, avoiding double updates
       debugPrint('🔐 [AUTH] Calling repository.verifyMagicLink...');
       final user = await _authRepository.verifyMagicLink(uri);
       debugPrint('🔐 [AUTH] Repository returned user: ${user.id}');
 
-      // State will be updated by auth state listener
-      // But we can set it immediately for faster UI update
-      state = AsyncData(AuthStateAuthenticated(user));
-      debugPrint('🔐 [AUTH] State updated to AuthStateAuthenticated');
-
-      // Note: FCM registration will be triggered by auth state listener
-      // when it receives the signedIn event
+      // Don't update state here - the auth listener handles it when
+      // Supabase fires the signedIn event. This prevents race conditions
+      // where we update state, widgets rebuild, and then the listener
+      // tries to update again causing defunct widget errors.
 
       return true;
     } on supabase.AuthException catch (e) {
@@ -283,28 +274,25 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // (can happen if token was already verified server-side)
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
-        debugPrint('🔐 [AUTH] User authenticated despite error, updating state...');
-        state = AsyncData(AuthStateAuthenticated(currentUser));
-        _registerFcmTokenAfterLogin();
+        debugPrint('🔐 [AUTH] User authenticated despite error');
         return true;
       }
 
-      // Set error state
-      state = AsyncError(e.message, StackTrace.current);
+      // Don't set error state - just return false
+      // The UI will handle showing appropriate feedback
+      debugPrint('🔐 [AUTH] Verification failed');
       return false;
     } catch (e, stackTrace) {
       debugPrint('🔐 [AUTH] Unexpected error: $e');
       // Check if user got authenticated despite the error
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
-        debugPrint('🔐 [AUTH] User authenticated despite error, updating state...');
-        state = AsyncData(AuthStateAuthenticated(currentUser));
-        _registerFcmTokenAfterLogin();
+        debugPrint('🔐 [AUTH] User authenticated despite error');
         return true;
       }
 
-      // Set error state for unexpected errors
-      state = AsyncError(e, stackTrace);
+      // Don't set error state - just return false
+      debugPrint('🔐 [AUTH] Verification failed: $e');
       return false;
     }
   }

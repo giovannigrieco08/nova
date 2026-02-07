@@ -108,7 +108,10 @@ class _EditTutorScreenState extends ConsumerState<EditTutorScreen> {
       ),
       backgroundColor: NovaColors.background(context),
       child: SafeArea(
-        child: _buildForm(context),
+        child: Material(
+          color: Colors.transparent,
+          child: _buildForm(context),
+        ),
       ),
     );
   }
