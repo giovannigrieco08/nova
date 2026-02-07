@@ -144,9 +144,8 @@ class AuthRepository {
           final response = await _supabase.auth.exchangeCodeForSession(code);
           debugPrint('🔐 [AUTH_REPO] exchangeCodeForSession succeeded!');
 
-          if (response.user != null) {
-            return response.user!;
-          }
+          // exchangeCodeForSession returns AuthSessionUrlResponse with session
+          return response.session.user;
         } catch (e) {
           debugPrint('🔐 [AUTH_REPO] exchangeCodeForSession error: $e');
 
