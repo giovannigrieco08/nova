@@ -8,6 +8,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:nova/core/models/auth_state.dart';
@@ -129,9 +130,14 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             // User signed in successfully
             debugPrint('🔐 [AUTH_LISTENER] SignedIn event!');
             if (authState.session?.user != null) {
-              state =
-                  AsyncData(AuthStateAuthenticated(authState.session!.user));
-              debugPrint('🔐 [AUTH_LISTENER] State updated to Authenticated');
+              // Use post-frame callback to defer state update
+              // This prevents "defunct" widget errors when the widget tree
+              // is being rebuilt due to auth state changes
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                state =
+                    AsyncData(AuthStateAuthenticated(authState.session!.user));
+                debugPrint('🔐 [AUTH_LISTENER] State updated to Authenticated');
+              });
 
               // Register FCM token for push notifications
               _registerFcmTokenAfterLogin();
@@ -141,15 +147,19 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           case supabase.AuthChangeEvent.signedOut:
             // User signed out
             debugPrint('🔐 [AUTH_LISTENER] SignedOut event!');
-            state = const AsyncData(AuthStateUnauthenticated());
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              state = const AsyncData(AuthStateUnauthenticated());
+            });
             break;
 
           case supabase.AuthChangeEvent.tokenRefreshed:
             // Token refreshed (silent) - update user object
             debugPrint('🔐 [AUTH_LISTENER] TokenRefreshed event');
             if (authState.session?.user != null) {
-              state =
-                  AsyncData(AuthStateAuthenticated(authState.session!.user));
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                state =
+                    AsyncData(AuthStateAuthenticated(authState.session!.user));
+              });
             }
             break;
 
@@ -157,8 +167,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             // User data updated
             debugPrint('🔐 [AUTH_LISTENER] UserUpdated event');
             if (authState.session?.user != null) {
-              state =
-                  AsyncData(AuthStateAuthenticated(authState.session!.user));
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                state =
+                    AsyncData(AuthStateAuthenticated(authState.session!.user));
+              });
             }
             break;
 
