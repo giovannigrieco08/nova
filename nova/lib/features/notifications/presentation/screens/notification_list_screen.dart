@@ -11,6 +11,7 @@ import '../providers/notification_providers.dart';
 import '../widgets/notification_tile.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../../events/presentation/screens/event_detail_screen.dart';
+import '../../../events/presentation/providers/events_feed_provider.dart';
 import '../../../profile/presentation/screens/other_profile_screen.dart';
 
 /// Notification list screen (Instagram-style)
@@ -92,6 +93,10 @@ class NotificationListScreen extends ConsumerWidget {
                   onDelete: () =>
                       _deleteNotification(context, ref, notification.id),
                   onMarkAsRead: () => _markAsRead(ref, notification.id),
+                  onAccept: () =>
+                      _handleInvitationResponse(context, ref, notification, true),
+                  onReject: () =>
+                      _handleInvitationResponse(context, ref, notification, false),
                 )),
           ],
 
@@ -104,6 +109,10 @@ class NotificationListScreen extends ConsumerWidget {
                   onDelete: () =>
                       _deleteNotification(context, ref, notification.id),
                   onMarkAsRead: () => _markAsRead(ref, notification.id),
+                  onAccept: () =>
+                      _handleInvitationResponse(context, ref, notification, true),
+                  onReject: () =>
+                      _handleInvitationResponse(context, ref, notification, false),
                 )),
           ],
 
@@ -116,6 +125,10 @@ class NotificationListScreen extends ConsumerWidget {
                   onDelete: () =>
                       _deleteNotification(context, ref, notification.id),
                   onMarkAsRead: () => _markAsRead(ref, notification.id),
+                  onAccept: () =>
+                      _handleInvitationResponse(context, ref, notification, true),
+                  onReject: () =>
+                      _handleInvitationResponse(context, ref, notification, false),
                 )),
           ],
 
@@ -128,6 +141,10 @@ class NotificationListScreen extends ConsumerWidget {
                   onDelete: () =>
                       _deleteNotification(context, ref, notification.id),
                   onMarkAsRead: () => _markAsRead(ref, notification.id),
+                  onAccept: () =>
+                      _handleInvitationResponse(context, ref, notification, true),
+                  onReject: () =>
+                      _handleInvitationResponse(context, ref, notification, false),
                 )),
           ],
 
@@ -345,5 +362,68 @@ class NotificationListScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Handle invitation accept/reject
+  Future<void> _handleInvitationResponse(
+    BuildContext context,
+    WidgetRef ref,
+    AppNotification notification,
+    bool accept,
+  ) async {
+    // Get invitation_id from notification metadata
+    final invitationId = notification.data?['invitation_id'] as String?;
+    if (invitationId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Errore: invito non trovato'),
+          backgroundColor: NovaColors.error(context),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final repository = ref.read(eventsRepositoryProvider);
+      await repository.respondToInvitation(
+        invitationId: invitationId,
+        status: accept ? 'accepted' : 'declined',
+      );
+
+      // Mark notification as read and delete it
+      ref.read(notificationNotifierProvider.notifier).markAsRead(notification.id);
+      ref.read(notificationNotifierProvider.notifier).deleteNotification(notification.id);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(accept
+                ? 'Invito accettato! Ora sei co-organizzatore'
+                : 'Invito rifiutato'),
+            backgroundColor: accept ? Colors.green : NovaColors.textSecondary(context),
+          ),
+        );
+
+        // If accepted, navigate to the event
+        if (accept) {
+          final targetId = notification.data?['target_id'] as String?;
+          if (targetId != null) {
+            Navigator.push(
+              context,
+              NovaPageRoute.swipeBack(page: EventDetailScreen(eventId: targetId)),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Errore: ${e.toString()}'),
+            backgroundColor: NovaColors.error(context),
+          ),
+        );
+      }
+    }
   }
 }

@@ -269,17 +269,14 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
 
           debugPrint('🔗 [DEEP_LINK] Verification result: $success');
 
-          // Always try to refresh auth state after processing magic link
-          // Even if verifyMagicLink returned false, the Supabase SDK might
-          // have processed the authentication via the auth listener
-          if (mounted) {
-            debugPrint('🔗 [DEEP_LINK] Refreshing auth state...');
-            // Invalidate profile provider to ensure fresh data
+          // The AuthGuard automatically watches authNotifierProvider and will
+          // rebuild when the state changes. We just need to invalidate the
+          // profile provider to ensure fresh data is loaded.
+          // Note: Don't call setState() here as the widget tree may have
+          // already changed due to the auth state update.
+          if (success && mounted) {
+            debugPrint('🔗 [DEEP_LINK] Auth successful, invalidating profile...');
             ref.invalidate(currentProfileProvider);
-
-            // Force a frame rebuild to ensure UI updates
-            setState(() {});
-            debugPrint('🔗 [DEEP_LINK] setState called, UI should rebuild');
           }
         } else {
           // Try parsing as Nova event/profile deep link (nova://events/{id})
@@ -392,13 +389,13 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
         debugPrint('📱 [RESUME] Updating auth state to authenticated...');
         // Force verification to update auth state
         // This will set state to AuthStateAuthenticated
+        // The AuthGuard will automatically rebuild when state changes
         await authNotifier.verifyMagicLink(Uri.parse('novaapp://auth/resume'));
 
         // Invalidate profile provider to ensure fresh data
         if (mounted) {
           ref.invalidate(currentProfileProvider);
-          setState(() {});
-          debugPrint('📱 [RESUME] Auth state updated, UI should rebuild');
+          debugPrint('📱 [RESUME] Auth state updated');
         }
       }
     } else {

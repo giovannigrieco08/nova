@@ -9,6 +9,7 @@ import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../profile/presentation/widgets/avatar_initials.dart';
 import '../../domain/entities/notification.dart' as domain;
+import '../../domain/entities/notification_channel.dart';
 
 /// Individual notification tile widget (Instagram-style)
 ///
@@ -18,12 +19,15 @@ import '../../domain/entities/notification.dart' as domain;
 /// - Avatar of actor (user who triggered notification)
 /// - Blue dot for unread notifications
 /// - CTA button on the RIGHT side (filled, colored)
+/// - Accept/Reject buttons for invitation notifications
 /// - Relative timestamp inline with text
 class NotificationTile extends StatelessWidget {
   final domain.AppNotification notification;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
   final VoidCallback? onMarkAsRead;
+  final VoidCallback? onAccept;
+  final VoidCallback? onReject;
 
   const NotificationTile({
     super.key,
@@ -31,6 +35,8 @@ class NotificationTile extends StatelessWidget {
     this.onTap,
     this.onDelete,
     this.onMarkAsRead,
+    this.onAccept,
+    this.onReject,
   });
 
   @override
@@ -81,8 +87,11 @@ class NotificationTile extends StatelessWidget {
                 child: _buildNotificationContent(context),
               ),
 
-              // CTA Button on RIGHT (if applicable)
-              if (notification.hasAction) ...[
+              // Accept/Reject buttons for invitations, or CTA button for others
+              if (notification.channel == NotificationChannel.eventInvitation) ...[
+                SizedBox(width: NovaSpacing.s),
+                _buildInvitationButtons(context),
+              ] else if (notification.hasAction) ...[
                 SizedBox(width: NovaSpacing.s),
                 _buildCTAButton(context),
               ],
@@ -188,6 +197,80 @@ class NotificationTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Build Accept/Reject buttons for invitation notifications
+  Widget _buildInvitationButtons(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Reject button (white with black border)
+        SizedBox(
+          height: 30,
+          child: OutlinedButton(
+            onPressed: () {
+              if (!notification.isRead) {
+                onMarkAsRead?.call();
+              }
+              onReject?.call();
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: NovaColors.textPrimary(context),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              padding: EdgeInsets.symmetric(
+                horizontal: NovaSpacing.s,
+              ),
+              side: BorderSide(
+                color: NovaColors.textPrimary(context),
+                width: 1,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(NovaRadius.s),
+              ),
+            ),
+            child: Text(
+              'Rifiuta',
+              style: NovaTextStyles.caption.copyWith(
+                color: NovaColors.textPrimary(context),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: NovaSpacing.xs),
+        // Accept button (violet/primary)
+        SizedBox(
+          height: 30,
+          child: ElevatedButton(
+            onPressed: () {
+              if (!notification.isRead) {
+                onMarkAsRead?.call();
+              }
+              onAccept?.call();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: NovaColors.primary(context),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: EdgeInsets.symmetric(
+                horizontal: NovaSpacing.s,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(NovaRadius.s),
+              ),
+            ),
+            child: Text(
+              'Accetta',
+              style: NovaTextStyles.caption.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
