@@ -83,14 +83,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _showSuccess = true;
         });
 
-        // Show snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Magic link inviato a $email'),
-            backgroundColor: NovaColors.success(context),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        // Show snackbar (with fallback for CupertinoApp on iOS)
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Magic link inviato a $email'),
+              backgroundColor: NovaColors.success(context),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        } catch (_) {
+          // ScaffoldMessenger not available - success view is already shown
+        }
       }
     } catch (e) {
       // Error handling (state is already updated by notifier)
@@ -99,13 +103,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (e is RateLimitException) {
           _showRateLimitDialog(e.retryAfter ?? const Duration(minutes: 15));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString()),
-              backgroundColor: NovaColors.error(context),
-              duration: const Duration(seconds: 4),
-            ),
-          );
+          // Use try-catch for ScaffoldMessenger in case we're on iOS with CupertinoApp
+          try {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(e.toString()),
+                backgroundColor: NovaColors.error(context),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          } catch (_) {
+            // ScaffoldMessenger not available (e.g., CupertinoApp on iOS)
+            // Show error dialog instead
+            _showErrorDialog(e.toString());
+          }
         }
       }
     } finally {
@@ -115,6 +126,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         });
       }
     }
+  }
+
+  /// Show error dialog (fallback for when ScaffoldMessenger is not available)
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: NovaColors.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(NovaRadius.l),
+        ),
+        icon: Icon(
+          Icons.error_outline,
+          size: 48,
+          color: NovaColors.error(context),
+        ),
+        title: Text(
+          'Errore',
+          style: NovaTypography.headingSmall.copyWith(
+            color: NovaColors.textPrimary(context),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          message,
+          style: NovaTypography.bodyMedium.copyWith(
+            color: NovaColors.textSecondary(context),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NovaColors.primary(context),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(NovaRadius.m),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
+              ),
+              child: Text(
+                'OK',
+                style: NovaTypography.bodyLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(
+          NovaSpacing.l,
+          0,
+          NovaSpacing.l,
+          NovaSpacing.l,
+        ),
+      ),
+    );
   }
 
   /// Show rate limit dialog when too many login attempts
