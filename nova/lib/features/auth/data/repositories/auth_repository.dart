@@ -5,6 +5,7 @@
 // Architecture: Repository pattern with Supabase Auth API
 // =====================================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:nova/core/config/supabase_config.dart';
 import 'package:nova/core/exceptions/nova_exceptions.dart';
@@ -111,7 +112,7 @@ class AuthRepository {
     try {
       // With PKCE flow, Supabase may have already created the session
       // during the redirect. First check if session exists.
-      final existingUser = _supabase.auth.currentUser;
+      var existingUser = _supabase.auth.currentUser;
       if (existingUser != null) {
         // Session already exists - return the user
         return existingUser;
@@ -125,11 +126,36 @@ class AuthRepository {
       }
 
       // For custom scheme URLs (novaapp://), extract parameters
+      final code = uri.queryParameters['code'];
       final tokenHash = uri.queryParameters['token_hash'];
       final type = uri.queryParameters['type'];
       final email = uri.queryParameters['email'];
       final accessToken = uri.queryParameters['access_token'];
       final refreshToken = uri.queryParameters['refresh_token'];
+
+      // PKCE flow: If we have a 'code' parameter, the Supabase SDK
+      // handles the code exchange automatically in the background.
+      // We need to wait for it to complete.
+      if (code != null && code.isNotEmpty) {
+        debugPrint('🔐 [AUTH_REPO] PKCE code detected, waiting for SDK to process...');
+
+        // Wait for the SDK to process the code exchange
+        // This happens automatically but takes a moment
+        for (int i = 0; i < 10; i++) {
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          // Check if session was established
+          existingUser = _supabase.auth.currentUser;
+          if (existingUser != null) {
+            debugPrint('🔐 [AUTH_REPO] Session established after ${(i + 1) * 300}ms');
+            return existingUser;
+          }
+        }
+
+        // If still no session after waiting, the code might be invalid
+        debugPrint('🔐 [AUTH_REPO] No session after waiting, code may be invalid');
+        throw AuthException('Magic link verification timed out. Please try again.');
+      }
 
       // If we have access_token and refresh_token, set session directly
       // This handles the case where Supabase includes tokens in the callback

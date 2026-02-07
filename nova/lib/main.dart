@@ -262,24 +262,24 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
           }
 
           // Process magic link - the auth repository now handles
-          // PKCE flow properly by checking existing sessions first
+          // PKCE flow properly by waiting for the SDK to process the code
           final success = await ref
               .read(authNotifierProvider.notifier)
               .verifyMagicLink(uri);
 
           debugPrint('🔗 [DEEP_LINK] Verification result: $success');
 
-          // Force refresh auth state to trigger AuthGuard rebuild
-          if (success && mounted) {
+          // Always try to refresh auth state after processing magic link
+          // Even if verifyMagicLink returned false, the Supabase SDK might
+          // have processed the authentication via the auth listener
+          if (mounted) {
             debugPrint('🔗 [DEEP_LINK] Refreshing auth state...');
             // Invalidate profile provider to ensure fresh data
             ref.invalidate(currentProfileProvider);
 
             // Force a frame rebuild to ensure UI updates
-            if (mounted) {
-              setState(() {});
-              debugPrint('🔗 [DEEP_LINK] setState called, UI should rebuild');
-            }
+            setState(() {});
+            debugPrint('🔗 [DEEP_LINK] setState called, UI should rebuild');
           }
         } else {
           // Try parsing as Nova event/profile deep link (nova://events/{id})
