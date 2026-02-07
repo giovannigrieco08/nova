@@ -229,7 +229,7 @@ class NovaApp extends ConsumerStatefulWidget {
   ConsumerState<NovaApp> createState() => _NovaAppState();
 }
 
-class _NovaAppState extends ConsumerState<NovaApp> {
+class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
   // Deep link service instance
   final _deepLinkService = DeepLinkService();
   final _deepLinkHandler = DeepLinkHandler();
@@ -240,6 +240,7 @@ class _NovaAppState extends ConsumerState<NovaApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeDeepLinks();
   }
 
@@ -313,8 +314,66 @@ class _NovaAppState extends ConsumerState<NovaApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _deepLinkService.dispose();
     super.dispose();
+  }
+
+  /// Handle app lifecycle changes to sync auth state on resume
+  ///
+  /// When the app resumes from background (after magic link click),
+  /// Supabase PKCE may have already authenticated the user.
+  /// This ensures the UI updates to reflect the authenticated state.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      _checkAuthStateOnResume();
+    }
+  }
+
+  /// Check if user was authenticated while app was in background
+  ///
+  /// This handles the case where:
+  /// 1. User sends magic link and sees "email sent" screen
+  /// 2. User clicks magic link in email app
+  /// 3. Supabase PKCE processes authentication during redirect
+  /// 4. App resumes but deep link callback wasn't received
+  ///
+  /// By checking the current session on resume, we ensure the UI
+  /// updates even if the deep link was lost.
+  Future<void> _checkAuthStateOnResume() async {
+    if (!mounted) return;
+
+    // Check if Supabase has an authenticated session
+    final supabase = ref.read(supabaseClientProvider);
+    final currentUser = supabase.auth.currentUser;
+
+    if (currentUser != null) {
+      // User is authenticated - ensure auth state reflects this
+      final authNotifier = ref.read(authNotifierProvider.notifier);
+
+      // Get current auth state to check if we need to update
+      final currentAuthState = ref.read(authNotifierProvider);
+
+      // Only update if currently showing as unauthenticated
+      final isCurrentlyUnauthenticated = currentAuthState.maybeWhen(
+        data: (state) => state is AuthStateUnauthenticated,
+        orElse: () => false,
+      );
+
+      if (isCurrentlyUnauthenticated) {
+        // Force verification to update auth state
+        // This will set state to AuthStateAuthenticated
+        await authNotifier.verifyMagicLink(Uri.parse('novaapp://auth/resume'));
+
+        // Invalidate profile provider to ensure fresh data
+        if (mounted) {
+          ref.invalidate(currentProfileProvider);
+        }
+      }
+    }
   }
 
   @override

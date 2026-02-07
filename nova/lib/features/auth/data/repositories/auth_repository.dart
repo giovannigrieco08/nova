@@ -7,6 +7,7 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:nova/core/config/supabase_config.dart';
+import 'package:nova/core/exceptions/nova_exceptions.dart';
 import 'package:nova/core/utils/email_validator.dart';
 
 /// Authentication repository for managing user authentication
@@ -258,13 +259,17 @@ class AuthRepository {
   /// Handle AuthException and return user-friendly message
   ///
   /// Maps common Supabase auth errors to readable messages.
-  AuthException _handleAuthException(AuthException e) {
+  /// Throws [RateLimitException] for rate limit errors (with retryAfter duration).
+  /// Throws [AuthException] for other auth errors.
+  Exception _handleAuthException(AuthException e) {
     // Map common errors to user-friendly messages
     final message = e.message.toLowerCase();
 
     if (message.contains('rate limit')) {
-      return AuthException(
-        'Too many attempts. Please wait 15 minutes before trying again.',
+      throw RateLimitException(
+        'Troppi tentativi. Attendi 15 minuti prima di riprovare.',
+        retryAfter: const Duration(minutes: 15),
+        technicalMessage: e.message,
       );
     }
 

@@ -544,6 +544,7 @@ class EventCreationNotifier extends StateNotifier<EventFormState> {
         event,
         imageFile: state.imageFile,
         pendingInvites: inviteUserIds, // Send invites to these users
+        helpRequests: state.helpRequests, // Create help requests for this event
       );
 
       // Clear form on success

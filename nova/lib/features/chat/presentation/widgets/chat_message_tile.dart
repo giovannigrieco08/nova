@@ -221,8 +221,8 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
                     ? MainAxisAlignment.end
                     : MainAxisAlignment.start,
                 children: [
-                  // Avatar (solo per messaggi degli altri) - tap per aprire profilo
-                  if (!isOwnMessage) ...[
+                  // Avatar (solo per messaggi degli altri, non per messaggi eliminati) - tap per aprire profilo
+                  if (!isOwnMessage && !widget.message.isDeleted) ...[
                     GestureDetector(
                       onTap: () => _navigateToProfile(widget.message.userId),
                       child: AvatarWidget(

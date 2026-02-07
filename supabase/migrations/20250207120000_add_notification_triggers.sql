@@ -104,6 +104,7 @@ $$;
 
 -- =====================================================================
 -- TRIGGER FUNCTION: Comment Notification (new comment on event)
+-- NOTE: comments table uses author_id and content (not user_id and text)
 -- =====================================================================
 
 CREATE OR REPLACE FUNCTION trigger_comment_notification()
@@ -127,19 +128,19 @@ BEGIN
   WHERE id = NEW.event_id;
 
   -- Don't notify if commenter is the event creator
-  IF v_event.creator_id = NEW.user_id THEN
+  IF v_event.creator_id = NEW.author_id THEN
     RETURN NEW;
   END IF;
 
   -- Get commenter name
   SELECT full_name INTO v_commenter_name
   FROM profiles
-  WHERE user_id = NEW.user_id;
+  WHERE user_id = NEW.author_id;
 
   -- Create notification
   PERFORM create_notification(
     p_recipient_id := v_event.creator_id,
-    p_sender_id := NEW.user_id,
+    p_sender_id := NEW.author_id,
     p_type := 'new_comment',
     p_title := 'Nuovo commento',
     p_description := COALESCE(v_commenter_name, 'Qualcuno') || ' ha commentato il tuo evento',
@@ -148,7 +149,7 @@ BEGIN
     p_metadata := jsonb_build_object(
       'event_title', v_event.title,
       'comment_id', NEW.id,
-      'comment_text', LEFT(NEW.text, 100)
+      'comment_text', LEFT(NEW.content, 100)
     )
   );
 
@@ -158,6 +159,7 @@ $$;
 
 -- =====================================================================
 -- TRIGGER FUNCTION: Comment Reply Notification
+-- NOTE: comments table uses author_id and content (not user_id and text)
 -- =====================================================================
 
 CREATE OR REPLACE FUNCTION trigger_comment_reply_notification()
@@ -177,19 +179,19 @@ BEGIN
   END IF;
 
   -- Get parent comment details
-  SELECT id, user_id, event_id INTO v_parent_comment
+  SELECT id, author_id, event_id INTO v_parent_comment
   FROM comments
   WHERE id = NEW.parent_comment_id;
 
   -- Don't notify if replier is the original commenter
-  IF v_parent_comment.user_id = NEW.user_id THEN
+  IF v_parent_comment.author_id = NEW.author_id THEN
     RETURN NEW;
   END IF;
 
   -- Get replier name
   SELECT full_name INTO v_replier_name
   FROM profiles
-  WHERE user_id = NEW.user_id;
+  WHERE user_id = NEW.author_id;
 
   -- Get event title
   SELECT title INTO v_event_title
@@ -198,8 +200,8 @@ BEGIN
 
   -- Create notification
   PERFORM create_notification(
-    p_recipient_id := v_parent_comment.user_id,
-    p_sender_id := NEW.user_id,
+    p_recipient_id := v_parent_comment.author_id,
+    p_sender_id := NEW.author_id,
     p_type := 'comment_reply',
     p_title := 'Nuova risposta',
     p_description := COALESCE(v_replier_name, 'Qualcuno') || ' ha risposto al tuo commento',
@@ -209,7 +211,7 @@ BEGIN
       'event_id', NEW.event_id,
       'event_title', v_event_title,
       'parent_comment_id', NEW.parent_comment_id,
-      'reply_text', LEFT(NEW.text, 100)
+      'reply_text', LEFT(NEW.content, 100)
     )
   );
 

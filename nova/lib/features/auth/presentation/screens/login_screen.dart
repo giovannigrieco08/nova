@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nova/core/exceptions/nova_exceptions.dart';
 import 'package:nova/core/utils/email_validator.dart';
 import 'package:nova/core/widgets/nova_logo.dart';
 import 'package:nova/features/auth/presentation/providers/auth_notifier.dart';
@@ -94,13 +95,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       // Error handling (state is already updated by notifier)
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: NovaColors.error(context),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        // Check if it's a rate limit error
+        if (e is RateLimitException) {
+          _showRateLimitDialog(e.retryAfter ?? const Duration(minutes: 15));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: NovaColors.error(context),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -109,6 +115,72 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         });
       }
     }
+  }
+
+  /// Show rate limit dialog when too many login attempts
+  void _showRateLimitDialog(Duration retryAfter) {
+    final minutes = retryAfter.inMinutes;
+    final waitTimeText = minutes == 1 ? '1 minuto' : '$minutes minuti';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: NovaColors.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(NovaRadius.l),
+        ),
+        icon: Icon(
+          Icons.timer_outlined,
+          size: 48,
+          color: NovaColors.warning(context),
+        ),
+        title: Text(
+          'Troppe richieste',
+          style: NovaTypography.headingSmall.copyWith(
+            color: NovaColors.textPrimary(context),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          'Hai effettuato troppi tentativi di accesso.\n\n'
+          'Per motivi di sicurezza, attendi $waitTimeText prima di riprovare.',
+          style: NovaTypography.bodyMedium.copyWith(
+            color: NovaColors.textSecondary(context),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NovaColors.primary(context),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(NovaRadius.m),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: NovaSpacing.m),
+              ),
+              child: Text(
+                'Ho capito',
+                style: NovaTypography.bodyLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(
+          NovaSpacing.l,
+          0,
+          NovaSpacing.l,
+          NovaSpacing.l,
+        ),
+      ),
+    );
   }
 
   @override

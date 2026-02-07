@@ -74,6 +74,7 @@ class EventRepositoryImpl implements EventRepository {
     Event event, {
     File? imageFile,
     List<String> pendingInvites = const [],
+    List<String> helpRequests = const [],
   }) async {
     try {
       // Step 1: Upload image if provided
@@ -92,7 +93,15 @@ class EventRepositoryImpl implements EventRepository {
       // Step 3: Insert into Supabase
       final createdModel = await _remoteDataSource.createEvent(eventModel);
 
-      // Step 4: Send collaboration invites to pending users
+      // Step 4: Create help requests (if any, max 5)
+      for (final description in helpRequests.take(5)) {
+        await _createHelpRequest(
+          eventId: createdModel.id,
+          description: description,
+        );
+      }
+
+      // Step 5: Send collaboration invites to pending users
       for (final inviteeId in pendingInvites) {
         await _sendCollaborationInvite(
           eventId: createdModel.id,
@@ -101,12 +110,30 @@ class EventRepositoryImpl implements EventRepository {
         );
       }
 
-      // Step 5: Delete draft on success
+      // Step 6: Delete draft on success
       await _localDataSource.deleteDraft();
 
       return createdModel.toEntity();
     } catch (e) {
       throw EventRepositoryException('Failed to create event: $e');
+    }
+  }
+
+  /// Create a help request for an event
+  Future<void> _createHelpRequest({
+    required String eventId,
+    required String description,
+  }) async {
+    try {
+      await _supabase.from('event_help_requests').insert({
+        'event_id': eventId,
+        'description': description,
+        'is_fulfilled': false,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      // Silently fail - don't block event creation for help request failure
     }
   }
 

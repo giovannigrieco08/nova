@@ -156,11 +156,16 @@ class NotificationTile extends StatelessWidget {
 
   /// Build notification content (text + timestamp inline, Instagram-style)
   Widget _buildNotificationContent(BuildContext context) {
-    final actorName = notification.actorName;
-    final title = notification.title;
     final relativeTime = _formatTimeAgo(notification.createdAt);
 
-    // Instagram style: "ActorName action text timestamp"
+    // Use body (full description) if available, otherwise fall back to title
+    // body contains "Nome ha messo like al tuo evento"
+    // title contains just "Nuovo like"
+    final displayText = notification.body.isNotEmpty
+        ? notification.body
+        : notification.title;
+
+    // Instagram style: "Description text timestamp"
     return RichText(
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
@@ -170,17 +175,9 @@ class NotificationTile extends StatelessWidget {
           height: 1.35,
         ),
         children: [
-          // Actor name in bold
-          if (actorName != null && actorName.isNotEmpty)
-            TextSpan(
-              text: actorName,
-              style: NovaTextStyles.bodyBold.copyWith(
-                color: NovaColors.textPrimary(context),
-              ),
-            ),
-          // Action text (single space before, no trailing space)
+          // Main notification text
           TextSpan(
-            text: ' $title',
+            text: displayText,
           ),
           // Timestamp in tertiary color (single space before)
           TextSpan(
