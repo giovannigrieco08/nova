@@ -122,24 +122,16 @@ class _EventCardState extends ConsumerState<EventCard> {
   @override
   Widget build(BuildContext context) {
     // Watch centralized likes provider (never gets disposed)
+    // Initialization happens in EventsFeedScreen when engagement data is loaded
     final likesState = ref.watch(eventLikesProvider);
     final likesNotifier = ref.read(eventLikesProvider.notifier);
     final eventId = widget.event.id;
 
-    // Initialize from widget props if not already done
-    if (!likesState.isInitialized(eventId)) {
-      // Use post-frame callback to avoid modifying state during build
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        likesNotifier.initializeEvent(
-          eventId: eventId,
-          isLiked: widget.isLiked,
-          likeCount: widget.likeCount,
-        );
-      });
-    }
-
-    // Get current like state for this event
-    final likeState = likesState.getForEvent(eventId);
+    // Get like state - uses provider state if initialized, otherwise falls back to props
+    final providerState = likesState.getForEvent(eventId);
+    final likeState = likesState.isInitialized(eventId)
+        ? providerState
+        : EventLikeState(isLiked: widget.isLiked, likeCount: widget.likeCount);
 
     return GestureDetector(
       onTap: widget.onTap,

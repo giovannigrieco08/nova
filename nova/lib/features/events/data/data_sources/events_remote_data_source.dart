@@ -85,15 +85,21 @@ class EventsRemoteDataSource {
 
   /// Like event (create like record)
   /// FR-015: Like event
+  /// Uses upsert to handle race conditions where user clicks like before
+  /// engagement data loads (prevents duplicate key errors if like exists)
   Future<void> likeEvent({
     required String eventId,
     required String userId,
   }) async {
-    await _supabase.from('likes').insert({
-      'event_id': eventId,
-      'user_id': userId,
-      'created_at': DateTime.now().toIso8601String(),
-    });
+    await _supabase.from('likes').upsert(
+      {
+        'event_id': eventId,
+        'user_id': userId,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      onConflict: 'event_id,user_id',
+      ignoreDuplicates: true,
+    );
   }
 
   /// Unlike event (delete like record)

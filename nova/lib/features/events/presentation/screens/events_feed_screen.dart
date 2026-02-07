@@ -12,6 +12,7 @@ import '../../../../core/animations/page_transitions.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../providers/events_feed_provider.dart';
 import '../providers/event_engagement_provider.dart';
+import '../providers/event_likes_notifier.dart';
 import '../widgets/event_card.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/pending_event_banner.dart';
@@ -178,6 +179,19 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     final eventIds = state.events.map((e) => e.id).toList();
     final engagementAsync = ref.watch(batchEventEngagementProvider(eventIds));
     final engagementMap = engagementAsync.valueOrNull ?? {};
+
+    // Initialize likes provider with engagement data (only for events not yet initialized)
+    final likesNotifier = ref.read(eventLikesProvider.notifier);
+    for (final event in state.events) {
+      final engagement = engagementMap[event.id];
+      if (engagement != null) {
+        likesNotifier.initializeEvent(
+          eventId: event.id,
+          isLiked: engagement.isLiked,
+          likeCount: engagement.likeCount,
+        );
+      }
+    }
 
     // Calculate item count: pending events + approved events + loading indicator
     final itemCount = pendingEvents.length +

@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -75,10 +75,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
   late AnimationController _entryController;
   late Animation<double> _entryAnimation;
 
-  // Caption visibility animation
-  late AnimationController _captionController;
-  late Animation<double> _captionAnimation;
-  Timer? _captionTimer;
+  // Caption is now always visible - no animation needed
 
   @override
   void initState() {
@@ -106,26 +103,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     );
     _entryController.forward();
 
-    // Setup caption fade animation
-    _captionController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-      value: 1.0, // Start visible
-    );
-    _captionAnimation = CurvedAnimation(
-      parent: _captionController,
-      curve: Curves.easeOut,
-    );
-
-    // Auto-hide caption after 4 seconds
-    if (widget.caption != null && widget.caption!.isNotEmpty) {
-      _captionTimer = Timer(const Duration(seconds: 4), () {
-        if (mounted) {
-          _captionController.reverse();
-        }
-      });
-    }
-
     _checkIfOwner();
     _setupScreenshotProtection();
     _markAsViewed();
@@ -146,8 +123,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     _disposeVideoPlayer();
     _pulseController.dispose();
     _entryController.dispose();
-    _captionController.dispose();
-    _captionTimer?.cancel();
     super.dispose();
   }
 
@@ -454,49 +429,34 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Caption with fade animation (Instagram Stories style - plain text with shadow)
+          // Caption (Instagram Stories style - plain text with shadow, stays visible)
           if (widget.caption != null && widget.caption!.isNotEmpty)
-            FadeTransition(
-              opacity: _captionAnimation,
-              child: GestureDetector(
-                onTap: () {
-                  // Show caption again on tap
-                  _captionTimer?.cancel();
-                  _captionController.forward();
-                  _captionTimer = Timer(const Duration(seconds: 4), () {
-                    if (mounted) {
-                      _captionController.reverse();
-                    }
-                  });
-                },
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: NovaSpacing.l),
-                  child: Text(
-                    widget.caption!,
-                    textAlign: TextAlign.center,
-                    style: NovaTypography.bodyLarge.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      height: 1.4,
-                      shadows: const [
-                        // Multiple layered shadows for better readability on any background
-                        Shadow(
-                          color: Colors.black,
-                          blurRadius: 4,
-                          offset: Offset(0, 1),
-                        ),
-                        Shadow(
-                          color: Colors.black,
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                        Shadow(
-                          color: Color(0x80000000), // Colors.black with 0.5 alpha
-                          blurRadius: 16,
-                        ),
-                      ],
+            Padding(
+              padding: EdgeInsets.only(bottom: NovaSpacing.l),
+              child: Text(
+                widget.caption!,
+                textAlign: TextAlign.center,
+                style: NovaTypography.bodyLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                  shadows: const [
+                    // Multiple layered shadows for better readability on any background
+                    Shadow(
+                      color: Colors.black,
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
                     ),
-                  ),
+                    Shadow(
+                      color: Colors.black,
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                    Shadow(
+                      color: Color(0x80000000), // Colors.black with 0.5 alpha
+                      blurRadius: 16,
+                    ),
+                  ],
                 ),
               ),
             ),
