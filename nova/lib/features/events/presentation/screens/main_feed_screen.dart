@@ -47,6 +47,10 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
   // Swipe gesture tracking
   bool _isHorizontalDragActive = false;
 
+  // Store reference to push service for cleanup in dispose
+  // (can't use ref.read() after widget is disposed)
+  dynamic _pushService;
+
   @override
   void initState() {
     super.initState();
@@ -58,8 +62,8 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
 
   /// Setup foreground notification callback to show in-app banner
   void _setupForegroundNotificationBanner() {
-    final pushService = ref.read(pushNotificationServiceProvider);
-    pushService.onForegroundNotification = (payload) {
+    _pushService = ref.read(pushNotificationServiceProvider);
+    _pushService.onForegroundNotification = (payload) {
       if (!mounted) return;
 
       InAppNotificationBanner.show(
@@ -94,8 +98,10 @@ class _MainFeedScreenState extends ConsumerState<MainFeedScreen> {
   @override
   void dispose() {
     // Clear the callback when disposing
-    final pushService = ref.read(pushNotificationServiceProvider);
-    pushService.onForegroundNotification = null;
+    // Use stored reference since ref.read() can't be called after dispose
+    if (_pushService != null) {
+      _pushService.onForegroundNotification = null;
+    }
     super.dispose();
   }
 

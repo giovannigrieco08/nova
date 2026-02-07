@@ -221,6 +221,17 @@ Future<void> main() async {
   );
 }
 
+// =============================================================================
+// ⚠️ DEV BYPASS - REMOVE BEFORE PRODUCTION! ⚠️
+// =============================================================================
+// Set to true to bypass authentication and go directly to main app.
+// Requires a valid existing Supabase session (login once manually first).
+// This is ONLY for development testing. MUST be set to false before release!
+// =============================================================================
+const bool kDevBypassAuth = false;
+const String kDevUserEmail = 'griecogiovanni08@gmail.com';
+// =============================================================================
+
 /// Main application widget with auth routing and deep link handling
 class NovaApp extends ConsumerStatefulWidget {
   const NovaApp({super.key});
@@ -242,39 +253,6 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initializeDeepLinks();
-    _setupAuthListener();
-  }
-
-  /// Setup explicit listener for auth state changes
-  /// This ensures the widget tree rebuilds when auth state changes
-  void _setupAuthListener() {
-    // Use addPostFrameCallback to ensure the widget is fully built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      // Listen to auth state changes and force rebuild if needed
-      ref.listenManual(
-        authNotifierProvider,
-        (previous, next) {
-          debugPrint('🔔 [AUTH_LISTENER_MAIN] State changed: $previous -> $next');
-
-          // Check if we transitioned from unauthenticated to authenticated
-          final wasUnauthenticated = previous?.valueOrNull is AuthStateUnauthenticated;
-          final isAuthenticated = next.valueOrNull is AuthStateAuthenticated;
-
-          if (wasUnauthenticated && isAuthenticated) {
-            debugPrint('🔔 [AUTH_LISTENER_MAIN] Auth transition detected! Triggering rebuild...');
-            // Force a rebuild by calling setState
-            if (mounted) {
-              setState(() {
-                debugPrint('🔔 [AUTH_LISTENER_MAIN] setState called');
-              });
-            }
-          }
-        },
-        fireImmediately: false,
-      );
-    });
   }
 
   /// Initialize deep link handling
@@ -378,66 +356,40 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
   /// 3. Supabase PKCE processes authentication during redirect
   /// 4. App resumes but deep link callback wasn't received
   ///
-  /// By checking the current session on resume, we ensure the UI
-  /// updates even if the deep link was lost.
+  /// By checking the current session on resume, we ensure the Riverpod
+  /// state is synced with Supabase. Since we now watch auth state
+  /// directly in build(), any state change will trigger a rebuild.
   Future<void> _checkAuthStateOnResume() async {
     if (!mounted) return;
 
     // Small delay to allow Supabase to restore session from storage
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;
 
     // Check if Supabase has an authenticated session
     final supabase = ref.read(supabaseClientProvider);
     final currentUser = supabase.auth.currentUser;
-    final session = supabase.auth.currentSession;
 
     debugPrint('📱 [RESUME] Supabase currentUser: ${currentUser?.id}');
-    debugPrint('📱 [RESUME] Supabase session: ${session != null ? "exists" : "null"}');
 
     if (currentUser != null) {
-      // User is authenticated - ensure auth state reflects this
-      final authNotifier = ref.read(authNotifierProvider.notifier);
-
-      // Get current auth state to check if we need to update
+      // User is authenticated in Supabase - ensure Riverpod state is synced
       final currentAuthState = ref.read(authNotifierProvider);
-      debugPrint('📱 [RESUME] Current Riverpod auth state: $currentAuthState');
-
-      // Only update if currently showing as unauthenticated
       final isCurrentlyUnauthenticated = currentAuthState.maybeWhen(
         data: (state) => state is AuthStateUnauthenticated,
         orElse: () => false,
       );
 
-      debugPrint('📱 [RESUME] Current auth state is unauthenticated: $isCurrentlyUnauthenticated');
+      debugPrint('📱 [RESUME] Riverpod unauthenticated: $isCurrentlyUnauthenticated');
 
       if (isCurrentlyUnauthenticated) {
-        debugPrint('📱 [RESUME] Updating auth state to authenticated...');
-        // Force verification to update auth state
-        // This will set state to AuthStateAuthenticated
-        // The AuthGuard will automatically rebuild when state changes
-        await authNotifier.verifyMagicLink(Uri.parse('novaapp://auth/resume'));
-
-        // Verify state was updated after call
-        final newAuthState = ref.read(authNotifierProvider);
-        debugPrint('📱 [RESUME] Auth state after update: $newAuthState');
-
-        // If still unauthenticated after a delay, force a refresh
-        await Future.delayed(const Duration(milliseconds: 200));
-        if (!mounted) return;
-
-        final finalAuthState = ref.read(authNotifierProvider);
-        final stillUnauthenticated = finalAuthState.maybeWhen(
-          data: (state) => state is AuthStateUnauthenticated,
-          orElse: () => false,
+        // Supabase has a session but Riverpod doesn't know about it
+        // Force a state update - this will trigger build() via ref.watch
+        debugPrint('📱 [RESUME] Syncing auth state...');
+        await ref.read(authNotifierProvider.notifier).verifyMagicLink(
+          Uri.parse('novaapp://auth/resume'),
         );
-
-        if (stillUnauthenticated) {
-          debugPrint('📱 [RESUME] State still unauthenticated, forcing rebuild...');
-          // Force invalidate to trigger rebuild
-          ref.invalidate(authNotifierProvider);
-        }
       }
     } else {
       debugPrint('📱 [RESUME] No authenticated user found');
@@ -446,20 +398,58 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // Platform-adaptive app wrapper - always use light theme
+    // ⚠️ DEV BYPASS - Skip auth check in development
+    if (kDevBypassAuth) {
+      final devUser = ref.read(supabaseClientProvider).auth.currentUser;
+      return _buildApp(_ProfileCheckGuard(userId: devUser?.id));
+    }
+
+    // Watch auth state directly - this WILL trigger rebuild when state changes
+    // This is the key fix: by watching here instead of in a const child widget,
+    // Riverpod will rebuild this widget when auth state changes
+    final authState = ref.watch(authNotifierProvider);
+    debugPrint('🏠 [NovaApp] build() authState: $authState');
+
+    // Determine home widget based on auth state
+    final Widget home = authState.when(
+      data: (state) {
+        debugPrint('🏠 [NovaApp] data state: $state');
+        return switch (state) {
+          AuthStateAuthenticated(:final user) => () {
+              debugPrint('🏠 [NovaApp] → Showing ProfileCheckGuard');
+              return _ProfileCheckGuard(userId: user.id);
+            }(),
+          AuthStateUnauthenticated() => () {
+              debugPrint('🏠 [NovaApp] → Showing LoginScreen');
+              return const LoginScreen();
+            }(),
+          AuthStateLoading() => const _LoadingScreen(),
+          AuthStateError(:final message) => _ErrorScreen(message: message),
+        };
+      },
+      loading: () {
+        debugPrint('🏠 [NovaApp] → Showing LoadingScreen');
+        return const _LoadingScreen();
+      },
+      error: (error, stackTrace) {
+        debugPrint('🏠 [NovaApp] → Showing ErrorScreen: $error');
+        return _ErrorScreen(message: error.toString());
+      },
+    );
+
+    return _buildApp(home);
+  }
+
+  /// Build the platform-specific app with the given home widget
+  Widget _buildApp(Widget home) {
     if (PlatformUtils.isIOS) {
       // iOS: CupertinoApp with light theme only
       return CupertinoApp(
         title: 'Nova',
         debugShowCheckedModeBanner: false,
-        navigatorKey: _navigatorKey, // For deep link navigation
-
-        // Always use light theme
+        navigatorKey: _navigatorKey,
         theme: NovaCupertinoTheme.light,
-
-        home: const AuthGuard(),
-
-        // Material localizations for compatibility
+        home: home,
         localizationsDelegates: const [
           DefaultMaterialLocalizations.delegate,
           DefaultCupertinoLocalizations.delegate,
@@ -472,91 +462,10 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
     return MaterialApp(
       title: 'Nova - School Events Platform',
       debugShowCheckedModeBanner: false,
-      navigatorKey: _navigatorKey, // For deep link navigation
-
-      // Always use light theme
+      navigatorKey: _navigatorKey,
       theme: AppTheme.lightTheme,
       themeMode: ThemeMode.light,
-
-      home: const AuthGuard(),
-    );
-  }
-}
-
-// =============================================================================
-// ⚠️ DEV BYPASS - REMOVE BEFORE PRODUCTION! ⚠️
-// =============================================================================
-// Set to true to bypass authentication and go directly to main app.
-// Requires a valid existing Supabase session (login once manually first).
-// This is ONLY for development testing. MUST be set to false before release!
-// =============================================================================
-const bool kDevBypassAuth = false;
-const String kDevUserEmail = 'griecogiovanni08@gmail.com';
-// =============================================================================
-
-/// Auth guard widget that routes based on authentication state
-///
-/// Routes:
-/// - LoginScreen: User not authenticated
-/// - MainFeedScreen: User authenticated
-/// - LoadingScreen: Auth state loading
-/// - ErrorScreen: Auth error occurred
-class AuthGuard extends ConsumerWidget {
-  const AuthGuard({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    debugPrint('🛡️ [AuthGuard] build() called');
-
-    // ⚠️ DEV BYPASS - Skip auth check in development
-    if (kDevBypassAuth) {
-      // In dev mode, try to get user from Supabase directly
-      final devUser = ref.read(supabaseClientProvider).auth.currentUser;
-      return _ProfileCheckGuard(userId: devUser?.id);
-    }
-
-    // Watch auth state from provider
-    final authState = ref.watch(authNotifierProvider);
-    debugPrint('🛡️ [AuthGuard] authState: $authState');
-
-    // Route based on auth state
-    return authState.when(
-      // Data loaded - check auth state
-      data: (state) {
-        debugPrint('🛡️ [AuthGuard] data state: $state');
-        return switch (state) {
-          // User authenticated - pass user ID to profile guard
-          // This ensures the ID is available immediately after magic link verification
-          AuthStateAuthenticated(:final user) => () {
-              debugPrint('🛡️ [AuthGuard] → Showing ProfileCheckGuard');
-              return _ProfileCheckGuard(userId: user.id);
-            }(),
-
-          // User not authenticated - show login
-          AuthStateUnauthenticated() => () {
-              debugPrint('🛡️ [AuthGuard] → Showing LoginScreen');
-              return const LoginScreen();
-            }(),
-
-          // Loading state (shouldn't happen in data, but handle it)
-          AuthStateLoading() => const _LoadingScreen(),
-
-          // Error state (shouldn't happen in data, but handle it)
-          AuthStateError(:final message) => _ErrorScreen(message: message),
-        };
-      },
-
-      // Loading state - show loading screen
-      loading: () {
-        debugPrint('🛡️ [AuthGuard] → Showing LoadingScreen');
-        return const _LoadingScreen();
-      },
-
-      // Error state - show error screen
-      error: (error, stackTrace) {
-        debugPrint('🛡️ [AuthGuard] → Showing ErrorScreen: $error');
-        return _ErrorScreen(message: error.toString());
-      },
+      home: home,
     );
   }
 }
