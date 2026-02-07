@@ -52,15 +52,18 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
     final supabase = Supabase.instance.client;
     final currentUser = supabase.auth.currentUser;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -157,6 +160,7 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -481,8 +485,17 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
 
   /// Handle form submission
   Future<void> _handleSubmit() async {
+    // Close keyboard first
+    FocusScope.of(context).unfocus();
+
+    // ignore: avoid_print
+    print('DEBUG _handleSubmit: called');
+    print('DEBUG _handleSubmit: contactType=$_contactType, contactInfo=${_contactController.text}');
+
     // Validate contact info
     if (_contactController.text.trim().isEmpty) {
+      // ignore: avoid_print
+      print('DEBUG _handleSubmit: contact info is empty');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Inserisci il tuo contatto per essere ricontattato'),
@@ -493,6 +506,8 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
     }
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
+    // ignore: avoid_print
+    print('DEBUG _handleSubmit: userId=$userId');
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Devi essere loggato per offrire aiuto')),
@@ -501,8 +516,12 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
     }
 
     setState(() => _isSubmitting = true);
+    // ignore: avoid_print
+    print('DEBUG _handleSubmit: isSubmitting set to true');
 
     try {
+      // ignore: avoid_print
+      print('DEBUG _handleSubmit: calling notifier.createOffer with requestId=${widget.requestId}');
       final notifier = ref.read(helpOffersProvider(widget.requestId).notifier);
       final error = await notifier.createOffer(
         userId: userId,
@@ -512,10 +531,14 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
             ? null
             : _messageController.text.trim(),
       );
+      // ignore: avoid_print
+      print('DEBUG _handleSubmit: createOffer returned error=$error');
 
       if (mounted) {
         if (error == null) {
           // Success - close sheet and show confirmation
+          // ignore: avoid_print
+          print('DEBUG _handleSubmit: SUCCESS, closing sheet');
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -525,6 +548,8 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
           );
         } else {
           // Error - show specific error message
+          // ignore: avoid_print
+          print('DEBUG _handleSubmit: ERROR=$error');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(error),
@@ -533,6 +558,9 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
           );
         }
       }
+    } catch (e) {
+      // ignore: avoid_print
+      print('DEBUG _handleSubmit: EXCEPTION=$e');
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

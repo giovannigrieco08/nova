@@ -111,6 +111,18 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
+  /// Track last authenticated user ID to deduplicate events
+  String? _lastAuthenticatedUserId;
+
+  /// Check if already authenticated with same user
+  bool _isAlreadyAuthenticated(String? userId) {
+    final currentState = state.valueOrNull;
+    if (currentState is AuthStateAuthenticated && userId != null) {
+      return currentState.user.id == userId;
+    }
+    return false;
+  }
+
   /// Setup listener for Supabase auth state changes
   ///
   /// Automatically updates state when:
@@ -129,14 +141,24 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           case supabase.AuthChangeEvent.signedIn:
             // User signed in successfully
             debugPrint('🔐 [AUTH_LISTENER] SignedIn event!');
-            if (authState.session?.user != null) {
+            final user = authState.session?.user;
+            if (user != null) {
+              // DEDUPLICATE: Skip if already authenticated with same user
+              if (_lastAuthenticatedUserId == user.id) {
+                debugPrint('🔐 [AUTH_LISTENER] Skipping duplicate signedIn event');
+                return;
+              }
+              _lastAuthenticatedUserId = user.id;
+
               // Use post-frame callback to defer state update
-              // This prevents "defunct" widget errors when the widget tree
-              // is being rebuilt due to auth state changes
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                state =
-                    AsyncData(AuthStateAuthenticated(authState.session!.user));
-                debugPrint('🔐 [AUTH_LISTENER] State updated to Authenticated');
+                // Double-check we still need to update
+                if (!_isAlreadyAuthenticated(user.id)) {
+                  state = AsyncData(AuthStateAuthenticated(user));
+                  debugPrint('🔐 [AUTH_LISTENER] State updated to Authenticated');
+                } else {
+                  debugPrint('🔐 [AUTH_LISTENER] State already authenticated, skipping');
+                }
               });
 
               // Register FCM token for push notifications
@@ -147,29 +169,33 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           case supabase.AuthChangeEvent.signedOut:
             // User signed out
             debugPrint('🔐 [AUTH_LISTENER] SignedOut event!');
+            _lastAuthenticatedUserId = null;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              state = const AsyncData(AuthStateUnauthenticated());
+              final currentState = state.valueOrNull;
+              if (currentState is! AuthStateUnauthenticated) {
+                state = const AsyncData(AuthStateUnauthenticated());
+              }
             });
             break;
 
           case supabase.AuthChangeEvent.tokenRefreshed:
-            // Token refreshed (silent) - update user object
-            debugPrint('🔐 [AUTH_LISTENER] TokenRefreshed event');
-            if (authState.session?.user != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                state =
-                    AsyncData(AuthStateAuthenticated(authState.session!.user));
-              });
-            }
+            // Token refreshed (silent) - no need to update UI state
+            debugPrint('🔐 [AUTH_LISTENER] TokenRefreshed event (ignored)');
             break;
 
           case supabase.AuthChangeEvent.userUpdated:
-            // User data updated
+            // User data updated - only update if user object actually changed
             debugPrint('🔐 [AUTH_LISTENER] UserUpdated event');
-            if (authState.session?.user != null) {
+            final user = authState.session?.user;
+            if (user != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                state =
-                    AsyncData(AuthStateAuthenticated(authState.session!.user));
+                final currentState = state.valueOrNull;
+                if (currentState is AuthStateAuthenticated) {
+                  // Only update if user data actually changed
+                  if (currentState.user.id == user.id) {
+                    state = AsyncData(AuthStateAuthenticated(user));
+                  }
+                }
               });
             }
             break;
