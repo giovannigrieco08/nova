@@ -318,26 +318,37 @@ final batchHelpRequestsProvider =
 
     final supabase = Supabase.instance.client;
 
-    // Fetch all unfulfilled help requests for these events in one query
-    final response = await supabase
-        .from('event_help_requests')
-        .select()
-        .inFilter('event_id', eventIds)
-        .eq('is_fulfilled', false)
-        .order('created_at', ascending: true);
+    try {
+      // Fetch all unfulfilled help requests for these events in one query
+      final response = await supabase
+          .from('event_help_requests')
+          .select()
+          .inFilter('event_id', eventIds)
+          .eq('is_fulfilled', false)
+          .order('created_at', ascending: true);
 
-    // Group by event ID
-    final result = <String, List<EventHelpRequest>>{};
-    for (final eventId in eventIds) {
-      result[eventId] = [];
+      // ignore: avoid_print
+      print('DEBUG batchHelpRequests: fetched ${(response as List).length} help requests for ${eventIds.length} events');
+
+      // Group by event ID
+      final result = <String, List<EventHelpRequest>>{};
+      for (final eventId in eventIds) {
+        result[eventId] = [];
+      }
+
+      for (final json in response) {
+        final request = EventHelpRequestModel.fromJson(json).toEntity();
+        result[request.eventId]?.add(request);
+        // ignore: avoid_print
+        print('DEBUG: Found help request "${request.description}" for event ${request.eventId}');
+      }
+
+      return result;
+    } catch (e) {
+      // ignore: avoid_print
+      print('ERROR batchHelpRequests: $e');
+      return {};
     }
-
-    for (final json in response as List) {
-      final request = EventHelpRequestModel.fromJson(json).toEntity();
-      result[request.eventId]?.add(request);
-    }
-
-    return result;
   },
 );
 

@@ -358,11 +358,16 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
   }
 
   /// Check if message has displayable text content
-  /// Returns false for empty content, media placeholders, or deleted messages
+  /// Returns false for empty content or deleted messages
+  /// Note: '[media]' placeholder IS displayable if media failed to load (shows error state)
   bool _hasDisplayableContent() {
     if (widget.message.isDeleted) return false;
     final content = widget.message.content.trim();
-    return content.isNotEmpty && content != '[media]';
+    if (content.isEmpty) return false;
+    // If content is '[media]' but media is null, we still want to show something
+    // (the _buildMessageContent will handle showing an error state)
+    if (content == '[media]' && widget.message.media == null) return true;
+    return content != '[media]';
   }
 
   Widget _buildMessageContent(BuildContext context, bool isOwnMessage) {
@@ -390,9 +395,39 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
     // Note: Media messages are now handled separately in the layout
     // This method only handles text content
 
-    // Skip media placeholder content
     final trimmedContent = widget.message.content.trim();
-    if (trimmedContent.isEmpty || trimmedContent == '[media]') {
+    if (trimmedContent.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Handle broken media messages (content is '[media]' but media failed to load)
+    if (trimmedContent == '[media]' && widget.message.media == null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.broken_image_outlined,
+            size: 16,
+            color: isOwnMessage
+                ? Colors.white70
+                : NovaColors.textTertiary(context),
+          ),
+          SizedBox(width: NovaSpacing.xs),
+          Text(
+            'Media non disponibile',
+            style: NovaTypography.bodyMedium.copyWith(
+              color: isOwnMessage
+                  ? Colors.white70
+                  : NovaColors.textTertiary(context),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Skip media placeholder content (when media IS available, it's rendered separately)
+    if (trimmedContent == '[media]') {
       return const SizedBox.shrink();
     }
 
