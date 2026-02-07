@@ -67,6 +67,12 @@ class EventHelpOffer with _$EventHelpOffer {
     /// Optional message from the user
     String? message,
 
+    /// Contact type: 'instagram' or 'whatsapp'
+    required String contactType,
+
+    /// Contact info (username for Instagram, phone for WhatsApp)
+    required String contactInfo,
+
     /// Status: pending, accepted, declined
     @Default('pending') String status,
 

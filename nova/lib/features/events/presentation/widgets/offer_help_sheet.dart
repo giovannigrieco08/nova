@@ -34,11 +34,14 @@ class OfferHelpSheet extends ConsumerStatefulWidget {
 
 class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
   final _messageController = TextEditingController();
+  final _contactController = TextEditingController();
+  String _contactType = 'instagram'; // 'instagram' or 'whatsapp'
   bool _isSubmitting = false;
 
   @override
   void dispose() {
     _messageController.dispose();
+    _contactController.dispose();
     super.dispose();
   }
 
@@ -229,18 +232,96 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
     }
   }
 
-  /// Build the offer form with message field and submit button
+  /// Build the offer form with contact info and message fields
   Widget _buildOfferForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Contact type selector
+        const Text(
+          'Come può contattarti l\'organizzatore?',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Instagram / WhatsApp toggle
+        Row(
+          children: [
+            Expanded(
+              child: _buildContactTypeButton(
+                type: 'instagram',
+                icon: Icons.camera_alt_outlined,
+                label: 'Instagram',
+                isSelected: _contactType == 'instagram',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildContactTypeButton(
+                type: 'whatsapp',
+                icon: Icons.phone_outlined,
+                label: 'WhatsApp',
+                isSelected: _contactType == 'whatsapp',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Contact info field (required)
+        TextField(
+          controller: _contactController,
+          keyboardType: _contactType == 'whatsapp'
+              ? TextInputType.phone
+              : TextInputType.text,
+          decoration: InputDecoration(
+            hintText: _contactType == 'instagram'
+                ? '@username'
+                : 'Numero WhatsApp',
+            hintStyle: const TextStyle(
+              fontSize: 14,
+              color: NovaColors.grayDark,
+            ),
+            prefixIcon: Icon(
+              _contactType == 'instagram'
+                  ? Icons.alternate_email
+                  : Icons.phone,
+              color: NovaColors.grayDark,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: NovaRadius.circularS,
+              borderSide: const BorderSide(color: NovaColors.grayMedium),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: NovaRadius.circularS,
+              borderSide: const BorderSide(color: NovaColors.grayMedium),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: NovaRadius.circularS,
+              borderSide: BorderSide(color: NovaColors.brandViolet),
+            ),
+            filled: true,
+            fillColor: NovaColors.grayLight,
+            contentPadding: const EdgeInsets.all(16),
+          ),
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 16),
+
         // Message field (optional)
         TextField(
           controller: _messageController,
-          maxLines: 3,
+          maxLines: 2,
           maxLength: 200,
           decoration: InputDecoration(
-            hintText: 'Scrivi un messaggio (opzionale)',
+            hintText: 'Messaggio (opzionale)',
             hintStyle: const TextStyle(
               fontSize: 14,
               color: NovaColors.grayDark,
@@ -301,6 +382,55 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
     );
   }
 
+  /// Build contact type toggle button
+  Widget _buildContactTypeButton({
+    required String type,
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _contactType = type;
+          _contactController.clear();
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? NovaColors.brandViolet.withValues(alpha: 0.1)
+              : NovaColors.grayLight,
+          borderRadius: NovaRadius.circularS,
+          border: Border.all(
+            color: isSelected ? NovaColors.brandViolet : NovaColors.grayMedium,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected ? NovaColors.brandViolet : NovaColors.grayDark,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? NovaColors.brandViolet : NovaColors.grayDark,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Build message shown when user has already offered
   Widget _buildAlreadyOfferedMessage() {
     return Container(
@@ -351,6 +481,17 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
 
   /// Handle form submission
   Future<void> _handleSubmit() async {
+    // Validate contact info
+    if (_contactController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inserisci il tuo contatto per essere ricontattato'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -365,6 +506,8 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
       final notifier = ref.read(helpOffersProvider(widget.requestId).notifier);
       final error = await notifier.createOffer(
         userId: userId,
+        contactType: _contactType,
+        contactInfo: _contactController.text.trim(),
         message: _messageController.text.trim().isEmpty
             ? null
             : _messageController.text.trim(),
@@ -376,7 +519,7 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Offerta inviata con successo!'),
+              content: Text('Offerta inviata! L\'organizzatore ti contatterà presto.'),
               backgroundColor: NovaColors.successLight,
             ),
           );

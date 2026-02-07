@@ -89,6 +89,8 @@ class EventHelpOfferModel {
   final String requestId;
   final String userId;
   final String? message;
+  final String contactType;
+  final String contactInfo;
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -101,6 +103,8 @@ class EventHelpOfferModel {
     required this.requestId,
     required this.userId,
     this.message,
+    required this.contactType,
+    required this.contactInfo,
     this.status = 'pending',
     required this.createdAt,
     required this.updatedAt,
@@ -119,6 +123,8 @@ class EventHelpOfferModel {
       requestId: json['request_id'] as String,
       userId: json['user_id'] as String,
       message: json['message'] as String?,
+      contactType: json['contact_type'] as String? ?? 'instagram',
+      contactInfo: json['contact_info'] as String? ?? '',
       status: json['status'] as String? ?? 'pending',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -135,6 +141,8 @@ class EventHelpOfferModel {
       'request_id': requestId,
       'user_id': userId,
       'message': message,
+      'contact_type': contactType,
+      'contact_info': contactInfo,
       'status': status,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -148,6 +156,8 @@ class EventHelpOfferModel {
       requestId: requestId,
       userId: userId,
       message: message,
+      contactType: contactType,
+      contactInfo: contactInfo,
       status: status,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -164,6 +174,8 @@ class EventHelpOfferModel {
       requestId: entity.requestId,
       userId: entity.userId,
       message: entity.message,
+      contactType: entity.contactType,
+      contactInfo: entity.contactInfo,
       status: entity.status,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

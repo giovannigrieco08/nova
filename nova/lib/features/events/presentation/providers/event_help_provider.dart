@@ -200,15 +200,27 @@ class HelpOffersNotifier extends StateNotifier<HelpOffersState> {
 
   /// Create a new offer
   /// Returns null on success, or an error message on failure
+  ///
+  /// [contactType] - Either 'instagram' or 'whatsapp'
+  /// [contactInfo] - Username for Instagram, phone number for WhatsApp
   Future<String?> createOffer({
     required String userId,
+    required String contactType,
+    required String contactInfo,
     String? message,
   }) async {
+    // Validate contact info
+    if (contactInfo.trim().isEmpty) {
+      return 'Inserisci il tuo contatto';
+    }
+
     try {
       await _supabase.from('event_help_offers').insert({
         'request_id': requestId,
         'user_id': userId,
         'message': message,
+        'contact_type': contactType,
+        'contact_info': contactInfo.trim(),
         'status': 'pending',
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
