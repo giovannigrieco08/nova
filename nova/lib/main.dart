@@ -404,9 +404,53 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
       return _buildApp(_ProfileCheckGuard(userId: devUser?.id));
     }
 
-    // Watch auth state directly - this WILL trigger rebuild when state changes
-    // This is the key fix: by watching here instead of in a const child widget,
-    // Riverpod will rebuild this widget when auth state changes
+    // CRITICAL FIX: Listen for auth state changes and navigate explicitly
+    // Changing 'home' parameter on MaterialApp/CupertinoApp does NOT trigger
+    // navigation when the app is already running - home is only the initial widget.
+    // We must use Navigator to actually switch screens.
+    ref.listen<AsyncValue<AuthState>>(authNotifierProvider, (previous, next) {
+      debugPrint('🧭 [NAV] Auth state changed: $previous → $next');
+
+      final previousState = previous?.valueOrNull;
+      final nextState = next.valueOrNull;
+
+      // Navigate when transitioning from unauthenticated to authenticated
+      if (previousState is AuthStateUnauthenticated &&
+          nextState is AuthStateAuthenticated) {
+        debugPrint('🧭 [NAV] 🎯 Navigating to ProfileCheckGuard!');
+        final navigator = _navigatorKey.currentState;
+        if (navigator != null) {
+          // Use pushAndRemoveUntil to clear the navigation stack
+          // and show the authenticated screen
+          // Note: No ProviderScope needed - Navigator is inside the app's ProviderScope
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => _ProfileCheckGuard(userId: nextState.user.id),
+            ),
+            (route) => false, // Remove all previous routes
+          );
+        } else {
+          debugPrint('🧭 [NAV] ⚠️ Navigator is null!');
+        }
+      }
+
+      // Navigate when transitioning from authenticated to unauthenticated (logout)
+      if (previousState is AuthStateAuthenticated &&
+          nextState is AuthStateUnauthenticated) {
+        debugPrint('🧭 [NAV] 🎯 Navigating to LoginScreen (logout)');
+        final navigator = _navigatorKey.currentState;
+        if (navigator != null) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => const LoginScreen(),
+            ),
+            (route) => false,
+          );
+        }
+      }
+    });
+
+    // Watch auth state directly for initial widget determination
     final authState = ref.watch(authNotifierProvider);
     debugPrint('🏠 [NovaApp] build() authState: $authState');
 
@@ -417,7 +461,8 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
         return switch (state) {
           AuthStateAuthenticated(:final user) => () {
               debugPrint('🏠 [NovaApp] → Showing ProfileCheckGuard');
-              return _ProfileCheckGuard(userId: user.id);
+              // Use ValueKey to force widget recreation when user changes
+              return _ProfileCheckGuard(key: ValueKey('profile_${user.id}'), userId: user.id);
             }(),
           AuthStateUnauthenticated() => () {
               debugPrint('🏠 [NovaApp] → Showing LoginScreen');
@@ -480,7 +525,7 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
 /// Supabase's internal session might not be synchronized yet after magic link
 /// verification.
 class _ProfileCheckGuard extends ConsumerWidget {
-  const _ProfileCheckGuard({required this.userId});
+  const _ProfileCheckGuard({super.key, required this.userId});
 
   /// User ID from authenticated state (passed from AuthGuard)
   final String? userId;
