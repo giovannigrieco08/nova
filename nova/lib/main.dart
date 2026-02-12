@@ -25,6 +25,7 @@ import 'package:nova/core/models/auth_state.dart';
 import 'package:nova/core/services/deep_link_service.dart';
 import 'package:nova/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:nova/features/auth/presentation/screens/login_screen.dart';
+import 'package:nova/features/auth/presentation/screens/guest_feed_screen.dart';
 import 'package:nova/features/events/presentation/screens/main_feed_screen.dart';
 import 'package:nova/features/events/presentation/screens/event_detail_screen.dart';
 import 'package:nova/features/profile/data/models/profile_model.dart';
@@ -376,14 +377,14 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
     if (currentUser != null) {
       // User is authenticated in Supabase - ensure Riverpod state is synced
       final currentAuthState = ref.read(authNotifierProvider);
-      final isCurrentlyUnauthenticated = currentAuthState.maybeWhen(
-        data: (state) => state is AuthStateUnauthenticated,
+      final needsSync = currentAuthState.maybeWhen(
+        data: (state) => state is AuthStateUnauthenticated || state is AuthStateGuest,
         orElse: () => false,
       );
 
-      debugPrint('📱 [RESUME] Riverpod unauthenticated: $isCurrentlyUnauthenticated');
+      debugPrint('📱 [RESUME] Riverpod needs sync: $needsSync');
 
-      if (isCurrentlyUnauthenticated) {
+      if (needsSync) {
         // Supabase has a session but Riverpod doesn't know about it
         // Force a state update - this will trigger build() via ref.watch
         debugPrint('📱 [RESUME] Syncing auth state...');
@@ -434,6 +435,51 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
         }
       }
 
+      // Navigate when transitioning from guest to authenticated (login from guest mode)
+      if (previousState is AuthStateGuest &&
+          nextState is AuthStateAuthenticated) {
+        debugPrint('🧭 [NAV] 🎯 Navigating to ProfileCheckGuard (from guest)!');
+        final navigator = _navigatorKey.currentState;
+        if (navigator != null) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => _ProfileCheckGuard(userId: nextState.user.id),
+            ),
+            (route) => false,
+          );
+        }
+      }
+
+      // Navigate when transitioning from guest to unauthenticated (user taps sign in)
+      if (previousState is AuthStateGuest &&
+          nextState is AuthStateUnauthenticated) {
+        debugPrint('🧭 [NAV] 🎯 Navigating to LoginScreen (from guest)');
+        final navigator = _navigatorKey.currentState;
+        if (navigator != null) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => const LoginScreen(),
+            ),
+            (route) => false,
+          );
+        }
+      }
+
+      // Navigate when transitioning from unauthenticated to guest (user taps continue browsing)
+      if (previousState is AuthStateUnauthenticated &&
+          nextState is AuthStateGuest) {
+        debugPrint('🧭 [NAV] 🎯 Navigating to GuestFeedScreen (continue browsing)');
+        final navigator = _navigatorKey.currentState;
+        if (navigator != null) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => const GuestFeedScreen(),
+            ),
+            (route) => false,
+          );
+        }
+      }
+
       // Navigate when transitioning from authenticated to unauthenticated (logout)
       if (previousState is AuthStateAuthenticated &&
           nextState is AuthStateUnauthenticated) {
@@ -448,6 +494,22 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
           );
         }
       }
+
+      // Navigate when transitioning from authenticated to guest (logout to guest mode)
+      if (previousState is AuthStateAuthenticated &&
+          nextState is AuthStateGuest) {
+        debugPrint('🧭 [NAV] 🎯 Navigating to GuestFeedScreen (logout to guest)');
+        final navigator = _navigatorKey.currentState;
+        if (navigator != null) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => const GuestFeedScreen(),
+            ),
+            (route) => false,
+          );
+        }
+      }
+
     });
 
     // Watch auth state directly for initial widget determination
@@ -467,6 +529,11 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
           AuthStateUnauthenticated() => () {
               debugPrint('🏠 [NovaApp] → Showing LoginScreen');
               return const LoginScreen();
+            }(),
+          // Apple Guideline 5.1.1: Guest mode - Instagram-style feed browsing
+          AuthStateGuest() => () {
+              debugPrint('🏠 [NovaApp] → Showing GuestFeedScreen');
+              return const GuestFeedScreen();
             }(),
           AuthStateLoading() => const _LoadingScreen(),
           AuthStateError(:final message) => _ErrorScreen(message: message),

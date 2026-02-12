@@ -107,7 +107,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     if (currentUser != null) {
       return AuthStateAuthenticated(currentUser);
     } else {
-      return const AuthStateUnauthenticated();
+      // Apple Guideline 5.1.1: Start in guest mode, not login screen
+      // Users can browse events without logging in
+      return const AuthStateGuest();
     }
   }
 
@@ -169,16 +171,16 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             break;
 
           case supabase.AuthChangeEvent.signedOut:
-            // User signed out
+            // User signed out - return to guest mode (Instagram-style)
             debugPrint('🔐 [AUTH_LISTENER] SignedOut event!');
             _lastAuthenticatedUserId = null;
-            // Update state synchronously
+            // Update state synchronously - go to Guest, not Unauthenticated
             final currentState = state.valueOrNull;
-            if (currentState is! AuthStateUnauthenticated) {
-              debugPrint('🔐 [AUTH_LISTENER] Setting state to Unauthenticated...');
+            if (currentState is! AuthStateGuest) {
+              debugPrint('🔐 [AUTH_LISTENER] Setting state to Guest...');
               try {
-                state = const AsyncData(AuthStateUnauthenticated());
-                debugPrint('🔐 [AUTH_LISTENER] State set to Unauthenticated');
+                state = const AsyncData(AuthStateGuest());
+                debugPrint('🔐 [AUTH_LISTENER] State set to Guest');
               } catch (e) {
                 debugPrint('🔐 [AUTH_LISTENER] State update error: $e');
               }
@@ -398,6 +400,44 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
     // Register FCM token
     _registerFcmTokenAfterLogin();
+  }
+
+  // ===========================================================================
+  // Guest Mode (Apple Guideline 5.1.1 Compliance)
+  // ===========================================================================
+
+  /// Enter guest mode - show login screen
+  ///
+  /// Called when guest user wants to sign in (e.g., taps "Accedi" button).
+  /// Transitions from Guest state to Unauthenticated state to show login.
+  void showLogin() {
+    debugPrint('🔐 [AUTH] Showing login screen...');
+    state = const AsyncData(AuthStateUnauthenticated());
+  }
+
+  /// Return to guest mode from login screen
+  ///
+  /// Called when user cancels login and wants to continue browsing.
+  void returnToGuest() {
+    debugPrint('🔐 [AUTH] Returning to guest mode...');
+    state = const AsyncData(AuthStateGuest());
+  }
+
+  /// Sign out and return to guest mode (not login screen)
+  ///
+  /// Instagram-style: after logout, user can still browse.
+  Future<bool> signOutToGuest() async {
+    try {
+      state = const AsyncLoading();
+      await _removeFcmTokenBeforeLogout();
+      await _authRepository.signOut();
+      _lastAuthenticatedUserId = null;
+      state = const AsyncData(AuthStateGuest());
+      return true;
+    } catch (e) {
+      state = const AsyncData(AuthStateGuest());
+      return false;
+    }
   }
 
   /// Sign out current user

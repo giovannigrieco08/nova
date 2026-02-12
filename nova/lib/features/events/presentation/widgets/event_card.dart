@@ -27,6 +27,11 @@ import '../providers/event_likes_notifier.dart';
 import '../../../comments/presentation/screens/comments_sheet.dart';
 import '../../../profile/presentation/screens/other_profile_screen.dart';
 import '../../../../core/animations/page_transitions.dart';
+import '../../../safety/data/models/report.dart';
+import '../../../safety/presentation/widgets/report_sheet.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../auth/presentation/screens/guest_feed_screen.dart';
+import '../../../../core/models/auth_state.dart';
 import 'offer_help_sheet.dart';
 import 'help_requests_picker_sheet.dart';
 import 'invite_users_sheet.dart';
@@ -443,6 +448,12 @@ class _EventCardState extends ConsumerState<EventCard> {
 
   /// Handle double-tap like on image (Instagram-style)
   void _handleDoubleTapLike(EventLikesNotifier likesNotifier, String eventId) async {
+    // Apple Guideline 5.1.1: Check if guest user
+    if (_isGuestUser()) {
+      _showGuestPrompt('Accedi per mettere mi piace');
+      return;
+    }
+
     // Haptic feedback for double-tap like
     HapticFeedback.mediumImpact();
 
@@ -534,7 +545,9 @@ class _EventCardState extends ConsumerState<EventCard> {
 
   /// Caption: Username (bold) + description (regular) INLINE, max 2 lines collapsed
   Widget _buildCaption() {
-    final organizerName = widget.organizerName ?? 'Organizer';
+    // Use creator info from event entity (consistent with header)
+    final organizerName =
+        widget.event.creatorName ?? widget.organizerName ?? 'Organizzatore';
     final description = widget.event.description;
 
     return Padding(
@@ -587,7 +600,9 @@ class _EventCardState extends ConsumerState<EventCard> {
   /// Check if caption exceeds 2 lines using simple character heuristic
   /// Avoids expensive TextPainter.layout() call in build()
   bool _shouldShowMoreButton() {
-    final organizerName = widget.organizerName ?? 'Organizer';
+    // Use creator info from event entity (consistent with _buildCaption)
+    final organizerName =
+        widget.event.creatorName ?? widget.organizerName ?? 'Organizzatore';
     final description = widget.event.description;
     final fullText = '$organizerName $description';
 
@@ -845,6 +860,12 @@ class _EventCardState extends ConsumerState<EventCard> {
   /// If 1 request → open OfferHelpSheet directly
   /// If multiple → open HelpRequestsPickerSheet to choose
   void _handleOfferHelp(List<HelpRequestInfo> openRequests) {
+    // Apple Guideline 5.1.1: Check if guest user
+    if (_isGuestUser()) {
+      _showGuestPrompt('Accedi per offrire aiuto');
+      return;
+    }
+
     if (openRequests.length == 1) {
       // Single request - open offer sheet directly
       _showOfferHelpSheet(openRequests.first);
@@ -967,7 +988,29 @@ class _EventCardState extends ConsumerState<EventCard> {
   // INTERACTION HANDLERS
   // =========================================================================
 
+  /// Check if user is in guest mode and show sign-in prompt if so
+  /// Returns true if user is a guest (interaction should be blocked)
+  bool _isGuestUser() {
+    final authState = ref.read(authNotifierProvider).valueOrNull;
+    return authState is AuthStateGuest;
+  }
+
+  /// Show sign-in prompt for guest users
+  void _showGuestPrompt(String action) {
+    showGuestSignInPrompt(
+      context: context,
+      ref: ref,
+      action: action,
+    );
+  }
+
   void _handleLike(EventLikesNotifier likesNotifier, String eventId) async {
+    // Apple Guideline 5.1.1: Check if guest user
+    if (_isGuestUser()) {
+      _showGuestPrompt('Accedi per mettere mi piace');
+      return;
+    }
+
     // Haptic feedback
     HapticFeedback.lightImpact();
 
@@ -983,6 +1026,12 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   void _handleComment() {
+    // Apple Guideline 5.1.1: Check if guest user
+    if (_isGuestUser()) {
+      _showGuestPrompt('Accedi per commentare');
+      return;
+    }
+
     // Haptic feedback
     HapticFeedback.selectionClick();
 
@@ -1246,6 +1295,12 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   void _handleParticipateToggle() async {
+    // Apple Guideline 5.1.1: Check if guest user
+    if (_isGuestUser()) {
+      _showGuestPrompt('Accedi per partecipare');
+      return;
+    }
+
     // Prevent multiple taps while loading
     if (_isParticipateLoading) return;
 
@@ -1463,7 +1518,7 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   void _showMenuSheet() {
-    // Platform-adaptive action sheet
+    // Platform-adaptive action sheet with UGC Safety report integration
     if (Platform.isIOS) {
       showCupertinoModalPopup(
         context: context,
@@ -1473,7 +1528,7 @@ class _EventCardState extends ConsumerState<EventCard> {
               isDestructiveAction: true,
               onPressed: () {
                 Navigator.pop(context);
-                _showReportDialog();
+                _showReportSheet();
               },
               child: const Text('Segnala'),
             ),
@@ -1493,11 +1548,25 @@ class _EventCardState extends ConsumerState<EventCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.flag),
-                title: const Text('Segnala'),
+                leading: Icon(
+                  Icons.flag_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Segnala',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+                subtitle: Text(
+                  'Segnala contenuto inappropriato',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
-                  _showReportDialog();
+                  _showReportSheet();
                 },
               ),
             ],
@@ -1507,187 +1576,13 @@ class _EventCardState extends ConsumerState<EventCard> {
     }
   }
 
-  void _showReportDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _ReportEventDialog(
-        eventId: widget.event.id,
-        eventTitle: widget.event.title,
-        onReport: (reason, description) async {
-          try {
-            final userId =
-                ref.read(supabaseClientProvider).auth.currentUser?.id;
-            if (userId == null) {
-              throw Exception('Utente non autenticato');
-            }
-
-            final repository = ref.read(eventsRepositoryProvider);
-            await repository.reportEvent(
-              eventId: widget.event.id,
-              userId: userId,
-              reason: reason,
-              description: description,
-            );
-
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content:
-                      Text('Segnalazione inviata. Grazie per il feedback!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    e.toString().contains('duplicate')
-                        ? 'Hai già segnalato questo evento'
-                        : 'Errore nell\'invio della segnalazione',
-                  ),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          }
-        },
-      ),
+  /// Show the unified UGC Safety report sheet
+  void _showReportSheet() {
+    ReportCategorySheet.show(
+      context,
+      contentType: ReportableContentType.event,
+      contentId: widget.event.id,
     );
   }
 }
 
-/// Report event dialog with reason selection
-class _ReportEventDialog extends StatefulWidget {
-  final String eventId;
-  final String eventTitle;
-  final Future<void> Function(String reason, String? description) onReport;
-
-  const _ReportEventDialog({
-    required this.eventId,
-    required this.eventTitle,
-    required this.onReport,
-  });
-
-  @override
-  State<_ReportEventDialog> createState() => _ReportEventDialogState();
-}
-
-class _ReportEventDialogState extends State<_ReportEventDialog> {
-  String? _selectedReason;
-  final _descriptionController = TextEditingController();
-  bool _isSubmitting = false;
-
-  static const _reportReasons = [
-    (
-      'inappropriate',
-      'Contenuto inappropriato',
-      'Contenuti offensivi, volgari o non adatti'
-    ),
-    ('spam', 'Spam', 'Contenuti pubblicitari o ripetitivi'),
-    ('harassment', 'Molestie', 'Bullismo, minacce o contenuti intimidatori'),
-    (
-      'misleading',
-      'Informazioni false',
-      'Informazioni fuorvianti o non veritiere'
-    ),
-    ('other', 'Altro', 'Altra motivazione'),
-  ];
-
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Segnala evento'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Seleziona il motivo della segnalazione:',
-              style: TextStyle(
-                color: NovaColors.textSecondary(context),
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ..._reportReasons.map((reason) => RadioListTile<String>(
-                  title: Text(reason.$2),
-                  subtitle: Text(
-                    reason.$3,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: NovaColors.textTertiary(context),
-                    ),
-                  ),
-                  value: reason.$1,
-                  groupValue: _selectedReason,
-                  onChanged: (value) => setState(() => _selectedReason = value),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                )),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: 'Descrizione (opzionale)',
-                hintText: 'Fornisci dettagli aggiuntivi...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(NovaRadius.s),
-                ),
-              ),
-              maxLines: 3,
-              maxLength: 500,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-          child: const Text('Annulla'),
-        ),
-        ElevatedButton(
-          onPressed:
-              _selectedReason == null || _isSubmitting ? null : _submitReport,
-          child: _isSubmitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Invia'),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _submitReport() async {
-    if (_selectedReason == null) return;
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      await widget.onReport(
-        _selectedReason!,
-        _descriptionController.text.isNotEmpty
-            ? _descriptionController.text
-            : null,
-      );
-      if (mounted) {
-        Navigator.pop(context);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
-}

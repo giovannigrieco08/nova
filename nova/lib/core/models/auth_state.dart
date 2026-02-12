@@ -129,6 +129,36 @@ final class AuthStateLoading extends AuthState {
   String toString() => 'AuthStateLoading(message: $message)';
 }
 
+/// User is browsing as guest (Apple Guideline 5.1.1 compliance)
+///
+/// App starts in this state by default. Users can browse events
+/// without logging in. Login is only required for interactions.
+///
+/// Guest users can:
+/// - View approved events
+/// - View event details
+/// - See like/participation counts
+///
+/// Guest users cannot (prompts login):
+/// - Like events
+/// - Participate in events
+/// - Post comments
+/// - Access profile features
+final class AuthStateGuest extends AuthState {
+  const AuthStateGuest();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AuthStateGuest && runtimeType == other.runtimeType;
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() => 'AuthStateGuest()';
+}
+
 /// Authentication error occurred
 ///
 /// Contains error [message] to display to user.

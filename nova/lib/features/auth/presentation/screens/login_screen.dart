@@ -364,6 +364,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
           ),
         ),
+
+        const SizedBox(height: NovaSpacing.l),
+
+        // Continue browsing button (Apple Guideline 5.1.1)
+        TextButton(
+          onPressed: () {
+            ref.read(authNotifierProvider.notifier).returnToGuest();
+          },
+          child: Text(
+            'Continua a sfogliare',
+            style: NovaTypography.bodyMedium.copyWith(
+              color: NovaColors.textSecondary(context),
+            ),
+          ),
+        ),
+
       ],
     );
   }
@@ -445,6 +461,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             'Usa un\'altra email',
             style: NovaTextStyles.bodyLarge.copyWith(
               color: NovaColors.textPrimary(context),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: NovaSpacing.l),
+
+        // Continue browsing while waiting (Apple Guideline 5.1.1)
+        TextButton(
+          onPressed: () {
+            ref.read(authNotifierProvider.notifier).returnToGuest();
+          },
+          child: Text(
+            'Sfoglia mentre aspetti',
+            style: NovaTypography.bodyMedium.copyWith(
+              color: NovaColors.textSecondary(context),
             ),
           ),
         ),
