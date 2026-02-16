@@ -56,6 +56,7 @@ class CommentActionsMenu extends StatelessWidget {
   final bool isModerator;
   final VoidCallback? onReply;
   final VoidCallback? onReport;
+  final VoidCallback? onBlock;
   final VoidCallback? onCopy;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
@@ -70,6 +71,7 @@ class CommentActionsMenu extends StatelessWidget {
     this.isModerator = false,
     this.onReply,
     this.onReport,
+    this.onBlock,
     this.onCopy,
     this.onDelete,
     this.onEdit,
@@ -84,6 +86,7 @@ class CommentActionsMenu extends StatelessWidget {
   bool get _canDelete => _isOwnComment && !comment.isDeleted;
   bool get _canReply => !comment.isDeleted;
   bool get _canReport => !_isOwnComment && !comment.isDeleted;
+  bool get _canBlock => !_isOwnComment && !comment.isDeleted;
   bool get _canCopy => !comment.isDeleted;
   bool get _canModeratorRemove =>
       isModerator && !comment.isDeleted && !comment.isHidden;
@@ -233,6 +236,15 @@ class CommentActionsMenu extends StatelessWidget {
         icon: Icons.flag_outlined,
         label: '🚩 Segnala',
         onTap: onReport!,
+      ));
+    }
+
+    if (_canBlock && onBlock != null) {
+      actions.add(_CommentAction(
+        icon: Icons.block,
+        label: '🚫 Blocca utente',
+        onTap: onBlock!,
+        isDestructive: true,
       ));
     }
 

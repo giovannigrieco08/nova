@@ -10,11 +10,13 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../domain/entities/comment.dart';
 import '../providers/reply_mode_notifier.dart';
-import '../providers/report_comment_provider.dart';
 import '../providers/mention_navigation_provider.dart';
 import '../providers/comment_likes_notifier.dart';
+import '../../../safety/data/models/report.dart';
+import '../../../safety/presentation/widgets/report_sheet.dart';
+import '../../../safety/presentation/widgets/block_button.dart';
+import '../../../safety/presentation/providers/block_provider.dart';
 import 'comment_actions_menu.dart';
-import 'report_dialog.dart';
 import 'mention_text.dart';
 
 /// CommentCard Widget - Instagram-style design
@@ -160,6 +162,7 @@ class _CommentCardState extends ConsumerState<CommentCard>
             }
           : null,
       onReport: () => _showReportDialog(context),
+      onBlock: () => _showBlockConfirmation(context),
       onCopy: () => copyCommentToClipboard(context, widget.comment),
       onDelete: widget.onDelete,
       onEdit: widget.onEdit,
@@ -501,55 +504,50 @@ class _CommentCardState extends ConsumerState<CommentCard>
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
-  /// Show report dialog
-  Future<void> _showReportDialog(BuildContext context) async {
-    final dialogResult = await showReportDialog(
-      context: context,
-      commentId: widget.comment.id,
+  /// Show report dialog using the unified UGC Safety System
+  void _showReportDialog(BuildContext context) {
+    ReportCategorySheet.show(
+      context,
+      contentType: ReportableContentType.comment,
+      contentId: widget.comment.id,
     );
-
-    if (dialogResult != null && context.mounted) {
-      final reportNotifier = ref.read(reportCommentNotifierProvider.notifier);
-      final submitResult = await reportNotifier.submitReport(
-        commentId: widget.comment.id,
-        reason: dialogResult.reason,
-        details: dialogResult.additionalDetails,
-      );
-
-      if (context.mounted) {
-        _showReportFeedback(context, submitResult);
-      }
-    }
   }
 
-  /// Show feedback for report submission
-  void _showReportFeedback(
-      BuildContext context, ReportSubmissionResult result) {
-    final (message, backgroundColor) = switch (result) {
-      ReportSubmissionResult.success => (
-          'Segnalazione inviata',
-          NovaColors.successLight
-        ),
-      ReportSubmissionResult.duplicate => (
-          'Hai già segnalato questo commento',
-          NovaColors.warningLight
-        ),
-      ReportSubmissionResult.validationError => (
-          'I dettagli sono troppo lunghi (max 500 caratteri)',
-          NovaColors.errorLight
-        ),
-      ReportSubmissionResult.error => (
-          'Errore durante l\'invio. Riprova più tardi.',
-          NovaColors.errorLight
-        ),
-    };
+  /// Show block confirmation dialog for the comment author
+  void _showBlockConfirmation(BuildContext context) {
+    final userId = widget.comment.userId;
+    final userName = widget.comment.authorName ?? 'Questo utente';
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: backgroundColor,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
+    showDialog(
+      context: context,
+      builder: (dialogContext) => BlockConfirmationDialog(
+        userId: userId,
+        userName: userName,
+        onConfirm: () async {
+          Navigator.of(dialogContext).pop();
+          final success = await ref
+              .read(blockNotifierProvider.notifier)
+              .blockUser(userId);
+
+          if (context.mounted) {
+            if (success) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$userName bloccato'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } else {
+              final error = ref.read(blockNotifierProvider).error;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(error ?? 'Errore durante il blocco'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        },
       ),
     );
   }

@@ -40,6 +40,9 @@ class ChatMessageContextOverlay extends StatefulWidget {
   /// Callback when user taps Report
   final VoidCallback? onReport;
 
+  /// Callback when user taps Block
+  final VoidCallback? onBlock;
+
   /// Callback when user taps Edit
   final VoidCallback? onEdit;
 
@@ -59,6 +62,7 @@ class ChatMessageContextOverlay extends StatefulWidget {
     this.onCopy,
     this.onDelete,
     this.onReport,
+    this.onBlock,
     this.onEdit,
     this.messageContent,
     this.canEdit = false,
@@ -75,6 +79,7 @@ class ChatMessageContextOverlay extends StatefulWidget {
     VoidCallback? onCopy,
     VoidCallback? onDelete,
     VoidCallback? onReport,
+    VoidCallback? onBlock,
     VoidCallback? onEdit,
     String? messageContent,
     bool canEdit = false,
@@ -97,6 +102,7 @@ class ChatMessageContextOverlay extends StatefulWidget {
             onCopy: onCopy,
             onDelete: onDelete,
             onReport: onReport,
+            onBlock: onBlock,
             onEdit: onEdit,
             messageContent: messageContent,
             canEdit: canEdit,
@@ -240,6 +246,11 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
   void _handleReport() {
     _close();
     widget.onReport?.call();
+  }
+
+  void _handleBlock() {
+    _close();
+    widget.onBlock?.call();
   }
 
   void _handleEdit() {
@@ -436,6 +447,18 @@ class _ChatMessageContextOverlayState extends State<ChatMessageContextOverlay>
               icon: Icons.flag_outlined,
               label: 'Segnala',
               onTap: _handleReport,
+              isDestructive: true,
+            ),
+          ],
+
+          // Block user (only for others' messages)
+          if (!widget.isOwnMessage && widget.onBlock != null) ...[
+            _buildDivider(context),
+            _buildActionItem(
+              context: context,
+              icon: Icons.block,
+              label: 'Blocca utente',
+              onTap: _handleBlock,
               isDestructive: true,
             ),
           ],

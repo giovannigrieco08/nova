@@ -30,6 +30,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
   final VoidCallback? onRefresh;
   final void Function(ChatMessage message)? onReply;
   final void Function(ChatMessage message)? onReport;
+  final void Function(ChatMessage message)? onBlock;
   final void Function(ChatMessage message, String emoji)? onReact;
   final void Function(String messageId)? onScrollToMessage;
 
@@ -46,6 +47,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.onRefresh,
     this.onReply,
     this.onReport,
+    this.onBlock,
     this.onReact,
     this.onScrollToMessage,
     this.scrollController,
@@ -191,6 +193,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                     message: message,
                     onReply: () => widget.onReply?.call(message),
                     onReport: () => widget.onReport?.call(message),
+                    onBlock: () => widget.onBlock?.call(message),
                     onReact: (emoji) => widget.onReact?.call(message, emoji),
                     onTapReplyPreview: message.replyToId != null
                         ? () => scrollToMessage(message.replyToId!)

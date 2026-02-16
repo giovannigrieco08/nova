@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
 import 'package:nova/features/chat/data/datasources/chat_remote_datasource.dart';
+import 'package:nova/features/safety/presentation/providers/block_provider.dart';
 
 /// Manages Supabase Realtime subscriptions for the chat feature.
 ///
@@ -18,6 +19,7 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
   final SupabaseClient _supabase;
   final String _currentUserId;
   final ChatRemoteDataSource _dataSource;
+  final Ref _ref;
 
   RealtimeChannel? _messagesChannel;
   RealtimeChannel? _reactionsChannel;
@@ -26,9 +28,11 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
     required SupabaseClient supabase,
     required String currentUserId,
     required ChatRemoteDataSource dataSource,
+    required Ref ref,
   })  : _supabase = supabase,
         _currentUserId = currentUserId,
         _dataSource = dataSource,
+        _ref = ref,
         super(const ChatRealtimeState());
 
   /// Initialize realtime subscriptions
@@ -141,6 +145,19 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
         debugPrint(
             '[Realtime] Got message, hasMedia: ${fullMessage.mediaJson != null}');
         final message = fullMessage.toEntity(currentUserId: _currentUserId);
+
+        // UGC Safety: Check if sender is blocked before adding message
+        try {
+          final blockedIds = await _ref.read(blockedUserIdsProvider.future);
+          if (blockedIds.contains(message.userId)) {
+            debugPrint('[Realtime] Message from blocked user ${message.userId}, skipping');
+            return;
+          }
+        } catch (e) {
+          // If we can't check blocked status, still add the message
+          debugPrint('[Realtime] Could not check blocked status: $e');
+        }
+
         debugPrint(
             '[Realtime] Entity hasMedia: ${message.hasMedia}, media: ${message.media?.id}');
         _addMessage(message);
@@ -354,6 +371,7 @@ final chatRealtimeProvider =
     supabase: supabase,
     currentUserId: currentUserId,
     dataSource: dataSource,
+    ref: ref,
   );
 
   // Initialize on creation

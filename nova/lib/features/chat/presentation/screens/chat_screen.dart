@@ -12,7 +12,10 @@ import 'package:nova/features/chat/presentation/widgets/chat_message_list.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_message_skeleton.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_compose_bar.dart';
 import 'package:nova/features/chat/presentation/widgets/chat_typing_indicator.dart';
-import 'package:nova/features/chat/presentation/widgets/chat_report_dialog.dart';
+import 'package:nova/features/safety/data/models/report.dart';
+import 'package:nova/features/safety/presentation/widgets/report_sheet.dart';
+import 'package:nova/features/safety/presentation/widgets/block_button.dart';
+import 'package:nova/features/safety/presentation/providers/block_provider.dart';
 import 'package:nova/features/profile/presentation/providers/connectivity_provider.dart';
 
 /// Main screen for the Global Chat feature.
@@ -143,21 +146,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           // FutureProvider handles initial load and populates realtime state
           Expanded(
             child: messagesAsync.when(
-              data: (_) => ChatMessageList(
-                scrollController: _chatScrollController,
-                // Use realtime state for messages (live updates)
-                // Filter out deleted messages - they should be completely hidden
-                messages:
-                    realtimeState.messages.where((m) => !m.isDeleted).toList(),
-                failedMessages: failedMessages,
-                isLoading: false,
-                hasMore: realtimeState.messages.length >= 50,
-                onLoadMore: () => _loadMoreMessages(realtimeState.messages),
-                onRefresh: () => ref.refresh(chatMessagesStreamProvider),
-                onReply: _setReplyTo,
-                onReport: _showReportDialog,
-                onReact: _toggleReaction,
-              ),
+              data: (_) {
+                // UGC Safety: Filter out messages from blocked users (T045)
+                final blockedUserIds = ref.watch(blockedUserIdsProvider).valueOrNull ?? [];
+                final filteredMessages = realtimeState.messages.where((m) {
+                  // Filter out deleted messages and messages from blocked users
+                  if (m.isDeleted) return false;
+                  if (blockedUserIds.contains(m.userId)) return false;
+                  return true;
+                }).toList();
+
+                return ChatMessageList(
+                  scrollController: _chatScrollController,
+                  messages: filteredMessages,
+                  failedMessages: failedMessages,
+                  isLoading: false,
+                  hasMore: realtimeState.messages.length >= 50,
+                  onLoadMore: () => _loadMoreMessages(realtimeState.messages),
+                  onRefresh: () => ref.refresh(chatMessagesStreamProvider),
+                  onReply: _setReplyTo,
+                  onReport: _showReportDialog,
+                  onBlock: _showBlockConfirmation,
+                  onReact: _toggleReaction,
+                );
+              },
               loading: () => const ChatMessageListSkeleton(),
               error: (error, stack) =>
                   _buildErrorState(context, error.toString()),
@@ -208,26 +220,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  /// Show the unified UGC Safety report sheet for chat messages
   void _showReportDialog(ChatMessage message) {
+    ReportCategorySheet.show(
+      context,
+      contentType: ReportableContentType.chatMessage,
+      contentId: message.id,
+    );
+  }
+
+  /// Show block confirmation dialog for the message author
+  void _showBlockConfirmation(ChatMessage message) {
+    final userId = message.userId;
+    final userName = message.author.fullName;
+
     showDialog(
       context: context,
-      builder: (dialogContext) => ChatReportDialog(
-        messageId: message.id,
-        onReported: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Segnalazione inviata'),
-              backgroundColor: NovaColors.success(context),
-            ),
-          );
-        },
-        onAlreadyReported: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Hai già segnalato questo messaggio'),
-              backgroundColor: NovaColors.warning(context),
-            ),
-          );
+      builder: (dialogContext) => BlockConfirmationDialog(
+        userId: userId,
+        userName: userName,
+        onConfirm: () async {
+          Navigator.of(dialogContext).pop();
+          final success = await ref
+              .read(blockNotifierProvider.notifier)
+              .blockUser(userId);
+
+          if (mounted) {
+            if (success) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$userName bloccato'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } else {
+              final error = ref.read(blockNotifierProvider).error;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(error ?? 'Errore durante il blocco'),
+                  backgroundColor: NovaColors.error(context),
+                ),
+              );
+            }
+          }
         },
       ),
     );

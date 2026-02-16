@@ -43,6 +43,7 @@ class ChatMessageTile extends ConsumerStatefulWidget {
   final ChatMessage message;
   final VoidCallback? onReply;
   final VoidCallback? onReport;
+  final VoidCallback? onBlock;
   final void Function(String emoji)? onReact;
   final VoidCallback? onTapReplyPreview;
 
@@ -51,6 +52,7 @@ class ChatMessageTile extends ConsumerStatefulWidget {
     required this.message,
     this.onReply,
     this.onReport,
+    this.onBlock,
     this.onReact,
     this.onTapReplyPreview,
   });
@@ -570,6 +572,7 @@ class _ChatMessageTileState extends ConsumerState<ChatMessageTile>
       onReact: widget.onReact,
       onReply: widget.onReply,
       onReport: widget.onReport,
+      onBlock: widget.onBlock,
       messageContent: isAudioMessage ? null : widget.message.content,
       onDelete: canDelete ? () => _deleteMessage(context) : null,
       onEdit: canEdit ? () => _editMessage(context) : null,
