@@ -27,7 +27,8 @@ import 'package:nova/features/profile/presentation/providers/profile_provider.da
 /// - Gradient send button with profile picture
 class PhotoEditorScreen extends ConsumerStatefulWidget {
   final XFile imageFile;
-  final Future<void> Function(File editedImage, {bool allowReplay, String? caption})? onSend;
+  final Future<void> Function(File editedImage,
+      {bool allowReplay, String? caption})? onSend;
 
   const PhotoEditorScreen({
     super.key,
@@ -295,13 +296,16 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
                             width: 32,
                             height: 32,
                             errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.person, size: 16, color: Colors.white),
+                                const Icon(Icons.person,
+                                    size: 16, color: Colors.white),
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
-                              return const Icon(Icons.person, size: 16, color: Colors.white);
+                              return const Icon(Icons.person,
+                                  size: 16, color: Colors.white);
                             },
                           )
-                        : const Icon(Icons.person, size: 16, color: Colors.white),
+                        : const Icon(Icons.person,
+                            size: 16, color: Colors.white),
                   ),
                 ),
                 SizedBox(width: NovaSpacing.s),

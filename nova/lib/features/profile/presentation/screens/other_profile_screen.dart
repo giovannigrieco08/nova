@@ -295,7 +295,9 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
         userName: displayName,
         onConfirm: () async {
           Navigator.of(dialogContext).pop();
-          final success = await ref.read(blockNotifierProvider.notifier).blockUser(profile.userId);
+          final success = await ref
+              .read(blockNotifierProvider.notifier)
+              .blockUser(profile.userId);
           if (success && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

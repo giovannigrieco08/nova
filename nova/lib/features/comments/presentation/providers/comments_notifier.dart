@@ -222,7 +222,10 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
       }
 
       // Append new comments to existing list
-      final updatedComments = [...currentState.comments, ...filteredNewComments];
+      final updatedComments = [
+        ...currentState.comments,
+        ...filteredNewComments
+      ];
 
       // Update cache with full list
       await _repository.cacheComments(

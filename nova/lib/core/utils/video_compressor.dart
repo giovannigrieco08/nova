@@ -54,17 +54,20 @@ class VideoCompressor {
       }
 
       final fileSize = await file.length();
-      debugPrint('[VideoCompressor] Original file size: ${_formatSize(fileSize)}');
+      debugPrint(
+          '[VideoCompressor] Original file size: ${_formatSize(fileSize)}');
 
       // Skip compression if file is small enough
       if (fileSize < compressionThresholdBytes) {
-        debugPrint('[VideoCompressor] File is small enough, skipping compression');
+        debugPrint(
+            '[VideoCompressor] File is small enough, skipping compression');
         return filePath;
       }
 
       // Check if file is too large even for compression
       if (fileSize > maxFileSizeBytes * 2) {
-        debugPrint('[VideoCompressor] File is very large, compression may take a while');
+        debugPrint(
+            '[VideoCompressor] File is very large, compression may take a while');
       }
 
       debugPrint('[VideoCompressor] Starting compression...');
@@ -84,19 +87,24 @@ class VideoCompressor {
 
       final compressedFile = File(mediaInfo.path!);
       if (!await compressedFile.exists()) {
-        debugPrint('[VideoCompressor] Compressed file not found, using original');
+        debugPrint(
+            '[VideoCompressor] Compressed file not found, using original');
         return filePath;
       }
 
       final compressedSize = await compressedFile.length();
-      final compressionRatio = _calculateCompressionRatio(fileSize, compressedSize);
+      final compressionRatio =
+          _calculateCompressionRatio(fileSize, compressedSize);
 
-      debugPrint('[VideoCompressor] Compressed size: ${_formatSize(compressedSize)}');
-      debugPrint('[VideoCompressor] Compression ratio: ${compressionRatio.toStringAsFixed(1)}%');
+      debugPrint(
+          '[VideoCompressor] Compressed size: ${_formatSize(compressedSize)}');
+      debugPrint(
+          '[VideoCompressor] Compression ratio: ${compressionRatio.toStringAsFixed(1)}%');
 
       // Only use compressed version if it's actually smaller
       if (compressedSize >= fileSize) {
-        debugPrint('[VideoCompressor] Compressed file is not smaller, using original');
+        debugPrint(
+            '[VideoCompressor] Compressed file is not smaller, using original');
         // Clean up compressed file
         await compressedFile.delete();
         return filePath;
@@ -104,7 +112,8 @@ class VideoCompressor {
 
       // Check if compressed file is still too large
       if (compressedSize > maxFileSizeBytes) {
-        debugPrint('[VideoCompressor] Compressed file still too large: ${_formatSize(compressedSize)}');
+        debugPrint(
+            '[VideoCompressor] Compressed file still too large: ${_formatSize(compressedSize)}');
         // Try more aggressive compression
         final aggressiveResult = await _compressAggressive(filePath);
         if (aggressiveResult != null) {
@@ -128,7 +137,8 @@ class VideoCompressor {
   /// Aggressive compression for very large files
   static Future<String?> _compressAggressive(String filePath) async {
     try {
-      debugPrint('[VideoCompressor] Trying aggressive compression (LowQuality)...');
+      debugPrint(
+          '[VideoCompressor] Trying aggressive compression (LowQuality)...');
 
       final MediaInfo? mediaInfo = await VideoCompress.compressVideo(
         filePath,
@@ -142,10 +152,12 @@ class VideoCompressor {
       final compressedFile = File(mediaInfo!.path!);
       final compressedSize = await compressedFile.length();
 
-      debugPrint('[VideoCompressor] Aggressive compressed size: ${_formatSize(compressedSize)}');
+      debugPrint(
+          '[VideoCompressor] Aggressive compressed size: ${_formatSize(compressedSize)}');
 
       if (compressedSize > maxFileSizeBytes) {
-        debugPrint('[VideoCompressor] Still too large after aggressive compression');
+        debugPrint(
+            '[VideoCompressor] Still too large after aggressive compression');
         await compressedFile.delete();
         return null;
       }
@@ -185,7 +197,8 @@ class VideoCompressor {
   }
 
   /// Calculate compression ratio percentage
-  static double _calculateCompressionRatio(int originalSize, int compressedSize) {
+  static double _calculateCompressionRatio(
+      int originalSize, int compressedSize) {
     if (originalSize == 0) return 0.0;
     return ((originalSize - compressedSize) / originalSize) * 100;
   }

@@ -94,7 +94,8 @@ final reportNotifierProvider =
 });
 
 /// Provider to check if content has been reported by current user
-final hasReportedProvider = FutureProvider.family<bool, ({ReportableContentType contentType, String contentId})>(
+final hasReportedProvider = FutureProvider.family<bool,
+    ({ReportableContentType contentType, String contentId})>(
   (ref, params) async {
     final service = ref.watch(reportServiceProvider);
     final canReport = await service.canReport(

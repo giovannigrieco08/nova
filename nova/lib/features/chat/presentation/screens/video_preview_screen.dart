@@ -20,7 +20,8 @@ import 'package:nova/core/theme/nova_typography.dart';
 /// - Send functionality
 class VideoPreviewScreen extends StatefulWidget {
   final XFile videoFile;
-  final Future<void> Function(File videoFile, {bool allowReplay, String? caption})? onSend;
+  final Future<void> Function(File videoFile,
+      {bool allowReplay, String? caption})? onSend;
 
   const VideoPreviewScreen({
     super.key,

@@ -297,7 +297,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         userId: userId,
         email: email,
         fullName: _nameController.text.trim(),
-        username: _usernameController.text.trim().toLowerCase(), // Always lowercase
+        username:
+            _usernameController.text.trim().toLowerCase(), // Always lowercase
         classYear: _selectedClass!,
         avatarUrl: _avatarUrl, // Include avatar URL if uploaded
       );
@@ -362,7 +363,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         fullName: _nameController.text.trim().isNotEmpty
             ? _nameController.text.trim()
             : 'Utente Nova',
-        username: _usernameController.text.trim().toLowerCase(), // Always lowercase
+        username:
+            _usernameController.text.trim().toLowerCase(), // Always lowercase
         classYear: null, // Incomplete profile
       );
 

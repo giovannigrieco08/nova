@@ -473,8 +473,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       NovaPageRoute.swipeBack(
         page: PhotoEditorScreen(
           imageFile: file,
-          onSend: (editedFile, {bool allowReplay = true, String? caption}) async {
-            await _handleMediaFromEditor(editedFile, ChatMediaType.image, allowReplay,
+          onSend: (editedFile,
+              {bool allowReplay = true, String? caption}) async {
+            await _handleMediaFromEditor(
+                editedFile, ChatMediaType.image, allowReplay,
                 caption: caption);
             if (mounted) Navigator.pop(context);
           },
@@ -493,8 +495,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       NovaPageRoute.swipeBack(
         page: VideoPreviewScreen(
           videoFile: file,
-          onSend: (videoFile, {bool allowReplay = true, String? caption}) async {
-            await _handleMediaFromEditor(videoFile, ChatMediaType.video, allowReplay,
+          onSend: (videoFile,
+              {bool allowReplay = true, String? caption}) async {
+            await _handleMediaFromEditor(
+                videoFile, ChatMediaType.video, allowReplay,
                 caption: caption);
             if (mounted) Navigator.pop(context);
           },
@@ -763,12 +767,14 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
 
     final uploadFile = File(uploadPath);
     final fileSize = await uploadFile.length();
-    debugPrint('[MediaUpload] File size: $fileSize bytes (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB)');
+    debugPrint(
+        '[MediaUpload] File size: $fileSize bytes (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB)');
 
     // Check file size limit (50MB max)
     if (fileSize > 50 * 1024 * 1024) {
       debugPrint('[MediaUpload] ERROR: File too large: $fileSize bytes');
-      _showToast('Video troppo grande (max 50MB). Prova un video più corto.', isError: true);
+      _showToast('Video troppo grande (max 50MB). Prova un video più corto.',
+          isError: true);
       return;
     }
 
@@ -806,7 +812,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
       // Show user-friendly error message
       String errorMsg = 'Errore durante l\'invio. Riprova.';
       final errorStr = e.toString().toLowerCase();
-      if (errorStr.contains('storage') || errorStr.contains('exceeded') || errorStr.contains('413')) {
+      if (errorStr.contains('storage') ||
+          errorStr.contains('exceeded') ||
+          errorStr.contains('413')) {
         errorMsg = 'Video troppo grande. Prova un video più corto.';
       } else if (errorStr.contains('permission') || errorStr.contains('403')) {
         errorMsg = 'Permesso negato. Riprova più tardi.';
@@ -967,8 +975,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     // UGC Safety: Watch content check state (T075)
     final contentCheckState = ref.watch(contentCheckNotifierProvider);
     final isContentBlocked = contentCheckState.isBlocked;
-    final canSend =
-        state.content.trim().isNotEmpty && !isOverLimit && !state.isSending && !isContentBlocked;
+    final canSend = state.content.trim().isNotEmpty &&
+        !isOverLimit &&
+        !state.isSending &&
+        !isContentBlocked;
 
     return Container(
       decoration: BoxDecoration(

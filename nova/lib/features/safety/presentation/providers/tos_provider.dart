@@ -108,8 +108,7 @@ class TosNotifier extends StateNotifier<TosState> {
 }
 
 /// Provider for ToS operations state
-final tosNotifierProvider =
-    StateNotifierProvider<TosNotifier, TosState>((ref) {
+final tosNotifierProvider = StateNotifierProvider<TosNotifier, TosState>((ref) {
   return TosNotifier(ref.watch(tosServiceProvider), ref);
 });
 

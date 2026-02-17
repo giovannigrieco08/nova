@@ -525,9 +525,8 @@ class _CommentCardState extends ConsumerState<CommentCard>
         userName: userName,
         onConfirm: () async {
           Navigator.of(dialogContext).pop();
-          final success = await ref
-              .read(blockNotifierProvider.notifier)
-              .blockUser(userId);
+          final success =
+              await ref.read(blockNotifierProvider.notifier).blockUser(userId);
 
           if (context.mounted) {
             if (success) {

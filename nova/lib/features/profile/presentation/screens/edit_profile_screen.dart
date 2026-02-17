@@ -273,7 +273,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               _nameController.text = profile.fullName;
               _usernameController.text = profile.username;
               _originalUsername = profile.username;
-              _isUsernameAvailable = true; // Current username is always available
+              _isUsernameAvailable =
+                  true; // Current username is always available
               _selectedClass = profile.classYear;
               _avatarUrl = profile.avatarUrl;
               _originalAvatarUrl = profile.avatarUrl; // Save for cache eviction
@@ -615,7 +616,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               color: NovaColors.primary(context), width: 2),
                         ),
                         suffixIcon: _buildUsernameStatusIcon(),
-                        helperText: 'Lettere minuscole, numeri, punti e underscore',
+                        helperText:
+                            'Lettere minuscole, numeri, punti e underscore',
                         helperStyle: TextStyle(
                           color: NovaColors.textSecondary(context),
                         ),

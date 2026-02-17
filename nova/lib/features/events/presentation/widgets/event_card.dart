@@ -420,8 +420,8 @@ class _EventCardState extends ConsumerState<EventCard> {
 
   /// Image: 3:4 aspect ratio, full width, 14px radius
   /// Supports double-tap to like with Instagram-style heart animation
-  Widget _buildImage(
-      EventLikeState likeState, EventLikesNotifier likesNotifier, String eventId) {
+  Widget _buildImage(EventLikeState likeState, EventLikesNotifier likesNotifier,
+      String eventId) {
     final hasImage = widget.event.imageUrl != null;
     final emoji = widget.emoji;
 
@@ -447,7 +447,8 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Handle double-tap like on image (Instagram-style)
-  void _handleDoubleTapLike(EventLikesNotifier likesNotifier, String eventId) async {
+  void _handleDoubleTapLike(
+      EventLikesNotifier likesNotifier, String eventId) async {
     // Apple Guideline 5.1.1: Check if guest user
     if (_isGuestUser()) {
       _showGuestPrompt('Accedi per mettere mi piace');
@@ -511,8 +512,8 @@ class _EventCardState extends ConsumerState<EventCard> {
   }
 
   /// Actions: Like + Comment (left) | Share (right)
-  Widget _buildActions(
-      EventLikeState likeState, EventLikesNotifier likesNotifier, String eventId) {
+  Widget _buildActions(EventLikeState likeState,
+      EventLikesNotifier likesNotifier, String eventId) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
@@ -1561,8 +1562,11 @@ class _EventCardState extends ConsumerState<EventCard> {
                 subtitle: Text(
                   'Segnala contenuto inappropriato',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  ),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                      ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -1585,4 +1589,3 @@ class _EventCardState extends ConsumerState<EventCard> {
     );
   }
 }
-

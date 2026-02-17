@@ -150,7 +150,8 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
         try {
           final blockedIds = await _ref.read(blockedUserIdsProvider.future);
           if (blockedIds.contains(message.userId)) {
-            debugPrint('[Realtime] Message from blocked user ${message.userId}, skipping');
+            debugPrint(
+                '[Realtime] Message from blocked user ${message.userId}, skipping');
             return;
           }
         } catch (e) {

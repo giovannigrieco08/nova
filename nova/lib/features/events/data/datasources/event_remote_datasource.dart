@@ -96,8 +96,8 @@ class EventRemoteDataSource {
       final response = await _supabase
           .from('events')
           .select(_selectWithCreator)
-          .contains('co_organizers', [userId])
-          .order('created_at', ascending: false);
+          .contains('co_organizers', [userId]).order('created_at',
+              ascending: false);
 
       return (response as List)
           .map((json) => EventModel.fromJson(json))

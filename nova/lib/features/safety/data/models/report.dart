@@ -91,7 +91,8 @@ class Report {
     return Report(
       id: json['id'] as String,
       reporterId: json['reporter_id'] as String,
-      contentType: ReportableContentType.fromString(json['content_type'] as String),
+      contentType:
+          ReportableContentType.fromString(json['content_type'] as String),
       contentId: json['content_id'] as String,
       category: ReportCategory.fromString(json['category'] as String),
       note: json['note'] as String?,

@@ -211,7 +211,8 @@ class HelpOffersNotifier extends StateNotifier<HelpOffersState> {
     String? message,
   }) async {
     debugPrint('[HELP_OFFER] Creating offer for request: $requestId');
-    debugPrint('[HELP_OFFER] Data: userId=$userId, contactType=$contactType, contactInfo=$contactInfo');
+    debugPrint(
+        '[HELP_OFFER] Data: userId=$userId, contactType=$contactType, contactInfo=$contactInfo');
 
     // Validate contact info
     if (contactInfo.trim().isEmpty) {
@@ -234,7 +235,8 @@ class HelpOffersNotifier extends StateNotifier<HelpOffersState> {
       debugPrint('[HELP_OFFER] Offer created successfully!');
       return null; // Success
     } on PostgrestException catch (e) {
-      debugPrint('[HELP_OFFER] PostgrestException: code=${e.code}, message=${e.message}');
+      debugPrint(
+          '[HELP_OFFER] PostgrestException: code=${e.code}, message=${e.message}');
       // Specific error messages based on PostgreSQL error codes
       if (e.code == '23503') {
         // Foreign key violation - profile doesn't exist

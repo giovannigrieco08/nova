@@ -18,7 +18,8 @@ class TosAcceptanceScreen extends ConsumerStatefulWidget {
   static const String routeName = '/tos-acceptance';
 
   @override
-  ConsumerState<TosAcceptanceScreen> createState() => _TosAcceptanceScreenState();
+  ConsumerState<TosAcceptanceScreen> createState() =>
+      _TosAcceptanceScreenState();
 }
 
 class _TosAcceptanceScreenState extends ConsumerState<TosAcceptanceScreen> {
@@ -329,7 +330,8 @@ Per violazioni gravi, Nova procederà direttamente al ban permanente.''',
 ///
 /// Returns true if ToS was accepted or already accepted
 /// Returns false if user dismissed without accepting
-Future<bool> showTosAcceptanceIfNeeded(BuildContext context, WidgetRef ref) async {
+Future<bool> showTosAcceptanceIfNeeded(
+    BuildContext context, WidgetRef ref) async {
   final needsAcceptance = await ref.read(needsTosAcceptanceProvider.future);
 
   if (!needsAcceptance) {

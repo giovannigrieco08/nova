@@ -64,103 +64,103 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Handle bar
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: NovaColors.handleBar,
+                        borderRadius: NovaRadius.circularXxs,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Title
+                  const Text(
+                    'Offri il tuo aiuto',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // User info section
+                  _buildUserInfo(currentUser),
+                  const SizedBox(height: 16),
+
+                  // Request description
+                  Container(
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: NovaColors.handleBar,
-                      borderRadius: NovaRadius.circularXxs,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Title
-                const Text(
-                  'Offri il tuo aiuto',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // User info section
-                _buildUserInfo(currentUser),
-                const SizedBox(height: 16),
-
-                // Request description
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: NovaColors.helpBackground,
-                    borderRadius: NovaRadius.circularXs,
-                    border: Border.all(
-                      color: NovaColors.helpBorder,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.help_outline,
-                        size: 20,
-                        color: NovaColors.helpText,
+                      color: NovaColors.helpBackground,
+                      borderRadius: NovaRadius.circularXs,
+                      border: Border.all(
+                        color: NovaColors.helpBorder,
+                        width: 1,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Per:',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: NovaColors.helpText,
-                              ),
-                            ),
-                            Text(
-                              widget.requestDescription,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.help_outline,
+                          size: 20,
+                          color: NovaColors.helpText,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Per:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: NovaColors.helpText,
+                                ),
+                              ),
+                              Text(
+                                widget.requestDescription,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // Check if already offered
-                hasOfferedAsync.when(
-                  data: (hasOffered) {
-                    if (hasOffered) {
-                      return _buildAlreadyOfferedMessage();
-                    }
-                    return _buildOfferForm();
-                  },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
+                  // Check if already offered
+                  hasOfferedAsync.when(
+                    data: (hasOffered) {
+                      if (hasOffered) {
+                        return _buildAlreadyOfferedMessage();
+                      }
+                      return _buildOfferForm();
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    error: (_, __) => _buildOfferForm(),
                   ),
-                  error: (_, __) => _buildOfferForm(),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -283,17 +283,14 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
               ? TextInputType.phone
               : TextInputType.text,
           decoration: InputDecoration(
-            hintText: _contactType == 'instagram'
-                ? '@username'
-                : 'Numero WhatsApp',
+            hintText:
+                _contactType == 'instagram' ? '@username' : 'Numero WhatsApp',
             hintStyle: const TextStyle(
               fontSize: 14,
               color: NovaColors.grayDark,
             ),
             prefixIcon: Icon(
-              _contactType == 'instagram'
-                  ? Icons.alternate_email
-                  : Icons.phone,
+              _contactType == 'instagram' ? Icons.alternate_email : Icons.phone,
               color: NovaColors.grayDark,
             ),
             border: OutlineInputBorder(
@@ -426,7 +423,8 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? NovaColors.brandViolet : NovaColors.grayDark,
+                color:
+                    isSelected ? NovaColors.brandViolet : NovaColors.grayDark,
               ),
             ),
           ],
@@ -572,7 +570,8 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
   /// Handle form submission
   Future<void> _handleSubmit() async {
     debugPrint('[SUBMIT] Starting help offer submission');
-    debugPrint('[SUBMIT] requestId=${widget.requestId}, contactType=$_contactType');
+    debugPrint(
+        '[SUBMIT] requestId=${widget.requestId}, contactType=$_contactType');
 
     // Close keyboard first
     FocusScope.of(context).unfocus();
@@ -580,7 +579,8 @@ class _OfferHelpSheetState extends ConsumerState<OfferHelpSheet> {
     // Validate contact info
     if (_contactController.text.trim().isEmpty) {
       debugPrint('[SUBMIT] Validation failed: empty contact info');
-      _showSnackBar('Inserisci il tuo contatto per essere ricontattato', isError: true);
+      _showSnackBar('Inserisci il tuo contatto per essere ricontattato',
+          isError: true);
       return;
     }
 

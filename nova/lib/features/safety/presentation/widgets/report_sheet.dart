@@ -37,7 +37,8 @@ class ReportCategorySheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<ReportCategorySheet> createState() => _ReportCategorySheetState();
+  ConsumerState<ReportCategorySheet> createState() =>
+      _ReportCategorySheetState();
 }
 
 class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
@@ -62,7 +63,8 @@ class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
         widget.onReportSubmitted?.call();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Segnalazione inviata. Grazie per il tuo contributo.'),
+            content:
+                Text('Segnalazione inviata. Grazie per il tuo contributo.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -175,9 +177,10 @@ class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _selectedCategory == null || reportState.isLoading
-                        ? null
-                        : _submitReport,
+                    onPressed:
+                        _selectedCategory == null || reportState.isLoading
+                            ? null
+                            : _submitReport,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.error,
                       foregroundColor: theme.colorScheme.onError,
@@ -239,9 +242,8 @@ class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
                       : theme.colorScheme.outline,
                   width: 2,
                 ),
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : Colors.transparent,
+                color:
+                    isSelected ? theme.colorScheme.primary : Colors.transparent,
               ),
               child: isSelected
                   ? Icon(
@@ -259,7 +261,8 @@ class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
                   Text(
                     category.displayName,
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   Text(

@@ -378,7 +378,8 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
       // User is authenticated in Supabase - ensure Riverpod state is synced
       final currentAuthState = ref.read(authNotifierProvider);
       final needsSync = currentAuthState.maybeWhen(
-        data: (state) => state is AuthStateUnauthenticated || state is AuthStateGuest,
+        data: (state) =>
+            state is AuthStateUnauthenticated || state is AuthStateGuest,
         orElse: () => false,
       );
 
@@ -389,8 +390,8 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
         // Force a state update - this will trigger build() via ref.watch
         debugPrint('📱 [RESUME] Syncing auth state...');
         await ref.read(authNotifierProvider.notifier).verifyMagicLink(
-          Uri.parse('novaapp://auth/resume'),
-        );
+              Uri.parse('novaapp://auth/resume'),
+            );
       }
     } else {
       debugPrint('📱 [RESUME] No authenticated user found');
@@ -468,7 +469,8 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
       // Navigate when transitioning from unauthenticated to guest (user taps continue browsing)
       if (previousState is AuthStateUnauthenticated &&
           nextState is AuthStateGuest) {
-        debugPrint('🧭 [NAV] 🎯 Navigating to GuestFeedScreen (continue browsing)');
+        debugPrint(
+            '🧭 [NAV] 🎯 Navigating to GuestFeedScreen (continue browsing)');
         final navigator = _navigatorKey.currentState;
         if (navigator != null) {
           navigator.pushAndRemoveUntil(
@@ -498,7 +500,8 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
       // Navigate when transitioning from authenticated to guest (logout to guest mode)
       if (previousState is AuthStateAuthenticated &&
           nextState is AuthStateGuest) {
-        debugPrint('🧭 [NAV] 🎯 Navigating to GuestFeedScreen (logout to guest)');
+        debugPrint(
+            '🧭 [NAV] 🎯 Navigating to GuestFeedScreen (logout to guest)');
         final navigator = _navigatorKey.currentState;
         if (navigator != null) {
           navigator.pushAndRemoveUntil(
@@ -509,7 +512,6 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
           );
         }
       }
-
     });
 
     // Watch auth state directly for initial widget determination
@@ -524,7 +526,8 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
           AuthStateAuthenticated(:final user) => () {
               debugPrint('🏠 [NovaApp] → Showing ProfileCheckGuard');
               // Use ValueKey to force widget recreation when user changes
-              return _ProfileCheckGuard(key: ValueKey('profile_${user.id}'), userId: user.id);
+              return _ProfileCheckGuard(
+                  key: ValueKey('profile_${user.id}'), userId: user.id);
             }(),
           AuthStateUnauthenticated() => () {
               debugPrint('🏠 [NovaApp] → Showing LoginScreen');
@@ -644,7 +647,8 @@ class _ProfileCheckGuard extends ConsumerWidget {
 
     // Watch profile for current user
     final profileAsync = ref.watch(currentProfileProvider);
-    debugPrint('👤 [ProfileCheckGuard] build() userId: $userId, profileAsync: $profileAsync');
+    debugPrint(
+        '👤 [ProfileCheckGuard] build() userId: $userId, profileAsync: $profileAsync');
 
     return profileAsync.when(
       // Profile loaded successfully - always show main feed
@@ -656,13 +660,15 @@ class _ProfileCheckGuard extends ConsumerWidget {
 
       // Loading profile
       loading: () {
-        debugPrint('👤 [ProfileCheckGuard] → Showing LoadingScreen (profile loading)');
+        debugPrint(
+            '👤 [ProfileCheckGuard] → Showing LoadingScreen (profile loading)');
         return const _LoadingScreen();
       },
 
       // Error loading profile (likely profile doesn't exist yet)
       error: (error, stackTrace) {
-        debugPrint('👤 [ProfileCheckGuard] → Showing ProfileSetupScreen (error: $error)');
+        debugPrint(
+            '👤 [ProfileCheckGuard] → Showing ProfileSetupScreen (error: $error)');
         // Profile doesn't exist - show setup screen to create it
         return const ProfileSetupScreen();
       },

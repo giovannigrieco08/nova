@@ -80,10 +80,8 @@ class ContentFilterRepository {
 
   /// Remove a banned word (soft delete, moderators only)
   Future<void> removeBannedWord(String wordId) async {
-    await _supabase
-        .from('banned_words')
-        .update({'deleted_at': DateTime.now().toIso8601String()})
-        .eq('id', wordId);
+    await _supabase.from('banned_words').update(
+        {'deleted_at': DateTime.now().toIso8601String()}).eq('id', wordId);
   }
 }
 

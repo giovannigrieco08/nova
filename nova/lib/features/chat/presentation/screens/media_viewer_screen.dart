@@ -299,7 +299,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
                       // Media content - full screen with interactive zoom/pan
                       Positioned.fill(
                         child: Opacity(
-                          opacity: 1 - (_dragOffset.abs() / 500).clamp(0.0, 0.5),
+                          opacity:
+                              1 - (_dragOffset.abs() / 500).clamp(0.0, 0.5),
                           child: _buildMediaContent(),
                         ),
                       ),
@@ -474,7 +475,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
-        final glowOpacity = isLastView ? 0.2 + (_pulseAnimation.value * 0.3) : 0.0;
+        final glowOpacity =
+            isLastView ? 0.2 + (_pulseAnimation.value * 0.3) : 0.0;
 
         return Container(
           padding: EdgeInsets.symmetric(
@@ -491,7 +493,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
             boxShadow: isLastView
                 ? [
                     BoxShadow(
-                      color: NovaColors.warning(context).withValues(alpha: glowOpacity),
+                      color: NovaColors.warning(context)
+                          .withValues(alpha: glowOpacity),
                       blurRadius: 12,
                       spreadRadius: 2,
                     ),

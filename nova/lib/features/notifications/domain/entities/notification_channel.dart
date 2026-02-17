@@ -38,7 +38,8 @@ enum NotificationChannel {
   ),
   eventInvitation(
     label: 'Inviti a Collaborare',
-    description: 'Notifiche quando qualcuno ti invita a collaborare su un evento',
+    description:
+        'Notifiche quando qualcuno ti invita a collaborare su un evento',
   );
 
   const NotificationChannel({

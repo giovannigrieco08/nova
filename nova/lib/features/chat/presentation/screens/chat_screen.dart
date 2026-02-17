@@ -148,7 +148,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: messagesAsync.when(
               data: (_) {
                 // UGC Safety: Filter out messages from blocked users (T045)
-                final blockedUserIds = ref.watch(blockedUserIdsProvider).valueOrNull ?? [];
+                final blockedUserIds =
+                    ref.watch(blockedUserIdsProvider).valueOrNull ?? [];
                 final filteredMessages = realtimeState.messages.where((m) {
                   // Filter out deleted messages and messages from blocked users
                   if (m.isDeleted) return false;
@@ -241,9 +242,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         userName: userName,
         onConfirm: () async {
           Navigator.of(dialogContext).pop();
-          final success = await ref
-              .read(blockNotifierProvider.notifier)
-              .blockUser(userId);
+          final success =
+              await ref.read(blockNotifierProvider.notifier).blockUser(userId);
 
           if (mounted) {
             if (success) {

@@ -62,9 +62,7 @@ class BlockRepository {
       throw Exception('Utente non autenticato');
     }
 
-    final response = await _supabase
-        .from('user_blocks')
-        .select('''
+    final response = await _supabase.from('user_blocks').select('''
           id,
           blocker_id,
           blocked_id,
@@ -77,9 +75,7 @@ class BlockRepository {
             username,
             avatar_url
           )
-        ''')
-        .eq('blocker_id', userId)
-        .order('created_at', ascending: false);
+        ''').eq('blocker_id', userId).order('created_at', ascending: false);
 
     return (response as List<dynamic>)
         .map((json) => UserBlock.fromJson(json as Map<String, dynamic>))

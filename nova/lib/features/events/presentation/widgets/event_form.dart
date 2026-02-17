@@ -181,7 +181,9 @@ class _EventFormState extends ConsumerState<EventForm> {
             notifier.updateTitle(value);
             // UGC Safety: Check content for banned words (T073)
             final combined = '$value ${_descriptionController.text}';
-            ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(combined);
+            ref
+                .read(contentCheckNotifierProvider.notifier)
+                .checkWithDebounce(combined);
           },
           maxLength: 100,
           decoration: InputDecoration(
@@ -245,7 +247,9 @@ class _EventFormState extends ConsumerState<EventForm> {
             notifier.updateDescription(value);
             // UGC Safety: Check content for banned words (T073)
             final combined = '${_titleController.text} $value';
-            ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(combined);
+            ref
+                .read(contentCheckNotifierProvider.notifier)
+                .checkWithDebounce(combined);
           },
           maxLength: 500,
           maxLines: 5,

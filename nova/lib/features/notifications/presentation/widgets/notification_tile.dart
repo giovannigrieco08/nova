@@ -88,7 +88,8 @@ class NotificationTile extends StatelessWidget {
               ),
 
               // Accept/Reject buttons for invitations, or CTA button for others
-              if (notification.channel == NotificationChannel.eventInvitation) ...[
+              if (notification.channel ==
+                  NotificationChannel.eventInvitation) ...[
                 SizedBox(width: NovaSpacing.s),
                 _buildInvitationButtons(context),
               ] else if (notification.hasAction) ...[
@@ -170,9 +171,8 @@ class NotificationTile extends StatelessWidget {
     // Use body (full description) if available, otherwise fall back to title
     // body contains "Nome ha messo like al tuo evento"
     // title contains just "Nuovo like"
-    final displayText = notification.body.isNotEmpty
-        ? notification.body
-        : notification.title;
+    final displayText =
+        notification.body.isNotEmpty ? notification.body : notification.title;
 
     // Instagram style: "Description text timestamp"
     return RichText(

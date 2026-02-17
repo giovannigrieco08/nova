@@ -88,7 +88,6 @@ class _AvatarCropperState extends State<AvatarCropper> {
     super.dispose();
   }
 
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();

@@ -29,9 +29,8 @@ class ReportButton extends ConsumerWidget {
     );
 
     return hasReported.when(
-      data: (reported) => reported
-          ? _buildReportedState(context)
-          : _buildReportButton(context),
+      data: (reported) =>
+          reported ? _buildReportedState(context) : _buildReportButton(context),
       loading: () => _buildLoadingState(context),
       error: (_, __) => _buildReportButton(context),
     );

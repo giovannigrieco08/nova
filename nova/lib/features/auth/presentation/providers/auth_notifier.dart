@@ -133,7 +133,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     } catch (e) {
       // Ignore defunct widget errors - the state update will be picked up
       // by any active widgets on their next build
-      debugPrint('🔐 [AUTH] State update caught error (likely defunct widget): $e');
+      debugPrint(
+          '🔐 [AUTH] State update caught error (likely defunct widget): $e');
     }
   }
 
@@ -159,7 +160,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             if (user != null) {
               // DEDUPLICATE: Skip if already authenticated with same user
               if (_lastAuthenticatedUserId == user.id) {
-                debugPrint('🔐 [AUTH_LISTENER] Skipping duplicate signedIn event');
+                debugPrint(
+                    '🔐 [AUTH_LISTENER] Skipping duplicate signedIn event');
                 return;
               }
 
@@ -214,7 +216,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
           default:
             // Other events (passwordRecovery, etc.) - ignore for now
-            debugPrint('🔐 [AUTH_LISTENER] Unhandled event: ${authState.event}');
+            debugPrint(
+                '🔐 [AUTH_LISTENER] Unhandled event: ${authState.event}');
             break;
         }
       },
@@ -300,7 +303,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         // Session already exists - manually update state since the signedIn
         // event might have fired before our listener was set up, or might not
         // fire at all when restoring session from storage
-        debugPrint('🔐 [AUTH] User already authenticated, forcing state update...');
+        debugPrint(
+            '🔐 [AUTH] User already authenticated, forcing state update...');
         _forceAuthStateUpdate(existingUser);
         return true;
       }
@@ -327,7 +331,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // (can happen if token was already verified server-side)
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
-        debugPrint('🔐 [AUTH] User authenticated despite error, updating state...');
+        debugPrint(
+            '🔐 [AUTH] User authenticated despite error, updating state...');
         _forceAuthStateUpdate(currentUser);
         return true;
       }
@@ -341,7 +346,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Check if user got authenticated despite the error
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
-        debugPrint('🔐 [AUTH] User authenticated despite error, updating state...');
+        debugPrint(
+            '🔐 [AUTH] User authenticated despite error, updating state...');
         _forceAuthStateUpdate(currentUser);
         return true;
       }
@@ -361,7 +367,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
     // Check if already authenticated with same user
     if (_lastAuthenticatedUserId == user.id) {
-      debugPrint('🔐 [AUTH] Already authenticated with same user, checking state...');
+      debugPrint(
+          '🔐 [AUTH] Already authenticated with same user, checking state...');
       final currentState = state.valueOrNull;
       if (currentState is AuthStateAuthenticated) {
         debugPrint('🔐 [AUTH] State already correct, skipping update');
@@ -378,7 +385,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     try {
       // Direct state assignment triggers Riverpod notifications
       state = newState;
-      debugPrint('🔐 [AUTH] State set successfully! Riverpod should notify listeners now.');
+      debugPrint(
+          '🔐 [AUTH] State set successfully! Riverpod should notify listeners now.');
     } catch (e) {
       debugPrint('🔐 [AUTH] State set error: $e');
       // This error might happen if the notifier is in a weird state
@@ -396,7 +404,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     // Verify state was updated
     final currentState = state.valueOrNull;
     debugPrint('🔐 [AUTH] Current state after update: $currentState');
-    debugPrint('🔐 [AUTH] Is authenticated: ${currentState is AuthStateAuthenticated}');
+    debugPrint(
+        '🔐 [AUTH] Is authenticated: ${currentState is AuthStateAuthenticated}');
 
     // Register FCM token
     _registerFcmTokenAfterLogin();

@@ -93,10 +93,10 @@ class NotificationListScreen extends ConsumerWidget {
                   onDelete: () =>
                       _deleteNotification(context, ref, notification.id),
                   onMarkAsRead: () => _markAsRead(ref, notification.id),
-                  onAccept: () =>
-                      _handleInvitationResponse(context, ref, notification, true),
-                  onReject: () =>
-                      _handleInvitationResponse(context, ref, notification, false),
+                  onAccept: () => _handleInvitationResponse(
+                      context, ref, notification, true),
+                  onReject: () => _handleInvitationResponse(
+                      context, ref, notification, false),
                 )),
           ],
 
@@ -109,10 +109,10 @@ class NotificationListScreen extends ConsumerWidget {
                   onDelete: () =>
                       _deleteNotification(context, ref, notification.id),
                   onMarkAsRead: () => _markAsRead(ref, notification.id),
-                  onAccept: () =>
-                      _handleInvitationResponse(context, ref, notification, true),
-                  onReject: () =>
-                      _handleInvitationResponse(context, ref, notification, false),
+                  onAccept: () => _handleInvitationResponse(
+                      context, ref, notification, true),
+                  onReject: () => _handleInvitationResponse(
+                      context, ref, notification, false),
                 )),
           ],
 
@@ -125,10 +125,10 @@ class NotificationListScreen extends ConsumerWidget {
                   onDelete: () =>
                       _deleteNotification(context, ref, notification.id),
                   onMarkAsRead: () => _markAsRead(ref, notification.id),
-                  onAccept: () =>
-                      _handleInvitationResponse(context, ref, notification, true),
-                  onReject: () =>
-                      _handleInvitationResponse(context, ref, notification, false),
+                  onAccept: () => _handleInvitationResponse(
+                      context, ref, notification, true),
+                  onReject: () => _handleInvitationResponse(
+                      context, ref, notification, false),
                 )),
           ],
 
@@ -141,10 +141,10 @@ class NotificationListScreen extends ConsumerWidget {
                   onDelete: () =>
                       _deleteNotification(context, ref, notification.id),
                   onMarkAsRead: () => _markAsRead(ref, notification.id),
-                  onAccept: () =>
-                      _handleInvitationResponse(context, ref, notification, true),
-                  onReject: () =>
-                      _handleInvitationResponse(context, ref, notification, false),
+                  onAccept: () => _handleInvitationResponse(
+                      context, ref, notification, true),
+                  onReject: () => _handleInvitationResponse(
+                      context, ref, notification, false),
                 )),
           ],
 
@@ -391,8 +391,12 @@ class NotificationListScreen extends ConsumerWidget {
       );
 
       // Mark notification as read and delete it
-      ref.read(notificationNotifierProvider.notifier).markAsRead(notification.id);
-      ref.read(notificationNotifierProvider.notifier).deleteNotification(notification.id);
+      ref
+          .read(notificationNotifierProvider.notifier)
+          .markAsRead(notification.id);
+      ref
+          .read(notificationNotifierProvider.notifier)
+          .deleteNotification(notification.id);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -400,7 +404,8 @@ class NotificationListScreen extends ConsumerWidget {
             content: Text(accept
                 ? 'Invito accettato! Ora sei co-organizzatore'
                 : 'Invito rifiutato'),
-            backgroundColor: accept ? Colors.green : NovaColors.textSecondary(context),
+            backgroundColor:
+                accept ? Colors.green : NovaColors.textSecondary(context),
           ),
         );
 
@@ -410,7 +415,8 @@ class NotificationListScreen extends ConsumerWidget {
           if (targetId != null) {
             Navigator.push(
               context,
-              NovaPageRoute.swipeBack(page: EventDetailScreen(eventId: targetId)),
+              NovaPageRoute.swipeBack(
+                  page: EventDetailScreen(eventId: targetId)),
             );
           }
         }

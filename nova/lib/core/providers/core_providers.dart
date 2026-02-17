@@ -123,4 +123,3 @@ final currentUserProvider = Provider<User?>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
   return supabase.auth.currentUser;
 });
-

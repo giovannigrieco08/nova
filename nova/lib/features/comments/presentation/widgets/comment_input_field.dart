@@ -124,7 +124,9 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                           controller: inputNotifier.textController,
                           onChanged: (value) {
                             // UGC Safety: Check content for banned words (T074)
-                            ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(value);
+                            ref
+                                .read(contentCheckNotifierProvider.notifier)
+                                .checkWithDebounce(value);
                           },
                           placeholder: 'Aggiungi un commento...',
                           placeholderStyle: NovaTextStyles.body.copyWith(
@@ -153,7 +155,9 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                           controller: inputNotifier.textController,
                           onChanged: (value) {
                             // UGC Safety: Check content for banned words (T074)
-                            ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(value);
+                            ref
+                                .read(contentCheckNotifierProvider.notifier)
+                                .checkWithDebounce(value);
                           },
                           decoration: InputDecoration(
                             hintText: 'Aggiungi un commento...',
@@ -209,7 +213,8 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                 ),
 
               // Send button
-              _buildSendButton(context, inputState, inputNotifier, isContentBlocked),
+              _buildSendButton(
+                  context, inputState, inputNotifier, isContentBlocked),
             ],
           ),
 
@@ -285,7 +290,8 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
         onPressed: canSend
             ? () async {
                 // UGC Safety: Check ToS acceptance before posting (T056)
-                final tosAccepted = await showTosAcceptanceIfNeeded(context, ref);
+                final tosAccepted =
+                    await showTosAcceptanceIfNeeded(context, ref);
                 if (!tosAccepted) return;
 
                 if (widget.replyModeState.isReplyMode &&
@@ -305,9 +311,8 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
             : null,
         icon: Icon(
           Icons.send,
-          color: canSend
-              ? NovaColors.primaryLight
-              : NovaColors.textTertiaryLight,
+          color:
+              canSend ? NovaColors.primaryLight : NovaColors.textTertiaryLight,
         ),
         iconSize: 32,
         padding: EdgeInsets.zero,

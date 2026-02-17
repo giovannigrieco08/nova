@@ -42,7 +42,8 @@ class GuestFeedScreen extends ConsumerWidget {
             right: 0,
             bottom: 0,
             child: _SignInBanner(
-              onSignIn: () => ref.read(authNotifierProvider.notifier).showLogin(),
+              onSignIn: () =>
+                  ref.read(authNotifierProvider.notifier).showLogin(),
             ),
           ),
         ],

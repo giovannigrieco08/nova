@@ -7,7 +7,8 @@ import '../../data/repositories/content_filter_repository.dart';
 import '../../domain/services/content_filter_service.dart';
 
 /// Provider for ContentFilterRepository
-final contentFilterRepositoryProvider = Provider<ContentFilterRepository>((ref) {
+final contentFilterRepositoryProvider =
+    Provider<ContentFilterRepository>((ref) {
   return ContentFilterRepository();
 });
 
@@ -55,7 +56,8 @@ class ContentCheckNotifier extends StateNotifier<ContentCheckState> {
   Timer? _debounceTimer;
 
   /// Check content with debounce (for real-time validation)
-  void checkWithDebounce(String text, {Duration delay = const Duration(milliseconds: 500)}) {
+  void checkWithDebounce(String text,
+      {Duration delay = const Duration(milliseconds: 500)}) {
     _debounceTimer?.cancel();
 
     if (text.trim().length < 3) {
@@ -108,7 +110,8 @@ class ContentCheckNotifier extends StateNotifier<ContentCheckState> {
 
 /// Provider for content check state
 final contentCheckNotifierProvider =
-    StateNotifierProvider.autoDispose<ContentCheckNotifier, ContentCheckState>((ref) {
+    StateNotifierProvider.autoDispose<ContentCheckNotifier, ContentCheckState>(
+        (ref) {
   return ContentCheckNotifier(ref.watch(contentFilterServiceProvider));
 });
 

@@ -81,7 +81,8 @@ class _CameraScreenState extends State<CameraScreen>
       vsync: this,
     );
     _modeSlideAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _modeSlideController, curve: Curves.easeInOutCubic),
+      CurvedAnimation(
+          parent: _modeSlideController, curve: Curves.easeInOutCubic),
     );
 
     _initializeCamera();
@@ -517,10 +518,7 @@ class _CameraScreenState extends State<CameraScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           // Mode selector or recording timer
-          if (_isRecording)
-            _buildRecordingTimer()
-          else
-            _buildModeSelector(),
+          if (_isRecording) _buildRecordingTimer() else _buildModeSelector(),
 
           SizedBox(height: NovaSpacing.xl),
 
@@ -685,7 +683,8 @@ class _CameraScreenState extends State<CameraScreen>
 
   Widget _buildShutterButton() {
     final isVideoMode = _selectedMode == 1;
-    final Color buttonColor = isVideoMode ? const Color(0xFFED4956) : Colors.white;
+    final Color buttonColor =
+        isVideoMode ? const Color(0xFFED4956) : Colors.white;
 
     return GestureDetector(
       onTap: _isProcessingShutter
@@ -704,8 +703,10 @@ class _CameraScreenState extends State<CameraScreen>
       child: AnimatedBuilder(
         animation: _pulseAnimation,
         builder: (context, child) {
-          final double glowOpacity = _isRecording ? 0.3 + (_pulseAnimation.value * 0.3) : 0.0;
-          final double glowRadius = _isRecording ? 15 + (_pulseAnimation.value * 10) : 0.0;
+          final double glowOpacity =
+              _isRecording ? 0.3 + (_pulseAnimation.value * 0.3) : 0.0;
+          final double glowRadius =
+              _isRecording ? 15 + (_pulseAnimation.value * 10) : 0.0;
 
           return Container(
             width: 90,

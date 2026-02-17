@@ -79,18 +79,14 @@ class NotificationPreferencesNotifier
       }
 
       // Query profiles table where notification preferences are stored
-      final response = await supabase
-          .from('profiles')
-          .select('''
+      final response = await supabase.from('profiles').select('''
             eventi_moderati_enabled,
             nuovi_commenti_enabled,
             risposte_commenti_enabled,
             like_eventi_enabled,
             nuove_partecipazioni_enabled,
             coorganizer_updates_enabled
-          ''')
-          .eq('user_id', userId)
-          .maybeSingle();
+          ''').eq('user_id', userId).maybeSingle();
 
       if (response == null) {
         return const NotificationPreferences();

@@ -35,7 +35,8 @@ class BlockButton extends ConsumerWidget {
     );
   }
 
-  Widget _buildBlockButton(BuildContext context, WidgetRef ref, bool isLoading) {
+  Widget _buildBlockButton(
+      BuildContext context, WidgetRef ref, bool isLoading) {
     final theme = Theme.of(context);
 
     if (iconOnly) {
@@ -44,17 +45,14 @@ class BlockButton extends ConsumerWidget {
           Icons.block,
           color: theme.colorScheme.error,
         ),
-        onPressed: isLoading
-            ? null
-            : () => _showBlockConfirmation(context, ref),
+        onPressed:
+            isLoading ? null : () => _showBlockConfirmation(context, ref),
         tooltip: 'Blocca utente',
       );
     }
 
     return TextButton.icon(
-      onPressed: isLoading
-          ? null
-          : () => _showBlockConfirmation(context, ref),
+      onPressed: isLoading ? null : () => _showBlockConfirmation(context, ref),
       icon: Icon(
         Icons.block,
         size: 18,
@@ -131,7 +129,8 @@ class BlockButton extends ConsumerWidget {
         userName: userName,
         onConfirm: () async {
           Navigator.of(context).pop();
-          final success = await ref.read(blockNotifierProvider.notifier).blockUser(userId);
+          final success =
+              await ref.read(blockNotifierProvider.notifier).blockUser(userId);
           if (success && context.mounted) {
             onBlocked?.call();
             ScaffoldMessenger.of(context).showSnackBar(
@@ -265,7 +264,9 @@ class BlockMenuItem extends ConsumerWidget {
                 userName: userName,
                 onConfirm: () async {
                   Navigator.of(context).pop();
-                  final success = await ref.read(blockNotifierProvider.notifier).blockUser(userId);
+                  final success = await ref
+                      .read(blockNotifierProvider.notifier)
+                      .blockUser(userId);
                   if (success && context.mounted) {
                     onBlocked?.call();
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -360,7 +361,9 @@ class BlockListTile extends ConsumerWidget {
                   userName: userName,
                   onConfirm: () async {
                     Navigator.of(context).pop();
-                    final success = await ref.read(blockNotifierProvider.notifier).blockUser(userId);
+                    final success = await ref
+                        .read(blockNotifierProvider.notifier)
+                        .blockUser(userId);
                     if (success && context.mounted) {
                       onBlocked?.call();
                       ScaffoldMessenger.of(context).showSnackBar(

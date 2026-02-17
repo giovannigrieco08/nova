@@ -167,7 +167,8 @@ class AuthRepository {
           }
 
           // No session found, throw the original error
-          throw AuthException('Magic link verification failed. Please try again.');
+          throw AuthException(
+              'Magic link verification failed. Please try again.');
         }
       }
 
