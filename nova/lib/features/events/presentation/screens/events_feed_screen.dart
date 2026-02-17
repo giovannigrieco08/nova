@@ -9,6 +9,7 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/animations/staggered_list_animation.dart';
 import '../../../../core/animations/page_transitions.dart';
+import '../../../../core/models/auth_state.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../providers/events_feed_provider.dart';
 import '../providers/event_engagement_provider.dart';
@@ -151,12 +152,8 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
           elevation: 0,
           centerTitle: true,
           actions: [
-            // Logout button
-            IconButton(
-              icon: const Icon(Icons.logout_rounded),
-              onPressed: () => _handleSignOut(context),
-              tooltip: 'Esci',
-            ),
+            // Show login button for guests, logout button for authenticated users
+            _buildAuthAction(context),
           ],
         ),
         body: bodyContent,
@@ -391,6 +388,28 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
         ),
       ),
     );
+  }
+
+  /// Build auth action button based on user state
+  /// - Guest: "Accedi" button to go to login screen
+  /// - Authenticated: "Esci" button to sign out
+  Widget _buildAuthAction(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider).valueOrNull;
+    final isGuest = authState is AuthStateGuest;
+
+    if (isGuest) {
+      return IconButton(
+        icon: const Icon(Icons.login_rounded),
+        onPressed: () => ref.read(authNotifierProvider.notifier).showLogin(),
+        tooltip: 'Accedi',
+      );
+    } else {
+      return IconButton(
+        icon: const Icon(Icons.logout_rounded),
+        onPressed: () => _handleSignOut(context),
+        tooltip: 'Esci',
+      );
+    }
   }
 
   /// Handle sign out button press
