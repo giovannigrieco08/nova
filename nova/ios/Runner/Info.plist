@@ -88,6 +88,8 @@
 	<!-- Events Feature: Location Access -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Nova richiede accesso alla posizione per mostrarti eventi nelle vicinanze e aiutarti a trovare luoghi degli eventi.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Nova richiede accesso alla posizione per mostrarti eventi nelle vicinanze e aiutarti a trovare luoghi degli eventi.</string>
 
 	<!-- Push Notifications: Background Modes -->
 	<key>UIBackgroundModes</key>
