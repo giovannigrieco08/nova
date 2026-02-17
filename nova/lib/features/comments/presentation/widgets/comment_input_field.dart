@@ -9,6 +9,11 @@ import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_typography.dart';
 import '../providers/comment_input_notifier.dart';
 import '../providers/reply_mode_notifier.dart';
+// UGC Safety: ToS acceptance check (T056)
+import '../../../safety/presentation/screens/tos_acceptance_screen.dart';
+// UGC Safety: Content filter (T074)
+import '../../../safety/presentation/providers/content_filter_provider.dart';
+import '../../../safety/presentation/widgets/content_warning_banner.dart';
 
 /// CommentInputField Widget
 ///
@@ -80,6 +85,9 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
     final inputState = ref.watch(commentInputNotifierProvider(widget.eventId));
     final inputNotifier =
         ref.read(commentInputNotifierProvider(widget.eventId).notifier);
+    // UGC Safety: Watch content check state (T074)
+    final contentCheckState = ref.watch(contentCheckNotifierProvider);
+    final isContentBlocked = contentCheckState.isBlocked;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -114,6 +122,10 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                   child: Platform.isIOS
                       ? CupertinoTextField(
                           controller: inputNotifier.textController,
+                          onChanged: (value) {
+                            // UGC Safety: Check content for banned words (T074)
+                            ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(value);
+                          },
                           placeholder: 'Aggiungi un commento...',
                           placeholderStyle: NovaTextStyles.body.copyWith(
                             color: NovaColors.textTertiaryLight,
@@ -139,6 +151,10 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                         )
                       : TextField(
                           controller: inputNotifier.textController,
+                          onChanged: (value) {
+                            // UGC Safety: Check content for banned words (T074)
+                            ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(value);
+                          },
                           decoration: InputDecoration(
                             hintText: 'Aggiungi un commento...',
                             hintStyle: NovaTextStyles.body.copyWith(
@@ -185,8 +201,15 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
 
               SizedBox(width: NovaSpacing.s),
 
+              // UGC Safety: Content warning indicator (T074)
+              if (contentCheckState.isBlocked || contentCheckState.hasWarnings)
+                const Padding(
+                  padding: EdgeInsets.only(right: 4),
+                  child: ContentWarningIndicator(size: 20),
+                ),
+
               // Send button
-              _buildSendButton(context, inputState, inputNotifier),
+              _buildSendButton(context, inputState, inputNotifier, isContentBlocked),
             ],
           ),
 
@@ -228,7 +251,11 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
     BuildContext context,
     CommentInputState inputState,
     CommentInputNotifier inputNotifier,
+    bool isContentBlocked,
   ) {
+    // UGC Safety: Also check if content is blocked (T074)
+    final canSend = inputState.canSend && !isContentBlocked;
+
     if (inputState.isPosting) {
       // Loading indicator
       return Semantics(
@@ -248,15 +275,19 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
     // Send button - calls postReply when in reply mode, postComment otherwise
     return Semantics(
       button: true,
-      label: inputState.canSend
+      label: canSend
           ? (widget.replyModeState.isReplyMode
               ? 'Invia risposta'
               : 'Invia commento')
           : 'Pulsante invia disabilitato, scrivi un commento per inviare',
-      enabled: inputState.canSend,
+      enabled: canSend,
       child: IconButton(
-        onPressed: inputState.canSend
-            ? () {
+        onPressed: canSend
+            ? () async {
+                // UGC Safety: Check ToS acceptance before posting (T056)
+                final tosAccepted = await showTosAcceptanceIfNeeded(context, ref);
+                if (!tosAccepted) return;
+
                 if (widget.replyModeState.isReplyMode &&
                     widget.replyModeState.targetComment != null) {
                   // In reply mode - post as reply
@@ -274,7 +305,7 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
             : null,
         icon: Icon(
           Icons.send,
-          color: inputState.canSend
+          color: canSend
               ? NovaColors.primaryLight
               : NovaColors.textTertiaryLight,
         ),

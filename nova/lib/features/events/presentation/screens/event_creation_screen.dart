@@ -22,6 +22,8 @@ import '../providers/event_creation_provider.dart';
 import '../providers/events_feed_provider.dart';
 import '../widgets/event_form.dart';
 import '../../domain/entities/event.dart';
+// UGC Safety: ToS acceptance check (T055)
+import '../../../safety/presentation/screens/tos_acceptance_screen.dart';
 
 /// Event creation/edit screen
 class EventCreationScreen extends ConsumerStatefulWidget {
@@ -295,6 +297,14 @@ class _EventCreationScreenState extends ConsumerState<EventCreationScreen> {
     EventCreationNotifier notifier,
   ) async {
     final navigator = Navigator.of(context);
+
+    // UGC Safety: Check ToS acceptance before creating content (T055)
+    if (!isEditMode) {
+      final tosAccepted = await showTosAcceptanceIfNeeded(context, ref);
+      if (!tosAccepted) {
+        return; // User didn't accept ToS
+      }
+    }
 
     try {
       debugPrint('>>> _submitForm called, isEditMode: $isEditMode');

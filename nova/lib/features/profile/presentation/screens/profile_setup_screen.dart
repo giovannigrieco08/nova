@@ -297,7 +297,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         userId: userId,
         email: email,
         fullName: _nameController.text.trim(),
-        username: _usernameController.text.trim(),
+        username: _usernameController.text.trim().toLowerCase(), // Always lowercase
         classYear: _selectedClass!,
         avatarUrl: _avatarUrl, // Include avatar URL if uploaded
       );
@@ -313,7 +313,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       if (mounted) {
         NovaToast.showError(
           context,
-          'Errore nel salvataggio: ${e.toString()}',
+          _parseProfileError(e.toString()),
         );
       }
     } finally {
@@ -362,7 +362,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         fullName: _nameController.text.trim().isNotEmpty
             ? _nameController.text.trim()
             : 'Utente Nova',
-        username: _usernameController.text.trim(),
+        username: _usernameController.text.trim().toLowerCase(), // Always lowercase
         classYear: null, // Incomplete profile
       );
 
@@ -380,7 +380,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       if (mounted) {
         NovaToast.showError(
           context,
-          'Errore: ${e.toString()}',
+          _parseProfileError(e.toString()),
         );
       }
     } finally {
@@ -390,6 +390,42 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         });
       }
     }
+  }
+
+  /// Parse Supabase/PostgreSQL errors and return user-friendly Italian messages
+  String _parseProfileError(String error) {
+    // Check for username format constraint violation
+    if (error.contains('username_format_check') ||
+        (error.contains('23514') && error.contains('profiles'))) {
+      return 'Lo username deve avere 3-30 caratteri e contenere solo lettere minuscole, numeri, punti e underscore';
+    }
+
+    // Check for duplicate username
+    if (error.contains('profiles_username_key') ||
+        (error.contains('23505') && error.contains('username'))) {
+      return 'Questo username è già in uso. Scegline un altro.';
+    }
+
+    // Check for duplicate profile (user already has a profile)
+    if (error.contains('profiles_pkey') ||
+        (error.contains('23505') && error.contains('user_id'))) {
+      return 'Hai già un profilo. Prova a riavviare l\'app.';
+    }
+
+    // Generic database error
+    if (error.contains('PostgrestException') || error.contains('23')) {
+      return 'Errore nel salvataggio. Verifica i dati e riprova.';
+    }
+
+    // Network error
+    if (error.contains('SocketException') ||
+        error.contains('NetworkException') ||
+        error.contains('Failed host lookup')) {
+      return 'Errore di connessione. Verifica la tua connessione internet.';
+    }
+
+    // Fallback to generic error (hide technical details)
+    return 'Errore nel salvataggio. Riprova più tardi.';
   }
 
   @override

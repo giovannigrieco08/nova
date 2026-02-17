@@ -368,7 +368,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (mounted) {
         NovaToast.showError(
           context,
-          'Errore nel salvataggio: ${e.toString()}',
+          _parseProfileError(e.toString()),
         );
       }
     } finally {
@@ -378,6 +378,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         });
       }
     }
+  }
+
+  /// Parse Supabase/PostgreSQL errors and return user-friendly Italian messages
+  String _parseProfileError(String error) {
+    // Check for username format constraint violation
+    if (error.contains('username_format_check') ||
+        (error.contains('23514') && error.contains('profiles'))) {
+      return 'Lo username deve avere 3-30 caratteri e contenere solo lettere minuscole, numeri, punti e underscore';
+    }
+
+    // Check for duplicate username
+    if (error.contains('profiles_username_key') ||
+        (error.contains('23505') && error.contains('username'))) {
+      return 'Questo username è già in uso. Scegline un altro.';
+    }
+
+    // Generic database error
+    if (error.contains('PostgrestException') || error.contains('23')) {
+      return 'Errore nel salvataggio. Verifica i dati e riprova.';
+    }
+
+    // Network error
+    if (error.contains('SocketException') ||
+        error.contains('NetworkException') ||
+        error.contains('Failed host lookup')) {
+      return 'Errore di connessione. Verifica la tua connessione internet.';
+    }
+
+    // Fallback to generic error (hide technical details)
+    return 'Errore nel salvataggio. Riprova più tardi.';
   }
 
   @override

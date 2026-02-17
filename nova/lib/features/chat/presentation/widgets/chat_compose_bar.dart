@@ -16,6 +16,11 @@ import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_radius.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
 import 'package:nova/core/theme/nova_typography.dart';
+// UGC Safety: ToS acceptance check (T057)
+import 'package:nova/features/safety/presentation/screens/tos_acceptance_screen.dart';
+// UGC Safety: Content filter (T075)
+import 'package:nova/features/safety/presentation/providers/content_filter_provider.dart';
+import 'package:nova/features/safety/presentation/widgets/content_warning_banner.dart';
 import 'package:nova/core/utils/image_orientation_fixer.dart';
 import 'package:nova/core/utils/video_compressor.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
@@ -180,6 +185,9 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     final text = _controller.text;
     ref.read(composeStateProvider.notifier).updateContent(text);
 
+    // UGC Safety: Check content for banned words (T075)
+    ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(text);
+
     // Check for @mention trigger
     _checkMentionTrigger(text);
   }
@@ -246,6 +254,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
   Future<void> _sendMessage() async {
     final state = ref.read(composeStateProvider);
     if (state.content.trim().isEmpty || state.isSending) return;
+
+    // UGC Safety: Check ToS acceptance before sending (T057)
+    final tosAccepted = await showTosAcceptanceIfNeeded(context, ref);
+    if (!tosAccepted) return;
 
     // Store message content before sending (in case it fails)
     final messageContent = state.content.trim();
@@ -721,6 +733,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     int? durationSeconds,
     String? caption,
   }) async {
+    // UGC Safety: Check ToS acceptance before uploading media (T057)
+    final tosAccepted = await showTosAcceptanceIfNeeded(context, ref);
+    if (!tosAccepted) return;
+
     debugPrint('[MediaUpload] _uploadMedia called');
     debugPrint('[MediaUpload] - filePath: $filePath');
     debugPrint('[MediaUpload] - mediaType: ${mediaType.value}');
@@ -948,8 +964,11 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
     final state = ref.watch(composeStateProvider);
     final characterCount = state.content.length;
     final isOverLimit = characterCount > _maxCharacters;
+    // UGC Safety: Watch content check state (T075)
+    final contentCheckState = ref.watch(contentCheckNotifierProvider);
+    final isContentBlocked = contentCheckState.isBlocked;
     final canSend =
-        state.content.trim().isNotEmpty && !isOverLimit && !state.isSending;
+        state.content.trim().isNotEmpty && !isOverLimit && !state.isSending && !isContentBlocked;
 
     return Container(
       decoration: BoxDecoration(
@@ -990,6 +1009,10 @@ class _ChatComposeBarState extends ConsumerState<ChatComposeBar> {
                   onDismiss: widget.onCancelReply,
                 ),
               ),
+
+            // UGC Safety: Content warning banner (T075)
+            if (contentCheckState.isBlocked || contentCheckState.hasWarnings)
+              const ContentWarningBanner(compact: false),
 
             // Error message
             if (state.error != null)

@@ -24,6 +24,9 @@ import '../../../search/presentation/providers/search_provider.dart';
 import '../../../search/domain/entities/search_results.dart';
 import './image_picker_widget.dart';
 import './location_picker_sheet.dart';
+// UGC Safety: Content filter (T073)
+import '../../../safety/presentation/providers/content_filter_provider.dart';
+import '../../../safety/presentation/widgets/content_warning_banner.dart';
 
 /// Complete event creation form
 class EventForm extends ConsumerStatefulWidget {
@@ -133,6 +136,9 @@ class _EventFormState extends ConsumerState<EventForm> {
                   _buildHelpRequestsSection(context, state, notifier),
                   SizedBox(height: NovaSpacing.l),
 
+                  // UGC Safety: Content warning banner (T073)
+                  const ContentWarningBanner(),
+
                   // Info text
                   _buildInfoText(context),
                 ],
@@ -171,7 +177,12 @@ class _EventFormState extends ConsumerState<EventForm> {
         SizedBox(height: NovaSpacing.s),
         TextField(
           controller: _titleController,
-          onChanged: notifier.updateTitle,
+          onChanged: (value) {
+            notifier.updateTitle(value);
+            // UGC Safety: Check content for banned words (T073)
+            final combined = '$value ${_descriptionController.text}';
+            ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(combined);
+          },
           maxLength: 100,
           decoration: InputDecoration(
             hintText: 'Es: Torneo di Calcetto 5vs5',
@@ -230,7 +241,12 @@ class _EventFormState extends ConsumerState<EventForm> {
         SizedBox(height: NovaSpacing.s),
         TextField(
           controller: _descriptionController,
-          onChanged: notifier.updateDescription,
+          onChanged: (value) {
+            notifier.updateDescription(value);
+            // UGC Safety: Check content for banned words (T073)
+            final combined = '${_titleController.text} $value';
+            ref.read(contentCheckNotifierProvider.notifier).checkWithDebounce(combined);
+          },
           maxLength: 500,
           maxLines: 5,
           decoration: InputDecoration(

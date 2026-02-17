@@ -8,17 +8,12 @@ class Validators {
   // ============================================================================
 
   /// Regex for valid username: lowercase letters, numbers, dots, underscores
-  /// Cannot start/end with . or _, no consecutive .. or __
   static final RegExp _usernameRegex = RegExp(r'^[a-z0-9._]+$');
-  static final RegExp _usernameStartEndRegex = RegExp(r'^[._]|[._]$');
-  static final RegExp _usernameConsecutiveRegex = RegExp(r'\.\.|__');
 
   /// Validates username
   /// Rules:
   /// - 3-30 characters
   /// - Only lowercase letters, numbers, dots, underscores
-  /// - Cannot start or end with . or _
-  /// - No consecutive .. or __
   /// Returns null if valid, error message if invalid
   static String? validateUsername(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -37,14 +32,6 @@ class Validators {
 
     if (!_usernameRegex.hasMatch(trimmed)) {
       return 'Lo username può contenere solo lettere minuscole, numeri, punti e underscore';
-    }
-
-    if (_usernameStartEndRegex.hasMatch(trimmed)) {
-      return 'Lo username non può iniziare o finire con . o _';
-    }
-
-    if (_usernameConsecutiveRegex.hasMatch(trimmed)) {
-      return 'Lo username non può contenere .. o __ consecutivi';
     }
 
     return null; // Valid
