@@ -25,6 +25,13 @@ import '../../../../shared/widgets/adaptive/adaptive_loading_indicator.dart';
 // Tutoring feature imports (T045-T048)
 import '../../../tutoring/presentation/providers/tutor_providers.dart';
 import '../../../tutoring/presentation/widgets/tutor_profile_section.dart';
+// UGC Safety feature imports (T032)
+import '../../../safety/data/models/report.dart';
+import '../../../safety/presentation/widgets/report_sheet.dart';
+import '../../../safety/presentation/widgets/block_button.dart';
+import '../../../safety/presentation/providers/block_provider.dart';
+import '../../../safety/presentation/widgets/block_button.dart';
+import '../../../safety/presentation/providers/block_provider.dart';
 
 /// Screen for viewing other users' profiles (OPTIMIZED)
 ///
@@ -58,11 +65,26 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(otherProfileProvider(widget.userId));
-    final statsAsync = ref.watch(otherProfileStatsProvider(widget.userId));
+    // UGC Safety: Check if current user can view this profile (T047)
+    // If blocked by profile owner, show "Profilo non disponibile"
+    final canViewAsync = ref.watch(canViewProfileProvider(widget.userId));
 
-    return profileAsync.when(
-      data: (profile) => _buildProfileView(profile, statsAsync),
+    return canViewAsync.when(
+      data: (canView) {
+        if (!canView) {
+          // User is blocked - show privacy error
+          return _buildErrorView(Exception('blocked'));
+        }
+        // User can view - proceed with loading profile
+        final profileAsync = ref.watch(otherProfileProvider(widget.userId));
+        final statsAsync = ref.watch(otherProfileStatsProvider(widget.userId));
+
+        return profileAsync.when(
+          data: (profile) => _buildProfileView(profile, statsAsync),
+          loading: () => _buildLoadingView(),
+          error: (error, stack) => _buildErrorView(error),
+        );
+      },
       loading: () => _buildLoadingView(),
       error: (error, stack) => _buildErrorView(error),
     );
@@ -136,7 +158,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
     );
   }
 
-  /// Build app bar with profile name
+  /// Build app bar with profile name and actions menu
   PreferredSizeWidget _buildAppBar(Profile profile) {
     final displayName =
         profile.fullName.isNotEmpty ? profile.fullName : profile.username;
@@ -149,6 +171,11 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         previousPageTitle: '',
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.ellipsis),
+          onPressed: () => _showActionSheet(profile),
+        ),
       );
     } else {
       return AppBar(
@@ -167,8 +194,121 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
         ),
         backgroundColor: NovaColors.background(context),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () => _showActionSheet(profile),
+          ),
+        ],
       );
     }
+  }
+
+  /// Show action sheet with Report and Block options
+  void _showActionSheet(Profile profile) {
+    if (Platform.isIOS) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (context) => CupertinoActionSheet(
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                _showBlockConfirmation(profile);
+              },
+              child: const Text('Blocca utente'),
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.pop(context);
+                _showReportSheet(profile);
+              },
+              child: const Text('Segnala'),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Block option
+              ListTile(
+                leading: const Icon(Icons.block),
+                title: const Text('Blocca utente'),
+                subtitle: const Text('Non vedrai più i suoi contenuti'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showBlockConfirmation(profile);
+                },
+              ),
+              // Report option
+              ListTile(
+                leading: Icon(
+                  Icons.flag_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Segnala',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                subtitle: const Text('Segnala profilo inappropriato'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showReportSheet(profile);
+                },
+              ),
+              SizedBox(height: NovaSpacing.medium),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Show report sheet for profile
+  void _showReportSheet(Profile profile) {
+    ReportCategorySheet.show(
+      context,
+      contentType: ReportableContentType.profile,
+      contentId: profile.userId,
+    );
+  }
+
+  /// Show block confirmation dialog
+  void _showBlockConfirmation(Profile profile) {
+    final displayName =
+        profile.fullName.isNotEmpty ? profile.fullName : profile.username;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => BlockConfirmationDialog(
+        userId: profile.userId,
+        userName: displayName,
+        onConfirm: () async {
+          Navigator.of(dialogContext).pop();
+          final success = await ref.read(blockNotifierProvider.notifier).blockUser(profile.userId);
+          if (success && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$displayName è stato bloccato'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Navigate back after blocking
+            Navigator.of(context).pop();
+          }
+        },
+      ),
+    );
   }
 
   /// Build events grid based on selected tab
@@ -304,10 +444,12 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
 
   /// Build error view ("Profilo non disponibile")
   Widget _buildErrorView(Object error) {
-    // Check if error is privacy-related (profile hidden or deleted)
+    // Check if error is privacy-related (profile hidden, deleted, or blocked)
+    // T047: "blocked" indicates the viewer is blocked by this profile's owner
     final isPrivacyError = error.toString().contains('No rows') ||
         error.toString().contains('not found') ||
-        error.toString().contains('visible');
+        error.toString().contains('visible') ||
+        error.toString().contains('blocked');
 
     final errorTitle = isPrivacyError
         ? 'Profilo non disponibile'

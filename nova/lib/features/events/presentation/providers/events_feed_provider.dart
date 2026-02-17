@@ -13,6 +13,8 @@ import '../../data/repositories/events_repository.dart';
 import '../../domain/usecases/get_events_feed.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/offline_action.dart';
+// UGC Safety: Block filtering (T044)
+import '../../../safety/presentation/providers/block_provider.dart';
 
 // ========================================================================
 // DEPENDENCY PROVIDERS
@@ -118,14 +120,27 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
   }
 
   /// Load a specific page of events
+  /// Filters out events from blocked users (T044)
   Future<EventsFeedState> _loadPage(int page, {required bool isRefresh}) async {
     try {
       final getEventsFeed = ref.watch(getEventsFeedUseCaseProvider);
-      final events = await getEventsFeed.execute(
+      var events = await getEventsFeed.execute(
         page: page,
         limit: _pageSize,
         forceRefresh: isRefresh,
       );
+
+      // UGC Safety: Filter out events from blocked users (T044)
+      try {
+        final blockedUserIds = await ref.read(blockedUserIdsProvider.future);
+        if (blockedUserIds.isNotEmpty) {
+          events = events
+              .where((event) => !blockedUserIds.contains(event.creatorId))
+              .toList();
+        }
+      } catch (_) {
+        // Silently fail if block list unavailable - don't block feed loading
+      }
 
       // Check if there are more pages
       final hasMore = events.length == _pageSize;
@@ -149,6 +164,7 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
   }
 
   /// Load next page (infinite scroll pagination)
+  /// Filters out events from blocked users (T044)
   Future<void> loadNextPage() async {
     final currentState = state.valueOrNull;
     if (currentState == null) return;
@@ -162,10 +178,22 @@ class EventsFeedNotifier extends AsyncNotifier<EventsFeedState> {
     try {
       final nextPage = currentState.currentPage + 1;
       final getEventsFeed = ref.watch(getEventsFeedUseCaseProvider);
-      final newEvents = await getEventsFeed.execute(
+      var newEvents = await getEventsFeed.execute(
         page: nextPage,
         limit: _pageSize,
       );
+
+      // UGC Safety: Filter out events from blocked users (T044)
+      try {
+        final blockedUserIds = await ref.read(blockedUserIdsProvider.future);
+        if (blockedUserIds.isNotEmpty) {
+          newEvents = newEvents
+              .where((event) => !blockedUserIds.contains(event.creatorId))
+              .toList();
+        }
+      } catch (_) {
+        // Silently fail if block list unavailable
+      }
 
       // Check if there are more pages
       final hasMore = newEvents.length == _pageSize;

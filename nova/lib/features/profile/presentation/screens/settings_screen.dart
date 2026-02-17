@@ -31,6 +31,9 @@ import '../../../tutoring/presentation/screens/edit_tutor_screen.dart';
 import '../../../events/presentation/screens/moderation_queue_screen.dart';
 // Toast notifications (Cupertino-compatible)
 import '../../../../shared/widgets/nova_toast.dart';
+// UGC Safety: ToS acceptance screen (T058)
+import '../../../safety/presentation/screens/tos_acceptance_screen.dart';
+import '../../../safety/presentation/screens/blocked_users_screen.dart';
 
 /// Provider for app package info (version, build number)
 final packageInfoProvider = FutureProvider<PackageInfo>((ref) async {
@@ -261,6 +264,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: 'Consenti agli altri di vedere il tuo profilo',
             value: profile.profileVisible,
             onChanged: (value) => _toggleProfileVisibility(profile, value),
+          ),
+          _buildDivider(),
+
+          // UGC Safety: Blocked users list (T080)
+          _buildActionTile(
+            icon: Icons.block_rounded,
+            title: 'Utenti bloccati',
+            subtitle: 'Gestisci gli utenti che hai bloccato',
+            onTap: () => Navigator.push(
+              context,
+              NovaPageRoute.swipeBack(page: const BlockedUsersScreen()),
+            ),
           ),
           _buildDivider(),
 
@@ -864,39 +879,11 @@ Per domande sulla privacy: support@galileimoro.edu.it
     );
   }
 
-  /// Open terms of service
+  /// Open terms of service - T058: Navigate to ToS acceptance screen
   void _openTermsOfService() {
-    _showLegalDialog(
-      title: 'Termini di Servizio',
-      content: '''
-Utilizzando Nova, accetti i seguenti termini di servizio.
-
-ACCESSO ALL'APP
-• Nova è riservata agli studenti del Liceo Galilei Moro
-• L'accesso avviene tramite email scolastica (@galileimoro.edu.it)
-• È vietato condividere le credenziali di accesso
-
-COMPORTAMENTO
-• Rispetta gli altri utenti
-• Non pubblicare contenuti offensivi, illegali o inappropriati
-• Non fare spam o molestie
-• Segnala contenuti problematici ai moderatori
-
-CONTENUTI
-• Sei responsabile dei contenuti che pubblichi
-• I moderatori possono rimuovere contenuti inappropriati
-• Gli eventi devono essere approvati prima della pubblicazione
-
-ACCOUNT
-• Puoi eliminare il tuo account in qualsiasi momento
-• La cancellazione diventa effettiva dopo 30 giorni
-• I tuoi dati verranno rimossi in modo permanente
-
-MODIFICHE
-I termini possono essere aggiornati. Continuerai a usare l'app solo se accetti i nuovi termini.
-
-Ultimo aggiornamento: Dicembre 2024
-''',
+    Navigator.push(
+      context,
+      NovaPageRoute.swipeBack(page: const TosAcceptanceScreen()),
     );
   }
 

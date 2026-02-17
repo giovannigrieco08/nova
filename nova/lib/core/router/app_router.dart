@@ -37,6 +37,10 @@ class AppRouter {
   static const String admin = '/admin';
   static const String eventDetail = '/event';
 
+  // UGC Safety routes (T083)
+  static const String tosAcceptance = '/tos-acceptance';
+  static const String blockedUsers = '/blocked-users';
+
   /// Check if user can access route based on role
   static bool canAccessRoute(String path, UserRole userRole) {
     // Students can access all base routes except moderation and admin

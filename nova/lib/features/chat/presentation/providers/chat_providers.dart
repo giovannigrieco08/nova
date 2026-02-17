@@ -8,6 +8,8 @@ import 'package:nova/features/chat/domain/repositories/chat_repository.dart';
 import 'package:nova/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:nova/features/chat/data/datasources/chat_remote_datasource.dart';
 import 'package:nova/features/chat/presentation/providers/chat_realtime_provider.dart';
+// UGC Safety: Block filtering (T045)
+import 'package:nova/features/safety/presentation/providers/block_provider.dart';
 
 // =============================================================================
 // Core Providers (imported from core_providers.dart)
@@ -53,6 +55,7 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
 /// Fetches initial messages with full profile/media data.
 /// Real-time updates are handled by [chatRealtimeProvider].
 /// Use pull-to-refresh to get updated data with full joins.
+/// Filters out messages from blocked users (T045).
 final chatMessagesStreamProvider =
     FutureProvider.autoDispose<List<ChatMessage>>((ref) async {
   final dataSource = ref.watch(chatRemoteDataSourceProvider);
@@ -61,11 +64,25 @@ final chatMessagesStreamProvider =
   // Fetch messages with full joins (profiles, media, reactions)
   final messages = await dataSource.getMessages(limit: 50);
 
+  // Convert to entities
+  var entities =
+      messages.map((m) => m.toEntity(currentUserId: currentUserId)).toList();
+
+  // UGC Safety: Filter out messages from blocked users (T045)
+  try {
+    final blockedUserIds = await ref.read(blockedUserIdsProvider.future);
+    if (blockedUserIds.isNotEmpty) {
+      entities = entities
+          .where((msg) => !blockedUserIds.contains(msg.userId))
+          .toList();
+    }
+  } catch (_) {
+    // Silently fail if block list unavailable
+  }
+
   // Also initialize the realtime provider with these messages
   // so it has the full data for incremental updates
   final realtimeNotifier = ref.read(chatRealtimeProvider.notifier);
-  final entities =
-      messages.map((m) => m.toEntity(currentUserId: currentUserId)).toList();
   realtimeNotifier.setMessages(entities);
 
   return entities;

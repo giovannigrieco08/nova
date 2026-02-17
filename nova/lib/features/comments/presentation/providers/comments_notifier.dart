@@ -6,6 +6,8 @@ import '../../data/datasources/comments_remote_datasource.dart';
 import '../../data/datasources/comments_local_datasource.dart';
 import '../../data/repositories/comments_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+// UGC Safety: Block filtering (T046)
+import '../../../safety/presentation/providers/block_provider.dart';
 
 /// Provider for CommentsRepository
 final commentsRepositoryProvider = Provider<CommentsRepositoryInterface>((ref) {
@@ -127,6 +129,7 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
   ///
   /// Tries remote first, falls back to cache on network error.
   /// **T100**: Uses current sortOrder for query
+  /// **T046**: Filters out comments from blocked users
   Future<CommentsState> _loadInitialComments() async {
     try {
       final result = await _repository.getCommentsForEvent(
@@ -135,16 +138,29 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
         limit: _pageSize,
       );
 
+      // UGC Safety: Filter out comments from blocked users (T046)
+      var filteredComments = result.comments;
+      try {
+        final blockedUserIds = await ref.read(blockedUserIdsProvider.future);
+        if (blockedUserIds.isNotEmpty) {
+          filteredComments = result.comments
+              .where((c) => !blockedUserIds.contains(c.userId))
+              .toList();
+        }
+      } catch (_) {
+        // Silently fail if block list unavailable
+      }
+
       // Cache comments for offline access
-      if (result.comments.isNotEmpty) {
+      if (filteredComments.isNotEmpty) {
         await _repository.cacheComments(
           eventId: _eventId,
-          comments: result.comments,
+          comments: filteredComments,
         );
       }
 
       return CommentsState(
-        comments: result.comments,
+        comments: filteredComments,
         hasMore: result.hasMore,
         nextCursor: result.nextCursor,
         sortOrder: _sortOrder,
@@ -192,8 +208,21 @@ class CommentsNotifier extends FamilyAsyncNotifier<CommentsState, String> {
         cursorCreatedAt: currentState.nextCursor,
       );
 
+      // UGC Safety: Filter out comments from blocked users (T046)
+      var filteredNewComments = result.comments;
+      try {
+        final blockedUserIds = await ref.read(blockedUserIdsProvider.future);
+        if (blockedUserIds.isNotEmpty) {
+          filteredNewComments = result.comments
+              .where((c) => !blockedUserIds.contains(c.userId))
+              .toList();
+        }
+      } catch (_) {
+        // Silently fail if block list unavailable
+      }
+
       // Append new comments to existing list
-      final updatedComments = [...currentState.comments, ...result.comments];
+      final updatedComments = [...currentState.comments, ...filteredNewComments];
 
       // Update cache with full list
       await _repository.cacheComments(
