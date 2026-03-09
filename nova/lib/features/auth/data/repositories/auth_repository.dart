@@ -68,11 +68,11 @@ class AuthRepository {
 
       // Send magic link via Supabase Auth
       // Note: Rate limiting (3 per 15 min) is enforced server-side
-      // Use custom URL scheme (novaapp://) for direct app opening
-      // This bypasses the need for assetlinks.json and works immediately
+      // Use HTTPS URL for Universal Links support on iOS (iPad compatibility)
+      // The web page at nova-app.shop/auth/callback redirects to the app
       await _supabase.auth.signInWithOtp(
         email: normalizedEmail,
-        emailRedirectTo: 'novaapp://auth/callback',
+        emailRedirectTo: 'https://nova-app.shop/auth/callback',
       );
 
       return true;

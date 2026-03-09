@@ -264,7 +264,13 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
         debugPrint('🔗 [DEEP_LINK] Scheme: ${uri.scheme}, Host: ${uri.host}');
 
         // Check if this is an auth callback (magic link)
-        if (uri.scheme == 'novaapp' && uri.host == 'auth') {
+        // Support both custom scheme (novaapp://auth) and Universal Links (https://nova-app.shop/auth)
+        final isCustomSchemeAuth = uri.scheme == 'novaapp' && uri.host == 'auth';
+        final isUniversalLinkAuth = uri.scheme == 'https' &&
+            uri.host == 'nova-app.shop' &&
+            uri.path.startsWith('/auth');
+
+        if (isCustomSchemeAuth || isUniversalLinkAuth) {
           debugPrint('🔗 [DEEP_LINK] Processing auth callback...');
 
           // Ensure we're still mounted
