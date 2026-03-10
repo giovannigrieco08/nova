@@ -208,14 +208,16 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
 
   /// Show action sheet with Report and Block options
   void _showActionSheet(Profile profile) {
+    debugPrint('[ActionSheet] Opening for user: ${profile.userId}');
     if (Platform.isIOS) {
       showCupertinoModalPopup(
         context: context,
-        builder: (context) => CupertinoActionSheet(
+        builder: (sheetContext) => CupertinoActionSheet(
           actions: [
             CupertinoActionSheetAction(
               onPressed: () {
-                Navigator.pop(context);
+                debugPrint('[ActionSheet] Block tapped');
+                Navigator.pop(sheetContext);
                 _showBlockConfirmation(profile);
               },
               child: const Text('Blocca utente'),
@@ -223,14 +225,15 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
             CupertinoActionSheetAction(
               isDestructiveAction: true,
               onPressed: () {
-                Navigator.pop(context);
+                debugPrint('[ActionSheet] Report tapped');
+                Navigator.pop(sheetContext);
                 _showReportSheet(profile);
               },
               child: const Text('Segnala'),
             ),
           ],
           cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(sheetContext),
             child: const Text('Annulla'),
           ),
         ),
@@ -278,6 +281,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
 
   /// Show report sheet for profile
   void _showReportSheet(Profile profile) {
+    debugPrint('[Report] Showing report sheet for: ${profile.userId}');
     ReportCategorySheet.show(
       context,
       contentType: ReportableContentType.profile,
@@ -287,6 +291,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
 
   /// Show block confirmation dialog
   void _showBlockConfirmation(Profile profile) {
+    debugPrint('[Block] Showing confirmation for: ${profile.userId}');
     final displayName =
         profile.fullName.isNotEmpty ? profile.fullName : profile.username;
 
@@ -296,10 +301,12 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
         userId: profile.userId,
         userName: displayName,
         onConfirm: () async {
+          debugPrint('[Block] Confirm pressed, blocking user...');
           Navigator.of(dialogContext).pop();
           final success = await ref
               .read(blockNotifierProvider.notifier)
               .blockUser(profile.userId);
+          debugPrint('[Block] Block result: $success');
           if (success && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
