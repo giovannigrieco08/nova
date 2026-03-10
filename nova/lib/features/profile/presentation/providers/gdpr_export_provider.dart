@@ -177,25 +177,42 @@ class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
   ///
   /// The account will be permanently deleted after 30 days.
   /// User can cancel deletion by contacting support within grace period.
+  ///
+  /// Uses the `soft_delete_profile` RPC function which:
+  /// - Runs with SECURITY DEFINER (bypasses RLS)
+  /// - Verifies auth.uid() matches the profile owner
+  /// - Sets deleted_at timestamp atomically
   Future<void> deleteAccount(String userId) async {
     debugPrint('[AccountDeletion] Starting deleteAccount for user: $userId');
     state = state.copyWith(isDeleting: true, error: null);
 
     try {
-      // Get the profile repository
-      final repository = _ref.read(profileRepositoryProvider);
-      debugPrint('[AccountDeletion] Got repository, calling updateProfile...');
+      final supabase = Supabase.instance.client;
 
-      final deletedAt = DateTime.now().toUtc().toIso8601String();
-      debugPrint('[AccountDeletion] Setting deleted_at to: $deletedAt');
+      // Verify user is authenticated
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('Utente non autenticato');
+      }
 
-      // Set deleted_at timestamp for soft delete
-      // The backend will handle the 30-day grace period and permanent deletion
-      await repository.updateProfile(userId, {
-        'deleted_at': deletedAt,
-      });
+      debugPrint(
+          '[AccountDeletion] Current auth user: ${currentUser.id}, target: $userId');
 
-      debugPrint('[AccountDeletion] updateProfile completed successfully');
+      // Verify user is deleting their own account
+      if (currentUser.id != userId) {
+        throw Exception('Puoi eliminare solo il tuo account');
+      }
+
+      debugPrint('[AccountDeletion] Calling soft_delete_profile RPC...');
+
+      // Use the soft_delete_profile RPC function (created in migration 034)
+      // This function uses SECURITY DEFINER and properly verifies ownership
+      await supabase.rpc(
+        'soft_delete_profile',
+        params: {'p_user_id': userId},
+      );
+
+      debugPrint('[AccountDeletion] RPC completed successfully');
       state = state.copyWith(
         isDeleting: false,
         isDeleted: true,
