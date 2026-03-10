@@ -70,6 +70,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
     final canViewAsync = ref.watch(canViewProfileProvider(widget.userId));
 
     return canViewAsync.when(
+      skipLoadingOnRefresh: true,
       data: (canView) {
         if (!canView) {
           // User is blocked - show privacy error
@@ -80,6 +81,7 @@ class _OtherProfileScreenState extends ConsumerState<OtherProfileScreen> {
         final statsAsync = ref.watch(otherProfileStatsProvider(widget.userId));
 
         return profileAsync.when(
+          skipLoadingOnRefresh: true,
           data: (profile) => _buildProfileView(profile, statsAsync),
           loading: () => _buildLoadingView(),
           error: (error, stack) => _buildErrorView(error),
