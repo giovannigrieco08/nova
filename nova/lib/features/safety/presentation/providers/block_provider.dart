@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/user_block.dart';
@@ -56,10 +57,12 @@ class BlockNotifier extends StateNotifier<BlockState> {
 
   /// Block a user
   Future<bool> blockUser(String userId) async {
+    debugPrint('[BlockNotifier] blockUser called for: $userId');
     state = state.copyWith(isLoading: true, error: null);
 
     try {
       await _service.blockUser(userId);
+      debugPrint('[BlockNotifier] Block successful');
       state = state.copyWith(
         isLoading: false,
         lastBlockedUserId: userId,
@@ -77,12 +80,15 @@ class BlockNotifier extends StateNotifier<BlockState> {
 
       return true;
     } on UserAlreadyBlockedException {
+      debugPrint('[BlockNotifier] User already blocked');
       state = state.copyWith(
         isLoading: false,
         error: 'Utente già bloccato',
       );
       return false;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[BlockNotifier] Error: $e');
+      debugPrint('[BlockNotifier] Stack: $stack');
       state = state.copyWith(
         isLoading: false,
         error: 'Errore durante il blocco: ${e.toString()}',

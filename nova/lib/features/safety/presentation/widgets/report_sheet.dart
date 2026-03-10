@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/report.dart';
 import '../providers/report_provider.dart';
+import '../../../../shared/widgets/nova_toast.dart';
 
 /// Bottom sheet for selecting report category and submitting a report
 class ReportCategorySheet extends ConsumerStatefulWidget {
@@ -59,22 +60,13 @@ class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
 
     ref.listen<ReportState>(reportNotifierProvider, (previous, next) {
       if (next.isSubmitted) {
+        // Show toast before closing
+        NovaToast.showSuccess(
+            context, 'Segnalazione inviata. Grazie per il tuo contributo.');
         Navigator.of(context).pop(true);
         widget.onReportSubmitted?.call();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Segnalazione inviata. Grazie per il tuo contributo.'),
-            backgroundColor: Colors.green,
-          ),
-        );
       } else if (next.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!),
-            backgroundColor: Colors.red,
-          ),
-        );
+        NovaToast.showError(context, next.error!);
       }
     });
 
