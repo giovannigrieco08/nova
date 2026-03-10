@@ -62,24 +62,43 @@ class BlockRepository {
       throw Exception('Utente non autenticato');
     }
 
-    final response = await _supabase.from('user_blocks').select('''
-          id,
-          blocker_id,
-          blocked_id,
-          created_at,
-          moderator_notified,
-          notified_at,
-          blocked:profiles!blocked_id (
-            user_id,
-            full_name,
-            username,
-            avatar_url
-          )
-        ''').eq('blocker_id', userId).order('created_at', ascending: false);
+    // First get the blocks
+    final blocksResponse = await _supabase
+        .from('user_blocks')
+        .select('id, blocker_id, blocked_id, created_at, moderator_notified, notified_at')
+        .eq('blocker_id', userId)
+        .order('created_at', ascending: false);
 
-    return (response as List<dynamic>)
-        .map((json) => UserBlock.fromJson(json as Map<String, dynamic>))
-        .toList();
+    final blocks = blocksResponse as List<dynamic>;
+    if (blocks.isEmpty) {
+      return [];
+    }
+
+    // Get blocked user IDs
+    final blockedIds = blocks.map((b) => b['blocked_id'] as String).toList();
+
+    // Fetch profiles for blocked users
+    final profilesResponse = await _supabase
+        .from('profiles')
+        .select('user_id, full_name, username, avatar_url')
+        .inFilter('user_id', blockedIds);
+
+    final profilesMap = <String, Map<String, dynamic>>{};
+    for (final profile in profilesResponse as List<dynamic>) {
+      profilesMap[profile['user_id'] as String] =
+          profile as Map<String, dynamic>;
+    }
+
+    // Combine blocks with profiles
+    return blocks.map((block) {
+      final blockedId = block['blocked_id'] as String;
+      final profile = profilesMap[blockedId];
+
+      final combined = Map<String, dynamic>.from(block as Map<String, dynamic>);
+      combined['blocked'] = profile;
+
+      return UserBlock.fromJson(combined);
+    }).toList();
   }
 
   /// Check if current user has blocked a specific user
