@@ -95,6 +95,13 @@ class _CupertinoPermissionDialog extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _buildBenefitsList(context, isCupertino: true),
+          const SizedBox(height: 12),
+          const Text(
+            'Puoi disattivare le notifiche in qualsiasi momento dalle Impostazioni. '
+            'I dati sono trattati secondo la Privacy Policy.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: CupertinoColors.systemGrey),
+          ),
         ],
       ),
       actions: [
@@ -156,6 +163,14 @@ class _MaterialPermissionDialog extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _buildBenefitsList(context, isCupertino: false),
+          const SizedBox(height: 16),
+          Text(
+            'Puoi disattivare le notifiche in qualsiasi momento dalle Impostazioni. '
+            'I dati sono trattati secondo la Privacy Policy.',
+            style: NovaTextStyles.small.copyWith(
+              color: NovaColors.textTertiary(context),
+            ),
+          ),
         ],
       ),
       actions: [

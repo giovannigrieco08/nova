@@ -7,7 +7,7 @@
 
 ## 1. Accettazione dei Termini
 
-Benvenuto in Nova. I presenti Termini di Servizio ("Termini") regolano l'utilizzo dell'applicazione mobile Nova ("App", "Servizio") fornita da [Nome Società] ("noi", "nostro", "Società").
+Benvenuto in Nova. I presenti Termini di Servizio ("Termini") regolano l'utilizzo dell'applicazione mobile Nova ("App", "Servizio") fornita da Giovanni Grieco Troiano ("noi", "nostro", "Società").
 
 **Utilizzando Nova, accetti integralmente questi Termini.** Se non accetti, non utilizzare l'App.
 
@@ -265,7 +265,7 @@ Questi Termini sono regolati dalla legge italiana.
 
 Per le controversie:
 - **Consumatori**: foro del luogo di residenza del consumatore
-- **Non consumatori**: foro di [Città sede legale]
+- **Non consumatori**: foro di Roma
 
 ### 12.3 Risoluzione alternativa
 
@@ -301,7 +301,7 @@ Per domande su questi Termini:
 
 **Email:** supporto@nova-app.it
 **Email legale:** legal@nova-app.it
-**Indirizzo:** [Indirizzo postale]
+**Indirizzo:** Via Roma 1, 00100 Roma (RM)
 
 ---
 
@@ -321,4 +321,4 @@ Utilizzando Nova, confermi di:
 
 **Nova - Connetti la tua scuola**
 
-© 2025 [Nome Società]. Tutti i diritti riservati.
+© 2025 Giovanni Grieco Troiano. Tutti i diritti riservati.

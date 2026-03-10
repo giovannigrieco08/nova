@@ -12,10 +12,11 @@ Benvenuto in Nova ("noi", "nostro", "App"). La presente Privacy Policy descrive 
 Nova è una piattaforma social dedicata agli studenti delle scuole superiori italiane. Ci impegniamo a proteggere la tua privacy e a trattare i tuoi dati personali in conformità al Regolamento (UE) 2016/679 (GDPR), al D.Lgs. 196/2003 (Codice Privacy) come modificato dal D.Lgs. 101/2018, e a tutte le normative applicabili.
 
 **Titolare del Trattamento:**
-[Nome Società/Titolare]
-[Indirizzo]
+<!-- TODO: Sostituire con dati reali della società prima del lancio -->
+Giovanni Grieco Troiano
+Via Roma 1, 00100 Roma (RM)
 Email: privacy@nova-app.it
-PEC: [indirizzo PEC]
+
 
 ---
 
@@ -38,6 +39,8 @@ PEC: [indirizzo PEC]
 | **Dati di utilizzo** | Funzionalità usate, tempo di utilizzo, interazioni | Miglioramento app |
 | **Identificatori** | ID dispositivo, token notifiche push | Funzionamento servizio |
 | **Dati di log** | Timestamp accessi, errori, crash report | Sicurezza e debugging |
+| **Visualizzazioni profilo** | Chi ha visualizzato il tuo profilo | Funzionalità social "Chi ti nota" |
+| **Crash analytics** | Stack trace, stato app al momento del crash | Stabilità e debugging via Firebase Crashlytics |
 
 ### 2.3 Dati NON raccolti
 
@@ -76,6 +79,8 @@ Nova **NON** raccoglie:
 | Sicurezza | Prevenzione frodi, abusi, violazioni termini di servizio |
 | Miglioramento servizio | Analisi aggregate per ottimizzare l'esperienza utente |
 | Moderazione contenuti | Rimozione contenuti inappropriati o illegali |
+| Visualizzazioni profilo | Tracciamento di chi visualizza il tuo profilo ("Chi ti nota") |
+| Crash reporting | Raccolta automatica crash report tramite Firebase Crashlytics |
 
 ### 3.4 Obbligo legale (Art. 6.1.c GDPR)
 
@@ -156,7 +161,8 @@ Puoi modificare questa scelta in qualsiasi momento dalle Impostazioni dell'App.
 | Destinatario | Dati condivisi | Finalità |
 |--------------|----------------|----------|
 | **Supabase Inc.** | Tutti i dati dell'account | Hosting database e autenticazione |
-| **Google LLC (Firebase)** | Token dispositivo, crash report | Notifiche push, analytics crash |
+| **Google LLC (Firebase Cloud Messaging)** | Token dispositivo | Invio notifiche push |
+| **Google LLC (Firebase Crashlytics)** | Crash report, stack trace, stato dispositivo | Monitoraggio stabilità app |
 | **Google LLC (AdMob)** | ID pubblicitario, dati interazione ads | Erogazione pubblicità |
 
 ### 6.2 Trasferimenti extra-UE
@@ -171,6 +177,32 @@ Nova **NON**:
 - Vende i tuoi dati personali a terzi
 - Condivide dati con scuole, genitori o amministratori per finalità di sorveglianza
 - Fornisce accesso ai tuoi messaggi privati a terze parti (eccetto obblighi di legge)
+
+---
+
+## 6.4 Tracciamento Visualizzazioni Profilo ("Chi ti nota")
+
+Nova include una funzionalità che ti permette di vedere chi ha visualizzato il tuo profilo. Questa funzione:
+
+- **Come funziona**: Quando un utente visita il tuo profilo, registriamo questa visualizzazione
+- **Cosa vedi tu**: Puoi vedere la lista degli utenti che hanno visitato il tuo profilo nelle ultime 24 ore
+- **Cosa vedono gli altri**: Allo stesso modo, quando visiti il profilo di un altro utente, lui/lei potrà vedere che l'hai visitato
+- **Base giuridica**: Legittimo interesse (Art. 6.1.f GDPR) - funzionalità sociale richiesta dagli utenti
+
+**Nota**: Al momento non è disponibile un'opzione per disattivare questa funzionalità. Il tracciamento delle visualizzazioni è parte integrante dell'esperienza social di Nova.
+
+## 6.5 Firebase Crashlytics
+
+Per garantire la stabilità dell'App, utilizziamo **Firebase Crashlytics** di Google LLC. Questo servizio raccoglie automaticamente:
+
+- Report di crash e errori dell'App
+- Stack trace (informazioni tecniche sull'errore)
+- Stato del dispositivo al momento del crash (memoria, batteria, versione OS)
+- Identificatore di installazione (non collegato alla tua identità)
+
+**Base giuridica**: Legittimo interesse (Art. 6.1.f GDPR) per garantire un servizio stabile e funzionante.
+
+I dati raccolti da Crashlytics sono utilizzati esclusivamente per identificare e risolvere problemi tecnici. Per maggiori informazioni: [Firebase Privacy](https://firebase.google.com/support/privacy)
 
 ---
 
@@ -236,7 +268,6 @@ Puoi revocare il consenso in qualsiasi momento per:
 
 - **Dall'App**: Impostazioni → Privacy → I miei dati
 - **Via email**: privacy@nova-app.it
-- **Via PEC**: [indirizzo PEC]
 
 Risponderemo entro 30 giorni dalla ricezione della richiesta.
 
@@ -307,8 +338,7 @@ La data dell'ultimo aggiornamento è indicata all'inizio del documento.
 Per qualsiasi domanda sulla presente Privacy Policy o sul trattamento dei tuoi dati:
 
 **Email:** privacy@nova-app.it
-**PEC:** [indirizzo PEC]
-**Indirizzo:** [Indirizzo postale]
+**Indirizzo:** Via Roma 1, 00100 Roma (RM)
 
 Risponderemo alle tue richieste nel più breve tempo possibile.
 
@@ -344,4 +374,4 @@ Se non accetti questa Privacy Policy, non potrai utilizzare l'App.
 
 **Nova - Connetti la tua scuola**
 
-© 2025 [Nome Società]. Tutti i diritti riservati.
+© 2025 Giovanni Grieco Troiano. Tutti i diritti riservati.

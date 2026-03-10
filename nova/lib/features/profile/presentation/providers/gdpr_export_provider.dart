@@ -4,6 +4,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import './profile_provider.dart' show profileRepositoryProvider;
 
 /// Export metadata containing download URL
@@ -58,24 +59,65 @@ class GDPRExportNotifier extends StateNotifier<GDPRExportState> {
     state = state.copyWith(isExporting: true, error: null);
 
     try {
-      // TODO(T065): Implement actual GDPR export via Supabase Edge Function
-      await Future.delayed(const Duration(seconds: 2)); // Simulate
+      final supabase = Supabase.instance.client;
+      final session = supabase.auth.currentSession;
 
-      // In real implementation, this would be:
-      // 1. Call Supabase Edge Function `export-user-data`
-      // 2. Wait for signed URL response
-      // 3. Return download URL
+      if (session == null) {
+        throw Exception('Sessione non valida. Effettua nuovamente il login.');
+      }
+
+      // Call GDPR export Edge Function
+      final response = await supabase.functions.invoke(
+        'export-user-data',
+        body: {},
+        headers: {
+          'Authorization': 'Bearer ${session.accessToken}',
+        },
+      );
+
+      if (response.status != 200) {
+        final errorData = response.data as Map<String, dynamic>?;
+        throw Exception(
+            errorData?['message'] ?? 'Errore durante l\'esportazione');
+      }
+
+      final data = response.data as Map<String, dynamic>;
+      final downloadUrl = data['download_url'] as String?;
+
+      if (downloadUrl == null) {
+        throw Exception('URL di download non disponibile');
+      }
+
+      debugPrint('[GDPRExport] Export completed, URL: $downloadUrl');
+      debugPrint('[GDPRExport] Summary: ${data['data_summary']}');
 
       state = state.copyWith(
         isExporting: false,
-        downloadUrl: 'https://example.com/export.json', // Placeholder
+        downloadUrl: downloadUrl,
       );
     } catch (e) {
+      debugPrint('[GDPRExport] Error: $e');
       state = state.copyWith(
         isExporting: false,
-        error: e.toString(),
+        error: _getExportErrorMessage(e),
       );
     }
+  }
+
+  String _getExportErrorMessage(dynamic error) {
+    final message = error.toString().toLowerCase();
+
+    if (message.contains('network') || message.contains('connection')) {
+      return 'Errore di connessione. Verifica la tua connessione internet.';
+    }
+    if (message.contains('session') || message.contains('login')) {
+      return 'Sessione scaduta. Effettua nuovamente il login.';
+    }
+    if (message.contains('timeout')) {
+      return 'Richiesta scaduta. Riprova tra qualche minuto.';
+    }
+
+    return 'Errore durante l\'esportazione dei dati. Riprova più tardi.';
   }
 
   /// Clear export state
