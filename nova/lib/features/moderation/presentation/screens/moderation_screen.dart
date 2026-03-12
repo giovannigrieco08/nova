@@ -99,7 +99,7 @@ class _ModerationScreenState extends ConsumerState<ModerationScreen>
   }
 
   Widget _buildTabBar() {
-    return Container(
+    return Material(
       color: NovaColors.surface(context),
       child: TabBar(
         controller: _tabController,
