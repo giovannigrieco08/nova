@@ -51,11 +51,19 @@ class ModerationReport {
   final String? reportedUserAvatarUrl;
 
   factory ModerationReport.fromJson(Map<String, dynamic> json) {
+    // Handle both nested reporter object and flat fields
     final reporter = json['reporter'] as Map<String, dynamic>?;
+    final reporterId = json['reporter_id'] as String? ??
+        reporter?['user_id'] as String? ??
+        '';
+    final reporterName =
+        json['reporter_name'] as String? ?? reporter?['full_name'] as String?;
+    final reporterUsername = json['reporter_username'] as String? ??
+        reporter?['username'] as String?;
 
     return ModerationReport(
       id: json['id'] as String,
-      reporterId: reporter?['user_id'] as String? ?? '',
+      reporterId: reporterId,
       contentType:
           ReportableContentType.fromString(json['content_type'] as String),
       contentId: json['content_id'] as String,
@@ -65,8 +73,8 @@ class ModerationReport {
       createdAt: DateTime.parse(json['created_at'] as String),
       hoursPending: (json['hours_pending'] as num?)?.toDouble() ?? 0,
       isUrgent: json['is_urgent'] as bool? ?? false,
-      reporterName: reporter?['full_name'] as String?,
-      reporterUsername: reporter?['username'] as String?,
+      reporterName: reporterName,
+      reporterUsername: reporterUsername,
       reportedUserId: json['reported_user_id'] as String?,
       reportedUserName: json['reported_user_name'] as String?,
       reportedUserUsername: json['reported_user_username'] as String?,
