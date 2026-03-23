@@ -175,7 +175,7 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  void _toggleFlash() {
+  Future<void> _toggleFlash() async {
     if (_controller == null) return;
 
     setState(() {
@@ -193,10 +193,14 @@ class _CameraScreenState extends State<CameraScreen>
       }
     });
 
-    _controller!.setFlashMode(_flashMode);
+    try {
+      await _controller!.setFlashMode(_flashMode);
+    } catch (e) {
+      debugPrint('[Camera] Failed to set flash mode: $e');
+    }
   }
 
-  void _flipCamera() async {
+  Future<void> _flipCamera() async {
     if (_cameras.length < 2) return;
 
     setState(() {

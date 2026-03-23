@@ -100,13 +100,15 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
       if (mounted) {
         setState(() {
-          _participantCount = results[0] as int;
-          _likeCount = results[1] as int;
-          _isParticipating = results[2] as bool;
-          _isLiked = results[3] as bool;
+          // Use safe casts with fallback values
+          _participantCount = (results[0] as int?) ?? 0;
+          _likeCount = (results[1] as int?) ?? 0;
+          _isParticipating = (results[2] as bool?) ?? false;
+          _isLiked = (results[3] as bool?) ?? false;
         });
       }
     } catch (e) {
+      debugPrint('[EventDetail] Failed to load engagement state: $e');
       // Silently fail - user can still interact
     }
   }

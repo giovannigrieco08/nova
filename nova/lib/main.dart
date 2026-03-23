@@ -68,13 +68,22 @@ Future<void> main() async {
   debugPrint('🚀 [INIT] Screen orientation locked');
 
   // Initialize Italian locale for date formatting
-  await initializeDateFormatting('it_IT', null);
-  debugPrint('🚀 [INIT] Date formatting initialized');
+  try {
+    await initializeDateFormatting('it_IT', null);
+    debugPrint('🚀 [INIT] Date formatting initialized');
+  } catch (e) {
+    debugPrint('🚀 [INIT] Date formatting failed (using default): $e');
+  }
 
   // Initialize Firebase (for FCM push notifications)
   debugPrint('🚀 [INIT] Starting Firebase...');
-  await Firebase.initializeApp();
-  debugPrint('🚀 [INIT] Firebase initialized');
+  try {
+    await Firebase.initializeApp();
+    debugPrint('🚀 [INIT] Firebase initialized');
+  } catch (e) {
+    debugPrint('🚀 [INIT] Firebase initialization failed: $e');
+    // Continue without Firebase - push notifications won't work but app can run
+  }
 
   // Configure FCM background message handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -87,8 +96,13 @@ Future<void> main() async {
 
   // Initialize Hive for offline-first storage (profiles + events)
   debugPrint('🚀 [INIT] Starting Hive...');
-  await Hive.initFlutter();
-  debugPrint('🚀 [INIT] Hive initialized');
+  try {
+    await Hive.initFlutter();
+    debugPrint('🚀 [INIT] Hive initialized');
+  } catch (e) {
+    debugPrint('🚀 [INIT] Hive initialization failed: $e');
+    // Continue - offline storage won't work but app can run online-only
+  }
 
   // Register adapters (with error handling for hot reload/restart)
   // TypeIds must match @HiveType(typeId: X) in each model:
@@ -283,31 +297,33 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
           final deepLinkInfo = _deepLinkHandler.parse(uri);
 
           if (deepLinkInfo != null) {
+            // Wait for navigator to be ready (with timeout)
+            NavigatorState? navigator;
+            for (var i = 0; i < 10 && navigator == null; i++) {
+              navigator = _navigatorKey.currentState;
+              if (navigator == null) {
+                await Future.delayed(const Duration(milliseconds: 100));
+              }
+            }
+
+            if (navigator == null) {
+              debugPrint('🔗 [DEEP_LINK] Navigator not ready after timeout');
+              return;
+            }
+
             // Handle based on deep link type
             switch (deepLinkInfo.type) {
               case DeepLinkType.event:
-                // Navigate to event detail screen
-                // Wait a bit for app initialization to complete
-                await Future.delayed(const Duration(milliseconds: 500));
-
-                // Navigate to EventDetailScreen with eventId
-                if (_navigatorKey.currentState != null) {
-                  _navigatorKey.currentState!.push(
-                    NovaPageRoute.swipeBack(
-                      page: EventDetailScreen(eventId: deepLinkInfo.eventId),
-                    ),
-                  );
-                }
+                navigator.push(
+                  NovaPageRoute.swipeBack(
+                    page: EventDetailScreen(eventId: deepLinkInfo.eventId),
+                  ),
+                );
                 break;
 
               case DeepLinkType.profile:
-                // Navigate to profile screen
-                // Wait a bit for app initialization to complete
-                await Future.delayed(const Duration(milliseconds: 500));
-
-                // Navigate to OtherProfileScreen with userId
-                if (_navigatorKey.currentState != null) {
-                  _navigatorKey.currentState!.push(
+                if (deepLinkInfo.userId != null) {
+                  navigator.push(
                     NovaPageRoute.swipeBack(
                       page: OtherProfileScreen(userId: deepLinkInfo.userId!),
                     ),

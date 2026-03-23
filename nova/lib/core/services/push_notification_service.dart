@@ -133,17 +133,26 @@ class PushNotificationService {
   /// Setup FCM message handlers for all app states
   void _setupMessageHandlers() {
     // Foreground messages
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    FirebaseMessaging.onMessage.listen(
+      _handleForegroundMessage,
+      onError: (error) => debugPrint('[FCM] Foreground message error: $error'),
+    );
 
     // Background tap (app in background, user taps notification)
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundTap);
+    FirebaseMessaging.onMessageOpenedApp.listen(
+      _handleBackgroundTap,
+      onError: (error) => debugPrint('[FCM] Background tap error: $error'),
+    );
   }
 
   /// Setup token refresh listener
   void _setupTokenRefreshListener() {
-    _messaging.onTokenRefresh.listen((newToken) async {
-      await _handleTokenRefresh(newToken);
-    });
+    _messaging.onTokenRefresh.listen(
+      (newToken) async {
+        await _handleTokenRefresh(newToken);
+      },
+      onError: (error) => debugPrint('[FCM] Token refresh error: $error'),
+    );
   }
 
   // =========================================================================
