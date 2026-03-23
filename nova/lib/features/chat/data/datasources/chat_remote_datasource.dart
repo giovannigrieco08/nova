@@ -46,10 +46,10 @@ class ChatRemoteDataSource {
     // Build the query with filters first, then transformations
     var queryBuilder = _supabase.from('chat_messages').select('''
           *,
-          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
+          profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio),
           reply_to:reply_to_id(
             id, user_id, content, created_at,
-            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+            profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio)
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)
@@ -84,10 +84,10 @@ class ChatRemoteDataSource {
     debugPrint('[Datasource] getMessage: $messageId');
     final response = await _supabase.from('chat_messages').select('''
           *,
-          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
+          profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio),
           reply_to:reply_to_id(
             id, user_id, content, created_at,
-            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+            profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio)
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)
@@ -123,7 +123,7 @@ class ChatRemoteDataSource {
         ))
         .select('''
           *,
-          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+          profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio)
         ''').single();
 
     return ChatMessageModel.fromJson(response);
@@ -473,7 +473,7 @@ class ChatRemoteDataSource {
       'reply_to_id': replyToId,
     }).select('''
           *,
-          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+          profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio)
         ''').single();
 
     return ChatMessageModel.fromJson(response);
@@ -497,10 +497,10 @@ class ChatRemoteDataSource {
         .eq('id', messageId)
         .select('''
           *,
-          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
+          profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio),
           reply_to:reply_to_id(
             id, user_id, content, created_at,
-            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+            profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio)
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)
@@ -537,10 +537,10 @@ class ChatRemoteDataSource {
         .eq('id', messageId)
         .select('''
           *,
-          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
+          profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio),
           reply_to:reply_to_id(
             id, user_id, content, created_at,
-            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+            profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio)
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)
@@ -563,10 +563,10 @@ class ChatRemoteDataSource {
   Future<ChatMessageModel?> getPinnedMessage() async {
     final response = await _supabase.from('chat_messages').select('''
           *,
-          profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at),
+          profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio),
           reply_to:reply_to_id(
             id, user_id, content, created_at,
-            profiles:user_id(user_id, email, full_name, username, avatar_url, class, role, profile_visible, bio, created_at, updated_at, deleted_at)
+            profiles:user_id(user_id, full_name, username, avatar_url, class, profile_visible, bio)
           ),
           chat_reactions(message_id, user_id, emoji),
           chat_media(*)

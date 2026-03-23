@@ -222,17 +222,6 @@ Future<void> main() async {
   );
 }
 
-// =============================================================================
-// ⚠️ DEV BYPASS - REMOVE BEFORE PRODUCTION! ⚠️
-// =============================================================================
-// Set to true to bypass authentication and go directly to main app.
-// Requires a valid existing Supabase session (login once manually first).
-// This is ONLY for development testing. MUST be set to false before release!
-// =============================================================================
-const bool kDevBypassAuth = false;
-const String kDevUserEmail = 'griecogiovanni08@gmail.com';
-// =============================================================================
-
 /// Main application widget with auth routing and deep link handling
 class NovaApp extends ConsumerStatefulWidget {
   const NovaApp({super.key});
@@ -406,12 +395,6 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // ⚠️ DEV BYPASS - Skip auth check in development
-    if (kDevBypassAuth) {
-      final devUser = ref.read(supabaseClientProvider).auth.currentUser;
-      return _buildApp(_ProfileCheckGuard(userId: devUser?.id));
-    }
-
     // CRITICAL FIX: Listen for auth state changes and navigate explicitly
     // Changing 'home' parameter on MaterialApp/CupertinoApp does NOT trigger
     // navigation when the app is already running - home is only the initial widget.
@@ -610,44 +593,6 @@ class _ProfileCheckGuard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // If no user ID, return to login (shouldn't happen after AuthStateAuthenticated)
     if (userId == null) {
-      // ⚠️ DEV MODE: Show helpful message if no session exists
-      if (kDevBypassAuth) {
-        return Scaffold(
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.warning_amber,
-                      size: 64, color: NovaColors.warningLight),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'DEV MODE: No Session',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Devi prima effettuare il login una volta con:\n$kDevUserEmail\n\nPoi il bypass funzionerà automaticamente.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Navigate to login
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
-                    },
-                    child: const Text('Vai al Login'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }
       return const LoginScreen();
     }
 

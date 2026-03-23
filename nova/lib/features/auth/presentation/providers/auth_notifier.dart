@@ -290,7 +290,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// }
   /// ```
   Future<bool> verifyMagicLink(Uri uri) async {
-    debugPrint('🔐 [AUTH] verifyMagicLink called with: $uri');
+    // Note: Don't log full URI as it may contain sensitive tokens
+    debugPrint('🔐 [AUTH] verifyMagicLink called for path: ${uri.path}');
 
     try {
       // Check if already authenticated (Supabase may have already verified
