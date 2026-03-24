@@ -113,7 +113,7 @@ class AuthRepository {
       // Always sign out existing session when processing a new magic link.
       // This ensures the new magic link is processed correctly, even if
       // it's for a different user than the currently logged in one.
-      final existingUser = _supabase.auth.currentUser;
+      var existingUser = _supabase.auth.currentUser;
       if (existingUser != null) {
         debugPrint('🔐 [AUTH_REPO] Signing out existing user before magic link verification');
         await _supabase.auth.signOut();
