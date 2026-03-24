@@ -136,7 +136,11 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
 
   /// Handle message INSERT - fetch full data asynchronously
   Future<void> _handleMessageInsert(Map<String, dynamic> record) async {
-    final messageId = record['id'] as String;
+    final messageId = record['id'] as String?;
+    if (messageId == null) {
+      debugPrint('[Realtime] _handleMessageInsert: missing id in record');
+      return;
+    }
     debugPrint('[Realtime] _handleMessageInsert: $messageId');
     try {
       debugPrint('[Realtime] Fetching full message data...');
@@ -174,7 +178,11 @@ class ChatRealtimeNotifier extends StateNotifier<ChatRealtimeState> {
 
   /// Handle message UPDATE - fetch full data asynchronously
   Future<void> _handleMessageUpdate(Map<String, dynamic> record) async {
-    final messageId = record['id'] as String;
+    final messageId = record['id'] as String?;
+    if (messageId == null) {
+      debugPrint('[Realtime] _handleMessageUpdate: missing id in record');
+      return;
+    }
     debugPrint('[Realtime] _handleMessageUpdate: $messageId');
     try {
       debugPrint('[Realtime] Fetching full message data...');

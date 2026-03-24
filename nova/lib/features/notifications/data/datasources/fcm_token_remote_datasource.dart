@@ -7,6 +7,7 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/fcm_token_model.dart';
@@ -51,6 +52,12 @@ class FcmTokenRemoteDataSource {
   Future<String?> upsertToken(String fcmToken) async {
     final userId = _currentUserId;
     if (userId == null) {
+      return null;
+    }
+
+    // Validate FCM token format (should be ~150+ alphanumeric chars)
+    if (fcmToken.length < 100 || fcmToken.length > 300) {
+      debugPrint('[FCM] Invalid token length: ${fcmToken.length}');
       return null;
     }
 
