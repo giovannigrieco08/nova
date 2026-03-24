@@ -24,9 +24,18 @@ class ReportRepository {
       throw Exception('Utente non autenticato');
     }
 
-    // Validate note length
-    if (note != null && note.length > 500) {
-      throw Exception('La nota non può superare 500 caratteri');
+    // Validate and sanitize note
+    String? sanitizedNote = note;
+    if (note != null) {
+      // Remove HTML tags and control characters
+      sanitizedNote = note
+          .replaceAll(RegExp(r'<[^>]*>'), '') // Remove HTML tags
+          .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '') // Remove control chars
+          .trim();
+
+      if (sanitizedNote.length > 500) {
+        throw Exception('La nota non può superare 500 caratteri');
+      }
     }
 
     final response = await _supabase
@@ -36,7 +45,7 @@ class ReportRepository {
           'content_type': contentType.value,
           'content_id': contentId,
           'category': category.value,
-          if (note != null && note.isNotEmpty) 'note': note,
+          if (sanitizedNote != null && sanitizedNote.isNotEmpty) 'note': sanitizedNote,
         })
         .select()
         .single();
