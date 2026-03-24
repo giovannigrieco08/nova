@@ -110,12 +110,13 @@ class AuthRepository {
   /// ```
   Future<User> verifyMagicLink(Uri uri) async {
     try {
-      // With PKCE flow, Supabase may have already created the session
-      // during the redirect. First check if session exists.
-      var existingUser = _supabase.auth.currentUser;
+      // Always sign out existing session when processing a new magic link.
+      // This ensures the new magic link is processed correctly, even if
+      // it's for a different user than the currently logged in one.
+      final existingUser = _supabase.auth.currentUser;
       if (existingUser != null) {
-        // Session already exists - return the user
-        return existingUser;
+        debugPrint('🔐 [AUTH_REPO] Signing out existing user before magic link verification');
+        await _supabase.auth.signOut();
       }
 
       // For HTTPS URLs from Supabase email, use getSessionFromUrl
