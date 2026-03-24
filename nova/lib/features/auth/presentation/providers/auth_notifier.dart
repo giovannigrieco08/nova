@@ -294,21 +294,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     debugPrint('🔐 [AUTH] verifyMagicLink called for path: ${uri.path}');
 
     try {
-      // Check if already authenticated (Supabase may have already verified
-      // the token server-side during the redirect, creating a session before
-      // the app receives the deep link callback)
-      final existingUser = _authRepository.getCurrentUser();
-      debugPrint('🔐 [AUTH] Existing user: ${existingUser?.id}');
-
-      if (existingUser != null) {
-        // Session already exists - manually update state since the signedIn
-        // event might have fired before our listener was set up, or might not
-        // fire at all when restoring session from storage
-        debugPrint(
-            '🔐 [AUTH] User already authenticated, forcing state update...');
-        _forceAuthStateUpdate(existingUser);
-        return true;
-      }
+      // Always verify the magic link via repository - it will sign out any
+      // existing user first to ensure the new magic link is processed correctly.
+      // This prevents the bug where clicking a magic link for User B while
+      // logged in as User A would keep User A logged in.
 
       // Verify token via repository - this handles multiple scenarios:
       // 1. PKCE code exchange
