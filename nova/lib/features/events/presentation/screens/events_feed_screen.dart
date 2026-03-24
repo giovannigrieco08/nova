@@ -3,6 +3,7 @@
 // Purpose: Main feed with infinite scroll, pull-to-refresh, and empty state
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
@@ -186,17 +187,21 @@ class _EventsFeedScreenState extends ConsumerState<EventsFeedScreen> {
     final helpRequestsMap = helpRequestsAsync.valueOrNull ?? {};
 
     // Initialize likes provider with engagement data (only for events not yet initialized)
-    final likesNotifier = ref.read(eventLikesProvider.notifier);
-    for (final event in state.events) {
-      final engagement = engagementMap[event.id];
-      if (engagement != null) {
-        likesNotifier.initializeEvent(
-          eventId: event.id,
-          isLiked: engagement.isLiked,
-          likeCount: engagement.likeCount,
-        );
+    // Deferred to post-frame callback to avoid state mutations during build
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final likesNotifier = ref.read(eventLikesProvider.notifier);
+      for (final event in state.events) {
+        final engagement = engagementMap[event.id];
+        if (engagement != null) {
+          likesNotifier.initializeEvent(
+            eventId: event.id,
+            isLiked: engagement.isLiked,
+            likeCount: engagement.likeCount,
+          );
+        }
       }
-    }
+    });
 
     // Calculate item count: pending events + approved events + loading indicator
     final itemCount = pendingEvents.length +

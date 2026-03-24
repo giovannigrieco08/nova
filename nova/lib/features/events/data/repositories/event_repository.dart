@@ -9,6 +9,7 @@
 // - Implement offline-first draft persistence
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/repositories/event_repository_interface.dart';
 import '../datasources/event_remote_datasource.dart';
@@ -133,7 +134,8 @@ class EventRepositoryImpl implements EventRepository {
         'updated_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      // Silently fail - don't block event creation for help request failure
+      // Log but don't block event creation for help request failure
+      debugPrint('[EventRepository] Failed to create help request: $e');
     }
   }
 
@@ -152,7 +154,8 @@ class EventRepositoryImpl implements EventRepository {
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      // Silently fail - don't block event creation for invite failure
+      // Log but don't block event creation for invite failure
+      debugPrint('[EventRepository] Failed to send collaboration invite: $e');
     }
   }
 
