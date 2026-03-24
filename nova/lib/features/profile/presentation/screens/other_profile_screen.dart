@@ -30,8 +30,6 @@ import '../../../safety/data/models/report.dart';
 import '../../../safety/presentation/widgets/report_sheet.dart';
 import '../../../safety/presentation/widgets/block_button.dart';
 import '../../../safety/presentation/providers/block_provider.dart';
-import '../../../safety/presentation/widgets/block_button.dart';
-import '../../../safety/presentation/providers/block_provider.dart';
 
 /// Screen for viewing other users' profiles (OPTIMIZED)
 ///

@@ -147,7 +147,8 @@ class _CameraScreenState extends State<CameraScreen>
   Future<void> _setupCamera(int cameraIndex) async {
     if (_cameras.isEmpty || cameraIndex >= _cameras.length) return;
 
-    _controller?.dispose();
+    // Await dispose to ensure proper cleanup before creating new controller
+    await _controller?.dispose();
 
     final camera = _cameras[cameraIndex];
     _controller = CameraController(
