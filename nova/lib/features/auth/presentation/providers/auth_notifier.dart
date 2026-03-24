@@ -289,62 +289,84 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   ///   // Navigate to main feed (or wait for state change)
   /// }
   /// ```
+  /// Flag to prevent _checkAuthStateOnResume from interfering during magic link processing
+  bool _isProcessingMagicLink = false;
+
+  /// Check if currently processing a magic link (used by main.dart)
+  bool get isProcessingMagicLink => _isProcessingMagicLink;
+
   Future<bool> verifyMagicLink(Uri uri) async {
     // Note: Don't log full URI as it may contain sensitive tokens
     debugPrint('🔐 [AUTH] verifyMagicLink called for path: ${uri.path}');
 
+    // Skip dummy resume URIs - these are from _checkAuthStateOnResume
+    // and should not interfere with actual magic link processing
+    if (uri.path == '/resume' || uri.toString() == 'novaapp://auth/resume') {
+      debugPrint('🔐 [AUTH] Skipping resume URI, checking current user...');
+      final currentUser = _authRepository.getCurrentUser();
+      if (currentUser != null) {
+        _forceAuthStateUpdate(currentUser);
+        return true;
+      }
+      return false;
+    }
+
+    // CRITICAL: Set flag to prevent resume check from interfering
+    _isProcessingMagicLink = true;
+
     try {
-      // Always verify the magic link via repository - it will sign out any
-      // existing user first to ensure the new magic link is processed correctly.
-      // This prevents the bug where clicking a magic link for User B while
-      // logged in as User A would keep User A logged in.
+      // STEP 1: Reset internal state to ensure clean slate
+      debugPrint('🔐 [AUTH] Step 1: Resetting internal state...');
+      _lastAuthenticatedUserId = null;
 
-      // Verify token via repository - this handles multiple scenarios:
-      // 1. PKCE code exchange
-      // 2. token_hash in URL (traditional OTP)
-      // 3. access_token/refresh_token in URL
-      // NOTE: Don't set loading state here - the auth listener will update
-      // the state when the signedIn event fires, avoiding double updates
-      debugPrint('🔐 [AUTH] Calling repository.verifyMagicLink...');
+      // STEP 2: Sign out any existing user BEFORE processing magic link
+      // This is critical to ensure the new magic link is for the correct user
+      final existingUser = _authRepository.getCurrentUser();
+      if (existingUser != null) {
+        debugPrint('🔐 [AUTH] Step 2: Signing out existing user ${existingUser.id}...');
+        try {
+          await _authRepository.signOut();
+          // Wait for signOut to fully complete
+          await Future.delayed(const Duration(milliseconds: 100));
+        } catch (e) {
+          debugPrint('🔐 [AUTH] SignOut error (continuing anyway): $e');
+        }
+      }
+
+      // STEP 3: Verify the magic link via repository
+      debugPrint('🔐 [AUTH] Step 3: Calling repository.verifyMagicLink...');
       final user = await _authRepository.verifyMagicLink(uri);
-      debugPrint('🔐 [AUTH] Repository returned user: ${user.id}');
+      debugPrint('🔐 [AUTH] Repository returned user: ${user.id}, email: ${user.email}');
 
-      // Don't update state here - the auth listener handles it when
-      // Supabase fires the signedIn event. This prevents race conditions
-      // where we update state, widgets rebuild, and then the listener
-      // tries to update again causing defunct widget errors.
+      // STEP 4: Force update state with the NEW user
+      debugPrint('🔐 [AUTH] Step 4: Force updating state with new user...');
+      _forceAuthStateUpdate(user);
 
       return true;
     } on supabase.AuthException catch (e) {
       debugPrint('🔐 [AUTH] AuthException: ${e.message}');
       // Check if user got authenticated despite the error
-      // (can happen if token was already verified server-side)
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
-        debugPrint(
-            '🔐 [AUTH] User authenticated despite error, updating state...');
+        debugPrint('🔐 [AUTH] User authenticated despite error: ${currentUser.email}');
         _forceAuthStateUpdate(currentUser);
         return true;
       }
-
-      // Don't set error state - just return false
-      // The UI will handle showing appropriate feedback
       debugPrint('🔐 [AUTH] Verification failed');
       return false;
     } catch (e, stackTrace) {
       debugPrint('🔐 [AUTH] Unexpected error: $e');
-      // Check if user got authenticated despite the error
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
-        debugPrint(
-            '🔐 [AUTH] User authenticated despite error, updating state...');
+        debugPrint('🔐 [AUTH] User authenticated despite error: ${currentUser.email}');
         _forceAuthStateUpdate(currentUser);
         return true;
       }
-
-      // Don't set error state - just return false
       debugPrint('🔐 [AUTH] Verification failed: $e');
       return false;
+    } finally {
+      // Always reset the flag
+      _isProcessingMagicLink = false;
     }
   }
 

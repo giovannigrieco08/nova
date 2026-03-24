@@ -374,10 +374,25 @@ class _NovaAppState extends ConsumerState<NovaApp> with WidgetsBindingObserver {
   Future<void> _checkAuthStateOnResume() async {
     if (!mounted) return;
 
+    // CRITICAL: Skip if a magic link is currently being processed
+    // This prevents race conditions where we sync the OLD user while
+    // the magic link for a NEW user is being processed
+    final authNotifier = ref.read(authNotifierProvider.notifier);
+    if (authNotifier.isProcessingMagicLink) {
+      debugPrint('📱 [RESUME] Magic link processing in progress, skipping sync');
+      return;
+    }
+
     // Small delay to allow Supabase to restore session from storage
     await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;
+
+    // Check again after delay - magic link might have started processing
+    if (authNotifier.isProcessingMagicLink) {
+      debugPrint('📱 [RESUME] Magic link processing started during delay, skipping sync');
+      return;
+    }
 
     // Check if Supabase has an authenticated session
     final supabase = ref.read(supabaseClientProvider);
