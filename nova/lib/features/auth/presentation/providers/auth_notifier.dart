@@ -120,6 +120,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Events from this user should be IGNORED during transition
   String? _userIdBeingReplaced;
 
+  /// Track processed magic link codes to avoid duplicate processing
+  /// This prevents issues when both Universal Links and custom scheme deliver the same code
+  final Set<String> _processedCodes = {};
+
   /// Check if already authenticated with same user
   bool _isAlreadyAuthenticated(String? userId) {
     final currentState = state.valueOrNull;
@@ -321,6 +325,28 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         return true;
       }
       return false;
+    }
+
+    // CRITICAL: Check if this code was already processed
+    // This happens when both Universal Links and custom scheme deliver the same magic link
+    final code = uri.queryParameters['code'];
+    if (code != null && _processedCodes.contains(code)) {
+      debugPrint('🔐 [AUTH] Code already processed, skipping duplicate: ${code.substring(0, 8)}...');
+      // Check current auth state - if authenticated, return success
+      final currentUser = _authRepository.getCurrentUser();
+      if (currentUser != null) {
+        return true;
+      }
+      return false;
+    }
+
+    // Mark code as being processed
+    if (code != null) {
+      _processedCodes.add(code);
+      // Clean up old codes (keep last 5)
+      while (_processedCodes.length > 5) {
+        _processedCodes.remove(_processedCodes.first);
+      }
     }
 
     // CRITICAL: Set flag to prevent resume check from interfering

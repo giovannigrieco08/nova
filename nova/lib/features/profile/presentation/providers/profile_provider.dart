@@ -3,10 +3,13 @@
 // Purpose: Riverpod StateNotifier for profile state management with auto-save
 
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:nova/core/providers/core_providers.dart';
+import 'package:nova/features/auth/presentation/providers/auth_notifier.dart';
+import 'package:nova/core/models/auth_state.dart';
 import '../../domain/entities/profile.dart';
 import '../../domain/usecases/create_profile.dart';
 import '../../domain/usecases/check_profile_complete.dart';
@@ -77,6 +80,7 @@ final checkProfileCompleteUseCaseProvider =
 ///
 /// Loads and caches the authenticated user's profile
 /// Automatically converts expired signed URLs to public URLs
+/// CRITICAL: Watches authNotifierProvider to refresh when user changes
 /// Usage:
 /// ```dart
 /// final profileAsync = ref.watch(currentProfileProvider);
@@ -88,14 +92,34 @@ final checkProfileCompleteUseCaseProvider =
 /// ```
 final currentProfileProvider = FutureProvider<Profile>((ref) async {
   final repository = ref.watch(profileRepositoryProvider);
-  final supabase = ref.watch(supabaseClientProvider);
 
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) {
+  // CRITICAL: Watch auth state to refresh profile when user changes
+  // This ensures profile is reloaded after account switch via magic link
+  final authState = ref.watch(authNotifierProvider);
+
+  // Extract userId from auth state, not from supabase directly
+  // This ensures we use the correct user ID after account switch
+  final state = authState.valueOrNull;
+  if (state == null || state is! AuthStateAuthenticated) {
     throw Exception('User not authenticated');
   }
 
+  final userId = state.user.id;
+
+  debugPrint('📝 [PROFILE_PROVIDER] Loading profile for user: $userId');
+
   var profile = await repository.getProfile(userId);
+
+  // CRITICAL: Verify the loaded profile matches the requested user
+  // This catches cache inconsistencies
+  if (profile.userId != userId) {
+    debugPrint('📝 [PROFILE_PROVIDER] WARNING: Profile mismatch! Requested: $userId, Got: ${profile.userId}');
+    debugPrint('📝 [PROFILE_PROVIDER] Fetching fresh profile from remote...');
+    // Force fetch from remote by calling getProfileById which doesn't use cache
+    profile = await repository.getProfileById(userId);
+  }
+
+  debugPrint('📝 [PROFILE_PROVIDER] Loaded profile: ${profile.userId}, email: ${profile.email}');
 
   // Convert signed URL to public URL if needed
   // Signed URLs contain "token=" and expire, causing avatar display issues
