@@ -205,8 +205,13 @@ class ChatMessageModel {
     if (authorJson == null) {
       return _placeholderProfile(userId);
     }
-    // Use ProfileModel to handle snake_case -> camelCase conversion
-    return ProfileModel.fromJson(authorJson!).toEntity();
+    try {
+      // Use ProfileModel to handle snake_case -> camelCase conversion
+      return ProfileModel.fromJson(authorJson!).toEntity();
+    } catch (e) {
+      // If parsing fails (e.g., null required fields), return placeholder
+      return _placeholderProfile(userId);
+    }
   }
 
   static Profile _placeholderProfile(String id) {
@@ -223,11 +228,16 @@ class ChatMessageModel {
   ChatMessage? _parseReplyTo(String currentUserId) {
     if (replyToJson == null) return null;
 
-    final replyModel = ChatMessageModel.fromJson(replyToJson!);
-    return replyModel.toEntity(
-      currentUserId: currentUserId,
-      replyTo: null, // Replies don't have nested replies
-    );
+    try {
+      final replyModel = ChatMessageModel.fromJson(replyToJson!);
+      return replyModel.toEntity(
+        currentUserId: currentUserId,
+        replyTo: null, // Replies don't have nested replies
+      );
+    } catch (e) {
+      // If parsing fails, return null (no reply-to displayed)
+      return null;
+    }
   }
 
   Map<String, int> _aggregateReactionCounts() {

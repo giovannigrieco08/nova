@@ -8,23 +8,32 @@ import '../../domain/entities/profile.dart';
 
 part 'profile_model.g.dart';
 
+// Helper functions for null-safe DateTime parsing
+DateTime _dateTimeFromJson(dynamic value) {
+  if (value == null) return DateTime.now();
+  if (value is String) return DateTime.parse(value);
+  return DateTime.now();
+}
+
+String _dateTimeToJson(DateTime date) => date.toIso8601String();
+
 @HiveType(typeId: 1) // Hive type adapter ID
 @JsonSerializable()
 class ProfileModel {
   @HiveField(0)
-  @JsonKey(name: 'user_id')
+  @JsonKey(name: 'user_id', defaultValue: '')
   final String userId;
 
   @HiveField(1)
-  @JsonKey(name: 'email')
+  @JsonKey(name: 'email', defaultValue: '')
   final String email;
 
   @HiveField(2)
-  @JsonKey(name: 'full_name')
+  @JsonKey(name: 'full_name', defaultValue: 'Utente')
   final String fullName;
 
   @HiveField(3)
-  @JsonKey(name: 'username')
+  @JsonKey(name: 'username', defaultValue: 'utente')
   final String username;
 
   @HiveField(4)
@@ -44,7 +53,7 @@ class ProfileModel {
   final String? bio;
 
   @HiveField(7)
-  @JsonKey(name: 'role')
+  @JsonKey(name: 'role', defaultValue: 'student')
   final String role;
 
   @HiveField(8)
@@ -52,11 +61,11 @@ class ProfileModel {
   final bool profileVisible;
 
   @HiveField(9)
-  @JsonKey(name: 'created_at')
+  @JsonKey(name: 'created_at', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime createdAt;
 
   @HiveField(10)
-  @JsonKey(name: 'updated_at')
+  @JsonKey(name: 'updated_at', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime updatedAt;
 
   @HiveField(11)
