@@ -61,7 +61,8 @@
       "Skill(speckit.tasks:*)",
       "Read(//c/**)",
       "Bash(powershell.exe -Command \"cd ''c:\\\\Users\\\\grigi\\\\nova_def''; git add .github/workflows/ci.yml; git commit -m ''fix\\(ci\\): add verbose build_runner output and verify generated files''; git push\")",
-      "Read(//c/Users/grigi/nova_def/**)"
+      "Read(//c/Users/grigi/nova_def/**)",
+      "Bash(supabase db:*)"
     ],
     "deny": [],
     "ask": []

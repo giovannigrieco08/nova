@@ -116,6 +116,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Track last authenticated user ID to deduplicate events
   String? _lastAuthenticatedUserId;
 
+  /// Track user ID being replaced during magic link switch
+  /// Events from this user should be IGNORED during transition
+  String? _userIdBeingReplaced;
+
   /// Check if already authenticated with same user
   bool _isAlreadyAuthenticated(String? userId) {
     final currentState = state.valueOrNull;
@@ -158,6 +162,14 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             debugPrint('🔐 [AUTH_LISTENER] SignedIn event!');
             final user = authState.session?.user;
             if (user != null) {
+              // CRITICAL: Skip if this is the OLD user being replaced
+              // This prevents race conditions during account switching
+              if (_userIdBeingReplaced != null && user.id == _userIdBeingReplaced) {
+                debugPrint(
+                    '🔐 [AUTH_LISTENER] IGNORING signedIn for user being replaced: ${user.id}');
+                return;
+              }
+
               // DEDUPLICATE: Skip if already authenticated with same user
               if (_lastAuthenticatedUserId == user.id) {
                 debugPrint(
@@ -323,11 +335,14 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // This is critical to ensure the new magic link is for the correct user
       final existingUser = _authRepository.getCurrentUser();
       if (existingUser != null) {
+        // CRITICAL: Track the user being replaced to ignore their events
+        _userIdBeingReplaced = existingUser.id;
+        debugPrint('🔐 [AUTH] Step 2: Marking user ${existingUser.id} as being replaced...');
         debugPrint('🔐 [AUTH] Step 2: Signing out existing user ${existingUser.id}...');
         try {
           await _authRepository.signOut();
           // Wait for signOut to fully complete
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future.delayed(const Duration(milliseconds: 200));
         } catch (e) {
           debugPrint('🔐 [AUTH] SignOut error (continuing anyway): $e');
         }
@@ -348,6 +363,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Check if user got authenticated despite the error
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
+        // CRITICAL: Don't accept the old user
+        if (_userIdBeingReplaced != null && currentUser.id == _userIdBeingReplaced) {
+          debugPrint('🔐 [AUTH] Rejecting old user after error');
+          return false;
+        }
         debugPrint('🔐 [AUTH] User authenticated despite error: ${currentUser.email}');
         _forceAuthStateUpdate(currentUser);
         return true;
@@ -358,6 +378,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       debugPrint('🔐 [AUTH] Unexpected error: $e');
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {
+        // CRITICAL: Don't accept the old user
+        if (_userIdBeingReplaced != null && currentUser.id == _userIdBeingReplaced) {
+          debugPrint('🔐 [AUTH] Rejecting old user after error');
+          return false;
+        }
         debugPrint('🔐 [AUTH] User authenticated despite error: ${currentUser.email}');
         _forceAuthStateUpdate(currentUser);
         return true;
@@ -365,8 +390,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       debugPrint('🔐 [AUTH] Verification failed: $e');
       return false;
     } finally {
-      // Always reset the flag
+      // Always reset the flags
       _isProcessingMagicLink = false;
+      _userIdBeingReplaced = null;
     }
   }
 
@@ -375,7 +401,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// This is called when we detect the user is authenticated but the
   /// Riverpod state hasn't been updated yet (e.g., after PKCE redirect).
   void _forceAuthStateUpdate(supabase.User user) {
-    debugPrint('🔐 [AUTH] _forceAuthStateUpdate called for user: ${user.id}');
+    debugPrint('🔐 [AUTH] _forceAuthStateUpdate called for user: ${user.id}, email: ${user.email}');
+
+    // CRITICAL: Reject updates for the user being replaced
+    if (_userIdBeingReplaced != null && user.id == _userIdBeingReplaced) {
+      debugPrint('🔐 [AUTH] REJECTING update for user being replaced: ${user.id}');
+      return;
+    }
 
     // Check if already authenticated with same user
     if (_lastAuthenticatedUserId == user.id) {

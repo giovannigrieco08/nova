@@ -113,10 +113,12 @@ class AuthRepository {
       // Always sign out existing session when processing a new magic link.
       // This ensures the new magic link is processed correctly, even if
       // it's for a different user than the currently logged in one.
+      // Use SignOutScope.local to ensure complete local session cleanup.
       var existingUser = _supabase.auth.currentUser;
       if (existingUser != null) {
-        debugPrint('🔐 [AUTH_REPO] Signing out existing user before magic link verification');
-        await _supabase.auth.signOut();
+        debugPrint('🔐 [AUTH_REPO] Signing out existing user ${existingUser.id} before magic link verification');
+        await _supabase.auth.signOut(scope: SignOutScope.local);
+        debugPrint('🔐 [AUTH_REPO] Sign out complete, currentUser is now: ${_supabase.auth.currentUser?.id}');
       }
 
       // For HTTPS URLs from Supabase email, use getSessionFromUrl
@@ -144,6 +146,7 @@ class AuthRepository {
           debugPrint('🔐 [AUTH_REPO] Calling exchangeCodeForSession...');
           final response = await _supabase.auth.exchangeCodeForSession(code);
           debugPrint('🔐 [AUTH_REPO] exchangeCodeForSession succeeded!');
+          debugPrint('🔐 [AUTH_REPO] New user: ${response.session.user.id}, email: ${response.session.user.email}');
 
           // exchangeCodeForSession returns AuthSessionUrlResponse with session
           return response.session.user;
@@ -151,23 +154,37 @@ class AuthRepository {
           debugPrint('🔐 [AUTH_REPO] exchangeCodeForSession error: $e');
 
           // The SDK might have already processed it, check for existing session
+          // BUT only if the user is DIFFERENT from the one we just signed out
           await Future.delayed(const Duration(milliseconds: 500));
-          existingUser = _supabase.auth.currentUser;
-          if (existingUser != null) {
-            debugPrint('🔐 [AUTH_REPO] Session found after delay');
-            return existingUser;
+          final newUser = _supabase.auth.currentUser;
+
+          // CRITICAL: Only accept the new user if it's DIFFERENT from the old one
+          // If oldUserId is stored in existingUser.id, we compare
+          if (newUser != null) {
+            // existingUser was set BEFORE sign out, so we can compare
+            final oldUserId = existingUser?.id;
+            if (oldUserId == null || newUser.id != oldUserId) {
+              debugPrint('🔐 [AUTH_REPO] New session found: ${newUser.id}, email: ${newUser.email}');
+              return newUser;
+            } else {
+              debugPrint('🔐 [AUTH_REPO] WARNING: Session is still old user, rejecting');
+            }
           }
 
-          // If still no session, wait a bit more and check again
-          // The auth listener might be processing in parallel
+          // If still no valid session, wait a bit more and check again
           await Future.delayed(const Duration(milliseconds: 1000));
-          existingUser = _supabase.auth.currentUser;
-          if (existingUser != null) {
-            debugPrint('🔐 [AUTH_REPO] Session found after second delay');
-            return existingUser;
+          final finalUser = _supabase.auth.currentUser;
+          if (finalUser != null) {
+            final oldUserId = existingUser?.id;
+            if (oldUserId == null || finalUser.id != oldUserId) {
+              debugPrint('🔐 [AUTH_REPO] Session found after second delay: ${finalUser.id}');
+              return finalUser;
+            } else {
+              debugPrint('🔐 [AUTH_REPO] WARNING: Session is STILL old user after delay, rejecting');
+            }
           }
 
-          // No session found, throw the original error
+          // No valid session found, throw error
           throw AuthException(
               'Magic link verification failed. Please try again.');
         }
