@@ -53,7 +53,7 @@ class ProfileModel {
   final String? bio;
 
   @HiveField(7)
-  @JsonKey(name: 'role', defaultValue: 'student')
+  @JsonKey(name: 'role', defaultValue: 'student', includeToJson: false)
   final String role;
 
   @HiveField(8)
