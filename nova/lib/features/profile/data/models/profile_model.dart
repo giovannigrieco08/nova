@@ -25,7 +25,7 @@ class ProfileModel {
   final String userId;
 
   @HiveField(1)
-  @JsonKey(name: 'email', defaultValue: '')
+  @JsonKey(name: 'email', defaultValue: '', includeToJson: false) // Synced by trigger_sync_email
   final String email;
 
   @HiveField(2)
@@ -61,15 +61,15 @@ class ProfileModel {
   final bool profileVisible;
 
   @HiveField(9)
-  @JsonKey(name: 'created_at', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
+  @JsonKey(name: 'created_at', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson, includeToJson: false) // Managed by DB default
   final DateTime createdAt;
 
   @HiveField(10)
-  @JsonKey(name: 'updated_at', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
+  @JsonKey(name: 'updated_at', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson, includeToJson: false) // Managed by DB trigger
   final DateTime updatedAt;
 
   @HiveField(11)
-  @JsonKey(name: 'deleted_at')
+  @JsonKey(name: 'deleted_at', includeToJson: false) // Never sent on create/update
   final DateTime? deletedAt;
 
   ProfileModel({
