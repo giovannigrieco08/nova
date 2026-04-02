@@ -99,20 +99,37 @@ class ProfileRemoteDataSource {
   /// Create new profile (first-time setup)
   /// Throws [PostgrestException] on error (e.g., duplicate key if profile already exists)
   Future<ProfileModel> createProfile(ProfileModel profile) async {
+    // DEBUG: Log the exact data being sent
+    final jsonData = profile.toJson();
+    print('📝 [PROFILE_CREATE] Attempting to create profile...');
+    print('📝 [PROFILE_CREATE] user_id: ${profile.userId}');
+    print('📝 [PROFILE_CREATE] Current auth user: ${_supabase.auth.currentUser?.id}');
+    print('📝 [PROFILE_CREATE] JSON data: $jsonData');
+
     try {
       final response = await _supabase
           .from('profiles')
-          .insert(profile.toJson())
+          .insert(jsonData)
           .select()
           .single();
 
+      print('📝 [PROFILE_CREATE] SUCCESS! Profile created');
       return ProfileModel.fromJson(response);
     } on PostgrestException catch (e) {
+      print('📝 [PROFILE_CREATE] PostgrestException!');
+      print('📝 [PROFILE_CREATE] Code: ${e.code}');
+      print('📝 [PROFILE_CREATE] Message: ${e.message}');
+      print('📝 [PROFILE_CREATE] Details: ${e.details}');
+      print('📝 [PROFILE_CREATE] Hint: ${e.hint}');
+
       if (e.code == '23505') {
         // Unique constraint violation - profile already exists
         throw ProfileAlreadyExistsException(
             'Profile already exists for user ${profile.userId}');
       }
+      rethrow;
+    } catch (e) {
+      print('📝 [PROFILE_CREATE] Unknown error: $e');
       rethrow;
     }
   }
