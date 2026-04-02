@@ -51,8 +51,13 @@ class ProfileRepository {
 
         return localProfile.toEntity();
       }
+    } on ProfileNotFoundException {
+      // Profile explicitly doesn't exist in database - clear stale cache and rethrow
+      // Do NOT fall back to cache, as this would allow bypassing profile setup
+      await _localDataSource.deleteProfile(userId);
+      rethrow;
     } catch (e) {
-      // On error, try local cache as fallback
+      // On network/other errors, try local cache as fallback
       final localProfile = _localDataSource.getProfile(userId);
 
       if (localProfile != null) {

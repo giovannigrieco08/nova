@@ -89,11 +89,14 @@ class AvatarUploadService {
     try {
       // Read image file
       final bytes = await imageFile.readAsBytes();
-      final image = img.decodeImage(bytes);
+      var image = img.decodeImage(bytes);
 
       if (image == null) {
         throw AvatarUploadException('Invalid image file');
       }
+
+      // Bake EXIF orientation into pixels before processing
+      image = img.bakeOrientation(image);
 
       // Resize to 512x512 (square crop from center)
       final resized = img.copyResizeCropSquare(image, size: 512);

@@ -251,11 +251,14 @@ class _AvatarCropperState extends State<AvatarCropper> {
 
       // Load and crop image using the image package
       final bytes = await widget.imageFile.readAsBytes();
-      final originalImage = img.decodeImage(bytes);
+      var originalImage = img.decodeImage(bytes);
 
       if (originalImage == null) {
         throw Exception('Failed to decode image');
       }
+
+      // Bake EXIF orientation into pixels before cropping
+      originalImage = img.bakeOrientation(originalImage);
 
       // Clamp values to image bounds
       final clampedX = srcX.clamp(0, originalImage.width - 1);

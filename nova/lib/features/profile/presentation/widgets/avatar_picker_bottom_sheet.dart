@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/nova_colors.dart';
+import '../../../../core/utils/image_orientation_fixer.dart';
 import '../../../../core/theme/nova_spacing.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
@@ -67,7 +68,12 @@ class AvatarPickerBottomSheet {
       );
 
       if (image != null) {
-        return File(image.path);
+        // Fix orientation issues on iOS (especially for selfies)
+        final fixedPath = await ImageOrientationFixer.fixOrientation(
+          image.path,
+          isFrontCamera: source == ImageSource.camera,
+        );
+        return File(fixedPath);
       }
     } catch (e) {
       if (context.mounted) {
