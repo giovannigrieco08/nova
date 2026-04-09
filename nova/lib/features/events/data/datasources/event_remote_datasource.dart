@@ -135,9 +135,24 @@ class EventRemoteDataSource {
   /// RLS: users_create_events policy
   Future<EventModel> createEvent(EventModel event) async {
     try {
+      // Only send user-provided fields; let DB handle id, timestamps, moderation
+      final insertData = {
+        'title': event.title,
+        'description': event.description,
+        'event_date': event.eventDate.toIso8601String(),
+        'location': event.location,
+        'image_url': event.imageUrl,
+        'creator_id': event.creatorId,
+        'co_organizers': event.coOrganizers,
+        'status': 'pending',
+        if (event.latitude != null) 'latitude': event.latitude,
+        if (event.longitude != null) 'longitude': event.longitude,
+        if (event.placeId != null) 'place_id': event.placeId,
+      };
+
       final response = await _supabase
           .from('events')
-          .insert(event.toJson())
+          .insert(insertData)
           .select(_selectWithCreator)
           .single();
 
