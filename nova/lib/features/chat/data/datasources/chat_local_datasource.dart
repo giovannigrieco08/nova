@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 
 /// Local data source for chat offline support.
@@ -12,6 +13,15 @@ class ChatLocalDataSource {
 
   late Box<Map> _box;
   bool _isInitialized = false;
+
+  /// Default constructor.
+  ChatLocalDataSource();
+
+  /// Test-only constructor that injects a pre-opened box.
+  @visibleForTesting
+  ChatLocalDataSource.withBox(Box<Map> box)
+      : _box = box,
+        _isInitialized = true;
 
   /// Initialize Hive box for pending messages.
   Future<void> init() async {

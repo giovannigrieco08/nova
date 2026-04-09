@@ -63,7 +63,7 @@ class ContentWarningBanner extends ConsumerWidget {
             'Verifica contenuto...',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6),
                 ),
           ),
         ],
@@ -92,7 +92,7 @@ class ContentWarningBanner extends ConsumerWidget {
         color: theme.colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: theme.colorScheme.error.withOpacity(0.3),
+          color: theme.colorScheme.error.withValues(alpha:0.3),
         ),
       ),
       child: Row(
@@ -118,7 +118,7 @@ class ContentWarningBanner extends ConsumerWidget {
                 Text(
                   'Modifica il testo per poter pubblicare',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onErrorContainer.withOpacity(0.8),
+                    color: theme.colorScheme.onErrorContainer.withValues(alpha:0.8),
                   ),
                 ),
               ],
@@ -150,7 +150,7 @@ class ContentWarningBanner extends ConsumerWidget {
         color: theme.colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: theme.colorScheme.tertiary.withOpacity(0.3),
+          color: theme.colorScheme.tertiary.withValues(alpha:0.3),
         ),
       ),
       child: Row(
@@ -216,7 +216,7 @@ class ContentWarningIndicator extends ConsumerWidget {
     if (checkState.result != null && checkState.isClean) {
       return Icon(
         Icons.check_circle_outline,
-        color: theme.colorScheme.primary.withOpacity(0.5),
+        color: theme.colorScheme.primary.withValues(alpha:0.5),
         size: size,
       );
     }

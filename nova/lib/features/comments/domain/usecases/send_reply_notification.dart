@@ -1,5 +1,4 @@
 import '../entities/comment.dart';
-import '../repositories/comments_repository_interface.dart';
 
 /// SendReplyNotification Use Case
 ///
@@ -23,9 +22,7 @@ import '../repositories/comments_repository_interface.dart';
 /// );
 /// ```
 class SendReplyNotification {
-  final CommentsRepositoryInterface _repository;
-
-  SendReplyNotification(this._repository);
+  SendReplyNotification();
 
   /// Execute use case
   ///

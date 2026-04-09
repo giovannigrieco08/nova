@@ -3,6 +3,7 @@
 // Purpose: Supabase REST API integration for profile operations
 
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile_model.dart';
 import '../../domain/entities/profile_stats.dart';
@@ -101,10 +102,10 @@ class ProfileRemoteDataSource {
   Future<ProfileModel> createProfile(ProfileModel profile) async {
     // DEBUG: Log the exact data being sent
     final jsonData = profile.toJson();
-    print('📝 [PROFILE_CREATE] Attempting to create profile...');
-    print('📝 [PROFILE_CREATE] user_id: ${profile.userId}');
-    print('📝 [PROFILE_CREATE] Current auth user: ${_supabase.auth.currentUser?.id}');
-    print('📝 [PROFILE_CREATE] JSON data: $jsonData');
+    debugPrint('📝 [PROFILE_CREATE] Attempting to create profile...');
+    debugPrint('📝 [PROFILE_CREATE] user_id: ${profile.userId}');
+    debugPrint('📝 [PROFILE_CREATE] Current auth user: ${_supabase.auth.currentUser?.id}');
+    debugPrint('📝 [PROFILE_CREATE] JSON data: $jsonData');
 
     try {
       final response = await _supabase
@@ -113,14 +114,14 @@ class ProfileRemoteDataSource {
           .select()
           .single();
 
-      print('📝 [PROFILE_CREATE] SUCCESS! Profile created');
+      debugPrint('📝 [PROFILE_CREATE] SUCCESS! Profile created');
       return ProfileModel.fromJson(response);
     } on PostgrestException catch (e) {
-      print('📝 [PROFILE_CREATE] PostgrestException!');
-      print('📝 [PROFILE_CREATE] Code: ${e.code}');
-      print('📝 [PROFILE_CREATE] Message: ${e.message}');
-      print('📝 [PROFILE_CREATE] Details: ${e.details}');
-      print('📝 [PROFILE_CREATE] Hint: ${e.hint}');
+      debugPrint('📝 [PROFILE_CREATE] PostgrestException!');
+      debugPrint('📝 [PROFILE_CREATE] Code: ${e.code}');
+      debugPrint('📝 [PROFILE_CREATE] Message: ${e.message}');
+      debugPrint('📝 [PROFILE_CREATE] Details: ${e.details}');
+      debugPrint('📝 [PROFILE_CREATE] Hint: ${e.hint}');
 
       if (e.code == '23505') {
         // Unique constraint violation - profile already exists
@@ -129,7 +130,7 @@ class ProfileRemoteDataSource {
       }
       rethrow;
     } catch (e) {
-      print('📝 [PROFILE_CREATE] Unknown error: $e');
+      debugPrint('📝 [PROFILE_CREATE] Unknown error: $e');
       rethrow;
     }
   }

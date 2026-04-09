@@ -48,7 +48,6 @@ class ReportDialog extends StatefulWidget {
 class _ReportDialogState extends State<ReportDialog> {
   CommentReportReason? _selectedReason;
   final TextEditingController _detailsController = TextEditingController();
-  final bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -90,23 +89,27 @@ class _ReportDialogState extends State<ReportDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Reason options
-            ...CommentReportReason.values.map((reason) {
-              return RadioListTile<CommentReportReason>(
-                title: Text(
-                  reason.displayName,
-                  style: NovaTypography.bodyMedium,
-                ),
-                value: reason,
-                groupValue: _selectedReason,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedReason = value;
-                  });
-                },
-                activeColor: NovaColors.primaryLight,
-                contentPadding: EdgeInsets.zero,
-              );
-            }),
+            RadioGroup<CommentReportReason>(
+              groupValue: _selectedReason,
+              onChanged: (value) {
+                setState(() {
+                  _selectedReason = value;
+                });
+              },
+              child: Column(
+                children: CommentReportReason.values.map((reason) {
+                  return RadioListTile<CommentReportReason>(
+                    title: Text(
+                      reason.displayName,
+                      style: NovaTypography.bodyMedium,
+                    ),
+                    value: reason,
+                    activeColor: NovaColors.primaryLight,
+                    contentPadding: EdgeInsets.zero,
+                  );
+                }).toList(),
+              ),
+            ),
 
             // Additional details for "Altro"
             if (_selectedReason == CommentReportReason.other) ...[

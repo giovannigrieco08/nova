@@ -124,28 +124,6 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// This prevents issues when both Universal Links and custom scheme deliver the same code
   final Set<String> _processedCodes = {};
 
-  /// Check if already authenticated with same user
-  bool _isAlreadyAuthenticated(String? userId) {
-    final currentState = state.valueOrNull;
-    if (currentState is AuthStateAuthenticated && userId != null) {
-      return currentState.user.id == userId;
-    }
-    return false;
-  }
-
-  /// Safely update state, catching defunct widget errors
-  /// This can happen when widgets are disposed during state transitions
-  void _safeSetState(AsyncValue<AuthState> newState) {
-    try {
-      state = newState;
-    } catch (e) {
-      // Ignore defunct widget errors - the state update will be picked up
-      // by any active widgets on their next build
-      debugPrint(
-          '🔐 [AUTH] State update caught error (likely defunct widget): $e');
-    }
-  }
-
   /// Setup listener for Supabase auth state changes
   ///
   /// Automatically updates state when:
@@ -158,7 +136,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     _authSubscription = _authRepository.streamAuthState().listen(
       (authState) {
         debugPrint('🔐 [AUTH_LISTENER] Event received: ${authState.event}');
-        debugPrint('🔐 [AUTH_LISTENER] User: ${authState.session?.user?.id}');
+        debugPrint('🔐 [AUTH_LISTENER] User: ${authState.session?.user.id}');
 
         switch (authState.event) {
           case supabase.AuthChangeEvent.signedIn:
@@ -400,7 +378,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       }
       debugPrint('🔐 [AUTH] Verification failed');
       return false;
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('🔐 [AUTH] Unexpected error: $e');
       final currentUser = _authRepository.getCurrentUser();
       if (currentUser != null) {

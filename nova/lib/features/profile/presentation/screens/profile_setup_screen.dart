@@ -189,7 +189,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       final userId = supabase.auth.currentUser?.id;
 
       if (userId == null) {
-        throw Exception('User not authenticated');
+        throw StateError('User not authenticated');
       }
 
       final avatarUrl = await uploadService.uploadAvatar(
@@ -288,7 +288,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
-        throw Exception('User not authenticated');
+        throw StateError('User not authenticated');
       }
 
       // Create profile
@@ -352,7 +352,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
-        throw Exception('User not authenticated');
+        throw StateError('User not authenticated');
       }
 
       // Create incomplete profile (class = null)

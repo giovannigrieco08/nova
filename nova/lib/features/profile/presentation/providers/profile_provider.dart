@@ -5,63 +5,24 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:nova/core/exceptions/nova_exceptions.dart';
 import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:nova/core/models/auth_state.dart';
 import '../../domain/entities/profile.dart';
 import '../../domain/usecases/create_profile.dart';
 import '../../domain/usecases/check_profile_complete.dart';
-import '../../data/repositories/profile_repository.dart';
-import '../../data/datasources/profile_remote_datasource.dart';
-import '../../data/datasources/profile_local_datasource.dart';
-import '../../data/models/profile_model.dart';
-import '../../data/services/avatar_upload_service.dart';
+import '../../data/providers/profile_data_providers.dart';
+export '../../data/providers/profile_data_providers.dart';
 // Events imports for user events providers
-import '../../../events/presentation/providers/events_feed_provider.dart'
+import '../../../events/data/providers/events_data_providers.dart'
     show eventsRepositoryProvider;
 import '../../../events/domain/entities/event.dart';
 
 // ============================================================================
 // PROVIDERS
 // ============================================================================
-// supabaseClientProvider - imported from core_providers.dart
-
-/// Hive box provider for profiles
-final profileBoxProvider = Provider<Box<ProfileModel>>((ref) {
-  return Hive.box<ProfileModel>('profiles');
-});
-
-/// Profile remote datasource provider
-final profileRemoteDataSourceProvider =
-    Provider<ProfileRemoteDataSource>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return ProfileRemoteDataSource(supabase);
-});
-
-/// Profile local datasource provider
-final profileLocalDataSourceProvider = Provider<ProfileLocalDataSource>((ref) {
-  final box = ref.watch(profileBoxProvider);
-  return ProfileLocalDataSource(box);
-});
-
-/// Profile repository provider
-final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  final remoteDataSource = ref.watch(profileRemoteDataSourceProvider);
-  final localDataSource = ref.watch(profileLocalDataSourceProvider);
-  return ProfileRepository(
-    remoteDataSource,
-    localDataSource,
-    Connectivity(),
-  );
-});
-
-/// Avatar upload service provider
-final avatarUploadServiceProvider = Provider<AvatarUploadService>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return AvatarUploadService(supabase);
-});
+// Data layer providers imported from profile_data_providers.dart
 
 /// CreateProfile use case provider
 final createProfileUseCaseProvider = Provider<CreateProfile>((ref) {
@@ -101,7 +62,7 @@ final currentProfileProvider = FutureProvider<Profile>((ref) async {
   // This ensures we use the correct user ID after account switch
   final state = authState.valueOrNull;
   if (state == null || state is! AuthStateAuthenticated) {
-    throw Exception('User not authenticated');
+    throw const UnauthorizedException('User not authenticated');
   }
 
   final userId = state.user.id;
@@ -240,7 +201,7 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
             updatedProfile = profile.copyWith(profileVisible: value as bool);
             break;
           default:
-            throw Exception('Unknown field: $fieldName');
+            throw StateError('Unknown field: $fieldName');
         }
 
         state = AsyncValue.data(updatedProfile);
@@ -278,7 +239,7 @@ final profileNotifierProvider =
 
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthorizedException('User not authenticated');
   }
 
   return ProfileNotifier(repository, userId);
@@ -303,7 +264,7 @@ final currentProfileStatsProvider = StreamProvider<ProfileStats>((ref) {
 
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthorizedException('User not authenticated');
   }
 
   return repository.watchProfileStats(userId);
@@ -332,7 +293,7 @@ final userCreatedEventsProvider = FutureProvider<List<Event>>((ref) async {
 
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthorizedException('User not authenticated');
   }
 
   return await repository.getEventsByCreator(userId);
@@ -347,7 +308,7 @@ final userParticipatingEventsProvider =
 
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthorizedException('User not authenticated');
   }
 
   return await repository.getEventsParticipating(userId);

@@ -52,7 +52,7 @@ class ReportButton extends ConsumerWidget {
       icon: const Icon(Icons.flag_outlined, size: 18),
       label: const Text('Segnala'),
       style: TextButton.styleFrom(
-        foregroundColor: theme.colorScheme.onSurface.withOpacity(0.7),
+        foregroundColor: theme.colorScheme.onSurface.withValues(alpha:0.7),
       ),
     );
   }
@@ -64,7 +64,7 @@ class ReportButton extends ConsumerWidget {
       return IconButton(
         icon: Icon(
           Icons.flag,
-          color: theme.colorScheme.error.withOpacity(0.5),
+          color: theme.colorScheme.error.withValues(alpha:0.5),
         ),
         onPressed: null,
         tooltip: 'Già segnalato',
@@ -76,12 +76,12 @@ class ReportButton extends ConsumerWidget {
       icon: Icon(
         Icons.flag,
         size: 18,
-        color: theme.colorScheme.error.withOpacity(0.5),
+        color: theme.colorScheme.error.withValues(alpha:0.5),
       ),
       label: Text(
         'Già segnalato',
         style: TextStyle(
-          color: theme.colorScheme.onSurface.withOpacity(0.5),
+          color: theme.colorScheme.onSurface.withValues(alpha:0.5),
         ),
       ),
     );
@@ -165,7 +165,7 @@ class ReportMenuItem extends ConsumerWidget {
           Icon(
             isReported ? Icons.flag : Icons.flag_outlined,
             color: isReported
-                ? Theme.of(context).colorScheme.error.withOpacity(0.5)
+                ? Theme.of(context).colorScheme.error.withValues(alpha:0.5)
                 : null,
           ),
           const SizedBox(width: 12),
@@ -204,14 +204,14 @@ class ReportListTile extends ConsumerWidget {
       leading: Icon(
         isReported ? Icons.flag : Icons.flag_outlined,
         color: isReported
-            ? theme.colorScheme.error.withOpacity(0.5)
+            ? theme.colorScheme.error.withValues(alpha:0.5)
             : theme.colorScheme.error,
       ),
       title: Text(
         isReported ? 'Già segnalato' : 'Segnala',
         style: TextStyle(
           color: isReported
-              ? theme.colorScheme.onSurface.withOpacity(0.5)
+              ? theme.colorScheme.onSurface.withValues(alpha:0.5)
               : theme.colorScheme.error,
         ),
       ),
@@ -220,7 +220,7 @@ class ReportListTile extends ConsumerWidget {
           : Text(
               'Segnala contenuto inappropriato',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha:0.6),
               ),
             ),
       onTap: isReported || isLoading

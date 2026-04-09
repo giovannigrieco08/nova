@@ -744,7 +744,7 @@ class _EventFormState extends ConsumerState<EventForm> {
             Switch.adaptive(
               value: state.needsHelp,
               onChanged: (value) => notifier.toggleNeedsHelp(value),
-              activeColor: NovaColors.primary(context),
+              activeTrackColor: NovaColors.primary(context),
             ),
           ],
         ),

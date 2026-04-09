@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:giphy_get/giphy_get.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:nova/core/theme/nova_colors.dart';
 import 'package:nova/core/theme/nova_spacing.dart';
@@ -12,12 +11,15 @@ import 'package:nova/core/theme/nova_radius.dart';
 /// Shows a bottom sheet with trending GIFs and search functionality.
 /// Returns the selected GIF's URL and ID.
 class GifPicker {
+  /// GIPHY API key injected at compile-time via --dart-define
+  static const String _giphyApiKey =
+      String.fromEnvironment('GIPHY_API_KEY');
+
   /// Show the GIF picker bottom sheet and return selected GIF info.
   ///
   /// Returns a record with (gifUrl, gifId) or null if cancelled.
   static Future<({String url, String id})?> show(BuildContext context) async {
-    // Get GIPHY API key from environment
-    final apiKey = dotenv.env['GIPHY_API_KEY'] ?? '';
+    final apiKey = _giphyApiKey;
 
     if (apiKey.isEmpty) {
       // Show fallback message if no API key configured
@@ -46,7 +48,9 @@ class GifPicker {
     if (gif == null) return null;
 
     // Return the fixed width GIF for consistent sizing
-    final gifUrl = gif.images?.fixedWidth?.url ?? gif.images?.original?.url;
+    final gifUrl =
+        // ignore: invalid_null_aware_operator
+        gif.images?.fixedWidth?.url ?? gif.images?.original?.url;
     final gifId = gif.id;
 
     if (gifUrl == null || gifId == null) return null;

@@ -21,6 +21,9 @@ export 'data/datasources/tutor_remote_datasource.dart';
 // Data - Repositories
 export 'data/repositories/tutor_repository.dart';
 
+// Data - Providers
+export 'data/providers/tutoring_data_providers.dart';
+
 // Presentation - Providers
 export 'presentation/providers/tutor_providers.dart';
 

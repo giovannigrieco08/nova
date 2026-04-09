@@ -33,6 +33,9 @@ export 'data/datasources/chat_remote_datasource.dart';
 // Data - Repositories
 export 'data/repositories/chat_repository_impl.dart';
 
+// Data - Providers
+export 'data/providers/chat_data_providers.dart';
+
 // Presentation - Providers
 export 'presentation/providers/chat_providers.dart';
 export 'presentation/providers/chat_realtime_provider.dart';

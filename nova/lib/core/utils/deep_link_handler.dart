@@ -50,18 +50,21 @@ class DeepLinkHandler {
     // Check scheme (must be "nova")
     if (uri.scheme != 'nova') return null;
 
-    // Parse path segments
-    final pathSegments = uri.pathSegments;
-    if (pathSegments.isEmpty) return null;
+    // In URIs like nova://events/UUID, Dart's Uri.parse treats "events" as the
+    // host (authority), not a path segment. We use uri.host for the type and
+    // uri.pathSegments for the remaining segments.
+    final type = uri.host;
+    if (type.isEmpty) return null;
 
-    final type = pathSegments[0];
+    // Build a full segments list: [type, ...pathSegments]
+    final allSegments = [type, ...uri.pathSegments];
 
     switch (type) {
       case 'events':
-        return _parseEventLink(pathSegments);
+        return _parseEventLink(allSegments);
 
       case 'profile':
-        return _parseProfileLink(pathSegments);
+        return _parseProfileLink(allSegments);
 
       default:
         return null;

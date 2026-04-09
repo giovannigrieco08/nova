@@ -158,7 +158,7 @@ Per violazioni gravi, Nova procederà direttamente al ban permanente.''',
                   Text(
                     'Scorri fino in fondo per accettare i termini.',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha:0.6),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -175,7 +175,7 @@ Per violazioni gravi, Nova procederà direttamente al ban permanente.''',
               color: theme.colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha:0.1),
                   blurRadius: 8,
                   offset: const Offset(0, -2),
                 ),
@@ -280,7 +280,7 @@ Per violazioni gravi, Nova procederà direttamente al ban permanente.''',
         color: theme.colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.error.withOpacity(0.3),
+          color: theme.colorScheme.error.withValues(alpha:0.3),
         ),
       ),
       child: Column(

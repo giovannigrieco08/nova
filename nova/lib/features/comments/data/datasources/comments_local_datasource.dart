@@ -26,6 +26,16 @@ class CommentsLocalDataSource {
   Box<Map<dynamic, dynamic>>? _offlineQueue;
   bool _isInitializing = false;
 
+  /// Default constructor for production use.
+  CommentsLocalDataSource();
+
+  /// Testing constructor: inject pre-opened Hive boxes to skip initFlutter().
+  CommentsLocalDataSource.withBoxes({
+    required Box<Map<dynamic, dynamic>> commentsCache,
+    required Box<Map<dynamic, dynamic>> offlineQueue,
+  })  : _commentsCache = commentsCache,
+        _offlineQueue = offlineQueue;
+
   /// Initialize Hive boxes
   ///
   /// Can be called explicitly during app startup, but will also be

@@ -11,6 +11,7 @@ import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/admin/domain/entities/moderator.dart';
 import 'package:nova/features/admin/domain/entities/system_stats.dart';
 import 'package:nova/features/admin/domain/entities/activity_log_entry.dart';
+import 'package:nova/core/exceptions/nova_exceptions.dart';
 
 /// Repository for admin operations
 ///
@@ -34,10 +35,8 @@ class AdminRepository {
           .order('full_name');
 
       return (response as List).cast<Map<String, dynamic>>();
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to search users: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to search users: $e');
+    } on PostgrestException catch (e, stack) {
+      throw novaExceptionFromSupabaseError(e.code, e.message, stack);
     }
   }
 
@@ -53,10 +52,8 @@ class AdminRepository {
       await _supabase.rpc('promote_to_moderator', params: {
         'p_user_id': userId,
       });
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to promote user: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to promote user: $e');
+    } on PostgrestException catch (e, stack) {
+      throw novaExceptionFromSupabaseError(e.code, e.message, stack);
     }
   }
 
@@ -72,10 +69,8 @@ class AdminRepository {
       await _supabase.rpc('remove_moderator_role', params: {
         'p_user_id': userId,
       });
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to remove moderator: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to remove moderator: $e');
+    } on PostgrestException catch (e, stack) {
+      throw novaExceptionFromSupabaseError(e.code, e.message, stack);
     }
   }
 
@@ -109,10 +104,8 @@ class AdminRepository {
               : null,
         );
       }).toList();
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to fetch moderators: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to fetch moderators: $e');
+    } on PostgrestException catch (e, stack) {
+      throw novaExceptionFromSupabaseError(e.code, e.message, stack);
     }
   }
 
@@ -138,10 +131,8 @@ class AdminRepository {
         avgReviewTimeHours: (data['avg_review_time_hours'] ?? 0).toDouble(),
         eventsOlderThan24h: data['events_older_than_24h'] ?? 0,
       );
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to fetch system stats: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to fetch system stats: $e');
+    } on PostgrestException catch (e, stack) {
+      throw novaExceptionFromSupabaseError(e.code, e.message, stack);
     }
   }
 
@@ -266,10 +257,8 @@ class AdminRepository {
       entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
       return entries;
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to fetch activity log: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to fetch activity log: $e');
+    } on PostgrestException catch (e, stack) {
+      throw novaExceptionFromSupabaseError(e.code, e.message, stack);
     }
   }
 }

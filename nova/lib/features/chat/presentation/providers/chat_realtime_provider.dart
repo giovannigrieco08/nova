@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:nova/core/providers/core_providers.dart';
 import 'package:nova/features/chat/domain/entities/chat_message.dart';
-import 'package:nova/features/chat/data/datasources/chat_remote_datasource.dart';
+import 'package:nova/features/chat/data/providers/chat_data_providers.dart';
 import 'package:nova/features/safety/presentation/providers/block_provider.dart';
 
 /// Manages Supabase Realtime subscriptions for the chat feature.
@@ -374,7 +374,7 @@ final chatRealtimeProvider =
         (ref) {
   final supabase = ref.watch(supabaseClientProvider);
   final currentUserId = ref.watch(currentUserIdProvider);
-  final dataSource = ChatRemoteDataSource(supabase);
+  final dataSource = ref.watch(chatRemoteDataSourceProvider);
 
   final notifier = ChatRealtimeNotifier(
     supabase: supabase,

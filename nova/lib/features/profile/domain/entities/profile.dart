@@ -26,6 +26,7 @@ class Profile with _$Profile {
 
     /// School class (e.g., "5A", "4B", "Altro")
     /// NULL = incomplete profile
+    // ignore: invalid_annotation_target
     @JsonKey(name: 'class') String? classYear,
 
     /// Supabase Storage URL for avatar

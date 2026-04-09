@@ -354,7 +354,7 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
               );
             }
           } else {
-            throw Exception('Cartella Downloads non trovata');
+            throw StateError('Cartella Downloads non trovata');
           }
         } else {
           await Gal.putImage(file.path);
@@ -438,15 +438,6 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
         if (mounted) {
           setState(() => _isSending = false);
         }
-      }
-    } else if (file == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossibile preparare l\'immagine per l\'invio'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     } else {
       if (mounted) {

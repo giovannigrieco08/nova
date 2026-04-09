@@ -10,18 +10,13 @@
 // - Meta info with icons
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/gestures.dart';
-import 'dart:io' show Platform;
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/nova_colors.dart';
 import '../../../../core/theme/nova_spacing.dart';
-import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/theme/nova_typography.dart';
+import '../../../../core/theme/nova_radius.dart';
 import '../../../../core/providers/core_providers.dart';
-import '../../../../core/animations/heart_explosion_animation.dart';
-import '../../../../core/animations/animated_like_button.dart';
 import '../../../../core/animations/page_transitions.dart';
 import '../providers/event_detail_provider.dart';
 import '../providers/events_feed_provider.dart';
@@ -29,26 +24,23 @@ import '../../domain/entities/event.dart';
 import '../../domain/entities/event_status.dart';
 import '../../../comments/presentation/screens/comments_sheet.dart';
 import '../../../profile/presentation/screens/other_profile_screen.dart';
-import '../widgets/offers_management_section.dart';
-import 'event_creation_screen.dart';
+import 'event_detail_body.dart';
+import 'event_detail_sheets.dart';
 
 class EventDetailScreen extends ConsumerStatefulWidget {
-  /// Event ID to display
-  /// - If null, expects Event object passed via route arguments
-  /// - If provided, fetches event by ID (deep link navigation)
+  /// Event ID to display.
+  /// - If null, expects Event object passed via route arguments.
+  /// - If provided, fetches event by ID (deep link navigation).
   final String? eventId;
 
-  const EventDetailScreen({
-    super.key,
-    this.eventId,
-  });
+  const EventDetailScreen({super.key, this.eventId});
 
   @override
   ConsumerState<EventDetailScreen> createState() => _EventDetailScreenState();
 }
 
 class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
-  // State for interactions
+  // Engagement state
   bool _isLiked = false;
   int _likeCount = 0;
   bool _isLikeLoading = false;
@@ -56,35 +48,32 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   bool _isParticipateLoading = false;
   int _participantCount = 0;
   int _commentCount = 0;
-  bool _isCaptionExpanded = false;
 
-  // Event data (loaded once)
   Event? _event;
   bool _stateInitialized = false;
+
+  // ---------------------------------------------------------------------------
+  // Initialization
+  // ---------------------------------------------------------------------------
 
   void _initializeState(Event event) {
     if (!_stateInitialized) {
       _event = event;
-      // TODO: Load actual counts from event data when available
       _likeCount = 0;
       _commentCount = 0;
       _participantCount = 0;
       _isLiked = false;
       _isParticipating = false;
       _stateInitialized = true;
-
-      // Load engagement state (likes + participation) asynchronously
       _loadEngagementState(event.id);
     }
   }
 
-  /// Load the current user's engagement state (likes + participation) from database
   Future<void> _loadEngagementState(String eventId) async {
     final userId = ref.read(currentUserIdProvider);
     final repository = ref.read(eventsRepositoryProvider);
 
     try {
-      // Load counts and user states in parallel
       final results = await Future.wait([
         repository.getParticipationCount(eventId),
         repository.getLikeCount(eventId),
@@ -100,7 +89,6 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
       if (mounted) {
         setState(() {
-          // Use safe casts with fallback values
           _participantCount = (results[0] as int?) ?? 0;
           _likeCount = (results[1] as int?) ?? 0;
           _isParticipating = (results[2] as bool?) ?? false;
@@ -109,66 +97,45 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       }
     } catch (e) {
       debugPrint('[EventDetail] Failed to load engagement state: $e');
-      // Silently fail - user can still interact
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     final currentUserId = ref.watch(currentUserIdProvider);
 
-    // If eventId provided, fetch event by ID (deep link navigation)
     if (widget.eventId != null) {
       final eventAsync = ref.watch(eventDetailProvider(widget.eventId!));
 
       return eventAsync.when(
         data: (event) {
           if (event == null) {
-            return Scaffold(
-              backgroundColor: NovaColors.backgroundLight,
-              appBar: _buildAppBar(context),
-              body: _buildErrorState(
-                context,
-                'Evento non trovato',
-                'Questo evento non esiste o è stato eliminato.',
-              ),
+            return _scaffold(
+              body: _buildErrorState(context, 'Evento non trovato',
+                  'Questo evento non esiste o è stato eliminato.'),
             );
           }
-
-          // Handle pending event (only creator and moderators can see)
           if (event.status == EventStatus.pending &&
               event.creatorId != currentUserId) {
-            return Scaffold(
-              backgroundColor: NovaColors.backgroundLight,
-              appBar: _buildAppBar(context),
-              body: _buildErrorState(
-                context,
-                'Evento in attesa',
-                'Questo evento è in attesa di moderazione.',
-              ),
+            return _scaffold(
+              body: _buildErrorState(context, 'Evento in attesa',
+                  'Questo evento è in attesa di moderazione.'),
             );
           }
-
-          // Handle rejected event (only creator can see)
           if (event.status == EventStatus.rejected &&
               event.creatorId != currentUserId) {
-            return Scaffold(
-              backgroundColor: NovaColors.backgroundLight,
-              appBar: _buildAppBar(context),
-              body: _buildErrorState(
-                context,
-                'Evento non disponibile',
-                'Questo evento non è disponibile.',
-              ),
+            return _scaffold(
+              body: _buildErrorState(context, 'Evento non disponibile',
+                  'Questo evento non è disponibile.'),
             );
           }
 
           _initializeState(event);
-          return Scaffold(
-            backgroundColor: NovaColors.backgroundLight,
-            appBar: _buildAppBar(context),
-            body: _buildEventContent(context, event, currentUserId),
-          );
+          return _scaffold(body: _buildBody(event, currentUserId));
         },
         loading: () => Scaffold(
           backgroundColor: NovaColors.backgroundLight,
@@ -190,9 +157,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             ),
           ),
         ),
-        error: (error, stack) => Scaffold(
-          backgroundColor: NovaColors.backgroundLight,
-          appBar: _buildAppBar(context),
+        error: (error, stack) => _scaffold(
           body: _buildErrorState(
             context,
             'Errore',
@@ -202,18 +167,20 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       );
     }
 
-    // Otherwise, expect Event object from route arguments
     final event = ModalRoute.of(context)!.settings.arguments as Event;
     _initializeState(event);
+    return _scaffold(body: _buildBody(event, currentUserId));
+  }
 
+  Scaffold _scaffold({required Widget body}) {
     return Scaffold(
       backgroundColor: NovaColors.backgroundLight,
-      appBar: _buildAppBar(context),
-      body: _buildEventContent(context, event, currentUserId),
+      appBar: _buildAppBar(),
+      body: body,
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+  PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: NovaColors.backgroundLight,
       elevation: 0,
@@ -226,615 +193,36 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       actions: [
         IconButton(
           icon: Icon(Icons.more_vert, color: NovaColors.textPrimaryLight),
-          onPressed: () => _showMenuSheet(_event),
+          onPressed: () => _showMenu(),
           tooltip: 'Altre opzioni',
         ),
       ],
     );
   }
 
-  Widget _buildEventContent(
-    BuildContext context,
-    Event event,
-    String? currentUserId,
-  ) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Hero Image (1:1 aspect ratio)
-          _buildHeroImage(event),
-
-          // Actions Row
-          _buildActionsRow(event),
-
-          // Engagement counts
-          _buildEngagementCounts(),
-
-          // Caption (inline style)
-          _buildCaption(event),
-
-          // Participate Section
-          _buildParticipateSection(event),
-
-          // Meta Info
-          _buildMetaInfo(event),
-
-          // Comments Preview
-          _buildCommentsPreview(event),
-
-          // Timestamp
-          _buildTimestamp(event),
-
-          // Status badge (only for creator, non-approved events)
-          if (event.creatorId == currentUserId &&
-              event.status != EventStatus.approved)
-            _buildStatusBadge(event),
-
-          // Rejection reason
-          if (event.status == EventStatus.rejected &&
-              event.creatorId == currentUserId &&
-              event.rejectionReason != null)
-            _buildRejectionReason(event),
-
-          // Help requests management section (only for event creator)
-          if (event.creatorId == currentUserId)
-            OffersManagementSection(
-              eventId: event.id,
-              creatorId: event.creatorId,
-            ),
-
-          const SizedBox(height: 24),
-        ],
-      ),
+  Widget _buildBody(Event event, String? currentUserId) {
+    return EventDetailBody(
+      event: event,
+      currentUserId: currentUserId,
+      isLiked: _isLiked,
+      likeCount: _likeCount,
+      commentCount: _commentCount,
+      isParticipating: _isParticipating,
+      participantCount: _participantCount,
+      isParticipateLoading: _isParticipateLoading,
+      onDoubleTapLike: _handleDoubleTapLike,
+      onLike: _handleLike,
+      onComment: () => _openCommentsSheet(event),
+      onParticipateToggle: _handleParticipateToggle,
+      onShowParticipants: () => showDetailParticipantsSheet(context),
+      onNavigateToOrganizer: (e) =>
+          () => _navigateToOrganizerProfile(e),
     );
   }
 
-  // ===========================================================================
-  // HERO IMAGE
-  // ===========================================================================
-
-  Widget _buildHeroImage(Event event) {
-    final hasImage = event.imageUrl != null;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6.375),
-      child: AspectRatio(
-        aspectRatio: 3 / 4, // 3:4 portrait (BeReal-style)
-        child: ClipRRect(
-          borderRadius: NovaRadius.circularS,
-          child: DoubleTapLikeOverlay(
-            onDoubleTap: _handleDoubleTapLike,
-            child: hasImage
-                ? _buildNetworkImage(event.imageUrl!)
-                : _buildDefaultPlaceholder(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNetworkImage(String url) {
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: NovaColors.placeholder,
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      errorWidget: (context, url, error) => _buildDefaultPlaceholder(),
-    );
-  }
-
-  Widget _buildDefaultPlaceholder() {
-    return Container(
-      color: NovaColors.placeholder,
-      child: Center(
-        child: Icon(
-          Icons.event_rounded,
-          size: 64,
-          color: NovaColors.handleBar,
-        ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // ACTIONS ROW
-  // ===========================================================================
-
-  Widget _buildActionsRow(Event event) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(
-        children: [
-          // Like button with animation
-          AnimatedLikeButton(
-            isLiked: _isLiked,
-            onTap: _handleLike,
-            size: 24,
-          ),
-          const SizedBox(width: 2),
-          // Comment icon
-          IconButton(
-            icon: const Icon(Icons.mode_comment_outlined, size: 24),
-            color: NovaColors.textPrimaryLight,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () => _openCommentsSheet(event),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // ENGAGEMENT COUNTS
-  // ===========================================================================
-
-  Widget _buildEngagementCounts() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_likeCount > 0)
-            Text(
-              '$_likeCount ${_likeCount == 1 ? "mi piace" : "mi piace"}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: NovaColors.textPrimaryLight,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // CAPTION
-  // ===========================================================================
-
-  Widget _buildCaption(Event event) {
-    final organizerName = event.creatorName ?? 'Organizzatore';
-    final description = event.description;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title as header
-          Text(
-            event.title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: NovaColors.textPrimaryLight,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Description with organizer inline (tappable name)
-          RichText(
-            maxLines: _isCaptionExpanded ? null : 3,
-            overflow: _isCaptionExpanded
-                ? TextOverflow.visible
-                : TextOverflow.ellipsis,
-            text: TextSpan(
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: NovaColors.textPrimaryLight,
-                height: 1.3,
-              ),
-              children: [
-                TextSpan(
-                  text: '$organizerName ',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                  recognizer: TapGestureRecognizer()
-                    ..onTap = () => _navigateToOrganizerProfile(event),
-                ),
-                TextSpan(text: description),
-              ],
-            ),
-          ),
-          if (_shouldShowMoreButton(organizerName, description))
-            GestureDetector(
-              onTap: () =>
-                  setState(() => _isCaptionExpanded = !_isCaptionExpanded),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  _isCaptionExpanded ? 'meno' : 'altro',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: NovaColors.grayDark,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  bool _shouldShowMoreButton(String organizerName, String description) {
-    final fullText = '$organizerName $description';
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: fullText,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          height: 1.3,
-        ),
-      ),
-      maxLines: 3,
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: MediaQuery.of(context).size.width - 16);
-
-    return textPainter.didExceedMaxLines;
-  }
-
-  // ===========================================================================
-  // PARTICIPATE SECTION
-  // ===========================================================================
-
-  Widget _buildParticipateSection(Event event) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
-      child: Row(
-        children: [
-          // Partecipo button (toggle)
-          Expanded(
-            child: ElevatedButton(
-              onPressed:
-                  _isParticipateLoading ? null : _handleParticipateToggle,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isParticipating
-                    ? NovaColors.grayMedium
-                    : NovaColors.brandViolet,
-                foregroundColor: _isParticipating
-                    ? NovaColors.textPrimaryLight
-                    : NovaColors.onPrimaryLight,
-                disabledBackgroundColor: _isParticipating
-                    ? NovaColors.grayMedium
-                    : NovaColors.brandViolet.withAlpha(180),
-                disabledForegroundColor: _isParticipating
-                    ? NovaColors.textSecondaryLight
-                    : NovaColors.onPrimaryLight.withAlpha(180),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: NovaRadius.circularXs,
-                ),
-              ),
-              child: _isParticipateLoading
-                  ? SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _isParticipating
-                              ? NovaColors.textSecondaryLight
-                              : NovaColors.onPrimaryLight,
-                        ),
-                      ),
-                    )
-                  : Text(
-                      _isParticipating ? 'Non partecipo più' : 'Partecipo',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Participants indicator
-          GestureDetector(
-            onTap: () => _showParticipantsSheet(event),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              decoration: BoxDecoration(
-                color: NovaColors.grayLight,
-                borderRadius: NovaRadius.circularXs,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 18,
-                    color: NovaColors.textPrimaryLight,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _participantCount.toString(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: NovaColors.textPrimaryLight,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // META INFO
-  // ===========================================================================
-
-  Widget _buildMetaInfo(Event event) {
-    final formattedDate = event.formattedDateTime;
-    final location = event.location ?? 'Nessuna posizione';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: NovaColors.surfaceLight,
-          borderRadius: NovaRadius.circularS,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Date
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 18,
-                  color: NovaColors.grayDark,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    formattedDate,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: NovaColors.textPrimaryLight,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Location
-            Row(
-              children: [
-                Icon(
-                  Icons.location_on_outlined,
-                  size: 18,
-                  color: NovaColors.grayDark,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    location,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: NovaColors.textPrimaryLight,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Organizer (tappable)
-            GestureDetector(
-              onTap: () => _navigateToOrganizerProfile(event),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.person_outline,
-                    size: 18,
-                    color: NovaColors.grayDark,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Organizzato da ',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: NovaColors.textPrimaryLight,
-                    ),
-                  ),
-                  Text(
-                    event.creatorName ?? 'Organizzatore',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: NovaColors.brandViolet,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 16,
-                    color: NovaColors.brandViolet,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // COMMENTS PREVIEW
-  // ===========================================================================
-
-  Widget _buildCommentsPreview(Event event) {
-    // Only show "View all comments" if there are comments
-    if (_commentCount == 0) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-      child: GestureDetector(
-        onTap: () => _openCommentsSheet(event),
-        child: Text(
-          'Vedi tutti i $_commentCount commenti',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: NovaColors.grayDark,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // TIMESTAMP
-  // ===========================================================================
-
-  Widget _buildTimestamp(Event event) {
-    final timestamp = _formatTimestamp(event.createdAt);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
-      child: Text(
-        timestamp.toUpperCase(),
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w400,
-          color: NovaColors.grayDark,
-          letterSpacing: 0.2,
-        ),
-      ),
-    );
-  }
-
-  String _formatTimestamp(DateTime createdAt) {
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
-
-    if (difference.inSeconds < 60) {
-      return 'Adesso';
-    } else if (difference.inMinutes < 60) {
-      final minutes = difference.inMinutes;
-      return '$minutes ${minutes == 1 ? "minuto" : "minuti"} fa';
-    } else if (difference.inHours < 24) {
-      final hours = difference.inHours;
-      return '$hours ${hours == 1 ? "ora" : "ore"} fa';
-    } else if (difference.inDays < 7) {
-      final days = difference.inDays;
-      return '$days ${days == 1 ? "giorno" : "giorni"} fa';
-    } else {
-      final weeks = (difference.inDays / 7).floor();
-      return '$weeks ${weeks == 1 ? "settimana" : "settimane"} fa';
-    }
-  }
-
-  // ===========================================================================
-  // STATUS BADGE
-  // ===========================================================================
-
-  Widget _buildStatusBadge(Event event) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: event.status == EventStatus.pending
-              ? NovaColors.brandViolet.withValues(alpha: 0.1)
-              : NovaColors.likeActive.withValues(alpha: 0.1),
-          borderRadius: NovaRadius.circularXs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              event.status == EventStatus.pending
-                  ? Icons.hourglass_empty
-                  : Icons.cancel,
-              size: 16,
-              color: event.status == EventStatus.pending
-                  ? NovaColors.brandViolet
-                  : NovaColors.likeActive,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              event.status == EventStatus.pending
-                  ? 'In attesa di moderazione'
-                  : 'Rifiutato',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: event.status == EventStatus.pending
-                    ? NovaColors.brandViolet
-                    : NovaColors.likeActive,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // REJECTION REASON
-  // ===========================================================================
-
-  Widget _buildRejectionReason(Event event) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: NovaColors.likeActive.withValues(alpha: 0.05),
-          borderRadius: NovaRadius.circularXs,
-          border: Border.all(
-            color: NovaColors.likeActive.withValues(alpha: 0.2),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Motivo del rifiuto',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: NovaColors.likeActive,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              event.rejectionReason!,
-              style: TextStyle(
-                fontSize: 14,
-                color: NovaColors.textPrimaryLight,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // INTERACTION HANDLERS
-  // ===========================================================================
+  // ---------------------------------------------------------------------------
+  // Interaction handlers
+  // ---------------------------------------------------------------------------
 
   void _handleDoubleTapLike() async {
     if (_isLiked || _isLikeLoading) return;
@@ -842,6 +230,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
     if (userId == null) return;
 
+    HapticFeedback.mediumImpact();
     final previousCount = _likeCount;
 
     setState(() {
@@ -851,8 +240,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     });
 
     try {
-      final repository = ref.read(eventsRepositoryProvider);
-      await repository.likeEvent(eventId: _event!.id, userId: userId);
+      await ref
+          .read(eventsRepositoryProvider)
+          .likeEvent(eventId: _event!.id, userId: userId);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -861,11 +251,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         });
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLikeLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLikeLoading = false);
     }
   }
 
@@ -875,6 +261,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
     if (userId == null) return;
 
+    HapticFeedback.lightImpact();
     final wasLiked = _isLiked;
     final previousCount = _likeCount;
 
@@ -902,11 +289,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLikeLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLikeLoading = false);
     }
   }
 
@@ -916,9 +299,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
     if (userId == null) return;
 
+    HapticFeedback.mediumImpact();
     final wasParticipating = _isParticipating;
 
-    // Optimistic update
     setState(() {
       _isParticipating = !wasParticipating;
       _participantCount = wasParticipating
@@ -937,7 +320,6 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             eventId: _event!.id, userId: userId);
       }
     } catch (e) {
-      // Revert on error
       if (mounted) {
         setState(() {
           _isParticipating = wasParticipating;
@@ -947,18 +329,13 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(wasParticipating
-                ? 'Errore durante l\'annullamento'
-                : 'Errore durante la partecipazione'),
-          ),
+              content: Text(wasParticipating
+                  ? 'Errore durante l\'annullamento'
+                  : 'Errore durante la partecipazione')),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isParticipateLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isParticipateLoading = false);
     }
   }
 
@@ -978,285 +355,87 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
-  void _showParticipantsSheet(Event event) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: NovaColors.backgroundLight,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Column(
-          children: [
-            // Handle bar
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: NovaColors.handleBar,
-                borderRadius: NovaRadius.circularXxs,
-              ),
-            ),
-            // Title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Partecipanti',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: NovaColors.textPrimaryLight,
-                ),
-              ),
-            ),
-            // Empty state
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.people_outline,
-                      size: 64,
-                      color: NovaColors.handleBar,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Nessun partecipante ancora',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: NovaColors.grayDark,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sii il primo a partecipare!',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: NovaColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ---------------------------------------------------------------------------
+  // Menu / delete
+  // ---------------------------------------------------------------------------
 
-  /// Check if event can be edited (within 30 minutes of creation)
   bool _canEditEvent(Event event) {
-    final now = DateTime.now();
-    final createdAt = event.createdAt;
-    final difference = now.difference(createdAt);
+    final difference = DateTime.now().difference(event.createdAt);
     return difference.inMinutes < 30;
   }
 
-  void _showMenuSheet(Event? event) {
+  void _showMenu() {
+    final event = _event;
     if (event == null) return;
 
     final currentUserId = ref.read(currentUserIdProvider);
     final isOwner = event.creatorId == currentUserId;
-    final canEdit = isOwner && _canEditEvent(event);
 
-    if (Platform.isIOS) {
-      showCupertinoModalPopup(
-        context: context,
-        builder: (context) => CupertinoActionSheet(
-          actions: [
-            // Edit option (only for owner within 30 minutes)
-            if (canEdit)
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _navigateToEditEvent(event);
-                },
-                child: const Text('Modifica evento'),
-              ),
-            // Delete option (only for owner)
-            if (isOwner)
-              CupertinoActionSheetAction(
-                isDestructiveAction: true,
-                onPressed: () {
-                  Navigator.pop(context);
-                  _confirmDeleteEvent(event);
-                },
-                child: const Text('Elimina evento'),
-              ),
-            // Report option (only for non-owner)
-            if (!isOwner)
-              CupertinoActionSheetAction(
-                isDestructiveAction: true,
-                onPressed: () {
-                  Navigator.pop(context);
-                  _showReportDialog();
-                },
-                child: const Text('Segnala'),
-              ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
-          ),
-        ),
-      );
-    } else {
-      showModalBottomSheet(
-        context: context,
-        builder: (context) => Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Edit option (only for owner within 30 minutes)
-              if (canEdit)
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined),
-                  title: const Text('Modifica evento'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _navigateToEditEvent(event);
-                  },
-                ),
-              // Delete option (only for owner)
-              if (isOwner)
-                ListTile(
-                  leading: Icon(Icons.delete_outline,
-                      color: NovaColors.error(context)),
-                  title: Text('Elimina evento',
-                      style: TextStyle(color: NovaColors.error(context))),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _confirmDeleteEvent(event);
-                  },
-                ),
-              // Report option (only for non-owner)
-              if (!isOwner)
-                ListTile(
-                  leading: const Icon(Icons.flag_outlined),
-                  title: const Text('Segnala'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showReportDialog();
-                  },
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-  }
-
-  /// Confirm and delete event
-  void _confirmDeleteEvent(Event event) async {
-    final confirmed = await showDialog<bool>(
+    showDetailMenuSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Elimina evento'),
-        content: const Text(
-            'Sei sicuro di voler eliminare questo evento? Questa azione non può essere annullata.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annulla'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-                foregroundColor: NovaColors.error(context)),
-            child: const Text('Elimina'),
-          ),
-        ],
-      ),
+      ref: ref,
+      event: event,
+      isOwner: isOwner,
+      canEdit: isOwner && _canEditEvent(event),
+      onDelete: () => _confirmDelete(event),
+      onReport: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Funzionalità di segnalazione in arrivo')),
+        );
+      },
+      onEdited: (result) {
+        if (result != null && mounted) {
+          ref.invalidate(eventDetailProvider(event.id));
+          setState(() {
+            _event = result;
+            _stateInitialized = false;
+          });
+        }
+      },
     );
+  }
 
-    if (confirmed == true) {
-      try {
-        await ref.read(eventsRepositoryProvider).deleteEvent(event.id);
-        if (mounted) {
-          Navigator.of(context).pop(); // Return to feed
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Evento eliminato')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Errore: ${e.toString()}')),
-          );
-        }
-      }
+  void _confirmDelete(Event event) async {
+    final deleted = await confirmDeleteEvent(
+      context: context,
+      ref: ref,
+      event: event,
+    );
+    if (deleted && mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Evento eliminato')),
+      );
     }
   }
 
-  void _showReportDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funzionalità di segnalazione in arrivo')),
-    );
-  }
-
-  /// Navigate to edit event screen
-  void _navigateToEditEvent(Event event) async {
-    final result = await Navigator.push<Event>(
-      context,
-      NovaPageRoute.swipeBack(
-        page: EventCreationScreen(eventToEdit: event),
-      ),
-    );
-
-    // If event was updated, refresh the detail view
-    if (result != null && mounted) {
-      // Invalidate the event detail provider to refresh the data
-      ref.invalidate(eventDetailProvider(event.id));
-      setState(() {
-        _event = result;
-        _stateInitialized = false;
-      });
-    }
-  }
-
-  // ===========================================================================
-  // ERROR STATE
-  // ===========================================================================
+  // ---------------------------------------------------------------------------
+  // Error state
+  // ---------------------------------------------------------------------------
 
   Widget _buildErrorState(
-    BuildContext context,
-    String title,
-    String message,
-  ) {
+      BuildContext context, String title, String message) {
     return Center(
       child: Padding(
         padding: EdgeInsets.all(NovaSpacing.l),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: NovaColors.textSecondary(context),
-            ),
+            Icon(Icons.error_outline,
+                size: 64, color: NovaColors.textSecondary(context)),
             SizedBox(height: NovaSpacing.m),
             Text(
               title,
-              style: NovaTextStyles.h2.copyWith(
-                color: NovaColors.textPrimary(context),
-              ),
+              style: NovaTextStyles.h2
+                  .copyWith(color: NovaColors.textPrimary(context)),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: NovaSpacing.s),
             Text(
               message,
-              style: NovaTextStyles.body.copyWith(
-                color: NovaColors.textSecondary(context),
-              ),
+              style: NovaTextStyles.body
+                  .copyWith(color: NovaColors.textSecondary(context)),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: NovaSpacing.l),
@@ -1274,9 +453,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               ),
               child: Text(
                 'Torna indietro',
-                style: NovaTextStyles.button.copyWith(
-                  color: Colors.white,
-                ),
+                style: NovaTextStyles.button.copyWith(color: Colors.white),
               ),
             ),
           ],

@@ -112,7 +112,6 @@ class _ReactionChipState extends State<_ReactionChip>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _bounceAnimation;
 
   @override
   void initState() {
@@ -139,10 +138,6 @@ class _ReactionChipState extends State<_ReactionChip>
         weight: 25,
       ),
     ]).animate(_controller);
-
-    _bounceAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
 
     if (widget.animateIn) {
       _controller.forward();

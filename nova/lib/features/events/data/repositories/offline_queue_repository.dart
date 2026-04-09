@@ -131,7 +131,7 @@ class OfflineQueueRepository {
         break;
 
       default:
-        throw Exception('Unknown action type: ${action.type}');
+        throw StateError('Unknown action type: ${action.type}');
     }
   }
 

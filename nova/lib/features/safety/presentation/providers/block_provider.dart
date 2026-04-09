@@ -2,22 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/user_block.dart';
-import '../../data/repositories/block_repository.dart';
 import '../../domain/services/block_service.dart';
+import '../../data/providers/safety_data_providers.dart';
 // UGC Safety: Import for feed refresh on block/unblock (T081)
 import '../../../events/presentation/providers/events_feed_provider.dart';
 
-/// Provider for BlockRepository
-final blockRepositoryProvider = Provider<BlockRepository>((ref) {
-  return BlockRepository();
-});
-
-/// Provider for BlockService
-final blockServiceProvider = Provider<BlockService>((ref) {
-  return BlockService(
-    repository: ref.watch(blockRepositoryProvider),
-  );
-});
+// Re-export data layer providers for backward compatibility
+export '../../data/providers/safety_data_providers.dart';
 
 /// State for block operations
 class BlockState {

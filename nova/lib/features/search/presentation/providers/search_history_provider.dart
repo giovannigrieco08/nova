@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/repositories/search_repository.dart';
+import '../../data/providers/search_data_providers.dart';
 import 'search_provider.dart';
 
 /// Provider for search history state

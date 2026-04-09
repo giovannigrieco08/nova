@@ -220,7 +220,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final userId = supabase.auth.currentUser?.id;
 
       if (userId == null) {
-        throw Exception('User not authenticated');
+        throw StateError('User not authenticated');
       }
 
       final avatarUrl = await uploadService.uploadAvatar(
@@ -332,7 +332,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final userId = supabase.auth.currentUser?.id;
 
       if (userId == null) {
-        throw Exception('User not authenticated');
+        throw StateError('User not authenticated');
       }
 
       // Update profile

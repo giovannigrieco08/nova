@@ -2,24 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/comment.dart';
 import '../../domain/repositories/comments_repository_interface.dart';
-import '../../data/datasources/comments_remote_datasource.dart';
-import '../../data/datasources/comments_local_datasource.dart';
-import '../../data/repositories/comments_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/providers/comments_data_providers.dart';
+export '../../data/providers/comments_data_providers.dart' show commentsRepositoryProvider;
 // UGC Safety: Block filtering (T046)
 import '../../../safety/presentation/providers/block_provider.dart';
-
-/// Provider for CommentsRepository
-final commentsRepositoryProvider = Provider<CommentsRepositoryInterface>((ref) {
-  final supabase = Supabase.instance.client;
-  final remoteDataSource = CommentsRemoteDataSource(supabase);
-  final localDataSource = CommentsLocalDataSource();
-
-  // Initialize local data source
-  localDataSource.init();
-
-  return CommentsRepository(remoteDataSource, localDataSource);
-});
 
 /// Provider family for comments by event ID
 ///

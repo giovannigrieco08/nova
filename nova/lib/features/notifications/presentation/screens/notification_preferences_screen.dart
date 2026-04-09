@@ -7,7 +7,7 @@ import '../../../../core/theme/nova_typography.dart';
 import '../../../../core/theme/nova_radius.dart';
 import '../../domain/entities/notification_channel.dart';
 import '../providers/notification_providers.dart';
-import '../../data/datasources/fcm_token_remote_datasource.dart';
+import '../../data/providers/notifications_data_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Notification preferences screen
@@ -150,10 +150,8 @@ class NotificationPreferencesScreen extends ConsumerWidget {
 
   /// Global push notification toggle (T053)
   Widget _buildGlobalPushToggle(BuildContext context, WidgetRef ref) {
-    // Create datasource for push_enabled control
-    final fcmDatasource = FcmTokenRemoteDataSource(
-      Supabase.instance.client,
-    );
+    // Use datasource from provider for push_enabled control
+    final fcmDatasource = ref.read(fcmTokenRemoteDataSourceProvider);
 
     return FutureBuilder<bool>(
       future: fcmDatasource.getPushEnabled(),

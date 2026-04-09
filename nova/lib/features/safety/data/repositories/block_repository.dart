@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/exceptions/nova_exceptions.dart';
 import '../models/user_block.dart';
 
 /// Repository for managing user blocks
@@ -16,11 +17,14 @@ class BlockRepository {
   Future<UserBlock> blockUser(String blockedUserId) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      throw Exception('Utente non autenticato');
+      throw const UnauthorizedException('Utente non autenticato');
     }
 
     if (userId == blockedUserId) {
-      throw Exception('Non puoi bloccare te stesso');
+      throw const ValidationException(
+        'Non puoi bloccare te stesso',
+        field: 'blocked_id',
+      );
     }
 
     final response = await _supabase
@@ -41,7 +45,7 @@ class BlockRepository {
   Future<bool> unblockUser(String blockedUserId) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      throw Exception('Utente non autenticato');
+      throw const UnauthorizedException('Utente non autenticato');
     }
 
     await _supabase
@@ -59,7 +63,7 @@ class BlockRepository {
   Future<List<UserBlock>> getBlockedUsers() async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      throw Exception('Utente non autenticato');
+      throw const UnauthorizedException('Utente non autenticato');
     }
 
     // First get the blocks

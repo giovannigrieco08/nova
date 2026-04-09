@@ -5,7 +5,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import './profile_provider.dart' show profileRepositoryProvider;
 
 /// Export metadata containing download URL
 class GDPRExportMetadata {
@@ -63,7 +62,7 @@ class GDPRExportNotifier extends StateNotifier<GDPRExportState> {
       final session = supabase.auth.currentSession;
 
       if (session == null) {
-        throw Exception('Sessione non valida. Effettua nuovamente il login.');
+        throw StateError('Sessione non valida. Effettua nuovamente il login.');
       }
 
       // Call GDPR export Edge Function
@@ -77,7 +76,7 @@ class GDPRExportNotifier extends StateNotifier<GDPRExportState> {
 
       if (response.status != 200) {
         final errorData = response.data as Map<String, dynamic>?;
-        throw Exception(
+        throw StateError(
             errorData?['message'] ?? 'Errore durante l\'esportazione');
       }
 
@@ -85,7 +84,7 @@ class GDPRExportNotifier extends StateNotifier<GDPRExportState> {
       final downloadUrl = data['download_url'] as String?;
 
       if (downloadUrl == null) {
-        throw Exception('URL di download non disponibile');
+        throw StateError('URL di download non disponibile');
       }
 
       debugPrint('[GDPRExport] Export completed, URL: $downloadUrl');
@@ -165,9 +164,7 @@ class AccountDeletionState {
 /// Handles soft deletion of user accounts per GDPR Article 17.
 /// Sets `deleted_at` timestamp, allowing 30-day grace period for recovery.
 class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
-  final Ref _ref;
-
-  AccountDeletionNotifier(this._ref) : super(const AccountDeletionState());
+  AccountDeletionNotifier() : super(const AccountDeletionState());
 
   /// Soft delete user account
   /// Alias: softDeleteAccount for settings_screen.dart compatibility
@@ -192,7 +189,7 @@ class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
       // Verify user is authenticated
       final currentUser = supabase.auth.currentUser;
       if (currentUser == null) {
-        throw Exception('Utente non autenticato');
+        throw StateError('Utente non autenticato');
       }
 
       debugPrint(
@@ -200,7 +197,7 @@ class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
 
       // Verify user is deleting their own account
       if (currentUser.id != userId) {
-        throw Exception('Puoi eliminare solo il tuo account');
+        throw StateError('Puoi eliminare solo il tuo account');
       }
 
       debugPrint('[AccountDeletion] Calling soft_delete_profile RPC...');
@@ -254,5 +251,5 @@ class AccountDeletionNotifier extends StateNotifier<AccountDeletionState> {
 /// Provider for account deletion
 final accountDeletionProvider =
     StateNotifierProvider<AccountDeletionNotifier, AccountDeletionState>((ref) {
-  return AccountDeletionNotifier(ref);
+  return AccountDeletionNotifier();
 });

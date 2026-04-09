@@ -3,6 +3,7 @@
 // Purpose: Supabase-based remote data source for events API calls
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/exceptions/nova_exceptions.dart';
 import '../models/event_model.dart';
 import '../models/comment_model.dart';
 import '../models/report_model.dart';
@@ -322,10 +323,16 @@ class EventsRemoteDataSource {
   }) async {
     // Client-side validation (server also validates via VARCHAR(500) and RLS)
     if (text.trim().isEmpty) {
-      throw Exception('Comment text cannot be empty');
+      throw const ValidationException(
+        'Comment text cannot be empty',
+        field: 'text',
+      );
     }
     if (text.length > 500) {
-      throw Exception('Comment text must be 500 characters or less');
+      throw const ValidationException(
+        'Comment text must be 500 characters or less',
+        field: 'text',
+      );
     }
 
     final response = await _supabase
@@ -374,8 +381,9 @@ class EventsRemoteDataSource {
   }) async {
     // Validate reason
     if (!ReportModel.isValidReason(reason)) {
-      throw Exception(
+      throw const ValidationException(
         'Invalid report reason. Must be one of: inappropriate, spam, harassment, other',
+        field: 'reason',
       );
     }
 

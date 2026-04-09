@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/exceptions/nova_exceptions.dart';
 import '../models/report.dart';
 
 /// Repository for managing content reports
@@ -21,7 +22,7 @@ class ReportRepository {
   }) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      throw Exception('Utente non autenticato');
+      throw const UnauthorizedException('Utente non autenticato');
     }
 
     // Validate and sanitize note
@@ -34,7 +35,10 @@ class ReportRepository {
           .trim();
 
       if (sanitizedNote.length > 500) {
-        throw Exception('La nota non può superare 500 caratteri');
+        throw const ValidationException(
+          'La nota non può superare 500 caratteri',
+          field: 'note',
+        );
       }
     }
 
@@ -76,7 +80,7 @@ class ReportRepository {
   }) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      throw Exception('Utente non autenticato');
+      throw const UnauthorizedException('Utente non autenticato');
     }
 
     final response = await _supabase

@@ -30,7 +30,7 @@ final myEventsProvider = StreamProvider.autoDispose<List<Event>>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
   final userId = ref.watch(currentUserIdProvider);
 
-  if (userId == null || userId.isEmpty) {
+  if (userId.isEmpty) {
     return Stream.value([]);
   }
 
@@ -55,8 +55,8 @@ final coOrganizedEventsProvider = FutureProvider<List<Event>>((ref) async {
   final repository = ref.watch(eventRepositoryProvider);
   final userId = ref.watch(currentUserIdProvider);
 
-  if (userId == null) {
-    throw Exception('User not authenticated');
+  if (userId.isEmpty) {
+    throw StateError('User not authenticated');
   }
 
   return await repository.getCoOrganizedEvents(userId);

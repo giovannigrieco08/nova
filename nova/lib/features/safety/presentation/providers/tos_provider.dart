@@ -1,20 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/tos_status.dart';
-import '../../data/repositories/tos_repository.dart';
 import '../../domain/services/tos_service.dart';
-
-/// Provider for TosRepository
-final tosRepositoryProvider = Provider<TosRepository>((ref) {
-  return TosRepository();
-});
-
-/// Provider for TosService
-final tosServiceProvider = Provider<TosService>((ref) {
-  return TosService(
-    repository: ref.watch(tosRepositoryProvider),
-  );
-});
+import '../../data/providers/safety_data_providers.dart';
 
 /// State for ToS operations
 class TosState {

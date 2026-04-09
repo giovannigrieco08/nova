@@ -5,19 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/content_check_result.dart';
 import '../../data/repositories/content_filter_repository.dart';
 import '../../domain/services/content_filter_service.dart';
-
-/// Provider for ContentFilterRepository
-final contentFilterRepositoryProvider =
-    Provider<ContentFilterRepository>((ref) {
-  return ContentFilterRepository();
-});
-
-/// Provider for ContentFilterService
-final contentFilterServiceProvider = Provider<ContentFilterService>((ref) {
-  return ContentFilterService(
-    repository: ref.watch(contentFilterRepositoryProvider),
-  );
-});
+import '../../data/providers/safety_data_providers.dart';
 
 /// State for content check
 class ContentCheckState {

@@ -27,7 +27,6 @@ class _InviteUsersSheetState extends ConsumerState<InviteUsersSheet> {
   final _searchController = TextEditingController();
   List<Map<String, dynamic>> _searchResults = [];
   Set<String> _invitedUserIds = {};
-  bool _isSearching = false;
   bool _isLoading = true;
   String _searchQuery = '';
 
@@ -77,7 +76,6 @@ class _InviteUsersSheetState extends ConsumerState<InviteUsersSheet> {
     if (query == _searchQuery) return;
     _searchQuery = query;
 
-    setState(() => _isSearching = true);
     try {
       final supabase = ref.read(supabaseClientProvider);
       final userId = supabase.auth.currentUser?.id;
@@ -93,11 +91,10 @@ class _InviteUsersSheetState extends ConsumerState<InviteUsersSheet> {
       if (_searchQuery == query) {
         setState(() {
           _searchResults = users;
-          _isSearching = false;
         });
       }
     } catch (e) {
-      setState(() => _isSearching = false);
+      // Search failed silently
     }
   }
 

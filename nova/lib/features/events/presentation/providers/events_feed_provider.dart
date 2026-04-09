@@ -4,58 +4,16 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:hive/hive.dart';
 import 'package:nova/core/providers/core_providers.dart';
-import '../../data/data_sources/events_local_data_source.dart';
-import '../../data/data_sources/events_remote_data_source.dart';
+import '../../data/providers/events_data_providers.dart';
 import '../../data/models/event_model.dart';
-import '../../data/repositories/events_repository.dart';
 import '../../domain/usecases/get_events_feed.dart';
 import '../../domain/entities/event.dart';
-import '../../domain/entities/offline_action.dart';
 // UGC Safety: Block filtering (T044)
 import '../../../safety/presentation/providers/block_provider.dart';
 
-// ========================================================================
-// DEPENDENCY PROVIDERS
-// ========================================================================
-// supabaseClientProvider - imported from core_providers.dart
-
-/// Events cache Hive box provider
-final eventsCacheBoxProvider = Provider<Box<EventModel>>((ref) {
-  return Hive.box<EventModel>('events_cache');
-});
-
-/// Offline actions queue Hive box provider
-final offlineActionsBoxProvider = Provider<Box<OfflineAction>>((ref) {
-  return Hive.box<OfflineAction>('offline_actions_queue');
-});
-
-/// Events local data source provider
-final eventsLocalDataSourceProvider = Provider<EventsLocalDataSource>((ref) {
-  final eventsBox = ref.watch(eventsCacheBoxProvider);
-  final offlineActionsBox = ref.watch(offlineActionsBoxProvider);
-  return EventsLocalDataSource(
-    eventsBox: eventsBox,
-    offlineActionsBox: offlineActionsBox,
-  );
-});
-
-/// Events remote data source provider
-final eventsRemoteDataSourceProvider = Provider<EventsRemoteDataSource>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return EventsRemoteDataSource(supabase: supabase);
-});
-
-/// Events repository provider
-final eventsRepositoryProvider = Provider<EventsRepository>((ref) {
-  final localDataSource = ref.watch(eventsLocalDataSourceProvider);
-  final remoteDataSource = ref.watch(eventsRemoteDataSourceProvider);
-  return EventsRepository(
-    localDataSource: localDataSource,
-    remoteDataSource: remoteDataSource,
-  );
-});
+// Re-export data providers so existing consumers continue to work
+export '../../data/providers/events_data_providers.dart';
 
 /// Get events feed use case provider
 final getEventsFeedUseCaseProvider = Provider<GetEventsFeed>((ref) {

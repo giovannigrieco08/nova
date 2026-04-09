@@ -6,39 +6,9 @@ library;
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import '../../data/datasources/search_local_datasource.dart';
-import '../../data/datasources/search_remote_datasource.dart';
-import '../../data/repositories/search_repository.dart';
+import '../../data/providers/search_data_providers.dart';
+export '../../data/providers/search_data_providers.dart';
 import '../../domain/entities/search_results.dart';
-
-// ============================================================================
-// DATA SOURCE PROVIDERS
-// ============================================================================
-
-/// Provider for SearchRemoteDataSource
-final searchRemoteDataSourceProvider = Provider<SearchRemoteDataSource>((ref) {
-  return SearchRemoteDataSource(Supabase.instance.client);
-});
-
-/// Provider for SearchLocalDataSource
-final searchLocalDataSourceProvider = Provider<SearchLocalDataSource>((ref) {
-  return SearchLocalDataSource();
-});
-
-// ============================================================================
-// REPOSITORY PROVIDER
-// ============================================================================
-
-/// Provider for SearchRepository
-final searchRepositoryProvider = Provider<SearchRepository>((ref) {
-  return SearchRepository(
-    remoteDataSource: ref.read(searchRemoteDataSourceProvider),
-    localDataSource: ref.read(searchLocalDataSourceProvider),
-    connectivity: Connectivity(),
-  );
-});
 
 // ============================================================================
 // SEARCH STATE

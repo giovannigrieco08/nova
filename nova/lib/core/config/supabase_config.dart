@@ -3,9 +3,13 @@
 // =====================================================================
 // Purpose: Initialize Supabase client for Flutter app
 // Architecture: Singleton pattern with PKCE flow for security
+//
+// Credentials are injected at compile-time via --dart-define:
+//   flutter run \
+//     --dart-define=SUPABASE_URL=https://xxx.supabase.co \
+//     --dart-define=SUPABASE_ANON_KEY=eyJ...
 // =====================================================================
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase configuration and initialization
@@ -13,22 +17,30 @@ class SupabaseConfig {
   // Private constructor (singleton pattern)
   SupabaseConfig._();
 
-  /// Supabase project URL from environment variables
+  /// Supabase project URL injected at compile-time
+  static const String _url =
+      String.fromEnvironment('SUPABASE_URL');
+
+  /// Supabase anon (public) key injected at compile-time
+  static const String _anonKey =
+      String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  /// Supabase project URL from compile-time environment
   static String get supabaseUrl {
-    final url = dotenv.env['SUPABASE_URL'];
-    if (url == null || url.isEmpty) {
-      throw Exception('SUPABASE_URL not found in .env file');
+    if (_url.isEmpty) {
+      throw StateError(
+          'SUPABASE_URL not provided. Pass --dart-define=SUPABASE_URL=...');
     }
-    return url;
+    return _url;
   }
 
-  /// Supabase anon (public) key from environment variables
+  /// Supabase anon (public) key from compile-time environment
   static String get supabaseAnonKey {
-    final key = dotenv.env['SUPABASE_ANON_KEY'];
-    if (key == null || key.isEmpty) {
-      throw Exception('SUPABASE_ANON_KEY not found in .env file');
+    if (_anonKey.isEmpty) {
+      throw StateError(
+          'SUPABASE_ANON_KEY not provided. Pass --dart-define=SUPABASE_ANON_KEY=...');
     }
-    return key;
+    return _anonKey;
   }
 
   /// Initialize Supabase client
@@ -41,44 +53,17 @@ class SupabaseConfig {
   /// - Persist session: Session persists across app restarts
   ///
   /// Throws:
-  /// - Exception if environment variables are missing
+  /// - Exception if compile-time variables are missing
   /// - Exception if Supabase initialization fails
   static Future<void> initialize() async {
-    try {
-      // Load environment variables from .env file
-      try {
-        await dotenv.load(fileName: '.env');
-      } catch (e) {
-        throw Exception('⚠️  Missing .env file!\n\n'
-            'Setup steps:\n'
-            '1. Copy .env.example to .env\n'
-            '2. Fill in your Supabase credentials\n\n'
-            'See CREDENTIALS.md for detailed instructions');
-      }
-
-      // Validate required environment variables
-      final url = dotenv.env['SUPABASE_URL'];
-      final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
-
-      if (url == null || url.isEmpty || anonKey == null || anonKey.isEmpty) {
-        throw Exception('⚠️  Incomplete .env configuration!\n\n'
-            'Required variables:\n'
-            '- SUPABASE_URL\n'
-            '- SUPABASE_ANON_KEY\n\n'
-            'Check CREDENTIALS.md for setup guide');
-      }
-
-      // Initialize Supabase client
-      await Supabase.initialize(
-        url: supabaseUrl,
-        anonKey: supabaseAnonKey,
-        authOptions: const FlutterAuthClientOptions(
-          authFlowType: AuthFlowType.pkce,
-        ),
-      );
-    } catch (e) {
-      rethrow;
-    }
+    // Initialize Supabase client
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
+    );
   }
 
   /// Get Supabase client instance

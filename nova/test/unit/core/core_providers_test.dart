@@ -178,5 +178,129 @@ void main() {
         expect(email, isNull);
       });
     });
+
+    // =========================================================================
+    // ADDITIONAL EDGE CASE TESTS
+    // =========================================================================
+
+    group('currentUserProvider', () {
+      test('returns User object when authenticated (happy)', () {
+        // Arrange
+        final mockUser = MockUser();
+        when(() => mockUser.id).thenReturn(TestUserIds.student1);
+        when(() => mockUser.email).thenReturn(TestUserEmails.student1);
+        when(() => mockAuth.currentUser).thenReturn(mockUser);
+
+        container = ProviderContainer(
+          overrides: [
+            supabaseClientProvider.overrideWithValue(mockSupabase),
+          ],
+        );
+
+        // Act
+        final user = container.read(currentUserProvider);
+
+        // Assert
+        expect(user, isNotNull);
+        expect(user!.id, equals(TestUserIds.student1));
+      });
+
+      test('returns null when not authenticated (happy)', () {
+        // Arrange
+        when(() => mockAuth.currentUser).thenReturn(null);
+
+        container = ProviderContainer(
+          overrides: [
+            supabaseClientProvider.overrideWithValue(mockSupabase),
+          ],
+        );
+
+        // Act
+        final user = container.read(currentUserProvider);
+
+        // Assert
+        expect(user, isNull);
+      });
+    });
+
+    group('provider consistency (edge cases)', () {
+      test('all auth providers agree when authenticated', () {
+        // Arrange
+        final mockUser = MockUser();
+        when(() => mockUser.id).thenReturn(TestUserIds.student1);
+        when(() => mockUser.email).thenReturn(TestUserEmails.student1);
+        when(() => mockAuth.currentUser).thenReturn(mockUser);
+
+        container = ProviderContainer(
+          overrides: [
+            supabaseClientProvider.overrideWithValue(mockSupabase),
+          ],
+        );
+
+        // Act & Assert
+        expect(container.read(isAuthenticatedProvider), isTrue);
+        expect(container.read(currentUserIdProvider), isNotEmpty);
+        expect(container.read(currentUserIdOrNullProvider), isNotNull);
+        expect(container.read(currentUserEmailProvider), isNotNull);
+        expect(container.read(currentUserProvider), isNotNull);
+      });
+
+      test('all auth providers agree when not authenticated', () {
+        // Arrange
+        when(() => mockAuth.currentUser).thenReturn(null);
+
+        container = ProviderContainer(
+          overrides: [
+            supabaseClientProvider.overrideWithValue(mockSupabase),
+          ],
+        );
+
+        // Act & Assert
+        expect(container.read(isAuthenticatedProvider), isFalse);
+        expect(container.read(currentUserIdProvider), isEmpty);
+        expect(container.read(currentUserIdOrNullProvider), isNull);
+        expect(container.read(currentUserEmailProvider), isNull);
+        expect(container.read(currentUserProvider), isNull);
+      });
+
+      test('currentUserIdProvider returns empty string not null when unauthenticated', () {
+        // Arrange
+        when(() => mockAuth.currentUser).thenReturn(null);
+
+        container = ProviderContainer(
+          overrides: [
+            supabaseClientProvider.overrideWithValue(mockSupabase),
+          ],
+        );
+
+        // Act
+        final userId = container.read(currentUserIdProvider);
+
+        // Assert - explicitly verify type behavior
+        expect(userId, isA<String>());
+        expect(userId, equals(''));
+        expect(userId.isEmpty, isTrue);
+      });
+
+      test('currentUserEmailProvider returns null not empty string when user has no email', () {
+        // Arrange
+        final mockUser = MockUser();
+        when(() => mockUser.id).thenReturn(TestUserIds.student1);
+        when(() => mockUser.email).thenReturn(null);
+        when(() => mockAuth.currentUser).thenReturn(mockUser);
+
+        container = ProviderContainer(
+          overrides: [
+            supabaseClientProvider.overrideWithValue(mockSupabase),
+          ],
+        );
+
+        // Act
+        final email = container.read(currentUserEmailProvider);
+
+        // Assert
+        expect(email, isNull);
+      });
+    });
   });
 }

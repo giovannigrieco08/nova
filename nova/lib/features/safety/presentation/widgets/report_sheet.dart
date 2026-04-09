@@ -89,7 +89,7 @@ class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha:0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -122,7 +122,7 @@ class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
                 child: Text(
                   'Seleziona il motivo della segnalazione',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha:0.7),
                   ),
                 ),
               ),
@@ -260,7 +260,7 @@ class _ReportCategorySheetState extends ConsumerState<ReportCategorySheet> {
                   Text(
                     _getCategoryDescription(category),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha:0.6),
                     ),
                   ),
                 ],

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:nova/core/exceptions/nova_exceptions.dart';
 import 'package:nova/features/chat/data/models/chat_message_model.dart';
 import 'package:nova/features/chat/data/models/chat_reaction_model.dart';
 import 'package:nova/features/chat/data/models/chat_report_model.dart';
@@ -67,11 +68,8 @@ class ChatRemoteDataSource {
       final response =
           await queryBuilder.order('created_at', ascending: false).limit(limit);
       responseList = response;
-    } catch (e) {
-      throw Exception(
-        'Database error: le tabelle della chat potrebbero non esistere. '
-        'Esegui le migrazioni SQL su Supabase. Dettaglio: $e',
-      );
+    } on PostgrestException catch (e, stack) {
+      throw novaExceptionFromSupabaseError(e.code, e.message, stack);
     }
 
     return responseList
@@ -324,7 +322,7 @@ class ChatRemoteDataSource {
     debugPrint('[Datasource] File exists: $fileExists');
 
     if (!fileExists) {
-      throw Exception('File does not exist: $filePath');
+      throw StateError('File does not exist: $filePath');
     }
 
     final fileBytes = await file.readAsBytes();
@@ -381,7 +379,7 @@ class ChatRemoteDataSource {
           .from('ephemeral-media')
           .createSignedUrl(storagePath, 60);
       return response;
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint(
           '[Datasource] getSignedMediaUrl FAILED for path: $storagePath');
       debugPrint('[Datasource] Error: $e');

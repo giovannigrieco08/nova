@@ -11,7 +11,7 @@ import '../providers/notification_providers.dart';
 import '../widgets/notification_tile.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../../events/presentation/screens/event_detail_screen.dart';
-import '../../../events/presentation/providers/events_feed_provider.dart';
+import '../../../events/data/providers/events_data_providers.dart';
 import '../../../profile/presentation/screens/other_profile_screen.dart';
 
 /// Notification list screen (Instagram-style)

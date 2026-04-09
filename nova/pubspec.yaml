@@ -27,9 +27,6 @@ dependencies:
   # Deep Linking
   app_links: ^6.3.2
 
-  # Environment Variables
-  flutter_dotenv: ^5.1.0
-
   # SVG Support
   flutter_svg: ^2.0.10
 
@@ -148,7 +145,6 @@ flutter:
 
   # Assets
   assets:
-    - .env  # Environment variables (Supabase credentials)
     - assets/logos/  # Nova logo and branding assets
 
   # An image asset can refer to one or more resolution-specific "variants", see

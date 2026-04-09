@@ -21,6 +21,9 @@ export 'data/repositories/block_repository.dart';
 export 'data/repositories/tos_repository.dart';
 export 'data/repositories/content_filter_repository.dart';
 
+// Data - Providers
+export 'data/providers/safety_data_providers.dart';
+
 // Services
 export 'domain/services/report_service.dart';
 export 'domain/services/block_service.dart';

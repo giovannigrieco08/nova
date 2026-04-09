@@ -91,7 +91,7 @@ class _ProfilePhotoViewerScreenState
       final userId = supabase.auth.currentUser?.id;
 
       if (userId == null) {
-        throw Exception('User not authenticated');
+        throw StateError('User not authenticated');
       }
 
       // Evict avatar from cache before removing
@@ -144,7 +144,7 @@ class _ProfilePhotoViewerScreenState
       final userId = supabase.auth.currentUser?.id;
 
       if (userId == null) {
-        throw Exception('User not authenticated');
+        throw StateError('User not authenticated');
       }
 
       final avatarUrl = await uploadService.uploadAvatar(

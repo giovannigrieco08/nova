@@ -15,9 +15,7 @@ import 'package:uuid/uuid.dart';
 import 'package:nova/core/providers/core_providers.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/event_status.dart';
-import '../../domain/repositories/event_repository_interface.dart';
-import '../../data/models/event_draft.dart';
-import '../../data/datasources/event_local_datasource.dart';
+import '../../data/providers/events_data_providers.dart';
 import './repository_providers.dart';
 
 // =============================================================================
@@ -656,7 +654,7 @@ final eventCreationProvider =
     StateNotifierProvider<EventCreationNotifier, EventFormState>((ref) {
   final repository = ref.watch(eventRepositoryProvider);
   final localDataSource = ref.watch(eventLocalDataSourceProvider);
-  final currentUserId = ref.watch(currentUserIdProvider) ?? '';
+  final currentUserId = ref.watch(currentUserIdProvider);
 
   return EventCreationNotifier(
     repository: repository,

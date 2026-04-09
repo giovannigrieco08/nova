@@ -270,7 +270,7 @@ class _EventImageCropperState extends State<EventImageCropper> {
       final originalImage = img.decodeImage(bytes);
 
       if (originalImage == null) {
-        throw Exception('Failed to decode image');
+        throw StateError('Failed to decode image');
       }
 
       // Clamp values to image bounds

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/exceptions/nova_exceptions.dart';
 import '../models/content_check_result.dart';
 
 /// Repository for content filtering operations
@@ -60,7 +61,7 @@ class ContentFilterRepository {
   }) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      throw Exception('Utente non autenticato');
+      throw const UnauthorizedException('Utente non autenticato');
     }
 
     final response = await _supabase

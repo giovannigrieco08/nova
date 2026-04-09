@@ -88,20 +88,20 @@ class BlockedUsersScreen extends ConsumerWidget {
             Icon(
               Icons.people_outline,
               size: 80,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha:0.3),
             ),
             const SizedBox(height: 24),
             Text(
               'Nessun utente bloccato',
               style: theme.textTheme.titleLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha:0.7),
               ),
             ),
             const SizedBox(height: 12),
             Text(
               'Quando blocchi qualcuno, apparirà qui.\nPotrai sbloccarlo in qualsiasi momento.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha:0.5),
               ),
               textAlign: TextAlign.center,
             ),
@@ -151,13 +151,13 @@ class BlockedUserTile extends ConsumerWidget {
             Text(
               '@${user!.username}',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha:0.6),
               ),
             ),
           Text(
             'Bloccato ${_formatDate(block.createdAt)}',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha:0.5),
             ),
           ),
         ],

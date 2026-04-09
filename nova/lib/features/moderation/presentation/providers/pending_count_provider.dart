@@ -8,10 +8,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pending_events_provider.dart';
 
-/// Provider for pending events count (badge indicator)
+/// Provider for pending events count (badge indicator).
 ///
-/// Derived from pendingEventsProvider - returns list.length
-/// Used in NovaBottomNavBar to show moderation queue badge
-final pendingCountProvider = StreamProvider.autoDispose<int>((ref) {
-  return ref.watch(pendingEventsProvider.stream).map((events) => events.length);
+/// Derived from pendingEventsProvider - returns list.length.
+/// Used in NovaBottomNavBar to show moderation queue badge.
+final pendingCountProvider = Provider.autoDispose<AsyncValue<int>>((ref) {
+  return ref.watch(pendingEventsProvider).whenData((events) => events.length);
 });

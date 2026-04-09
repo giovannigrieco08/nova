@@ -254,7 +254,7 @@ class _AvatarCropperState extends State<AvatarCropper> {
       var originalImage = img.decodeImage(bytes);
 
       if (originalImage == null) {
-        throw Exception('Failed to decode image');
+        throw StateError('Failed to decode image');
       }
 
       // Bake EXIF orientation into pixels before cropping

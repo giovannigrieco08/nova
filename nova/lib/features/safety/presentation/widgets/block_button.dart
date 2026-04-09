@@ -72,7 +72,7 @@ class BlockButton extends ConsumerWidget {
       return IconButton(
         icon: Icon(
           Icons.block,
-          color: theme.colorScheme.onSurface.withOpacity(0.5),
+          color: theme.colorScheme.onSurface.withValues(alpha:0.5),
         ),
         onPressed: null,
         tooltip: 'Utente bloccato',
@@ -84,12 +84,12 @@ class BlockButton extends ConsumerWidget {
       icon: Icon(
         Icons.block,
         size: 18,
-        color: theme.colorScheme.onSurface.withOpacity(0.5),
+        color: theme.colorScheme.onSurface.withValues(alpha:0.5),
       ),
       label: Text(
         'Bloccato',
         style: TextStyle(
-          color: theme.colorScheme.onSurface.withOpacity(0.5),
+          color: theme.colorScheme.onSurface.withValues(alpha:0.5),
         ),
       ),
     );
@@ -190,7 +190,7 @@ class BlockConfirmationDialog extends StatelessWidget {
           Text(
             'Potrai sbloccare in qualsiasi momento dalle impostazioni.',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha:0.6),
             ),
           ),
         ],
@@ -287,7 +287,7 @@ class BlockMenuItem extends ConsumerWidget {
           Icon(
             Icons.block,
             color: blocked
-                ? theme.colorScheme.onSurface.withOpacity(0.5)
+                ? theme.colorScheme.onSurface.withValues(alpha:0.5)
                 : theme.colorScheme.error,
           ),
           const SizedBox(width: 12),
@@ -295,7 +295,7 @@ class BlockMenuItem extends ConsumerWidget {
             blocked ? 'Bloccato' : 'Blocca',
             style: TextStyle(
               color: blocked
-                  ? theme.colorScheme.onSurface.withOpacity(0.5)
+                  ? theme.colorScheme.onSurface.withValues(alpha:0.5)
                   : theme.colorScheme.error,
             ),
           ),
@@ -331,14 +331,14 @@ class BlockListTile extends ConsumerWidget {
       leading: Icon(
         Icons.block,
         color: blocked
-            ? theme.colorScheme.onSurface.withOpacity(0.5)
+            ? theme.colorScheme.onSurface.withValues(alpha:0.5)
             : theme.colorScheme.error,
       ),
       title: Text(
         blocked ? 'Utente bloccato' : 'Blocca utente',
         style: TextStyle(
           color: blocked
-              ? theme.colorScheme.onSurface.withOpacity(0.5)
+              ? theme.colorScheme.onSurface.withValues(alpha:0.5)
               : theme.colorScheme.error,
         ),
       ),
@@ -347,7 +347,7 @@ class BlockListTile extends ConsumerWidget {
           : Text(
               'Non vedrai più i suoi contenuti',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha:0.6),
               ),
             ),
       onTap: blocked || isLoading

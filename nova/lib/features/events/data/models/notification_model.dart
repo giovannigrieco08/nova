@@ -80,8 +80,7 @@ class NotificationModel {
     return AppNotification(
       id: id,
       userId: userId,
-      channel:
-          NotificationChannel.values.byName(channel), // Convert String to enum
+      channel: _channelFromDbValue(channel),
       title: title,
       body: body,
       eventId: eventId,
@@ -89,6 +88,23 @@ class NotificationModel {
       read: read,
       delivered: delivered,
     );
+  }
+
+  /// Map snake_case DB value to NotificationChannel enum.
+  /// The DB stores 'event_approved' but Dart enum names are camelCase.
+  static NotificationChannel _channelFromDbValue(String value) {
+    const mapping = {
+      'event_approved': NotificationChannel.eventApproved,
+      'event_rejected': NotificationChannel.eventRejected,
+      'new_pending_event': NotificationChannel.newPendingEvent,
+      'added_as_coorganizer': NotificationChannel.addedAsCoorganizer,
+      'event_modified': NotificationChannel.eventModified,
+      'event_invitation': NotificationChannel.eventInvitation,
+    };
+    final channel = mapping[value];
+    if (channel != null) return channel;
+    // Fallback: try byName for camelCase values
+    return NotificationChannel.values.byName(value);
   }
 
   /// CopyWith for partial updates

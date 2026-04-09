@@ -3,39 +3,13 @@
 // Purpose: Riverpod providers for tutor state management
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/tutor_profile.dart';
 import '../../domain/entities/subject.dart';
-import '../../data/datasources/tutor_remote_datasource.dart';
-import '../../data/repositories/tutor_repository.dart';
+import '../../data/providers/tutoring_data_providers.dart';
 
-// ============================================================================
-// DEPENDENCY INJECTION PROVIDERS
-// ============================================================================
-
-/// Supabase client provider (re-export for feature isolation)
-final _supabaseClientProvider = Provider<SupabaseClient>((ref) {
-  return Supabase.instance.client;
-});
-
-/// Current user ID provider (from auth state)
-final _currentUserIdProvider = Provider<String?>((ref) {
-  final supabase = ref.watch(_supabaseClientProvider);
-  return supabase.auth.currentUser?.id;
-});
-
-/// Tutor remote datasource provider
-final tutorDatasourceProvider = Provider<TutorRemoteDataSource>((ref) {
-  final supabase = ref.watch(_supabaseClientProvider);
-  return TutorRemoteDataSource(supabase);
-});
-
-/// Tutor repository provider
-final tutorRepositoryProvider = Provider<TutorRepository>((ref) {
-  final dataSource = ref.watch(tutorDatasourceProvider);
-  return TutorRepository(dataSource);
-});
+// Re-export data layer providers for backward compatibility
+export '../../data/providers/tutoring_data_providers.dart';
 
 // ============================================================================
 // STATE PROVIDERS - Current User Tutor Profile
@@ -57,7 +31,7 @@ final tutorRepositoryProvider = Provider<TutorRepository>((ref) {
 /// ```
 final currentTutorProfileProvider = FutureProvider<TutorProfile?>((ref) async {
   final repository = ref.watch(tutorRepositoryProvider);
-  final userId = ref.watch(_currentUserIdProvider);
+  final userId = ref.watch(tutorCurrentUserIdProvider);
 
   if (userId == null) return null;
 
@@ -231,7 +205,7 @@ class CreateTutorProfileNotifier
     state = const AsyncValue.loading();
 
     try {
-      final userId = _ref.read(_currentUserIdProvider);
+      final userId = _ref.read(tutorCurrentUserIdProvider);
       if (userId == null) {
         const result = CreateTutorResult(error: 'Utente non autenticato');
         state = const AsyncValue.data(result);
@@ -308,7 +282,7 @@ class UpdateTutorProfileNotifier
     state = const AsyncValue.loading();
 
     try {
-      final userId = _ref.read(_currentUserIdProvider);
+      final userId = _ref.read(tutorCurrentUserIdProvider);
       if (userId == null) {
         const result = UpdateTutorResult(error: 'Utente non autenticato');
         state = const AsyncValue.data(result);
@@ -363,7 +337,7 @@ class ToggleTutorActiveNotifier
     state = const AsyncValue.loading();
 
     try {
-      final userId = _ref.read(_currentUserIdProvider);
+      final userId = _ref.read(tutorCurrentUserIdProvider);
       if (userId == null) {
         state = const AsyncValue.data(null);
         return null;

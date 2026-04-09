@@ -1,3 +1,4 @@
+import '../../../../core/exceptions/nova_exceptions.dart';
 import '../entities/comment_report.dart';
 import '../repositories/comments_repository_interface.dart';
 
@@ -54,8 +55,10 @@ class ReportComment {
   }) async {
     // Validate details length
     if (details != null && details.length > 500) {
-      throw Exception(
-          'I dettagli aggiuntivi non possono superare 500 caratteri');
+      throw const ValidationException(
+        'I dettagli aggiuntivi non possono superare 500 caratteri',
+        field: 'details',
+      );
     }
 
     // Submit report to repository

@@ -4,10 +4,9 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/profile.dart';
-import '../../data/repositories/profile_repository.dart';
-import './profile_provider.dart'
-    show profileRepositoryProvider, avatarUploadServiceProvider;
-import '../../../events/presentation/providers/events_feed_provider.dart'
+import '../../data/providers/profile_data_providers.dart';
+import './profile_provider.dart';
+import '../../../events/data/providers/events_data_providers.dart'
     show eventsRepositoryProvider;
 import '../../../events/domain/entities/event.dart';
 

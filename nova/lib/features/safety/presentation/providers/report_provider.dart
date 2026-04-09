@@ -1,20 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/report.dart';
-import '../../data/repositories/report_repository.dart';
 import '../../domain/services/report_service.dart';
-
-/// Provider for ReportRepository
-final reportRepositoryProvider = Provider<ReportRepository>((ref) {
-  return ReportRepository();
-});
-
-/// Provider for ReportService
-final reportServiceProvider = Provider<ReportService>((ref) {
-  return ReportService(
-    repository: ref.watch(reportRepositoryProvider),
-  );
-});
+import '../../data/providers/safety_data_providers.dart';
 
 /// State for report submission
 class ReportState {

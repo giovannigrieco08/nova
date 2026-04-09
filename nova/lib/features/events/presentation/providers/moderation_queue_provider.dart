@@ -92,10 +92,10 @@ class ModerationQueueNotifier extends StateNotifier<AsyncValue<List<Event>>> {
   /// Reject event with optimistic update
   Future<void> rejectEvent(String eventId, String rejectionReason) async {
     if (rejectionReason.trim().isEmpty) {
-      throw Exception('Rejection reason is required');
+      throw StateError('Rejection reason is required');
     }
     if (rejectionReason.trim().length < 10) {
-      throw Exception('Rejection reason must be at least 10 characters');
+      throw StateError('Rejection reason must be at least 10 characters');
     }
 
     // Find the event before removing (for potential rollback)
