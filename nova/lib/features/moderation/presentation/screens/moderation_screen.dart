@@ -782,7 +782,7 @@ class _ModerationScreenState extends ConsumerState<ModerationScreen>
         content: TextField(
           controller: reasonController,
           decoration: const InputDecoration(
-            hintText: 'Inserisci il motivo...',
+            hintText: 'Inserisci il motivo (minimo 10 caratteri)...',
             border: OutlineInputBorder(),
           ),
           maxLines: 3,
@@ -795,8 +795,9 @@ class _ModerationScreenState extends ConsumerState<ModerationScreen>
           ),
           TextButton(
             onPressed: () {
-              if (reasonController.text.trim().isNotEmpty) {
-                Navigator.pop(context, reasonController.text.trim());
+              final trimmed = reasonController.text.trim();
+              if (trimmed.length >= 10) {
+                Navigator.pop(context, trimmed);
               }
             },
             child: Text(
