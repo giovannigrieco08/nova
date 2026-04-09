@@ -47,6 +47,7 @@ app.*.map.json
 # Environment files - NEVER COMMIT CREDENTIALS
 .env*
 !.env.example
+ios/Flutter/DartDefines.xcconfig
 
 # Generated code (build_runner, freezed, Riverpod)
 *.g.dart
