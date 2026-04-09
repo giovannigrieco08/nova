@@ -5,6 +5,7 @@
 // All queries respect Row-Level Security (RLS) policies defined in migration 005.
 // Supabase client automatically includes auth token in headers.
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 
@@ -135,6 +136,7 @@ class EventRemoteDataSource {
   /// RLS: users_create_events policy
   Future<EventModel> createEvent(EventModel event) async {
     try {
+      final authUserId = _supabase.auth.currentUser?.id;
       // Only send user-provided fields; let DB handle id, timestamps, moderation
       final insertData = {
         'title': event.title,
@@ -142,13 +144,16 @@ class EventRemoteDataSource {
         'event_date': event.eventDate.toIso8601String(),
         'location': event.location,
         'image_url': event.imageUrl,
-        'creator_id': event.creatorId,
+        'creator_id': authUserId, // Use auth.uid() directly to match RLS policy
         'co_organizers': event.coOrganizers,
         'status': 'pending',
         if (event.latitude != null) 'latitude': event.latitude,
         if (event.longitude != null) 'longitude': event.longitude,
         if (event.placeId != null) 'place_id': event.placeId,
       };
+
+      debugPrint('📝 [EVENT_CREATE] auth.uid=$authUserId, creator_id=${event.creatorId}, match=${authUserId == event.creatorId}');
+      debugPrint('📝 [EVENT_CREATE] insertData=$insertData');
 
       final response = await _supabase
           .from('events')
