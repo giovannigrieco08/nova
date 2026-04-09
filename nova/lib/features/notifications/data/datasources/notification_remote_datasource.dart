@@ -16,21 +16,46 @@ class NotificationRemoteDataSource {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return [];
 
+    // Fetch notifications without FK join (FK was removed in migration 063)
     final response = await _supabase
         .from('notifications')
-        .select('''
-          *,
-          actor:profiles!sender_id(
-            full_name,
-            avatar_url
-          )
-        ''')
+        .select('*')
         .eq('recipient_id', userId)
         .order('created_at', ascending: false)
         .limit(limit);
 
-    return (response as List)
-        .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
+    // Collect unique sender IDs to fetch profiles separately
+    final senderIds = (response as List)
+        .map((n) => n['sender_id'] as String?)
+        .where((id) => id != null)
+        .toSet()
+        .toList();
+
+    // Fetch sender profiles in one query
+    Map<String, Map<String, dynamic>> profileMap = {};
+    if (senderIds.isNotEmpty) {
+      final profiles = await _supabase
+          .from('profiles')
+          .select('user_id, full_name, avatar_url')
+          .inFilter('user_id', senderIds);
+
+      for (final p in profiles as List) {
+        profileMap[p['user_id'] as String] = p as Map<String, dynamic>;
+      }
+    }
+
+    // Merge actor data into notifications
+    final enriched = (response as List).map((n) {
+      final senderId = n['sender_id'] as String?;
+      final profile = senderId != null ? profileMap[senderId] : null;
+      return {
+        ...n as Map<String, dynamic>,
+        'actor': profile,
+      };
+    }).toList();
+
+    return enriched
+        .map((json) => AppNotification.fromJson(json))
         .toList();
   }
 
