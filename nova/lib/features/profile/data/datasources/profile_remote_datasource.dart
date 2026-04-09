@@ -218,7 +218,7 @@ class ProfileRemoteDataSource {
   }
 
   /// Get profile statistics (events created, participations)
-  /// Uses Supabase RPC function
+  /// Falls back to direct count queries if RPC is unavailable
   Future<ProfileStats> getProfileStats(String userId) async {
     try {
       final result = await _supabase.rpc(
@@ -231,16 +231,41 @@ class ProfileRemoteDataSource {
       }
 
       return ProfileStats.fromJson(result[0] as Map<String, dynamic>);
-    } catch (e) {
-      // Return empty stats on error
+    } catch (_) {
+      // RPC might not exist or fail - fall back to direct queries
+      return _getProfileStatsDirect(userId);
+    }
+  }
+
+  /// Direct count queries as fallback when RPC is unavailable
+  Future<ProfileStats> _getProfileStatsDirect(String userId) async {
+    try {
+      final eventsResult = await _supabase
+          .from('events')
+          .select()
+          .eq('creator_id', userId)
+          .eq('status', 'approved')
+          .count(CountOption.exact);
+
+      final participationsResult = await _supabase
+          .from('participations')
+          .select()
+          .eq('user_id', userId)
+          .count(CountOption.exact);
+
+      return ProfileStats(
+        eventsCreatedCount: eventsResult.count,
+        participationsCount: participationsResult.count,
+      );
+    } catch (_) {
       return ProfileStats.empty();
     }
   }
 
-  /// Watch for changes that affect profile stats (events created, participations)
-  /// Returns a stream that emits whenever relevant changes occur
+  /// Watch for changes that affect profile stats
   Stream<void> watchStatsChanges(String userId) {
-    // Merge streams from events table (created_by) and event_participants table (user_id)
+    final controller = StreamController<void>.broadcast();
+
     final eventsChannel = _supabase
         .channel('events_stats_$userId')
         .onPostgresChanges(
@@ -249,10 +274,10 @@ class ProfileRemoteDataSource {
           table: 'events',
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
-            column: 'created_by',
+            column: 'creator_id',
             value: userId,
           ),
-          callback: (_) {},
+          callback: (_) => controller.add(null),
         )
         .subscribe();
 
@@ -267,37 +292,9 @@ class ProfileRemoteDataSource {
             column: 'user_id',
             value: userId,
           ),
-          callback: (_) {},
+          callback: (_) => controller.add(null),
         )
         .subscribe();
-
-    // Create a combined stream controller
-    final controller = StreamController<void>.broadcast();
-
-    // Set up listeners on both channels
-    _supabase.channel('events_stats_$userId').onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'events',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'creator_id',
-            value: userId,
-          ),
-          callback: (_) => controller.add(null),
-        );
-
-    _supabase.channel('participants_stats_$userId').onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'participations',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user_id',
-            value: userId,
-          ),
-          callback: (_) => controller.add(null),
-        );
 
     controller.onCancel = () {
       _supabase.removeChannel(eventsChannel);
